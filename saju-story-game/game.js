@@ -346,7 +346,7 @@
     event.choices.forEach((choice, idx) => {
       const btn = document.createElement('button');
       btn.className = 'choice-btn';
-      btn.textContent = choice.text;
+      btn.innerHTML = `<span class="choice-text">${choice.text}</span><span class="choice-preview">${previewLine(choice.effects)}</span>`;
       btn.onclick = () => chooseOption(idx);
       choiceWrap.appendChild(btn);
     });
@@ -357,6 +357,21 @@
 
     $('#skip-open-btn').classList.toggle('hidden', isMilestone);
     closeSkipModal();
+  }
+
+  // 선택 전 미리 보여줄 예상 결과 해석 - 가장 크게 움직일 스탯 1~2개를 방향/크기와 함께 서술
+  function previewLine(effects) {
+    const entries = Object.entries(effects).filter(([, v]) => v !== 0);
+    entries.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+    if (entries.length === 0) return '큰 변화는 없을 것으로 보입니다';
+    const parts = entries.slice(0, 2).map(([key, v]) => {
+      const def = GameData.STATS.find((s) => s.key === key);
+      const mag = Math.abs(v);
+      const dir = v > 0 ? '상승' : '하락';
+      const qualifier = mag >= 8 ? '크게 ' : mag <= 3 ? '소폭 ' : '';
+      return `${def.icon} ${def.label} ${qualifier}${dir}`;
+    });
+    return parts.join(' · ') + ' 예상';
   }
 
   function applyTier(delta, tierMult) {

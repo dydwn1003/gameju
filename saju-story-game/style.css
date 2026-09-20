@@ -238,8 +238,11 @@ input[type="text"], input[type="number"], select {
 .choices-wrap { display: flex; flex-direction: column; gap: 8px; }
 .choices-wrap.hidden { display: none; }
 .choice-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   text-align: left;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: rgba(27, 30, 43, 0.9);
@@ -249,6 +252,8 @@ input[type="text"], input[type="number"], select {
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 .choice-btn:hover { border-color: var(--gold); background: #262b42; }
+.choice-text { display: block; }
+.choice-preview { display: block; font-size: 0.76rem; color: var(--text-dim); }
 
 .result-panel.hidden { display: none; }
 .result-panel { background: rgba(27, 30, 43, 0.9); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
