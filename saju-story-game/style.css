@@ -74,53 +74,6 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .radio-row label { display: flex; align-items: center; gap: 6px; }
 .checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-dim); margin-top: 8px; }
 
-/* ── 생시 원형 시계 ── */
-.birth-clock {
-  position: relative;
-  width: 200px;
-  height: 200px;
-  margin: 6px auto 14px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 42%, #2a2440 0%, var(--bg-soft) 70%);
-  border: 1px solid rgba(216, 178, 92, 0.3);
-  box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.4);
-}
-.birth-clock.disabled { opacity: 0.4; pointer-events: none; }
-.birth-clock-center {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-}
-.birth-clock-readout { font-size: 1.15rem; font-weight: 700; color: var(--gold-soft); font-variant-numeric: tabular-nums; }
-.birth-clock-branch { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
-.clock-wedge {
-  position: absolute;
-  width: 34px;
-  height: 34px;
-  margin-left: -17px;
-  margin-top: -17px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--text);
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-}
-.clock-wedge:hover { border-color: var(--gold); transform: scale(1.08); }
-.clock-wedge.active { background: linear-gradient(135deg, var(--gold-soft), var(--gold)); color: #2a2110; border-color: var(--gold); box-shadow: 0 0 10px rgba(216, 178, 92, 0.5); }
-
-.birth-time-exact { align-items: center; margin-bottom: 4px; }
-.birth-time-exact-label { font-size: 0.8rem; color: var(--text-dim); white-space: nowrap; flex: none; }
-
 .primary-btn {
   width: 100%;
   padding: 13px;
@@ -399,28 +352,27 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .daeun-chip.current { outline: 2px solid var(--gold); outline-offset: -2px; background: #3a3320; }
 .daeun-chip.current .daeun-chip-age { color: var(--gold-soft); }
 
-.saeun-list { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 2px; }
-.saeun-row {
-  display: grid;
-  grid-template-columns: 2.4em 3.6em 2.6em 1fr auto;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 7px;
+.saeun-list { max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+.saeun-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 10px;
+  border-radius: 8px;
   border-left: 3px solid var(--border);
   background: var(--bg-soft);
-  font-size: 0.78rem;
 }
-.saeun-row.current { background: #3a3320; border-left-color: var(--gold); }
+.saeun-card.current { background: #3a3320; border-left-color: var(--gold); }
+.saeun-card-head { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; }
 .saeun-age { color: var(--text-dim); }
 .saeun-year { color: var(--text-dim); }
-.saeun-ganzhi { font-weight: 700; }
-.saeun-dominant { color: var(--text-dim); font-size: 0.72rem; }
-.saeun-row.tier-대길 { border-left-color: var(--tier-대길); }
-.saeun-row.tier-길 { border-left-color: var(--tier-길); }
-.saeun-row.tier-평 { border-left-color: var(--tier-평); }
-.saeun-row.tier-흉 { border-left-color: var(--tier-흉); }
-.saeun-row.tier-대흉 { border-left-color: var(--tier-대흉); }
+.saeun-ganzhi { font-weight: 700; flex: 1; }
+.saeun-desc { margin: 0; font-size: 0.76rem; color: var(--text-dim); line-height: 1.55; }
+.saeun-card.tier-대길 { border-left-color: var(--tier-대길); }
+.saeun-card.tier-길 { border-left-color: var(--tier-길); }
+.saeun-card.tier-평 { border-left-color: var(--tier-평); }
+.saeun-card.tier-흉 { border-left-color: var(--tier-흉); }
+.saeun-card.tier-대흉 { border-left-color: var(--tier-대흉); }
 .saeun-tier-badge {
   font-size: 0.68rem;
   font-weight: 700;

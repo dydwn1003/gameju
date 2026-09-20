@@ -303,6 +303,15 @@ const Saju = (() => {
     };
   }
 
+  // 십성별 한 해 전체를 아우르는 도입부 (monthlyFortune의 DOMAIN_INTRO를 연 단위로 바꾼 버전)
+  const YEAR_DOMAIN_INTRO = {
+    비겁: '이 해는 비견·겁재의 기운이 두드러져, 나 자신과 동료·친구·형제 같은 주변 사람들과의 관계가 한 해의 화두로 떠오릅니다.',
+    식상: '이 해는 식신·상관의 기운이 강해져, 표현하고 움직이고 도전하고 싶은 마음이 한 해 내내 커지는 시기입니다.',
+    재성: '이 해는 재성의 기운이 짙게 들어와, 돈과 관련된 크고 작은 일들이 한 해의 중심에 놓이는 시기입니다.',
+    관성: '이 해는 관성의 기운이 강하게 들어와, 책임과 역할, 평가와 관련된 일들이 한 해 내내 무게감 있게 다가옵니다.',
+    인성: '이 해는 인성의 기운이 두드러져, 배움과 휴식, 나를 돌보는 일이 한 해의 중요한 화두가 되는 시기입니다.',
+  };
+
   const TIER_REMARK = {
     대길: '사주에서 예견된 대로 좋은 결과로 이어졌습니다.',
     길: '전체적으로 무난하고 좋은 흐름이었습니다.',
@@ -337,7 +346,9 @@ const Saju = (() => {
     else if (score > -1.5) tier = '흉';
     else tier = '대흉';
 
-    return { tier, dominant, pillarLabel: pillarLabel(cur.year) };
+    const desc = `${YEAR_DOMAIN_INTRO[dominant]} ${DOMAIN_TIER_BODY[dominant][tier]} ${TIER_ADVICE[tier]}`;
+
+    return { tier, dominant, desc, pillarLabel: pillarLabel(cur.year) };
   }
 
   // 대운(大運): 월주를 기준으로 순행/역행하며 10년마다 바뀌는 큰 운의 흐름

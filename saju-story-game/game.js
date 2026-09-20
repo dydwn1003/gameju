@@ -146,61 +146,10 @@
     ['#char-natal', '#char-game', '#char-end'].forEach((sel) => updateCharacter($(sel)));
   }
 
-  // ── 인트로 폼: 12지지 원형 시계 ──
-  const BRANCH_HOUR_START = [23, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21]; // 자축인묘진사오미신유술해
-
-  function branchIndexForHour(hh) {
-    return Math.floor((hh + 1) / 2) % 12;
-  }
-
-  function buildBirthClock() {
-    const face = $('#birth-clock');
-    const radius = 84;
-    for (let i = 0; i < 12; i++) {
-      const angle = (i * 30 - 90) * (Math.PI / 180);
-      const dx = radius * Math.cos(angle);
-      const dy = radius * Math.sin(angle);
-      const startH = BRANCH_HOUR_START[i];
-      const endH = (startH + 1) % 24;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'clock-wedge';
-      btn.dataset.branch = i;
-      btn.style.left = `calc(50% + ${dx}px)`;
-      btn.style.top = `calc(50% + ${dy}px)`;
-      btn.textContent = Saju.BRANCHES[i];
-      btn.title = `${Saju.BRANCHES[i]}시 (${String(startH).padStart(2, '0')}:00~${String(endH).padStart(2, '0')}:59)`;
-      btn.onclick = () => {
-        const timeInput = $('#birth-time');
-        const cur = timeInput.value || '12:00';
-        const mm = cur.slice(3, 5) || '00';
-        timeInput.value = `${String(startH).padStart(2, '0')}:${mm}`;
-        updateBirthClockDisplay();
-      };
-      face.appendChild(btn);
-    }
-  }
-
-  function updateBirthClockDisplay() {
-    const val = $('#birth-time').value || '12:00';
-    const hh = parseInt(val.slice(0, 2), 10);
-    const mm = val.slice(3, 5);
-    const branchIdx = branchIndexForHour(hh);
-    document.querySelectorAll('.clock-wedge').forEach((el) => {
-      el.classList.toggle('active', parseInt(el.dataset.branch, 10) === branchIdx);
-    });
-    $('#birth-clock-readout').textContent = `${String(hh).padStart(2, '0')}:${mm}`;
-    $('#birth-clock-branch').textContent = `${Saju.BRANCHES[branchIdx]}시`;
-  }
-
   function initIntroForm() {
     const timeInput = $('#birth-time');
-    buildBirthClock();
-    updateBirthClockDisplay();
-    timeInput.addEventListener('input', updateBirthClockDisplay);
     $('#unknown-time').addEventListener('change', (e) => {
       timeInput.disabled = e.target.checked;
-      $('#birth-clock').classList.toggle('disabled', e.target.checked);
     });
     $('#intro-form').addEventListener('submit', onSubmitIntro);
   }
@@ -739,13 +688,15 @@
       const age = year - state.birth.y;
       const fortune = Saju.yearlyFortune(state.saju, year);
       const row = document.createElement('div');
-      row.className = `saeun-row tier-${fortune.tier}` + (year === curYear ? ' current' : '');
+      row.className = `saeun-card tier-${fortune.tier}` + (year === curYear ? ' current' : '');
       row.innerHTML = `
-        <span class="saeun-age">${age}세</span>
-        <span class="saeun-year">${year}년</span>
-        <span class="saeun-ganzhi">${fortune.pillarLabel}</span>
-        <span class="saeun-dominant">${fortune.dominant}</span>
-        <span class="saeun-tier-badge tier-${fortune.tier}">${fortune.tier}</span>`;
+        <div class="saeun-card-head">
+          <span class="saeun-age">${age}세</span>
+          <span class="saeun-year">${year}년</span>
+          <span class="saeun-ganzhi">${fortune.pillarLabel}</span>
+          <span class="saeun-tier-badge tier-${fortune.tier}">${fortune.tier}</span>
+        </div>
+        <p class="saeun-desc">${fortune.desc}</p>`;
       saeunWrap.appendChild(row);
     }
   }
