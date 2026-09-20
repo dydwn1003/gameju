@@ -414,6 +414,24 @@
     return entries.map(([k, v]) => STAT_FLAVOR[k](v)).filter(Boolean).join(' ');
   }
 
+  const DOMAIN_NOUN = { 비겁: '비견·겁재', 식상: '식신·상관', 재성: '재성', 관성: '관성', 인성: '인성' };
+
+  // 선택 하나를 "그 달의 사주 맥락 -> 선택 -> 결과 -> 예견과의 일치" 순서로 길게 풀어서 서술
+  function composeMonthlyReading(current, choice, applied) {
+    const { event, fortune, age, year, month } = current;
+    const domainNoun = DOMAIN_NOUN[fortune.dominant];
+    const detail = detailedResultText(applied);
+    const remark = Saju.TIER_REMARK[fortune.tier];
+    const parts = [
+      `${year}년 ${month}월(${fortune.pillarLabel}), ${age}세의 이 달은 ${domainNoun}의 기운이 짙게 흐르며 '${fortune.tier}'으로 풀이되던 시기였습니다.`,
+      `그 가운데 「${event.title}」에서 '${choice.text}'를 선택했습니다.`,
+      choice.result,
+      detail,
+      remark,
+    ];
+    return parts.filter(Boolean).join(' ');
+  }
+
   function chooseOption(idx) {
     if (state.current.resolved) return;
     state.current.resolved = true;
@@ -426,16 +444,14 @@
     }
     clampStats();
 
-    state.log.unshift({ age, year, month, title: event.title, choiceText: choice.text, result: choice.result, applied, tier: fortune.tier });
-    if (state.log.length > 30) state.log.pop();
+    state.log.unshift({ age, year, month, title: event.title, choiceText: choice.text, result: choice.result, applied, tier: fortune.tier, domain: event.domain });
 
     renderStatChips();
     $('#event-choices').classList.add('hidden');
     const panel = $('#result-panel');
     panel.classList.remove('hidden');
     $('#result-text').textContent = choice.result;
-    $('#result-detail').textContent = detailedResultText(applied);
-    $('#result-remark').textContent = Saju.TIER_REMARK[fortune.tier];
+    $('#result-reading').textContent = composeMonthlyReading(state.current, choice, applied);
     $('#result-effects').innerHTML = Object.entries(applied)
       .map(([k, v]) => {
         const def = GameData.STATS.find((s) => s.key === k);
@@ -582,7 +598,6 @@
       result: `${fromCal.age}세부터 ${capCal.age}세까지, ${strategy.label} 시간을 보냈습니다.`,
       applied, tier: avgTier,
     });
-    if (state.log.length > 30) state.log.pop();
 
     closeSkipModal();
 
@@ -627,6 +642,70 @@
     fame: '많은 이들에게 신망을 받으며 살아간 사람이었습니다.',
   };
 
+  // 받침 유무에 따라 "이/가", "은/는" 등 조사를 골라 자연스러운 문장을 만든다
+  function josa(word, withBatchim, withoutBatchim) {
+    const code = word.charCodeAt(word.length - 1) - 0xac00;
+    if (code < 0 || code > 11171) return withoutBatchim;
+    return code % 28 !== 0 ? withBatchim : withoutBatchim;
+  }
+
+  const DOMAIN_LIFE_THEME = {
+    비겁: '스스로의 힘과 주변 사람들과의 관계를 지키려는 선택들',
+    식상: '표현하고 도전하며 움직이는 선택들',
+    재성: '재물과 실질적인 성과를 좇는 선택들',
+    관성: '책임과 명예를 지키려는 선택들',
+    인성: '배움과 성찰을 우선하는 선택들',
+  };
+  const DAY_MASTER_TRAIT = {
+    목: '유연하고 성장 지향적인',
+    화: '열정적이고 표현력 넘치는',
+    토: '안정적이고 신뢰를 중시하는',
+    금: '결단력 있고 원칙을 지키는',
+    수: '지혜롭고 통찰이 깊은',
+  };
+
+  // 평생의 선택 기록(state.log 전체)을 모아 일생을 돌아보는 해설을 구성
+  function generateLifeReading() {
+    const domainCount = {};
+    const tierCount = { 대길: 0, 길: 0, 평: 0, 흉: 0, 대흉: 0 };
+    const statTotals = { health: 0, wealth: 0, happy: 0, wisdom: 0, fame: 0 };
+    const normMag = (key, v) => (key === 'wealth' ? v / 3 : v);
+    let best = null, worst = null;
+
+    for (const entry of state.log) {
+      if (entry.domain) domainCount[entry.domain] = (domainCount[entry.domain] || 0) + 1;
+      if (entry.tier in tierCount) tierCount[entry.tier]++;
+      for (const key in entry.applied) {
+        const v = entry.applied[key];
+        statTotals[key] = (statTotals[key] || 0) + v;
+        if (!best || normMag(key, v) > normMag(best.statKey, best.value)) best = { entry, statKey: key, value: v };
+        if (!worst || normMag(key, v) < normMag(worst.statKey, worst.value)) worst = { entry, statKey: key, value: v };
+      }
+    }
+
+    let dominantDomain = null, maxCount = -1;
+    for (const d in domainCount) if (domainCount[d] > maxCount) { maxCount = domainCount[d]; dominantDomain = d; }
+
+    let topGainKey = null, topGainVal = -Infinity, topLossKey = null, topLossVal = Infinity;
+    for (const key in statTotals) {
+      if (statTotals[key] > topGainVal) { topGainVal = statTotals[key]; topGainKey = key; }
+      if (statTotals[key] < topLossVal) { topLossVal = statTotals[key]; topLossKey = key; }
+    }
+    const statLabel = (k) => GameData.STATS.find((s) => s.key === k).label;
+
+    const dayMasterEl = Saju.elementOf(state.saju.day.stem, true);
+    const domainTheme = dominantDomain ? DOMAIN_LIFE_THEME[dominantDomain] : '큰 굴곡 없이 흘러간 선택들';
+
+    const parts = [
+      `일간이 ${dayMasterEl}(五行)인 당신은 본래 ${DAY_MASTER_TRAIT[dayMasterEl]} 기질을 타고났습니다.`,
+      `평생 ${state.log.length}번의 선택의 순간을 지나오며, 그중에서도 ${domainTheme}이 가장 두드러졌습니다.`,
+      `사주의 흐름으로 보면 대길의 달이 ${tierCount.대길}번, 대흉의 달이 ${tierCount.대흉}번 있었을 만큼 굴곡이 있었지만, 전체적으로는 ${statLabel(topGainKey)}${josa(statLabel(topGainKey), '이', '가')} 가장 크게 늘고 ${statLabel(topLossKey)}${josa(statLabel(topLossKey), '이', '가')} 가장 크게 줄어든 생애였습니다.`,
+    ];
+    if (best) parts.push(`특히 ${best.entry.age}세의 「${best.entry.title}」${josa(best.entry.title, '은', '는')} 인생에서 가장 빛나던 순간으로 남았습니다.`);
+    if (worst) parts.push(`반면 ${worst.entry.age}세의 「${worst.entry.title}」${josa(worst.entry.title, '은', '는')} 가장 힘겨웠던 순간이었습니다.`);
+    return parts.join(' ');
+  }
+
   function triggerEnding(kind, ageOverride, monthOverride) {
     showScreen('end');
     const age = ageOverride != null ? ageOverride : (state.current ? state.current.age : Math.floor(state.monthsElapsed / 12));
@@ -636,6 +715,7 @@
     $('#end-age').textContent = `향년 ${age}세`;
     const best = dominantStat();
     $('#end-epitaph').textContent = EPITAPHS[best.key];
+    $('#end-reading').textContent = generateLifeReading();
 
     const statWrap = $('#end-stats');
     statWrap.innerHTML = '';

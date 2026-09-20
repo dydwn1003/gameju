@@ -107,8 +107,10 @@
 
           <div id="result-panel" class="result-panel hidden">
             <p id="result-text"></p>
-            <p id="result-detail" class="result-detail"></p>
-            <p id="result-remark" class="result-remark"></p>
+            <div class="reading-box">
+              <span class="reading-label">사주 해설</span>
+              <p id="result-reading"></p>
+            </div>
             <div id="result-effects" class="result-effects"></div>
             <button id="next-month-btn" class="primary-btn">다음 달로</button>
           </div>
@@ -162,6 +164,9 @@
         <h1 id="end-title"></h1>
         <p class="subtitle" id="end-age"></p>
         <p class="epitaph" id="end-epitaph"></p>
+
+        <h3 class="section-title">사주로 본 일생</h3>
+        <div class="reading-box"><p id="end-reading"></p></div>
 
         <h3 class="section-title">최종 능력치</h3>
         <div id="end-stats" class="stat-chip-wrap"></div>
