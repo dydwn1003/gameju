@@ -20,6 +20,7 @@
           <div class="bar-bg"><div id="hp-fill" class="bar-fill hp-fill"></div></div>
         </div>
         <div class="hud-stats">
+          <span id="hud-stage">STAGE 1</span>
           <span id="hud-timer">00:00</span>
           <span id="hud-kills">☠ 0</span>
         </div>
@@ -28,7 +29,10 @@
         <div id="hud-level" class="level-badge">Lv.1</div>
         <div class="bar-bg xp-bar-bg"><div id="xp-fill" class="bar-fill xp-fill"></div></div>
       </div>
+      <div id="weapon-icons" class="weapon-icons"></div>
     </div>
+
+    <div id="stage-banner" class="hidden"></div>
 
     <div id="joystick" class="hidden">
       <div id="joystick-stick"></div>
@@ -36,7 +40,7 @@
 
     <div id="start-screen" class="screen">
       <h1 class="game-title">픽셀 서바이버</h1>
-      <p class="game-subtitle">몰려오는 적을 자동으로 쏘아버리고<br/>최대한 오래 살아남으세요!</p>
+      <p class="game-subtitle">스테이지가 오를수록 강해지는 몬스터들<br/>다양한 무기를 모아 최대한 오래 살아남으세요!</p>
       <button id="btn-start" class="btn-primary">시작하기</button>
       <div class="leaderboard-box">
         <h2>🏆 랭킹 TOP 5</h2>
