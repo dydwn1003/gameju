@@ -26,12 +26,15 @@
   };
 
   // 전신 캐릭터: 배경 씬 위에 서 있는 스탠딩 스프라이트
+  // 성별(char-hair-m/f)과 나이대(char-wrinkle/char-beard/char-cane)는 CSS에서
+  // .stage[data-gender], .stage[data-age-group] 속성으로 보이고 숨겨진다.
   const STAGE_CHARACTER_SVG = `<svg viewBox="0 0 160 340" class="stage-character-svg">
     <path class="char-robe" d="M20,330 Q20,160 56,110 L104,110 Q140,160 140,330 Z"/>
     <path class="char-sleeve-l" d="M56,114 Q28,140 34,182 Q48,155 60,124 Z"/>
     <path class="char-sleeve-r" d="M104,114 Q132,140 126,182 Q112,155 100,124 Z"/>
     <path class="char-sash" d="M32,200 Q80,214 128,200 L128,208 Q80,222 32,208 Z"/>
     <path class="char-collar" d="M56,110 L80,142 L104,110"/>
+    <path class="char-cane" d="M134,150 L140,325 M126,150 Q134,140 142,150"/>
     <rect x="68" y="97" width="24" height="24" rx="6" class="char-skin"/>
     <circle cx="80" cy="70" r="34" class="char-skin"/>
     <path class="char-hair-m" d="M46,60 Q46,30 80,30 Q114,30 114,60 Q114,44 80,44 Q46,44 46,60 Z"/>
@@ -43,20 +46,41 @@
     <path class="char-brow-r" d="M85,60 Q92,56 98,60"/>
     <ellipse cx="68" cy="70" rx="3.2" ry="4" class="char-eye"/>
     <ellipse cx="92" cy="70" rx="3.2" ry="4" class="char-eye"/>
+    <path class="char-wrinkle-l" d="M58,76 Q62,79 65,76"/>
+    <path class="char-wrinkle-r" d="M95,76 Q98,79 102,76"/>
     <path class="char-mouth" d="M70,86 Q80,90 90,86"/>
+    <path class="char-beard" d="M64,92 Q80,110 96,92 Q90,102 80,104 Q70,102 64,92 Z"/>
   </svg>`;
 
-  // 배경 씬: 계절(data-season)에 따라 CSS 로 색이 바뀌는 산/한옥/나무 실루엣
+  // 배경 씬: 계절(data-season) · 나이대(data-age-group) · 성별(data-gender) ·
+  // 생년(data-bg-variant, 출생연도로 고정)에 따라 CSS 로 요소가 바뀌는 산/마을 실루엣
   const STAGE_BG_SVG = `<svg class="stage-bg-svg" viewBox="0 0 400 260" preserveAspectRatio="xMidYMax slice">
     <circle class="scene-orb" cx="335" cy="72" r="20"/>
+    <g class="scene-stars">
+      <circle cx="60" cy="40" r="1.6"/>
+      <circle cx="120" cy="58" r="1.2"/>
+      <circle cx="195" cy="32" r="1.6"/>
+      <circle cx="255" cy="54" r="1.3"/>
+      <circle cx="300" cy="30" r="1.4"/>
+      <circle cx="30" cy="90" r="1.2"/>
+    </g>
     <path class="scene-mountain-far" d="M0,180 L60,120 L130,170 L200,110 L280,165 L340,130 L400,175 L400,260 L0,260 Z"/>
     <path class="scene-mountain-near" d="M0,220 L90,160 L180,210 L260,150 L340,205 L400,175 L400,260 L0,260 Z"/>
-    <g class="scene-hanok" transform="translate(235,168)">
+    <g class="scene-landmark-hanok" transform="translate(235,168)">
       <path class="scene-hanok-roof" d="M-8,26 Q42,-18 92,26 Q42,10 -8,26 Z"/>
       <rect class="scene-hanok-wall" x="4" y="26" width="76" height="38"/>
       <rect class="scene-hanok-door" x="30" y="42" width="22" height="22"/>
     </g>
-    <g class="scene-tree" transform="translate(55,188)">
+    <g class="scene-landmark-river">
+      <path class="scene-river-water" d="M0,214 Q110,190 220,214 Q300,232 400,208 L400,236 Q300,258 220,240 Q110,218 0,240 Z"/>
+      <g class="scene-bridge" transform="translate(248,168)">
+        <path class="scene-bridge-arch" d="M0,34 Q45,-4 90,34"/>
+        <rect class="scene-bridge-deck" x="-4" y="30" width="98" height="5"/>
+        <rect class="scene-bridge-post" x="-4" y="30" width="4" height="20"/>
+        <rect class="scene-bridge-post" x="90" y="30" width="4" height="20"/>
+      </g>
+    </g>
+    <g class="scene-tree-blossom" transform="translate(55,188)">
       <rect class="scene-tree-trunk" x="-3" y="0" width="6" height="48"/>
       <circle class="scene-tree-foliage" cx="0" cy="-16" r="24"/>
       <circle class="scene-blossom" cx="-13" cy="-24" r="3.2"/>
@@ -65,10 +89,18 @@
       <circle class="scene-blossom" cx="-9" cy="-2" r="3.2"/>
       <circle class="scene-blossom" cx="2" cy="-16" r="3.2"/>
     </g>
+    <g class="scene-tree-pine" transform="translate(55,188)">
+      <rect class="scene-tree-trunk" x="-3" y="0" width="6" height="44"/>
+      <path class="scene-pine-foliage" d="M0,-46 L18,-16 L9,-16 L24,6 L13,6 L28,30 L-28,30 L-13,6 L-24,6 L-9,-16 L-18,-16 Z"/>
+      <circle class="scene-snow" cx="-9" cy="8" r="3"/>
+      <circle class="scene-snow" cx="10" cy="-4" r="2.6"/>
+      <circle class="scene-snow" cx="1" cy="18" r="3.2"/>
+    </g>
     <rect class="scene-ground" x="0" y="228" width="400" height="32"/>
   </svg>`;
 
   const SEASON_MONTHS = { spring: [3, 4, 5], summer: [6, 7, 8], autumn: [9, 10, 11], winter: [12, 1, 2] };
+  const AGE_GROUPS = [{ max: 34, key: 'youth' }, { max: 59, key: 'middle' }, { max: Infinity, key: 'elder' }];
 
   let state = null;
 
@@ -98,14 +130,31 @@
     return 'winter';
   }
 
+  function ageGroupOf(age) {
+    return AGE_GROUPS.find((g) => age <= g.max).key;
+  }
+
   function initStageScenery() {
     document.querySelectorAll('.stage-bg-slot').forEach((el) => { el.innerHTML = STAGE_BG_SVG; });
     document.querySelectorAll('.stage-character-slot').forEach((el) => { el.innerHTML = STAGE_CHARACTER_SVG; });
   }
 
-  function updateSeason(stageSel, month) {
+  // 성별·출생연도는 게임 내내 바뀌지 않으므로 캐릭터 생성 시 한 번만 세 무대에 고정한다
+  function initStageIdentity() {
+    const bgVariant = state.birth.y % 2 === 0 ? '0' : '1';
+    ['#natal-stage', '#game-stage', '#end-stage'].forEach((sel) => {
+      const stage = $(sel);
+      if (!stage) return;
+      stage.dataset.gender = state.gender;
+      stage.dataset.bgVariant = bgVariant;
+    });
+  }
+
+  function updateStageAttrs(stageSel, month, age) {
     const stage = $(stageSel);
-    if (stage) stage.dataset.season = seasonFromMonth(month);
+    if (!stage) return;
+    stage.dataset.season = seasonFromMonth(month);
+    stage.dataset.ageGroup = ageGroupOf(age);
   }
 
   function dominantElement() {
@@ -124,11 +173,6 @@
 
   function updateCharacter(container) {
     if (!container) return;
-    const isMale = state.gender === 'M';
-    const hairM = container.querySelector('.char-hair-m');
-    const hairF = container.querySelector('.char-hair-f');
-    if (hairM) hairM.style.display = isMale ? '' : 'none';
-    if (hairF) hairF.style.display = isMale ? 'none' : '';
     ['.char-robe', '.char-sleeve-l', '.char-sleeve-r'].forEach((sel) => {
       const el = container.querySelector(sel);
       if (el) el.style.fill = `var(--el-${dominantElement()})`;
@@ -192,6 +236,7 @@
       alive: true,
     };
     clampStats();
+    initStageIdentity();
     renderNatalScreen();
     showScreen('natal');
   }
@@ -239,7 +284,7 @@
   // ── 사주 원국 화면 ──
   function renderNatalScreen() {
     const { saju, elements } = state;
-    updateSeason('#natal-stage', state.birth.m);
+    updateStageAttrs('#natal-stage', state.birth.m, START_AGE);
     $('#natal-name').textContent = `${state.name} (${state.gender === 'M' ? '남' : '여'})`;
     $('#natal-birth').textContent =
       `${state.birth.y}년 ${state.birth.m}월 ${state.birth.d}일` +
@@ -323,7 +368,7 @@
 
   function renderEventScreen() {
     const { age, year, month, fortune, event, isMilestone } = state.current;
-    updateSeason('#game-stage', month);
+    updateStageAttrs('#game-stage', month, age);
     $('#game-header-name').textContent = state.name;
     $('#game-header-age').textContent = `${age}세`;
     $('#game-header-date').textContent = `${year}년 ${month}월`;
@@ -620,9 +665,16 @@
     advanceAndShow();
   }
 
+  // 팝업 바깥(오버레이) 클릭 시 닫히도록 하고, 우측 상단 X 버튼과도 연결한다
+  function bindModalClose(overlaySel, xBtnSel, closeFn) {
+    const overlay = $(overlaySel);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeFn(); });
+    $(xBtnSel).addEventListener('click', closeFn);
+  }
+
   function initModals() {
     $('#skip-open-btn').addEventListener('click', openSkipModal);
-    $('#skip-modal-close').addEventListener('click', closeSkipModal);
+    bindModalClose('#skip-modal', '#skip-modal-x', closeSkipModal);
     $('#skip-cal-prev').addEventListener('click', () => { skipCalYear--; renderSkipCalendar(); });
     $('#skip-cal-next').addEventListener('click', () => { skipCalYear++; renderSkipCalendar(); });
     document.querySelectorAll('#skip-cal-strategy .skip-strategy-btn').forEach((btn) => {
@@ -630,10 +682,10 @@
     });
 
     $('#log-open-btn').addEventListener('click', () => $('#log-modal').classList.remove('hidden'));
-    $('#log-modal-close').addEventListener('click', () => $('#log-modal').classList.add('hidden'));
+    bindModalClose('#log-modal', '#log-modal-x', () => $('#log-modal').classList.add('hidden'));
 
     $('#saju-open-btn').addEventListener('click', openSajuModal);
-    $('#saju-modal-close').addEventListener('click', () => $('#saju-modal').classList.add('hidden'));
+    bindModalClose('#saju-modal', '#saju-modal-x', () => $('#saju-modal').classList.add('hidden'));
     document.querySelectorAll('.saju-tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => switchSajuTab(btn.dataset.tab));
     });
@@ -787,7 +839,7 @@
     showScreen('end');
     const age = ageOverride != null ? ageOverride : (state.current ? state.current.age : Math.floor(state.monthsElapsed / 12));
     const month = monthOverride != null ? monthOverride : (state.current ? state.current.month : state.birth.m);
-    updateSeason('#end-stage', month);
+    updateStageAttrs('#end-stage', month, age);
     $('#end-title').textContent = kind === 'death' ? '생을 마감하다' : '천수를 다하다';
     $('#end-age').textContent = `향년 ${age}세`;
     const best = dominantStat();

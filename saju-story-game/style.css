@@ -134,6 +134,30 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .stage[data-season="autumn"] { background: linear-gradient(180deg, #5a4535 0%, #33304a 60%, #171a2a 100%); }
 .stage[data-season="winter"] { background: linear-gradient(180deg, #1c2440 0%, #191d33 60%, #12141f 100%); }
 
+/* 나이대에 따라 하늘의 해/달이 바뀐다 (청년: 해, 중년: 노을빛 해, 노년: 달+별) */
+.scene-stars { display: none; }
+.scene-stars circle { fill: #eef0fb; }
+.stage[data-age-group="middle"] .scene-orb { fill: #f4cf8e; }
+.stage[data-age-group="elder"] .scene-orb { fill: #dde2f4; opacity: 0.85; }
+.stage[data-age-group="elder"] .scene-stars { display: block; }
+
+/* 생년(출생연도 홀짝)에 따라 마을 랜드마크가 한옥 마을 / 냇가 다리로 갈린다 */
+.scene-landmark-river { display: none; }
+.scene-river-water { fill: #274468; opacity: 0.85; }
+.scene-bridge-arch { fill: none; stroke: #cbb98a; stroke-width: 5; }
+.scene-bridge-deck, .scene-bridge-post { fill: #cbb98a; }
+.stage[data-bg-variant="1"] .scene-landmark-hanok { display: none; }
+.stage[data-bg-variant="1"] .scene-landmark-river { display: block; }
+.stage[data-season="winter"] .scene-river-water { fill: #8b96b2; opacity: 0.7; }
+
+/* 성별에 따라 씬의 나무가 벚나무(여) / 소나무(남)로 갈린다 */
+.scene-tree-pine { display: none; }
+.scene-pine-foliage { fill: #2f5c3f; }
+.scene-snow { opacity: 0; }
+.stage[data-season="winter"] .scene-snow { opacity: 1; fill: #ffffff; }
+.stage[data-gender="M"] .scene-tree-blossom { display: none; }
+.stage[data-gender="M"] .scene-tree-pine { display: block; }
+
 .stage-character-wrap {
   position: absolute;
   left: 50%;
@@ -154,6 +178,26 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .char-brow-l, .char-brow-r { stroke: #2b2a35; stroke-width: 2.5; fill: none; stroke-linecap: round; }
 .char-eye { fill: #2b2a35; }
 .char-mouth { stroke: #8a4b3d; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+
+/* 성별: 무대(.stage)의 data-gender 속성으로 머리 모양이 갈린다 */
+.stage[data-gender="F"] .char-hair-m { display: none; }
+.stage[data-gender="M"] .char-hair-f { display: none; }
+
+/* 나이대: 청년(black hair, 기본) / 중년(희끗한 머리) / 노년(백발+주름+지팡이, 남성은 수염 추가) */
+.char-wrinkle-l, .char-wrinkle-r { stroke: rgba(43, 42, 53, 0.5); stroke-width: 1.6; fill: none; stroke-linecap: round; display: none; }
+.char-beard { fill: #3a3540; opacity: 0.92; display: none; }
+.char-cane { stroke: #6b5a3f; stroke-width: 3; fill: none; stroke-linecap: round; display: none; }
+
+.stage[data-age-group="middle"] .char-hair-m,
+.stage[data-age-group="middle"] .char-hair-f { fill: #524b56; }
+.stage[data-age-group="elder"] .char-hair-m,
+.stage[data-age-group="elder"] .char-hair-f { fill: #c7c5d0; }
+
+.stage[data-age-group="elder"] .char-wrinkle-l,
+.stage[data-age-group="elder"] .char-wrinkle-r,
+.stage[data-age-group="elder"] .char-cane { display: block; }
+.stage[data-age-group="elder"][data-gender="M"] .char-beard { display: block; }
+.stage[data-age-group="elder"] .stage-character-svg { transform: rotate(-3deg); transform-origin: 50% 100%; }
 
 /* ── HUD ── */
 .stage-hud {
@@ -301,6 +345,26 @@ input[type="text"], input[type="number"], input[type="time"], select {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.modal-head .section-title.small { margin: 0; }
+.modal-x-btn {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.modal-x-btn:hover { border-color: var(--gold); color: var(--text); }
+
 .skip-cal-panel {
   max-width: 360px;
   background: radial-gradient(circle at 50% 0%, #2a2440 0%, var(--card) 65%);
@@ -436,7 +500,6 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .skip-strategy-row { display: flex; flex-direction: column; gap: 6px; }
 .skip-strategy-btn { text-align: left; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: #20243a; color: var(--text); font-size: 0.85rem; cursor: pointer; }
 .skip-strategy-btn:hover { border-color: var(--gold); background: #262b42; }
-.skip-cancel-btn { display: block; margin: 14px auto 0; background: none; border: none; color: var(--text-dim); font-size: 0.8rem; cursor: pointer; text-decoration: underline; padding: 0; }
 
 /* ── 사주 원국 (대화창 내부 콘텐츠) ── */
 .pillars-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
