@@ -630,8 +630,8 @@
     return state.log.find((e) => e.monthsElapsed === tm);
   }
 
-  function monthsInSkipRange(tm) {
-    return state.log.some((e) => e.isSkip && tm >= e.monthsElapsedFrom && tm <= e.monthsElapsedTo);
+  function findSkipEntryForMonths(tm) {
+    return state.log.find((e) => e.isSkip && tm >= e.monthsElapsedFrom && tm <= e.monthsElapsedTo);
   }
 
   function openSkipModal() {
@@ -680,7 +680,7 @@
         btn.disabled = true;
         btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span><span class="cal-cell-tag">현재</span>`;
       } else {
-        const entry = findLogEntryForMonths(tm);
+        const entry = findLogEntryForMonths(tm) || findSkipEntryForMonths(tm);
         if (entry) {
           btn.className = `skip-cal-cell tier-${entry.tier} past-resolved`;
           btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span><span class="cal-cell-tag">다시 선택</span>`;
@@ -688,8 +688,7 @@
         } else {
           btn.className = 'skip-cal-cell past-locked';
           btn.disabled = true;
-          const tag = monthsInSkipRange(tm) ? '건너뜀' : '';
-          btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span>` + (tag ? `<span class="cal-cell-tag">${tag}</span>` : '');
+          btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span>`;
         }
       }
       grid.appendChild(btn);
@@ -697,15 +696,13 @@
 
     const capCal = calendarForMonths(cap);
     const reason = cap < MAX_AGE * 12 ? `다음 중요한 사건(${capCal.age}세)` : '100세';
-    $('#skip-cal-range-hint').textContent = `${reason} 전까지만 이동할 수 있어요. 지나간 달 중 ✓ 표시가 있는 달은 다시 클릭해 선택을 바꿀 수 있어요.`;
+    $('#skip-cal-range-hint').textContent = `${reason} 전까지만 이동할 수 있어요. 지나간 달 중 '다시 선택' 표시가 있는 달(건너뛴 기간 포함)은 다시 클릭해 선택을 바꿀 수 있어요.`;
   }
 
-  // ── 과거 선택 다시 하기 ──
+  // ── 과거 선택 다시 하기 (단일 이벤트 / 건너뛴 구간 공용) ──
   let pastEditEntry = null;
 
   function openPastEventEditor(entry) {
-    const event = findEventById(entry.eventId);
-    if (!event) return;
     pastEditEntry = entry;
 
     $('#skip-cal-header').classList.add('hidden');
@@ -714,16 +711,28 @@
     $('#skip-cal-range-hint').classList.add('hidden');
     $('#skip-cal-strategy').classList.add('hidden');
 
-    $('#past-edit-label').textContent = `${entry.age}세 · ${entry.year}년 ${entry.month}월 (${entry.fortune.pillarLabel} · ${entry.tier})`;
-    $('#past-edit-title').textContent = (entry.isMilestone ? '★ ' : '') + event.title;
-    $('#past-edit-desc').textContent = event.desc;
-
-    const shuffled = shuffleChoices(event.choices);
     const wrap = $('#past-edit-choices');
     wrap.innerHTML = '';
-    shuffled.forEach(({ choice, idx }, i) => {
-      wrap.appendChild(buildChoiceButton(choice.text, i, idx === entry.choiceIndex, () => applyPastEventChoice(entry, idx)));
-    });
+
+    if (entry.isSkip) {
+      $('#past-edit-label').textContent = `${entry.age}세 · ${entry.year}년 ${entry.month}월 ~ ${entry.toAge}세 · ${entry.toYear}년 ${entry.toMonth}월`;
+      $('#past-edit-title').textContent = '시간을 건너뛰다';
+      $('#past-edit-desc').textContent = '그 기간을 어떤 태도로 보냈는지 다시 골라보세요. 능력치 변화가 그대로 다시 계산됩니다.';
+      Object.keys(SKIP_STRATEGIES).forEach((key, i) => {
+        const strategy = SKIP_STRATEGIES[key];
+        wrap.appendChild(buildChoiceButton(strategy.label, i, key === entry.strategyKey, () => applySkipChoice(entry, key)));
+      });
+    } else {
+      const event = findEventById(entry.eventId);
+      if (!event) return;
+      $('#past-edit-label').textContent = `${entry.age}세 · ${entry.year}년 ${entry.month}월 (${entry.fortune.pillarLabel} · ${entry.tier})`;
+      $('#past-edit-title').textContent = (entry.isMilestone ? '★ ' : '') + event.title;
+      $('#past-edit-desc').textContent = event.desc;
+      const shuffled = shuffleChoices(event.choices);
+      shuffled.forEach(({ choice, idx }, i) => {
+        wrap.appendChild(buildChoiceButton(choice.text, i, idx === entry.choiceIndex, () => applyPastEventChoice(entry, idx)));
+      });
+    }
 
     $('#skip-cal-past-edit').classList.remove('hidden');
   }
@@ -755,6 +764,31 @@
     entry.choiceIndex = idx;
     entry.choiceText = choice.text;
     entry.result = choice.result;
+    entry.applied = applied;
+
+    renderStatChips();
+    renderLog();
+    closePastEventEditor();
+    renderSkipCalendar();
+  }
+
+  // 건너뛴 구간의 태도를 바꾸면 그때 적용됐던 효과를 되돌리고, 같은 기간·같은 평균 사주 기운으로 새 효과를 다시 계산한다
+  function applySkipChoice(entry, strategyKey) {
+    const strategy = SKIP_STRATEGIES[strategyKey];
+
+    for (const key in entry.applied) {
+      state.stats[key] = (state.stats[key] || 0) - entry.applied[key];
+    }
+    const applied = {};
+    for (const key in strategy.perYear) {
+      applied[key] = applyTier(strategy.perYear[key] * entry.years, entry.avgMult);
+      state.stats[key] = (state.stats[key] || 0) + applied[key];
+    }
+    clampStats();
+
+    entry.strategyKey = strategyKey;
+    entry.choiceText = `${strategy.label} (${entry.years.toFixed(1)}년)`;
+    entry.result = `${entry.age}세부터 ${entry.toAge}세까지, ${strategy.label} 시간을 보냈습니다.`;
     entry.applied = applied;
 
     renderStatChips();
@@ -805,6 +839,7 @@
       result: `${fromCal.age}세부터 ${capCal.age}세까지, ${strategy.label} 시간을 보냈습니다.`,
       applied, tier: avgTier,
       isSkip: true, monthsElapsedFrom: state.monthsElapsed + 1, monthsElapsedTo: capMonths - 1,
+      strategyKey, avgMult, years, toAge: capCal.age, toYear: capCal.year, toMonth: capCal.month,
     });
 
     closeSkipModal();
