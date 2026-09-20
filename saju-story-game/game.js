@@ -48,7 +48,7 @@
 
   // 배경 씬: 계절(data-season)에 따라 CSS 로 색이 바뀌는 산/한옥/나무 실루엣
   const STAGE_BG_SVG = `<svg class="stage-bg-svg" viewBox="0 0 400 260" preserveAspectRatio="xMidYMax slice">
-    <circle class="scene-orb" cx="325" cy="45" r="24"/>
+    <circle class="scene-orb" cx="335" cy="72" r="20"/>
     <path class="scene-mountain-far" d="M0,180 L60,120 L130,170 L200,110 L280,165 L340,130 L400,175 L400,260 L0,260 Z"/>
     <path class="scene-mountain-near" d="M0,220 L90,160 L180,210 L260,150 L340,205 L400,175 L400,260 L0,260 Z"/>
     <g class="scene-hanok" transform="translate(235,168)">
@@ -425,11 +425,12 @@
   let skipCalYear = null;
   let skipCalSelected = null;
 
-  function findMilestoneCapMonths(fromMonths, toMonths) {
-    let cap = toMonths;
+  // 다음 미해결 마일스톤(또는 100세) 이전까지만 건너뛸 수 있다 - 달력 자체가 이 범위만 보여준다
+  function reachableCapMonths() {
+    let cap = MAX_AGE * 12;
     for (const ms of GameData.MILESTONES) {
       const msMonths = ms.age * 12;
-      if (msMonths > fromMonths && msMonths <= toMonths && !state.usedMilestones.has(ms.id) && msMonths < cap) cap = msMonths;
+      if (msMonths > state.monthsElapsed && !state.usedMilestones.has(ms.id) && msMonths < cap) cap = msMonths;
     }
     return cap;
   }
@@ -439,9 +440,10 @@
   }
 
   function yearHasSelectable(year) {
+    const cap = reachableCapMonths();
     for (let m = 1; m <= 12; m++) {
       const tm = monthsElapsedFor(year, m);
-      if (tm > state.monthsElapsed && tm <= MAX_AGE * 12) return true;
+      if (tm > state.monthsElapsed && tm <= cap) return true;
     }
     return false;
   }
@@ -459,6 +461,7 @@
   }
 
   function renderSkipCalendar() {
+    const cap = reachableCapMonths();
     $('#skip-cal-year').textContent = `${skipCalYear}년`;
     $('#skip-cal-prev').disabled = !yearHasSelectable(skipCalYear - 1);
     $('#skip-cal-next').disabled = !yearHasSelectable(skipCalYear + 1);
@@ -467,7 +470,7 @@
     grid.innerHTML = '';
     for (let m = 1; m <= 12; m++) {
       const tm = monthsElapsedFor(skipCalYear, m);
-      const selectable = tm > state.monthsElapsed && tm <= MAX_AGE * 12;
+      const selectable = tm > state.monthsElapsed && tm <= cap;
       const isSelected = skipCalSelected && skipCalSelected.year === skipCalYear && skipCalSelected.month === m;
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -481,24 +484,23 @@
       };
       grid.appendChild(btn);
     }
+
+    const capCal = calendarForMonths(cap);
+    const reason = cap < MAX_AGE * 12 ? `다음 중요한 사건(${capCal.age}세)` : '100세';
+    $('#skip-cal-range-hint').textContent = `${reason} 전까지만 이동할 수 있어요.`;
   }
 
   function showSkipStrategyPanel() {
     const targetMonths = monthsElapsedFor(skipCalSelected.year, skipCalSelected.month);
-    const capMonths = findMilestoneCapMonths(state.monthsElapsed, targetMonths);
-    const capCal = calendarForMonths(capMonths);
-    const label = capMonths < targetMonths
-      ? `${capCal.year}년 ${capCal.month}월(${capCal.age}세) — 그 전에 중요한 사건이 있어 그때까지만 이동합니다.`
-      : `${skipCalSelected.year}년 ${skipCalSelected.month}월(${capCal.age}세)까지 이동합니다.`;
-    $('#skip-cal-selected-label').textContent = label;
+    const targetCal = calendarForMonths(targetMonths);
+    $('#skip-cal-selected-label').textContent = `${skipCalSelected.year}년 ${skipCalSelected.month}월(${targetCal.age}세)까지 이동합니다.`;
     $('#skip-cal-strategy').classList.remove('hidden');
   }
 
   function executeSkip(strategyKey) {
     if (!skipCalSelected) return;
     const strategy = SKIP_STRATEGIES[strategyKey];
-    const targetMonths = monthsElapsedFor(skipCalSelected.year, skipCalSelected.month);
-    const capMonths = findMilestoneCapMonths(state.monthsElapsed, targetMonths);
+    const capMonths = monthsElapsedFor(skipCalSelected.year, skipCalSelected.month);
     const skipMonths = capMonths - state.monthsElapsed;
     if (skipMonths <= 0) { closeSkipModal(); return; }
 

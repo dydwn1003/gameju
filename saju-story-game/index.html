@@ -54,8 +54,10 @@
   <!-- 사주 원국 화면 -->
   <section id="screen-natal" class="screen hidden">
     <div class="stage" id="natal-stage">
-      <div class="stage-bg-slot"></div>
-      <div class="stage-character-wrap"><div class="stage-character-slot" id="char-natal"></div></div>
+      <div class="stage-scene">
+        <div class="stage-bg-slot"></div>
+        <div class="stage-character-wrap"><div class="stage-character-slot" id="char-natal"></div></div>
+      </div>
 
       <div class="stage-dialogue tall">
         <h2 id="natal-name"></h2>
@@ -78,17 +80,19 @@
   <!-- 메인 게임 화면 -->
   <section id="screen-game" class="screen hidden">
     <div class="stage" id="game-stage">
-      <div class="stage-bg-slot"></div>
-      <div class="stage-character-wrap"><div class="stage-character-slot" id="char-game"></div></div>
+      <div class="stage-scene">
+        <div class="stage-bg-slot"></div>
+        <div class="stage-character-wrap"><div class="stage-character-slot" id="char-game"></div></div>
 
-      <div class="stage-hud">
-        <div class="hud-id">
-          <div><span id="game-header-name" class="header-name"></span> <span id="game-header-age" class="header-age"></span></div>
-          <span id="game-header-date" class="header-date"></span>
+        <div class="stage-hud">
+          <div class="hud-id">
+            <div><span id="game-header-name" class="header-name"></span> <span id="game-header-age" class="header-age"></span></div>
+            <span id="game-header-date" class="header-date"></span>
+          </div>
+          <div id="stat-bars" class="hud-stats"></div>
+          <button id="log-open-btn" class="hud-icon-btn" type="button" title="최근 기록">📜</button>
+          <button id="skip-open-btn" class="hud-icon-btn" type="button" title="시간 건너뛰기">📅</button>
         </div>
-        <div id="stat-bars" class="hud-stats"></div>
-        <button id="log-open-btn" class="hud-icon-btn" type="button" title="최근 기록">📜</button>
-        <button id="skip-open-btn" class="hud-icon-btn" type="button" title="시간 건너뛰기">📅</button>
       </div>
 
       <div class="stage-dialogue">
@@ -121,6 +125,7 @@
             <button id="skip-cal-next" type="button" class="cal-nav-btn">▶</button>
           </div>
           <div id="skip-cal-grid" class="skip-cal-grid"></div>
+          <p class="skip-hint" id="skip-cal-range-hint"></p>
           <div id="skip-cal-strategy" class="skip-strategy-panel hidden">
             <p class="skip-hint" id="skip-cal-selected-label"></p>
             <p class="skip-hint">그 기간을 어떤 태도로 보낼지 골라주세요.</p>
@@ -148,8 +153,10 @@
   <!-- 엔딩 화면 -->
   <section id="screen-end" class="screen hidden">
     <div class="stage" id="end-stage">
-      <div class="stage-bg-slot"></div>
-      <div class="stage-character-wrap"><div class="stage-character-slot" id="char-end"></div></div>
+      <div class="stage-scene">
+        <div class="stage-bg-slot"></div>
+        <div class="stage-character-wrap"><div class="stage-character-slot" id="char-end"></div></div>
+      </div>
 
       <div class="stage-dialogue tall">
         <h1 id="end-title"></h1>
