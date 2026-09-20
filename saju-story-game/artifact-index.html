@@ -31,10 +31,9 @@
         </label>
 
         <label class="field">
-          <span>태어난 시각</span>
+          <span>태어난 시각 (분 단위까지 입력 가능)</span>
           <div class="date-row">
-            <select id="birth-hour"></select>
-            <select id="birth-min"></select>
+            <input type="time" id="birth-time" step="60" value="12:00" />
           </div>
           <label class="checkbox-row"><input type="checkbox" id="unknown-time" /> 태어난 시각을 모릅니다</label>
         </label>
@@ -101,6 +100,7 @@
 
           <div id="result-panel" class="result-panel hidden">
             <p id="result-text"></p>
+            <p id="result-detail" class="result-detail"></p>
             <p id="result-remark" class="result-remark"></p>
             <div id="result-effects" class="result-effects"></div>
             <button id="next-month-btn" class="primary-btn">다음 달로</button>

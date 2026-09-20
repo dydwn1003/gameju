@@ -148,23 +148,9 @@
 
   // ── 인트로 폼 ──
   function initIntroForm() {
-    const hourSelect = $('#birth-hour');
-    for (let h = 0; h < 24; h++) {
-      const opt = document.createElement('option');
-      opt.value = h;
-      opt.textContent = `${String(h).padStart(2, '0')}시`;
-      hourSelect.appendChild(opt);
-    }
-    const minSelect = $('#birth-min');
-    for (let m = 0; m < 60; m += 10) {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = `${String(m).padStart(2, '0')}분`;
-      minSelect.appendChild(opt);
-    }
+    const timeInput = $('#birth-time');
     $('#unknown-time').addEventListener('change', (e) => {
-      hourSelect.disabled = e.target.checked;
-      minSelect.disabled = e.target.checked;
+      timeInput.disabled = e.target.checked;
     });
     $('#intro-form').addEventListener('submit', onSubmitIntro);
   }
@@ -177,8 +163,9 @@
     const m = parseInt($('#birth-month').value, 10);
     const d = parseInt($('#birth-day').value, 10);
     const unknownTime = $('#unknown-time').checked;
-    const hh = unknownTime ? null : parseInt($('#birth-hour').value, 10);
-    const mm = unknownTime ? null : parseInt($('#birth-min').value, 10);
+    const timeVal = $('#birth-time').value; // "HH:MM"
+    const hh = (unknownTime || !timeVal) ? null : parseInt(timeVal.slice(0, 2), 10);
+    const mm = (unknownTime || !timeVal) ? null : parseInt(timeVal.slice(3, 5), 10);
 
     if (!y || !m || !d) {
       alert('생년월일을 모두 입력해주세요.');
@@ -341,12 +328,19 @@
     $('#event-title').textContent = (isMilestone ? '★ ' : '') + event.title;
     $('#event-desc').textContent = event.desc;
 
+    // 어떤 선택이 좋은지 순서나 문구만으로 짐작할 수 없도록 표시 순서를 매번 섞는다
+    const shuffled = event.choices.map((choice, idx) => ({ choice, idx }));
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
     const choiceWrap = $('#event-choices');
     choiceWrap.innerHTML = '';
-    event.choices.forEach((choice, idx) => {
+    shuffled.forEach(({ choice, idx }) => {
       const btn = document.createElement('button');
       btn.className = 'choice-btn';
-      btn.innerHTML = `<span class="choice-text">${choice.text}</span><span class="choice-preview">${choiceOutlook(idx, fortune.tier)}</span>`;
+      btn.textContent = choice.text;
       btn.onclick = () => chooseOption(idx);
       choiceWrap.appendChild(btn);
     });
@@ -359,31 +353,65 @@
     closeSkipModal();
   }
 
-  // 선택 전 미리 보여줄 해석: "내 사주(이번 달 기운) + 이 선택"을 합치면 어떤 한 달이 될지 서술
-  // 선택지는 항상 [최고/중간/안좋음/최악] 순서로 되어 있다는 전제 하에 idx 로 선택의 질을 판단한다.
-  const CHOICE_QUALITY_SCORE = [2, 1, -1, -2];
-  const FORTUNE_OUTLOOK_SCORE = { 대길: 2, 길: 1, 평: 0, 흉: -1, 대흉: -2 };
-  const OUTLOOK_NARRATIVE = {
-    best: '사주의 흐름과 이 선택이 강하게 맞아떨어져, 오래 기억에 남을 만큼 좋은 한 달을 보내게 될 것 같습니다.',
-    good: '전체적으로 무난하게, 그리고 꽤 만족스러운 한 달이 될 것 같습니다.',
-    mid: '특별히 좋지도 나쁘지도 않은, 평범하게 흘러가는 한 달이 될 것 같습니다.',
-    hard: '이런저런 어려움이 따르는, 다소 힘겨운 한 달이 될 수 있습니다.',
-    worst: '사주의 흐름과도 맞지 않는 선택이라, 뜻대로 되지 않는 힘든 한 달을 보낼 수도 있습니다.',
-  };
-
-  function choiceOutlook(idx, fortuneTier) {
-    const score = (CHOICE_QUALITY_SCORE[idx] || 0) + FORTUNE_OUTLOOK_SCORE[fortuneTier];
-    if (score >= 3) return OUTLOOK_NARRATIVE.best;
-    if (score >= 1) return OUTLOOK_NARRATIVE.good;
-    if (score === 0) return OUTLOOK_NARRATIVE.mid;
-    if (score >= -2) return OUTLOOK_NARRATIVE.hard;
-    return OUTLOOK_NARRATIVE.worst;
-  }
-
   function applyTier(delta, tierMult) {
     if (delta === 0) return 0;
     const mult = delta > 0 ? tierMult : (2 - tierMult);
     return Math.round(delta * mult);
+  }
+
+  // 실제로 적용된 수치(applied)를 스탯별로 구체적인 문장(금액, 증상 등)으로 풀어서 서술
+  function wealthFlavor(v) {
+    const amount = Math.abs(v) * 10; // "만원" 단위로 체감 가능하게 연출
+    if (v >= 8) return `재물운이 크게 트여, 최대 ${amount}만원 상당의 목돈이 들어올 수 있는 흐름입니다.`;
+    if (v >= 4) return `쏠쏠한 수입이 생겨 ${amount}만원 정도의 여윳돈이 들어옵니다.`;
+    if (v >= 1) return `${amount}만원 안팎의 소소한 이득이 있습니다.`;
+    if (v <= -8) return `씀씀이가 크게 나가, 최대 ${amount}만원 상당의 손실을 볼 수 있는 흐름입니다.`;
+    if (v <= -4) return `예상치 못한 지출로 ${amount}만원 가량 나갑니다.`;
+    if (v <= -1) return `${amount}만원 안팎의 자잘한 지출이 있습니다.`;
+    return '';
+  }
+  function healthFlavor(v) {
+    if (v >= 8) return '체력이 몰라보게 좋아져 그 어느 때보다 활기찼습니다.';
+    if (v >= 4) return '컨디션이 눈에 띄게 좋아졌습니다.';
+    if (v >= 1) return '몸이 한결 가벼워진 느낌입니다.';
+    if (v <= -8) return '몸살을 넘어 정밀검사가 필요할 수 있는 수준으로 상했습니다. 방치하면 만성질환이나 큰 병으로 이어질 수 있는 위험 신호입니다.';
+    if (v <= -4) return '감기나 몸살 기운으로 며칠 앓아누웠습니다.';
+    if (v <= -1) return '몸이 으슬으슬하고 컨디션이 좋지 않았습니다.';
+    return '';
+  }
+  function happyFlavor(v) {
+    if (v >= 8) return '마음이 벅찰 만큼 행복한 나날이었습니다.';
+    if (v >= 4) return '기분 좋은 일들이 이어졌습니다.';
+    if (v >= 1) return '잔잔한 기쁨이 있었습니다.';
+    if (v <= -8) return '깊은 상심에 빠져, 마음의 병으로 이어질 수도 있는 수준이었습니다.';
+    if (v <= -4) return '우울한 기분이 며칠간 이어졌습니다.';
+    if (v <= -1) return '마음이 조금 무거웠습니다.';
+    return '';
+  }
+  function wisdomFlavor(v) {
+    if (v >= 8) return '몰라보게 지혜와 통찰이 깊어졌습니다.';
+    if (v >= 4) return '많은 것을 배우고 깨달았습니다.';
+    if (v >= 1) return '작은 깨달음을 얻었습니다.';
+    if (v <= -8) return '크게 그릇된 판단으로, 두고두고 후회할 만한 상황을 만들었습니다.';
+    if (v <= -4) return '판단력이 흐려져 실수가 잦아졌습니다.';
+    if (v <= -1) return '생각이 다소 흐트러졌습니다.';
+    return '';
+  }
+  function fameFlavor(v) {
+    if (v >= 8) return '평판이 크게 올라 주변의 신뢰를 한몸에 받았습니다.';
+    if (v >= 4) return '좋은 평판을 얻었습니다.';
+    if (v >= 1) return '작은 호감을 얻었습니다.';
+    if (v <= -8) return '돌이키기 힘들 만큼 평판이 크게 무너졌습니다.';
+    if (v <= -4) return '신뢰를 잃어 입지가 좁아졌습니다.';
+    if (v <= -1) return '평판에 살짝 금이 갔습니다.';
+    return '';
+  }
+  const STAT_FLAVOR = { health: healthFlavor, wealth: wealthFlavor, happy: happyFlavor, wisdom: wisdomFlavor, fame: fameFlavor };
+
+  function detailedResultText(applied) {
+    const entries = Object.entries(applied).filter(([, v]) => v !== 0);
+    entries.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+    return entries.map(([k, v]) => STAT_FLAVOR[k](v)).filter(Boolean).join(' ');
   }
 
   function chooseOption(idx) {
@@ -406,6 +434,7 @@
     const panel = $('#result-panel');
     panel.classList.remove('hidden');
     $('#result-text').textContent = choice.result;
+    $('#result-detail').textContent = detailedResultText(applied);
     $('#result-remark').textContent = Saju.TIER_REMARK[fortune.tier];
     $('#result-effects').innerHTML = Object.entries(applied)
       .map(([k, v]) => {

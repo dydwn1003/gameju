@@ -59,7 +59,7 @@ h2 { margin: 0 0 2px; font-size: 1.4rem; color: var(--gold-soft); }
 /* ── 폼 ── */
 .field { display: block; margin-bottom: 16px; }
 .field > span { display: block; margin-bottom: 6px; font-size: 0.88rem; color: var(--text-dim); }
-input[type="text"], input[type="number"], select {
+input[type="text"], input[type="number"], input[type="time"], select {
   background: var(--bg-soft);
   border: 1px solid var(--border);
   color: var(--text);
@@ -238,11 +238,8 @@ input[type="text"], input[type="number"], select {
 .choices-wrap { display: flex; flex-direction: column; gap: 8px; }
 .choices-wrap.hidden { display: none; }
 .choice-btn {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
   text-align: left;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: rgba(27, 30, 43, 0.9);
@@ -252,12 +249,11 @@ input[type="text"], input[type="number"], select {
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 .choice-btn:hover { border-color: var(--gold); background: #262b42; }
-.choice-text { display: block; }
-.choice-preview { display: block; font-size: 0.78rem; color: var(--text-dim); line-height: 1.45; }
 
 .result-panel.hidden { display: none; }
 .result-panel { background: rgba(27, 30, 43, 0.9); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
 .result-panel p { margin: 0 0 10px; line-height: 1.5; }
+.result-panel .result-detail { font-size: 0.86rem; color: var(--text-dim); line-height: 1.5; }
 .result-panel .result-remark { color: var(--gold-soft); font-style: italic; font-size: 0.88rem; margin-top: -4px; }
 .result-effects { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .eff { font-size: 0.8rem; padding: 3px 8px; border-radius: 6px; background: #2a2f46; }
