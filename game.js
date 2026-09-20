@@ -29,9 +29,11 @@
 
   const gameoverScreen = document.getElementById('gameover-screen');
   const finalScoreEl = document.getElementById('final-score');
+  const finalStageEl = document.getElementById('final-stage');
   const finalLevelEl = document.getElementById('final-level');
   const finalTimeEl = document.getElementById('final-time');
   const finalKillsEl = document.getElementById('final-kills');
+  const killBreakdownEl = document.getElementById('kill-breakdown');
   const nameInput = document.getElementById('name-input');
   const btnSaveScore = document.getElementById('btn-save-score');
   const leaderboardGameover = document.getElementById('leaderboard-gameover');
@@ -111,6 +113,17 @@
   const PAL_BAT_GRAY = { O: '#101018', W: '#3a3a4a', B: '#5a5a6e', E: '#ff4d5e' };
   const PAL_BAT_RED = { O: '#1a0505', W: '#5a1414', B: '#8f2020', E: '#ffd23f' };
 
+  function shadeColor(hex, amt) {
+    const num = parseInt(hex.slice(1), 16);
+    let r = (num >> 16) + amt;
+    let g = ((num >> 8) & 0xff) + amt;
+    let b = (num & 0xff) + amt;
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    return `rgb(${r},${g},${b})`;
+  }
+
   const spriteCache = new Map();
   function getSpriteCanvas(name, grid, palette, scale) {
     const key = `${name}|${scale}`;
@@ -125,8 +138,17 @@
       for (let c = 0; c < cols; c++) {
         const ch = row[c];
         if (!ch || ch === '.') continue;
-        const color = palette[ch];
+        let color = palette[ch];
         if (!color) continue;
+        // fake a soft light source from above for a hand-painted look
+        if (ch !== 'O') {
+          const vertical = r / rows;
+          let amt = -6;
+          if (vertical < 0.3) amt = 24;
+          else if (vertical > 0.72) amt = -30;
+          if (c / cols > 0.7) amt -= 10;
+          color = shadeColor(color, amt);
+        }
         octx.fillStyle = color;
         octx.fillRect(Math.round(c * scale), Math.round(r * scale), Math.ceil(scale), Math.ceil(scale));
       }
@@ -136,16 +158,25 @@
   }
 
   function drawSpriteCanvas(spriteCanvas, cx, cy, facing, hitFlash, alpha) {
+    const w = spriteCanvas.width, h = spriteCanvas.height;
+    ctx.save();
+    ctx.globalAlpha = 0.3 * (alpha == null ? 1 : alpha);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + h * 0.44, w * 0.32, h * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
     ctx.save();
     ctx.translate(cx, cy);
     if (facing < 0) ctx.scale(-1, 1);
     if (alpha != null && alpha < 1) ctx.globalAlpha = alpha;
-    ctx.drawImage(spriteCanvas, -spriteCanvas.width / 2, -spriteCanvas.height / 2);
+    ctx.drawImage(spriteCanvas, -w / 2, -h / 2);
     if (hitFlash) {
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-atop';
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.fillRect(-spriteCanvas.width / 2, -spriteCanvas.height / 2, spriteCanvas.width, spriteCanvas.height);
+      ctx.fillRect(-w / 2, -h / 2, w, h);
       ctx.globalCompositeOperation = 'source-over';
     }
     ctx.restore();
@@ -157,37 +188,29 @@
   const WORLD_SIZE = 2600;
   const PLAYER_RADIUS = 14;
   const IFRAME_TIME = 0.65;
-  const MAX_WEAPON_SLOTS = 4;
+  const MAX_WEAPON_SLOTS = 5;
 
   const ENEMY_TYPES = {
-    slime: { shape: 'slime', palette: PAL_SLIME_GREEN, hp: 14, speed: 48, damage: 6, radius: 13, scale: 3, score: 8, xp: 1, weight: 10, minStage: 1 },
-    blue_slime: { shape: 'slime', palette: PAL_SLIME_BLUE, hp: 30, speed: 42, damage: 9, radius: 15, scale: 3.4, score: 18, xp: 2, weight: 5, minStage: 4 },
-    bat: { shape: 'bat', palette: PAL_BAT_GRAY, hp: 8, speed: 130, damage: 5, radius: 10, scale: 2.8, score: 10, xp: 1, weight: 8, minStage: 1, erratic: true },
-    red_bat: { shape: 'bat', palette: PAL_BAT_RED, hp: 16, speed: 150, damage: 9, radius: 11, scale: 3.2, score: 20, xp: 2, weight: 4, minStage: 5, erratic: true },
-    zombie: { shape: 'humanoid', palette: PAL_ZOMBIE, hp: 22, speed: 58, damage: 7, radius: 14, scale: 3.2, score: 12, xp: 1, weight: 9, minStage: 2 },
-    runner: { shape: 'humanoid', palette: PAL_RUNNER, hp: 10, speed: 108, damage: 5, radius: 11, scale: 2.8, score: 14, xp: 1, weight: 7, minStage: 1 },
-    skeleton: { shape: 'humanoid', palette: PAL_SKELETON, hp: 16, speed: 46, damage: 6, radius: 13, scale: 3.2, score: 16, xp: 2, weight: 5, minStage: 3, ranged: true, projDamage: 9, projSpeed: 230, fireCooldown: 2.1, fireRange: 420 },
-    brute: { shape: 'humanoid', palette: PAL_BRUTE, hp: 110, speed: 46, damage: 18, radius: 22, scale: 5, score: 70, xp: 5, weight: 2, minStage: 4 },
-    ghost: { shape: 'humanoid', palette: PAL_GHOST, hp: 70, speed: 95, damage: 14, radius: 17, scale: 3.4, score: 55, xp: 4, weight: 2, minStage: 5, alpha: 0.72 },
-    boss: { shape: 'humanoid', palette: PAL_BOSS, hp: 450, speed: 40, damage: 26, radius: 34, scale: 7.5, score: 320, xp: 22, weight: 0, minStage: 2 },
+    slime: { nameKo: '슬라임', shape: 'slime', palette: PAL_SLIME_GREEN, hp: 14, speed: 48, damage: 6, radius: 13, scale: 3, score: 8, xp: 1, weight: 10, minStage: 1 },
+    blue_slime: { nameKo: '블루 슬라임', shape: 'slime', palette: PAL_SLIME_BLUE, hp: 30, speed: 42, damage: 9, radius: 15, scale: 3.4, score: 18, xp: 2, weight: 5, minStage: 4 },
+    bat: { nameKo: '박쥐', shape: 'bat', palette: PAL_BAT_GRAY, hp: 8, speed: 130, damage: 5, radius: 10, scale: 2.8, score: 10, xp: 1, weight: 8, minStage: 1, erratic: true },
+    red_bat: { nameKo: '뱀파이어 박쥐', shape: 'bat', palette: PAL_BAT_RED, hp: 16, speed: 150, damage: 9, radius: 11, scale: 3.2, score: 20, xp: 2, weight: 4, minStage: 5, erratic: true },
+    zombie: { nameKo: '좀비', shape: 'humanoid', palette: PAL_ZOMBIE, hp: 22, speed: 58, damage: 7, radius: 14, scale: 3.2, score: 12, xp: 1, weight: 9, minStage: 2 },
+    runner: { nameKo: '러너', shape: 'humanoid', palette: PAL_RUNNER, hp: 10, speed: 108, damage: 5, radius: 11, scale: 2.8, score: 14, xp: 1, weight: 7, minStage: 1 },
+    skeleton: { nameKo: '스켈레톤', shape: 'humanoid', palette: PAL_SKELETON, hp: 16, speed: 46, damage: 6, radius: 13, scale: 3.2, score: 16, xp: 2, weight: 5, minStage: 3, ranged: true, projDamage: 9, projSpeed: 230, fireCooldown: 2.1, fireRange: 420 },
+    brute: { nameKo: '브루트', shape: 'humanoid', palette: PAL_BRUTE, hp: 110, speed: 46, damage: 18, radius: 22, scale: 5, score: 70, xp: 5, weight: 2, minStage: 4 },
+    ghost: { nameKo: '고스트', shape: 'humanoid', palette: PAL_GHOST, hp: 70, speed: 95, damage: 14, radius: 17, scale: 3.4, score: 55, xp: 4, weight: 2, minStage: 5, alpha: 0.72 },
+    boss: { nameKo: '보스', shape: 'humanoid', palette: PAL_BOSS, hp: 450, speed: 40, damage: 26, radius: 34, scale: 7.5, score: 320, xp: 22, weight: 0, minStage: 2 },
   };
 
   const STAGES = [
-    { threshold: 0, label: '스테이지 1 시작!' },
-    { threshold: 30, label: '스테이지 2 시작!' },
-    { threshold: 65, label: '스테이지 3 시작! - 스켈레톤 등장' },
-    { threshold: 105, label: '스테이지 4 시작! - 브루트 등장' },
-    { threshold: 150, label: '스테이지 5 시작! - 고스트 등장' },
-    { threshold: 200, label: '스테이지 6 - 지옥 모드' },
+    { label: '스테이지 1', killQuota: 25 },
+    { label: '스테이지 2', killQuota: 35 },
+    { label: '스테이지 3 - 스켈레톤 등장', killQuota: 45 },
+    { label: '스테이지 4 - 브루트 등장', killQuota: 60 },
+    { label: '스테이지 5 - 고스트 등장', killQuota: 80 },
+    { label: '스테이지 6 - 지옥 모드', killQuota: Infinity },
   ];
-
-  function currentStageIndex() {
-    let idx = 1;
-    for (let i = 0; i < STAGES.length; i++) {
-      if (elapsed >= STAGES[i].threshold) idx = i + 1;
-    }
-    return idx;
-  }
 
   function pickEnemyType(stageIdx) {
     const pool = Object.entries(ENEMY_TYPES).filter(([, d]) => d.weight > 0 && d.minStage <= stageIdx);
@@ -343,11 +366,45 @@
         return `칼날 ${s.count}개 · 접촉 피해 ${Math.round(s.damage)}`;
       },
     },
+    lightning: {
+      name: '번개', icon: '⚡', maxLevel: 5,
+      stats(level) {
+        return { damage: 8 + level * 4, cooldown: Math.max(0.8, 1.6 - level * 0.12), range: 320, chains: 2 + Math.floor(level / 2), chainRange: 150 };
+      },
+      desc(level, ply) {
+        const s = getScaledStats(this, level, ply);
+        return `연쇄 ${s.chains}회 · 피해 ${Math.round(s.damage)}`;
+      },
+      fire(stats, ply, target) {
+        let current = target;
+        const hitList = [current];
+        const points = [{ x: ply.x, y: ply.y }, { x: current.x, y: current.y }];
+        current.hp -= stats.damage; current.hitFlash = 0.1;
+        spawnParticles(current.x, current.y, '#fff59d', 4);
+        if (current.hp <= 0) current.dead = true;
+        for (let i = 0; i < stats.chains; i++) {
+          let next = null, nd = stats.chainRange;
+          for (const en of enemies) {
+            if (en.dead || hitList.includes(en)) continue;
+            const d = Math.hypot(en.x - current.x, en.y - current.y);
+            if (d < nd) { nd = d; next = en; }
+          }
+          if (!next) break;
+          next.hp -= stats.damage; next.hitFlash = 0.1;
+          spawnParticles(next.x, next.y, '#fff59d', 4);
+          if (next.hp <= 0) next.dead = true;
+          points.push({ x: next.x, y: next.y });
+          hitList.push(next);
+          current = next;
+        }
+        effects.push({ kind: 'lightning', points, life: 0.22, maxLife: 0.22 });
+      },
+    },
   };
 
   const STAT_UPGRADES = [
-    { id: 'dmg', icon: '⚔️', name: '공격력 강화', desc: () => '모든 무기 피해량 +12%', apply: (p) => { p.globalDamageMult *= 1.12; } },
-    { id: 'firerate', icon: '⚡', name: '공격속도 증가', desc: () => '모든 무기 재장전 속도 +10%', apply: (p) => { p.globalCooldownMult *= 0.9; } },
+    { id: 'dmg', icon: '💪', name: '공격력 강화', desc: () => '모든 무기 피해량 +12%', apply: (p) => { p.globalDamageMult *= 1.12; } },
+    { id: 'firerate', icon: '🔄', name: '공격속도 증가', desc: () => '모든 무기 재장전 속도 +10%', apply: (p) => { p.globalCooldownMult *= 0.9; } },
     { id: 'speed', icon: '🥾', name: '이동속도 증가', desc: () => '이동속도 +10%', apply: (p) => { p.speed *= 1.1; } },
     { id: 'maxhp', icon: '❤️', name: '최대 체력 증가', desc: () => '최대 체력 +22, 전체 회복', apply: (p) => { p.maxHp += 22; p.hp = p.maxHp; } },
     { id: 'regen', icon: '💚', name: '체력 재생', desc: () => '초당 체력 재생 +0.6', apply: (p) => { p.regen += 0.6; } },
@@ -362,7 +419,7 @@
         if (player.weapons.some((w) => w.id === id)) continue;
         const def = WEAPON_DEFS[id];
         cards.push({
-          icon: def.icon, name: `${def.name} 획득`, desc: def.desc(1, player),
+          isWeapon: true, icon: def.icon, name: `${def.name} 획득`, desc: def.desc(1, player),
           apply() { player.weapons.push({ id, level: 1 }); player.weaponTimers[id] = 0; },
         });
       }
@@ -371,13 +428,13 @@
       const def = WEAPON_DEFS[w.id];
       if (w.level < def.maxLevel) {
         cards.push({
-          icon: def.icon, name: `${def.name} 강화 (Lv.${w.level + 1})`, desc: def.desc(w.level + 1, player),
+          isWeapon: true, icon: def.icon, name: `${def.name} 강화 (Lv.${w.level + 1})`, desc: def.desc(w.level + 1, player),
           apply() { const found = player.weapons.find((x) => x.id === w.id); found.level += 1; },
         });
       }
     }
     for (const su of STAT_UPGRADES) {
-      cards.push({ icon: su.icon, name: su.name, desc: su.desc(), apply() { su.apply(player); } });
+      cards.push({ isWeapon: false, icon: su.icon, name: su.name, desc: su.desc(), apply() { su.apply(player); } });
     }
     return cards;
   }
@@ -391,8 +448,11 @@
   let elapsed = 0;
   let kills = 0;
   let spawnTimer = 0;
-  let lastStageIndex = 1;
-  let lastPeriodicBossFloor = -1;
+  let stageIndex = 1;
+  let stageKills = 0;
+  let finalStageBossMark = 0;
+  let totalMonsterScore = 0;
+  let killsByType = {};
   let stageBanner = null;
   let lastWeaponsSig = '';
   let lastTime = 0;
@@ -430,8 +490,11 @@
     elapsed = 0;
     kills = 0;
     spawnTimer = 0.6;
-    lastStageIndex = 1;
-    lastPeriodicBossFloor = -1;
+    stageIndex = 1;
+    stageKills = 0;
+    finalStageBossMark = 0;
+    totalMonsterScore = 0;
+    killsByType = {};
     stageBanner = null;
     lastWeaponsSig = '';
     stageBannerEl.classList.add('hidden');
@@ -456,9 +519,9 @@
     } catch (e) { /* ignore storage errors */ }
   }
 
-  function addScore(name, score, level, time) {
+  function addScore(name, score, level, stage, time) {
     const list = loadLeaderboard();
-    list.push({ name: name || 'Player', score, level, time });
+    list.push({ name: name || 'Player', score, level, stage, time });
     list.sort((a, b) => b.score - a.score);
     const trimmed = list.slice(0, 10);
     saveLeaderboard(trimmed);
@@ -490,7 +553,7 @@
       name.style.flex = '1';
       name.style.margin = '0 8px';
       const score = document.createElement('span');
-      score.textContent = `${entry.score} (Lv.${entry.level})`;
+      score.textContent = `${entry.score} (Stage ${entry.stage || 1} · Lv.${entry.level})`;
       li.appendChild(rank);
       li.appendChild(name);
       li.appendChild(score);
@@ -499,7 +562,7 @@
   }
 
   function currentScore() {
-    return kills * 10 + Math.floor(elapsed) * 2 + player.level * 50;
+    return totalMonsterScore + player.level * 25 + (stageIndex - 1) * 150;
   }
 
   // ---------------------------------------------------------------------
@@ -583,9 +646,8 @@
   function spawnEnemy(typeKey) {
     const def = ENEMY_TYPES[typeKey];
     const pos = spawnPosition();
-    const stageIdx = currentStageIndex();
-    const hpMult = (1 + (stageIdx - 1) * 0.32) * (1 + elapsed * 0.012);
-    const dmgMult = (1 + (stageIdx - 1) * 0.18) * (1 + elapsed * 0.006);
+    const hpMult = (1 + (stageIndex - 1) * 0.32) * (1 + elapsed * 0.012);
+    const dmgMult = (1 + (stageIndex - 1) * 0.18) * (1 + elapsed * 0.006);
     enemies.push({
       x: pos.x, y: pos.y,
       hp: def.hp * hpMult, maxHp: def.hp * hpMult,
@@ -602,28 +664,32 @@
 
   function updateSpawning(dt) {
     spawnTimer -= dt;
-    const stageIdx = currentStageIndex();
-    const interval = Math.max(0.26, (1.3 - elapsed * 0.01) * Math.max(0.5, 1 - (stageIdx - 1) * 0.07));
-    const maxEnemies = Math.min(170, 16 + Math.floor(elapsed * 0.85) + (stageIdx - 1) * 8);
+    const interval = Math.max(0.26, (1.3 - elapsed * 0.01) * Math.max(0.5, 1 - (stageIndex - 1) * 0.07));
+    const maxEnemies = Math.min(170, 16 + Math.floor(elapsed * 0.85) + (stageIndex - 1) * 8);
     if (spawnTimer <= 0 && enemies.length < maxEnemies) {
       spawnTimer = interval;
-      spawnEnemy(pickEnemyType(stageIdx));
+      spawnEnemy(pickEnemyType(stageIndex));
     }
   }
 
-  function updateStageProgress() {
-    const idx = currentStageIndex();
-    if (idx !== lastStageIndex) {
-      lastStageIndex = idx;
-      stageBanner = { text: STAGES[idx - 1].label, timer: 2.6 };
-      if (idx >= 3) spawnEnemy('boss');
-    }
-    if (idx >= 3) {
-      const floor = Math.floor((elapsed - STAGES[2].threshold) / 55);
-      if (floor > lastPeriodicBossFloor) {
-        lastPeriodicBossFloor = floor;
-        if (floor > 0) spawnEnemy('boss');
-      }
+  function registerKill(en) {
+    kills += 1;
+    stageKills += 1;
+    totalMonsterScore += en.score;
+    killsByType[en.type] = (killsByType[en.type] || 0) + 1;
+    gems.push({ x: en.x, y: en.y, value: en.xpValue });
+    spawnParticles(en.x, en.y, en.type === 'boss' ? '#d9a3f5' : '#8fd66b', en.type === 'boss' ? 26 : 10);
+
+    const quota = STAGES[stageIndex - 1].killQuota;
+    if (Number.isFinite(quota) && stageKills >= quota && stageIndex < STAGES.length) {
+      const clearedLabel = STAGES[stageIndex - 1].label;
+      stageIndex += 1;
+      stageKills = 0;
+      stageBanner = { text: `${clearedLabel} 클리어! → ${STAGES[stageIndex - 1].label}`, timer: 2.8 };
+      if (stageIndex >= 3) spawnEnemy('boss');
+    } else if (stageIndex === STAGES.length && stageKills > 0 && stageKills % 40 === 0 && stageKills !== finalStageBossMark) {
+      finalStageBossMark = stageKills;
+      spawnEnemy('boss');
     }
   }
 
@@ -674,8 +740,13 @@
 
   function queueLevelUp() {
     const pool = buildCardPool();
-    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
-    pendingUpgradeChoices.push(shuffled);
+    const weaponCards = pool.filter((c) => c.isWeapon).sort(() => Math.random() - 0.5);
+    const statCards = pool.filter((c) => !c.isWeapon).sort(() => Math.random() - 0.5);
+    const picks = [];
+    if (weaponCards.length) picks.push(weaponCards.shift());
+    const rest = [...weaponCards, ...statCards].sort(() => Math.random() - 0.5);
+    while (picks.length < 3 && rest.length) picks.push(rest.shift());
+    pendingUpgradeChoices.push(picks);
   }
 
   function showLevelUpCard() {
@@ -857,7 +928,6 @@
   // ---------------------------------------------------------------------
   function update(dt) {
     elapsed += dt;
-    updateStageProgress();
     updateSpawning(dt);
 
     const kv = getKeyboardVector();
@@ -903,11 +973,7 @@
     effects = effects.filter((e) => e.life > 0);
 
     for (const en of enemies) {
-      if (en.dead) {
-        kills += 1;
-        gems.push({ x: en.x, y: en.y, value: en.xpValue });
-        spawnParticles(en.x, en.y, en.type === 'boss' ? '#d9a3f5' : '#8fd66b', en.type === 'boss' ? 26 : 10);
-      }
+      if (en.dead) registerKill(en);
     }
     enemies = enemies.filter((en) => !en.dead);
 
@@ -937,7 +1003,8 @@
     hpFill.style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
     xpFill.style.width = `${Math.min(100, (player.xp / player.xpToNext) * 100)}%`;
     hudLevel.textContent = `Lv.${player.level}`;
-    hudStage.textContent = `STAGE ${currentStageIndex()}`;
+    const quota = STAGES[stageIndex - 1].killQuota;
+    hudStage.textContent = `STAGE ${stageIndex} · ${stageKills}/${Number.isFinite(quota) ? quota : '∞'}`;
     hudTimer.textContent = formatTime(elapsed);
     hudKills.textContent = `☠ ${kills}`;
     updateWeaponHud();
@@ -957,6 +1024,11 @@
   // ---------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------
+  function hash2(x, y) {
+    const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+    return h - Math.floor(h);
+  }
+
   function drawBackground() {
     ctx.fillStyle = '#141824';
     ctx.fillRect(0, 0, W, H);
@@ -967,9 +1039,24 @@
     for (let wx = startX; wx < camera.x + halfW; wx += tile) {
       for (let wy = startY; wy < camera.y + halfH; wy += tile) {
         const ix = Math.round(wx / tile), iy = Math.round(wy / tile);
+        const sx = wx - camera.x + halfW, sy = wy - camera.y + halfH;
         if ((ix + iy) % 2 === 0) {
           ctx.fillStyle = 'rgba(255,255,255,0.02)';
-          ctx.fillRect(wx - camera.x + halfW, wy - camera.y + halfH, tile, tile);
+          ctx.fillRect(sx, sy, tile, tile);
+        }
+        const rnd = hash2(ix, iy);
+        if (rnd > 0.86) {
+          const hx = hash2(ix + 1, iy) * (tile - 10);
+          const hy = hash2(ix, iy + 1) * (tile - 10);
+          ctx.fillStyle = 'rgba(130,210,150,0.10)';
+          ctx.fillRect(sx + hx, sy + hy, 4, 4);
+          ctx.fillStyle = 'rgba(130,210,150,0.06)';
+          ctx.fillRect(sx + hx + 5, sy + hy + 3, 3, 3);
+        } else if (rnd < 0.06) {
+          const hx = hash2(ix + 2, iy) * (tile - 6);
+          const hy = hash2(ix, iy + 2) * (tile - 6);
+          ctx.fillStyle = 'rgba(0,0,0,0.12)';
+          ctx.fillRect(sx + hx, sy + hy, 5, 5);
         }
       }
     }
@@ -1044,17 +1131,32 @@
     }
 
     for (const e of effects) {
-      if (e.kind !== 'laser') continue;
-      const s1 = worldToScreen(e.x1, e.y1), s2 = worldToScreen(e.x2, e.y2);
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, e.life / e.maxLife);
-      ctx.strokeStyle = '#ff5e7a';
-      ctx.lineWidth = e.width;
-      ctx.beginPath();
-      ctx.moveTo(s1.x, s1.y);
-      ctx.lineTo(s2.x, s2.y);
-      ctx.stroke();
-      ctx.restore();
+      if (e.kind === 'laser') {
+        const s1 = worldToScreen(e.x1, e.y1), s2 = worldToScreen(e.x2, e.y2);
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, e.life / e.maxLife);
+        ctx.strokeStyle = '#ff5e7a';
+        ctx.lineWidth = e.width;
+        ctx.beginPath();
+        ctx.moveTo(s1.x, s1.y);
+        ctx.lineTo(s2.x, s2.y);
+        ctx.stroke();
+        ctx.restore();
+      } else if (e.kind === 'lightning') {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, e.life / e.maxLife);
+        ctx.strokeStyle = '#fff59d';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#ffe98a';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        e.points.forEach((pt, i) => {
+          const s = worldToScreen(pt.x, pt.y);
+          if (i === 0) ctx.moveTo(s.x, s.y); else ctx.lineTo(s.x, s.y);
+        });
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     for (const p of particles) {
@@ -1100,6 +1202,29 @@
   // ---------------------------------------------------------------------
   // Game flow
   // ---------------------------------------------------------------------
+  function renderKillBreakdown() {
+    killBreakdownEl.innerHTML = '';
+    const entries = Object.entries(killsByType).sort((a, b) => b[1] - a[1]);
+    if (!entries.length) {
+      const li = document.createElement('li');
+      li.className = 'lb-empty';
+      li.textContent = '처치 기록이 없습니다';
+      killBreakdownEl.appendChild(li);
+      return;
+    }
+    entries.forEach(([type, count]) => {
+      const li = document.createElement('li');
+      const nameEl = document.createElement('span');
+      nameEl.textContent = ENEMY_TYPES[type] ? ENEMY_TYPES[type].nameKo : type;
+      nameEl.style.flex = '1';
+      const countEl = document.createElement('span');
+      countEl.textContent = `${count}마리`;
+      li.appendChild(nameEl);
+      li.appendChild(countEl);
+      killBreakdownEl.appendChild(li);
+    });
+  }
+
   function triggerGameOver() {
     if (state === 'gameover') return;
     state = 'gameover';
@@ -1108,9 +1233,11 @@
     joystick.classList.add('hidden');
     stageBannerEl.classList.add('hidden');
     finalScoreEl.textContent = currentScore();
+    finalStageEl.textContent = stageIndex;
     finalLevelEl.textContent = player.level;
     finalTimeEl.textContent = formatTime(elapsed);
     finalKillsEl.textContent = kills;
+    renderKillBreakdown();
     nameInput.value = localStorage.getItem(NAME_KEY) || '';
     renderLeaderboard(leaderboardGameover, loadLeaderboard());
   }
@@ -1136,7 +1263,7 @@
   btnSaveScore.addEventListener('click', () => {
     const name = nameInput.value.trim().slice(0, 10) || 'Player';
     localStorage.setItem(NAME_KEY, name);
-    const list = addScore(name, currentScore(), player.level, elapsed);
+    const list = addScore(name, currentScore(), player.level, stageIndex, elapsed);
     renderLeaderboard(leaderboardGameover, list);
     btnSaveScore.disabled = true;
     btnSaveScore.textContent = '저장됨';

@@ -12,6 +12,7 @@
 <body>
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
+    <div id="vignette"></div>
 
     <div id="hud" class="hidden">
       <div class="hud-top">
@@ -59,9 +60,14 @@
       <h2 class="gameover-title">GAME OVER</h2>
       <div class="gameover-stats">
         <div><span>최종 점수</span><strong id="final-score">0</strong></div>
+        <div><span>도달 스테이지</span><strong id="final-stage">1</strong></div>
         <div><span>도달 레벨</span><strong id="final-level">1</strong></div>
         <div><span>생존 시간</span><strong id="final-time">00:00</strong></div>
         <div><span>처치 수</span><strong id="final-kills">0</strong></div>
+      </div>
+      <div class="leaderboard-box">
+        <h2>💀 몬스터별 처치 기록</h2>
+        <ul id="kill-breakdown" class="leaderboard-list"></ul>
       </div>
       <div class="name-input-row">
         <input id="name-input" maxlength="10" placeholder="이름 (최대 10자)" />
