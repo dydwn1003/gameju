@@ -88,7 +88,7 @@ input[type="text"], input[type="number"], input[type="time"], select {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .primary-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(216, 178, 92, 0.35); }
-.primary-btn:active { transform: translateY(0); }
+.primary-btn:active { transform: translateY(0) scale(0.98); }
 
 /* ── 무대(배경+캐릭터) ── */
 .stage {
@@ -141,13 +141,17 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .stage[data-age-group="elder"] .scene-orb { fill: #dde2f4; opacity: 0.85; }
 .stage[data-age-group="elder"] .scene-stars { display: block; }
 
-/* 생년(출생연도 홀짝)에 따라 마을 랜드마크가 한옥 마을 / 냇가 다리로 갈린다 */
-.scene-landmark-river { display: none; }
+/* 생년+생월 해시(0/1/2)에 따라 마을 랜드마크가 한옥 마을 / 냇가 다리 / 정자 셋 중 하나로 갈린다 */
+.scene-landmark-river, .scene-landmark-pavilion { display: none; }
 .scene-river-water { fill: #274468; opacity: 0.85; }
 .scene-bridge-arch { fill: none; stroke: #cbb98a; stroke-width: 5; }
 .scene-bridge-deck, .scene-bridge-post { fill: #cbb98a; }
+.scene-pavilion-roof { fill: #232945; stroke: rgba(216, 178, 92, 0.45); stroke-width: 1; }
+.scene-pavilion-post, .scene-pavilion-rail { fill: #2b2f4a; }
 .stage[data-bg-variant="1"] .scene-landmark-hanok { display: none; }
 .stage[data-bg-variant="1"] .scene-landmark-river { display: block; }
+.stage[data-bg-variant="2"] .scene-landmark-hanok { display: none; }
+.stage[data-bg-variant="2"] .scene-landmark-pavilion { display: block; }
 .stage[data-season="winter"] .scene-river-water { fill: #8b96b2; opacity: 0.7; }
 
 /* 성별에 따라 씬의 나무가 벚나무(여) / 소나무(남)로 갈린다 */
@@ -157,6 +161,14 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .stage[data-season="winter"] .scene-snow { opacity: 1; fill: #ffffff; }
 .stage[data-gender="M"] .scene-tree-blossom { display: none; }
 .stage[data-gender="M"] .scene-tree-pine { display: block; }
+
+/* 그 달의 사주 길흉(data-fortune-tier)에 따라 구름/반짝임 연출이 더해진다 */
+.scene-clouds, .scene-sparkle { display: none; }
+.scene-clouds ellipse { fill: #3a4160; opacity: 0.55; }
+.scene-sparkle .spark { fill: var(--gold-soft); opacity: 0.85; }
+.stage[data-fortune-tier="흉"] .scene-clouds,
+.stage[data-fortune-tier="대흉"] .scene-clouds { display: block; }
+.stage[data-fortune-tier="대길"] .scene-sparkle { display: block; }
 
 .stage-character-wrap {
   position: absolute;
@@ -199,6 +211,9 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .stage[data-age-group="elder"][data-gender="M"] .char-beard { display: block; }
 .stage[data-age-group="elder"] .stage-character-svg { transform: rotate(-3deg); transform-origin: 50% 100%; }
 
+/* 현재 가장 우세한 능력치를 색으로 보여주는 옷깃 브로치 (렌더될 때마다 JS 로 색이 갱신됨) */
+.char-badge { fill: var(--gold); stroke: rgba(0, 0, 0, 0.3); stroke-width: 1; transition: fill 0.3s ease; }
+
 /* ── HUD ── */
 .stage-hud {
   position: absolute;
@@ -215,16 +230,28 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .header-age { color: var(--gold-soft); font-weight: 700; }
 .header-date { color: var(--text-dim); font-size: 0.82rem; }
 
-.hud-stats { display: flex; gap: 5px; flex-wrap: wrap; }
+.hud-stats { display: flex; gap: 6px; flex-wrap: wrap; }
 .hud-stat-chip {
-  font-size: 0.74rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
   background: rgba(20, 22, 36, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
-  padding: 2px 7px;
+  padding: 3px 9px 3px 7px;
   white-space: nowrap;
   color: var(--text);
 }
+.hud-stat-icon { font-size: 0.78rem; }
+.hud-stat-track { width: 30px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
+.hud-stat-fill { display: block; height: 100%; border-radius: 2px; background: var(--gold); transition: width 0.4s ease; }
+.hud-stat-fill[data-stat="health"] { background: var(--el-목); }
+.hud-stat-fill[data-stat="wealth"] { background: var(--gold); }
+.hud-stat-fill[data-stat="happy"] { background: var(--el-화); }
+.hud-stat-fill[data-stat="wisdom"] { background: var(--el-수); }
+.hud-stat-fill[data-stat="fame"] { background: var(--el-금); }
+.hud-stat-val { font-variant-numeric: tabular-nums; font-weight: 700; }
 
 .hud-icon-btn {
   background: rgba(20, 22, 36, 0.65);
@@ -235,8 +262,10 @@ input[type="text"], input[type="number"], input[type="time"], select {
   font-size: 0.85rem;
   cursor: pointer;
   line-height: 1;
+  transition: border-color 0.15s ease, transform 0.1s ease;
 }
 .hud-icon-btn:hover { border-color: var(--gold); }
+.hud-icon-btn:active { transform: scale(0.92); }
 .hud-icon-btn.hidden { display: none; }
 
 /* ── 대화창(하단 패널) - 무대(.stage-scene)와 절대 겹치지 않는 별도 구역 ── */
@@ -282,6 +311,9 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .choices-wrap { display: flex; flex-direction: column; gap: 8px; }
 .choices-wrap.hidden { display: none; }
 .choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-align: left;
   padding: 12px 14px;
   border-radius: 10px;
@@ -290,9 +322,27 @@ input[type="text"], input[type="number"], input[type="time"], select {
   color: var(--text);
   font-size: 0.92rem;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
-.choice-btn:hover { border-color: var(--gold); background: #262b42; }
+.choice-btn:hover { border-color: var(--gold); background: #262b42; transform: translateY(-1px); box-shadow: 0 5px 16px rgba(0, 0, 0, 0.28); }
+.choice-btn:active { transform: translateY(0); box-shadow: none; }
+.choice-btn.current-choice { border-color: var(--gold); background: rgba(216, 178, 92, 0.1); }
+.choice-idx {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(216, 178, 92, 0.15);
+  color: var(--gold-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.choice-btn.current-choice .choice-idx { background: var(--gold); color: #2a2110; }
+.choice-label { flex: 1; }
+.current-choice-tag { flex: none; margin-left: auto; font-size: 0.68rem; font-weight: 700; color: var(--gold); white-space: nowrap; }
 
 .result-panel.hidden { display: none; }
 .result-panel { background: rgba(27, 30, 43, 0.9); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
@@ -325,7 +375,9 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .modal-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(8, 9, 15, 0.72);
+  background: rgba(8, 9, 15, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,6 +385,11 @@ input[type="text"], input[type="number"], input[type="time"], select {
   z-index: 30;
 }
 .modal-overlay.hidden { display: none; }
+@keyframes modalPop {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-overlay:not(.hidden) .modal-panel { animation: modalPop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .modal-panel {
   background: var(--card);
   border: 1px solid var(--border);
@@ -452,6 +509,7 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .saeun-tier-badge.tier-대흉 { background: var(--tier-대흉); }
 
 .skip-cal-header { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 12px; font-weight: 700; font-size: 1.05rem; color: var(--gold-soft); letter-spacing: 0.5px; }
+.skip-cal-header.hidden, .skip-cal-grid.hidden, .cal-legend.hidden, .skip-hint.hidden { display: none; }
 .cal-nav-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
 .cal-nav-btn:hover:not(:disabled) { border-color: var(--gold); }
 .cal-nav-btn:disabled { opacity: 0.3; cursor: default; }
@@ -484,6 +542,22 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .skip-cal-cell.selected .cal-cell-month { color: var(--gold-soft); }
 .skip-cal-cell:disabled { opacity: 0.28; cursor: not-allowed; }
 .skip-cal-cell:disabled:hover { transform: none; }
+
+.cal-cell-tag { font-size: 0.6rem; color: var(--text-dim); margin-top: 1px; }
+.skip-cal-cell.current-month { opacity: 1; border-top-color: var(--gold); outline: 2px solid var(--gold); outline-offset: -2px; cursor: default; }
+.skip-cal-cell.current-month .cal-cell-tag { color: var(--gold); font-weight: 700; }
+.skip-cal-cell.past-resolved { cursor: pointer; opacity: 1; }
+.skip-cal-cell.past-resolved .cal-cell-tag { color: var(--gold-soft); }
+.skip-cal-cell.past-resolved:hover { border-color: var(--gold); transform: translateY(-1px); }
+.skip-cal-cell.past-locked { opacity: 0.32; }
+.skip-cal-cell.past-locked .cal-cell-tag { color: var(--text-dim); }
+.skip-cal-cell.out-of-range { opacity: 0.14; }
+
+.past-edit-panel.hidden { display: none; }
+.cal-back-btn { background: none; border: none; color: var(--text-dim); font-size: 0.8rem; cursor: pointer; padding: 0; margin-bottom: 10px; }
+.cal-back-btn:hover { color: var(--gold-soft); }
+.past-edit-title { margin: 2px 0 6px; font-size: 1.05rem; color: var(--gold-soft); }
+.past-edit-desc { margin: 0 0 12px; color: var(--text-dim); font-size: 0.86rem; line-height: 1.5; }
 
 .cal-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.7rem; color: var(--text-dim); }
 .cal-legend-item { display: flex; align-items: center; gap: 4px; }

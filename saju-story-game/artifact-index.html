@@ -84,7 +84,7 @@
           <div id="stat-bars" class="hud-stats"></div>
           <button id="saju-open-btn" class="hud-icon-btn" type="button" title="사주 원국">🔮</button>
           <button id="log-open-btn" class="hud-icon-btn" type="button" title="최근 기록">📜</button>
-          <button id="skip-open-btn" class="hud-icon-btn" type="button" title="시간 건너뛰기">📅</button>
+          <button id="skip-open-btn" class="hud-icon-btn" type="button" title="달력 (건너뛰기 / 과거 다시 선택)">📅</button>
         </div>
       </div>
 
@@ -111,20 +111,20 @@
         </div>
       </div>
 
-      <!-- 건너뛰기 달력 팝업 -->
+      <!-- 달력 팝업 (미래로 건너뛰기 / 과거 선택 다시 하기) -->
       <div id="skip-modal" class="modal-overlay hidden">
         <div class="modal-panel skip-cal-panel">
           <div class="modal-head">
-            <h4 class="section-title small">🌙 시간 건너뛰기</h4>
+            <h4 class="section-title small">📅 달력</h4>
             <button type="button" id="skip-modal-x" class="modal-x-btn" aria-label="닫기">✕</button>
           </div>
-          <div class="skip-cal-header">
+          <div id="skip-cal-header" class="skip-cal-header">
             <button id="skip-cal-prev" type="button" class="cal-nav-btn">◀</button>
             <span id="skip-cal-year"></span>
             <button id="skip-cal-next" type="button" class="cal-nav-btn">▶</button>
           </div>
           <div id="skip-cal-grid" class="skip-cal-grid"></div>
-          <div class="cal-legend">
+          <div id="cal-legend" class="cal-legend">
             <span class="cal-legend-item"><i class="dot tier-대길"></i>대길</span>
             <span class="cal-legend-item"><i class="dot tier-길"></i>길</span>
             <span class="cal-legend-item"><i class="dot tier-평"></i>평</span>
@@ -140,6 +140,13 @@
               <button type="button" class="skip-strategy-btn" data-strategy="stable">안정적으로 산다</button>
               <button type="button" class="skip-strategy-btn" data-strategy="relaxed">여유롭게 흘러가는 대로 둔다</button>
             </div>
+          </div>
+          <div id="skip-cal-past-edit" class="past-edit-panel hidden">
+            <button type="button" id="past-edit-back" class="cal-back-btn">◀ 달력으로</button>
+            <p class="skip-hint" id="past-edit-label"></p>
+            <h4 id="past-edit-title" class="past-edit-title"></h4>
+            <p class="past-edit-desc" id="past-edit-desc"></p>
+            <div id="past-edit-choices" class="choices-wrap"></div>
           </div>
         </div>
       </div>
@@ -213,9 +220,3 @@
         <button id="restart-btn" class="primary-btn">새로운 삶 시작하기</button>
       </div>
     </div>
-  </section>
-
-</div>
-<script src="saju.js"></script>
-<script src="data.js"></script>
-<script src="game.js"></script>

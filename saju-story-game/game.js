@@ -50,6 +50,7 @@
     <path class="char-wrinkle-r" d="M95,76 Q98,79 102,76"/>
     <path class="char-mouth" d="M70,86 Q80,90 90,86"/>
     <path class="char-beard" d="M64,92 Q80,110 96,92 Q90,102 80,104 Q70,102 64,92 Z"/>
+    <circle class="char-badge" cx="80" cy="196" r="6"/>
   </svg>`;
 
   // 배경 씬: 계절(data-season) · 나이대(data-age-group) · 성별(data-gender) ·
@@ -63,6 +64,17 @@
       <circle cx="255" cy="54" r="1.3"/>
       <circle cx="300" cy="30" r="1.4"/>
       <circle cx="30" cy="90" r="1.2"/>
+    </g>
+    <g class="scene-clouds">
+      <ellipse cx="90" cy="55" rx="26" ry="10"/>
+      <ellipse cx="128" cy="48" rx="20" ry="8"/>
+      <ellipse cx="258" cy="40" rx="30" ry="11"/>
+      <ellipse cx="292" cy="50" rx="18" ry="7"/>
+    </g>
+    <g class="scene-sparkle">
+      <path class="spark" d="M40,50 L43,58 L51,61 L43,64 L40,72 L37,64 L29,61 L37,58 Z"/>
+      <path class="spark" d="M200,25 L202,31 L208,33 L202,35 L200,41 L198,35 L192,33 L198,31 Z"/>
+      <path class="spark" d="M110,95 L112,101 L118,103 L112,105 L110,111 L108,105 L102,103 L108,101 Z"/>
     </g>
     <path class="scene-mountain-far" d="M0,180 L60,120 L130,170 L200,110 L280,165 L340,130 L400,175 L400,260 L0,260 Z"/>
     <path class="scene-mountain-near" d="M0,220 L90,160 L180,210 L260,150 L340,205 L400,175 L400,260 L0,260 Z"/>
@@ -79,6 +91,12 @@
         <rect class="scene-bridge-post" x="-4" y="30" width="4" height="20"/>
         <rect class="scene-bridge-post" x="90" y="30" width="4" height="20"/>
       </g>
+    </g>
+    <g class="scene-landmark-pavilion" transform="translate(255,150)">
+      <path class="scene-pavilion-roof" d="M-38,22 Q0,-18 38,22 Q0,8 -38,22 Z"/>
+      <rect class="scene-pavilion-post" x="-30" y="22" width="5" height="46"/>
+      <rect class="scene-pavilion-post" x="25" y="22" width="5" height="46"/>
+      <rect class="scene-pavilion-rail" x="-30" y="40" width="60" height="4"/>
     </g>
     <g class="scene-tree-blossom" transform="translate(55,188)">
       <rect class="scene-tree-trunk" x="-3" y="0" width="6" height="48"/>
@@ -141,7 +159,7 @@
 
   // 성별·출생연도는 게임 내내 바뀌지 않으므로 캐릭터 생성 시 한 번만 세 무대에 고정한다
   function initStageIdentity() {
-    const bgVariant = state.birth.y % 2 === 0 ? '0' : '1';
+    const bgVariant = String((state.birth.y + state.birth.m) % 3);
     ['#natal-stage', '#game-stage', '#end-stage'].forEach((sel) => {
       const stage = $(sel);
       if (!stage) return;
@@ -150,11 +168,13 @@
     });
   }
 
-  function updateStageAttrs(stageSel, month, age) {
+  function updateStageAttrs(stageSel, month, age, fortuneTier) {
     const stage = $(stageSel);
     if (!stage) return;
     stage.dataset.season = seasonFromMonth(month);
     stage.dataset.ageGroup = ageGroupOf(age);
+    if (fortuneTier) stage.dataset.fortuneTier = fortuneTier;
+    else delete stage.dataset.fortuneTier;
   }
 
   function dominantElement() {
@@ -171,12 +191,16 @@
     return 'neutral';
   }
 
+  const STAT_BADGE_COLOR = { health: 'var(--el-목)', wealth: 'var(--gold)', happy: 'var(--el-화)', wisdom: 'var(--el-수)', fame: 'var(--el-금)' };
+
   function updateCharacter(container) {
     if (!container) return;
     ['.char-robe', '.char-sleeve-l', '.char-sleeve-r'].forEach((sel) => {
       const el = container.querySelector(sel);
       if (el) el.style.fill = `var(--el-${dominantElement()})`;
     });
+    const badge = container.querySelector('.char-badge');
+    if (badge) badge.style.fill = STAT_BADGE_COLOR[dominantStat().key];
     const mood = CHAR_MOOD[moodFromHappy(state.stats.happy)];
     const mouth = container.querySelector('.char-mouth');
     const browL = container.querySelector('.char-brow-l');
@@ -327,6 +351,10 @@
     return calendarForMonths(state.monthsElapsed);
   }
 
+  function findEventById(id) {
+    return GameData.EVENT_POOL.find((e) => e.id === id) || GameData.MILESTONES.find((e) => e.id === id);
+  }
+
   function pickEvent(age, year, month, fortune) {
     const anniversary = month === state.birth.m;
     if (anniversary) {
@@ -366,9 +394,30 @@
     renderEventScreen();
   }
 
+  // 표시 순서를 매번 섞어 어떤 선택이 좋은지 위치로 짐작할 수 없게 한다 (원래 인덱스는 유지)
+  function shuffleChoices(choices) {
+    const shuffled = choices.map((choice, idx) => ({ choice, idx }));
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  // A/B/C/D 인덱스 배지가 달린 선택지 버튼을 만든다 (event-choices, past-edit-choices 공용)
+  function buildChoiceButton(text, i, isCurrent, onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'choice-btn' + (isCurrent ? ' current-choice' : '');
+    btn.innerHTML = `<span class="choice-idx">${String.fromCharCode(65 + i)}</span><span class="choice-label">${text}</span>`
+      + (isCurrent ? '<span class="current-choice-tag">현재 선택</span>' : '');
+    btn.onclick = onClick;
+    return btn;
+  }
+
   function renderEventScreen() {
     const { age, year, month, fortune, event, isMilestone } = state.current;
-    updateStageAttrs('#game-stage', month, age);
+    updateStageAttrs('#game-stage', month, age, fortune.tier);
     $('#game-header-name').textContent = state.name;
     $('#game-header-age').textContent = `${age}세`;
     $('#game-header-date').textContent = `${year}년 ${month}월`;
@@ -382,20 +431,12 @@
     $('#event-desc').textContent = event.desc;
 
     // 어떤 선택이 좋은지 순서나 문구만으로 짐작할 수 없도록 표시 순서를 매번 섞는다
-    const shuffled = event.choices.map((choice, idx) => ({ choice, idx }));
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+    const shuffled = shuffleChoices(event.choices);
 
     const choiceWrap = $('#event-choices');
     choiceWrap.innerHTML = '';
-    shuffled.forEach(({ choice, idx }) => {
-      const btn = document.createElement('button');
-      btn.className = 'choice-btn';
-      btn.textContent = choice.text;
-      btn.onclick = () => chooseOption(idx);
-      choiceWrap.appendChild(btn);
+    shuffled.forEach(({ choice, idx }, i) => {
+      choiceWrap.appendChild(buildChoiceButton(choice.text, i, false, () => chooseOption(idx)));
     });
 
     $('#result-panel').classList.add('hidden');
@@ -497,7 +538,12 @@
     }
     clampStats();
 
-    state.log.unshift({ age, year, month, title: event.title, choiceText: choice.text, result: choice.result, applied, tier: fortune.tier, domain: event.domain });
+    state.log.unshift({
+      age, year, month, title: event.title, choiceText: choice.text, result: choice.result,
+      applied, tier: fortune.tier, domain: event.domain,
+      eventId: event.id, choiceIndex: idx, monthsElapsed: state.monthsElapsed,
+      isMilestone: state.current.isMilestone, fortune,
+    });
 
     renderStatChips();
     $('#event-choices').classList.add('hidden');
@@ -526,7 +572,15 @@
 
   function renderStatChips() {
     const wrap = $('#stat-bars');
-    wrap.innerHTML = GameData.STATS.map((s) => `<span class="hud-stat-chip">${s.icon} ${state.stats[s.key]}</span>`).join('');
+    wrap.innerHTML = GameData.STATS.map((s) => {
+      const val = state.stats[s.key];
+      const pct = Math.max(0, Math.min(100, val));
+      return `<span class="hud-stat-chip" title="${s.label}">
+        <span class="hud-stat-icon">${s.icon}</span>
+        <span class="hud-stat-track"><span class="hud-stat-fill" data-stat="${s.key}" style="width:${pct}%"></span></span>
+        <span class="hud-stat-val">${val}</span>
+      </span>`;
+    }).join('');
     renderAllCharacters();
   }
 
@@ -558,18 +612,32 @@
     return (year - state.birth.y) * 12 + (month - state.birth.m);
   }
 
-  function yearHasSelectable(year) {
-    const cap = reachableCapMonths();
+  // 달력에 의미 있게 표시할 최소~최대 범위: 19세(게임 시작) ~ 다음 미해결 마일스톤(또는 100세)
+  function calendarBoundsMonths() {
+    return { min: START_AGE * 12, max: reachableCapMonths() };
+  }
+
+  function yearHasContent(year) {
+    const { min, max } = calendarBoundsMonths();
     for (let m = 1; m <= 12; m++) {
       const tm = monthsElapsedFor(year, m);
-      if (tm > state.monthsElapsed && tm <= cap) return true;
+      if (tm >= min && tm <= max) return true;
     }
     return false;
+  }
+
+  function findLogEntryForMonths(tm) {
+    return state.log.find((e) => e.monthsElapsed === tm);
+  }
+
+  function monthsInSkipRange(tm) {
+    return state.log.some((e) => e.isSkip && tm >= e.monthsElapsedFrom && tm <= e.monthsElapsedTo);
   }
 
   function openSkipModal() {
     skipCalYear = currentCalendar().year;
     skipCalSelected = null;
+    closePastEventEditor();
     renderSkipCalendar();
     $('#skip-cal-strategy').classList.add('hidden');
     $('#skip-modal').classList.remove('hidden');
@@ -577,37 +645,122 @@
 
   function closeSkipModal() {
     $('#skip-modal').classList.add('hidden');
+    closePastEventEditor();
   }
 
   function renderSkipCalendar() {
     const cap = reachableCapMonths();
     $('#skip-cal-year').textContent = `${skipCalYear}년`;
-    $('#skip-cal-prev').disabled = !yearHasSelectable(skipCalYear - 1);
-    $('#skip-cal-next').disabled = !yearHasSelectable(skipCalYear + 1);
+    $('#skip-cal-prev').disabled = !yearHasContent(skipCalYear - 1);
+    $('#skip-cal-next').disabled = !yearHasContent(skipCalYear + 1);
 
     const grid = $('#skip-cal-grid');
     grid.innerHTML = '';
     for (let m = 1; m <= 12; m++) {
       const tm = monthsElapsedFor(skipCalYear, m);
-      const selectable = tm > state.monthsElapsed && tm <= cap;
-      const isSelected = skipCalSelected && skipCalSelected.year === skipCalYear && skipCalSelected.month === m;
       const fortune = Saju.monthlyFortune(state.saju, skipCalYear, m);
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `skip-cal-cell tier-${fortune.tier}` + (isSelected ? ' selected' : '');
-      btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span>`;
-      btn.disabled = !selectable;
-      btn.onclick = () => {
-        skipCalSelected = { year: skipCalYear, month: m };
-        renderSkipCalendar();
-        showSkipStrategyPanel();
-      };
+
+      if (tm < START_AGE * 12 || tm > cap) {
+        btn.className = 'skip-cal-cell out-of-range';
+        btn.disabled = true;
+        btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span>`;
+      } else if (tm > state.monthsElapsed) {
+        const isSelected = skipCalSelected && skipCalSelected.year === skipCalYear && skipCalSelected.month === m;
+        btn.className = `skip-cal-cell tier-${fortune.tier}` + (isSelected ? ' selected' : '');
+        btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span>`;
+        btn.onclick = () => {
+          skipCalSelected = { year: skipCalYear, month: m };
+          renderSkipCalendar();
+          showSkipStrategyPanel();
+        };
+      } else if (tm === state.monthsElapsed) {
+        btn.className = `skip-cal-cell tier-${fortune.tier} current-month`;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span><span class="cal-cell-tag">현재</span>`;
+      } else {
+        const entry = findLogEntryForMonths(tm);
+        if (entry) {
+          btn.className = `skip-cal-cell tier-${entry.tier} past-resolved`;
+          btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span><span class="cal-cell-tag">다시 선택</span>`;
+          btn.onclick = () => openPastEventEditor(entry);
+        } else {
+          btn.className = 'skip-cal-cell past-locked';
+          btn.disabled = true;
+          const tag = monthsInSkipRange(tm) ? '건너뜀' : '';
+          btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span>` + (tag ? `<span class="cal-cell-tag">${tag}</span>` : '');
+        }
+      }
       grid.appendChild(btn);
     }
 
     const capCal = calendarForMonths(cap);
     const reason = cap < MAX_AGE * 12 ? `다음 중요한 사건(${capCal.age}세)` : '100세';
-    $('#skip-cal-range-hint').textContent = `${reason} 전까지만 이동할 수 있어요.`;
+    $('#skip-cal-range-hint').textContent = `${reason} 전까지만 이동할 수 있어요. 지나간 달 중 ✓ 표시가 있는 달은 다시 클릭해 선택을 바꿀 수 있어요.`;
+  }
+
+  // ── 과거 선택 다시 하기 ──
+  let pastEditEntry = null;
+
+  function openPastEventEditor(entry) {
+    const event = findEventById(entry.eventId);
+    if (!event) return;
+    pastEditEntry = entry;
+
+    $('#skip-cal-header').classList.add('hidden');
+    $('#skip-cal-grid').classList.add('hidden');
+    $('#cal-legend').classList.add('hidden');
+    $('#skip-cal-range-hint').classList.add('hidden');
+    $('#skip-cal-strategy').classList.add('hidden');
+
+    $('#past-edit-label').textContent = `${entry.age}세 · ${entry.year}년 ${entry.month}월 (${entry.fortune.pillarLabel} · ${entry.tier})`;
+    $('#past-edit-title').textContent = (entry.isMilestone ? '★ ' : '') + event.title;
+    $('#past-edit-desc').textContent = event.desc;
+
+    const shuffled = shuffleChoices(event.choices);
+    const wrap = $('#past-edit-choices');
+    wrap.innerHTML = '';
+    shuffled.forEach(({ choice, idx }, i) => {
+      wrap.appendChild(buildChoiceButton(choice.text, i, idx === entry.choiceIndex, () => applyPastEventChoice(entry, idx)));
+    });
+
+    $('#skip-cal-past-edit').classList.remove('hidden');
+  }
+
+  function closePastEventEditor() {
+    pastEditEntry = null;
+    $('#skip-cal-past-edit').classList.add('hidden');
+    $('#skip-cal-header').classList.remove('hidden');
+    $('#skip-cal-grid').classList.remove('hidden');
+    $('#cal-legend').classList.remove('hidden');
+    $('#skip-cal-range-hint').classList.remove('hidden');
+  }
+
+  // 과거 선택을 바꾸면 그때 적용됐던 효과를 되돌리고 새 선택의 효과를 같은 그 달의 사주 기운(tierMult)으로 다시 적용한다
+  function applyPastEventChoice(entry, idx) {
+    const event = findEventById(entry.eventId);
+    const choice = event.choices[idx];
+
+    for (const key in entry.applied) {
+      state.stats[key] = (state.stats[key] || 0) - entry.applied[key];
+    }
+    const applied = {};
+    for (const key in choice.effects) {
+      applied[key] = applyTier(choice.effects[key], entry.fortune.tierMult);
+      state.stats[key] = (state.stats[key] || 0) + applied[key];
+    }
+    clampStats();
+
+    entry.choiceIndex = idx;
+    entry.choiceText = choice.text;
+    entry.result = choice.result;
+    entry.applied = applied;
+
+    renderStatChips();
+    renderLog();
+    closePastEventEditor();
+    renderSkipCalendar();
   }
 
   function showSkipStrategyPanel() {
@@ -651,6 +804,7 @@
       choiceText: `${strategy.label} (${years.toFixed(1)}년)`,
       result: `${fromCal.age}세부터 ${capCal.age}세까지, ${strategy.label} 시간을 보냈습니다.`,
       applied, tier: avgTier,
+      isSkip: true, monthsElapsedFrom: state.monthsElapsed + 1, monthsElapsedTo: capMonths - 1,
     });
 
     closeSkipModal();
@@ -680,6 +834,7 @@
     document.querySelectorAll('#skip-cal-strategy .skip-strategy-btn').forEach((btn) => {
       btn.addEventListener('click', () => executeSkip(btn.dataset.strategy));
     });
+    $('#past-edit-back').addEventListener('click', closePastEventEditor);
 
     $('#log-open-btn').addEventListener('click', () => $('#log-modal').classList.remove('hidden'));
     bindModalClose('#log-modal', '#log-modal-x', () => $('#log-modal').classList.add('hidden'));
