@@ -103,6 +103,15 @@ html, body {
   background: linear-gradient(180deg, #ff7a85, var(--danger));
 }
 
+.hp-fill.low {
+  animation: hpPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes hpPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.7); }
+}
+
 .xp-fill {
   background: linear-gradient(180deg, #8ff5e8, var(--accent-2));
 }
@@ -345,23 +354,40 @@ html, body {
 
 .upgrade-card {
   width: 190px;
-  background: var(--panel);
+  background: linear-gradient(180deg, #1d212d, var(--panel));
   border: 2px solid var(--panel-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 14px 12px;
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.1s ease, transform 0.05s ease;
+  transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  animation: cardPop 0.28s ease both;
+}
+
+.upgrade-card:nth-child(2) { animation-delay: 0.06s; }
+.upgrade-card:nth-child(3) { animation-delay: 0.12s; }
+
+@keyframes cardPop {
+  from { opacity: 0; transform: scale(0.82) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .upgrade-card:hover, .upgrade-card:active {
   border-color: var(--accent);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(255, 210, 63, 0.25);
 }
 
 .upgrade-card .uc-icon {
   font-size: 22px;
   margin-bottom: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,210,63,0.18), rgba(255,210,63,0.02));
 }
 
 .upgrade-card .uc-name {
