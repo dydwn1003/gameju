@@ -53,101 +53,117 @@
 
   <!-- 사주 원국 화면 -->
   <section id="screen-natal" class="screen hidden">
-    <div class="card wide">
-      <div class="natal-top">
-        <div id="portrait-natal" class="portrait-frame"></div>
-        <div class="natal-top-info">
-          <h2 id="natal-name"></h2>
-          <p class="subtitle" id="natal-birth"></p>
-          <p class="subtitle" id="natal-animal"></p>
-        </div>
+    <div class="stage" id="natal-stage">
+      <div class="stage-bg-slot"></div>
+      <div class="stage-character-wrap"><div class="stage-character-slot" id="char-natal"></div></div>
+
+      <div class="stage-dialogue tall">
+        <h2 id="natal-name"></h2>
+        <p class="subtitle" id="natal-birth"></p>
+        <p class="subtitle" id="natal-animal"></p>
+
+        <div id="natal-pillars" class="pillars-grid"></div>
+
+        <h3 class="section-title">오행 분포</h3>
+        <div id="natal-elements" class="elements-wrap"></div>
+
+        <h3 class="section-title">시작 능력치</h3>
+        <div id="natal-initial-stats" class="stat-chip-wrap"></div>
+
+        <button id="start-life-btn" class="primary-btn">19세부터 시작하기</button>
       </div>
-
-      <div id="natal-pillars" class="pillars-grid"></div>
-
-      <h3 class="section-title">오행 분포</h3>
-      <div id="natal-elements" class="elements-wrap"></div>
-
-      <h3 class="section-title">시작 능력치</h3>
-      <div id="natal-initial-stats" class="stat-chip-wrap"></div>
-
-      <button id="start-life-btn" class="primary-btn">19세부터 시작하기</button>
     </div>
   </section>
 
   <!-- 메인 게임 화면 -->
   <section id="screen-game" class="screen hidden">
-    <div class="card wide">
-      <div class="game-header">
-        <div id="portrait-game" class="portrait-frame small"></div>
-        <div class="header-mid">
-          <div>
-            <span id="game-header-name" class="header-name"></span>
-            <span id="game-header-age" class="header-age"></span>
-          </div>
+    <div class="stage" id="game-stage">
+      <div class="stage-bg-slot"></div>
+      <div class="stage-character-wrap"><div class="stage-character-slot" id="char-game"></div></div>
+
+      <div class="stage-hud">
+        <div class="hud-id">
+          <div><span id="game-header-name" class="header-name"></span> <span id="game-header-age" class="header-age"></span></div>
           <span id="game-header-date" class="header-date"></span>
         </div>
-        <button id="skip-open-btn" class="skip-open-btn" type="button">⏩ 건너뛰기</button>
+        <div id="stat-bars" class="hud-stats"></div>
+        <button id="log-open-btn" class="hud-icon-btn" type="button" title="최근 기록">📜</button>
+        <button id="skip-open-btn" class="hud-icon-btn" type="button" title="시간 건너뛰기">📅</button>
       </div>
 
-      <div id="skip-panel" class="skip-panel hidden">
-        <label class="skip-target-label">
-          몇 살까지 건너뛸까요?
-          <input type="number" id="skip-target-age" min="20" max="100" />
-        </label>
-        <p class="skip-hint">그 기간을 어떤 태도로 보낼지 골라주세요. (다음 마일스톤 직전까지만 이동합니다)</p>
-        <div class="skip-strategy-row">
-          <button type="button" class="skip-strategy-btn" data-strategy="challenge">도전적으로 산다</button>
-          <button type="button" class="skip-strategy-btn" data-strategy="stable">안정적으로 산다</button>
-          <button type="button" class="skip-strategy-btn" data-strategy="relaxed">여유롭게 흘러가는 대로 둔다</button>
+      <div class="stage-dialogue">
+        <div class="fortune-box">
+          <span id="fortune-badge" class="fortune-badge"></span>
+          <span id="fortune-desc" class="fortune-desc"></span>
         </div>
-        <button type="button" id="skip-cancel-btn" class="skip-cancel-btn">취소</button>
-      </div>
 
-      <div id="stat-bars" class="stat-bars"></div>
+        <div class="event-box">
+          <h3 id="event-title"></h3>
+          <p id="event-desc"></p>
+          <div id="event-choices" class="choices-wrap"></div>
 
-      <div class="fortune-box">
-        <span id="fortune-badge" class="fortune-badge"></span>
-        <span id="fortune-desc" class="fortune-desc"></span>
-      </div>
-
-      <div class="event-box">
-        <h3 id="event-title"></h3>
-        <p id="event-desc"></p>
-        <div id="event-choices" class="choices-wrap"></div>
-
-        <div id="result-panel" class="result-panel hidden">
-          <p id="result-text"></p>
-          <p id="result-remark" class="result-remark"></p>
-          <div id="result-effects" class="result-effects"></div>
-          <button id="next-month-btn" class="primary-btn">다음 달로</button>
+          <div id="result-panel" class="result-panel hidden">
+            <p id="result-text"></p>
+            <p id="result-remark" class="result-remark"></p>
+            <div id="result-effects" class="result-effects"></div>
+            <button id="next-month-btn" class="primary-btn">다음 달로</button>
+          </div>
         </div>
       </div>
 
-      <h4 class="section-title small">최근 기록</h4>
-      <div id="history-log" class="history-log"></div>
+      <!-- 건너뛰기 달력 팝업 -->
+      <div id="skip-modal" class="modal-overlay hidden">
+        <div class="modal-panel">
+          <h4 class="section-title small">시간 건너뛰기</h4>
+          <div class="skip-cal-header">
+            <button id="skip-cal-prev" type="button" class="cal-nav-btn">◀</button>
+            <span id="skip-cal-year"></span>
+            <button id="skip-cal-next" type="button" class="cal-nav-btn">▶</button>
+          </div>
+          <div id="skip-cal-grid" class="skip-cal-grid"></div>
+          <div id="skip-cal-strategy" class="skip-strategy-panel hidden">
+            <p class="skip-hint" id="skip-cal-selected-label"></p>
+            <p class="skip-hint">그 기간을 어떤 태도로 보낼지 골라주세요.</p>
+            <div class="skip-strategy-row">
+              <button type="button" class="skip-strategy-btn" data-strategy="challenge">도전적으로 산다</button>
+              <button type="button" class="skip-strategy-btn" data-strategy="stable">안정적으로 산다</button>
+              <button type="button" class="skip-strategy-btn" data-strategy="relaxed">여유롭게 흘러가는 대로 둔다</button>
+            </div>
+          </div>
+          <button type="button" id="skip-modal-close" class="skip-cancel-btn">닫기</button>
+        </div>
+      </div>
+
+      <!-- 최근 기록 팝업 -->
+      <div id="log-modal" class="modal-overlay hidden">
+        <div class="modal-panel">
+          <h4 class="section-title small">최근 기록</h4>
+          <div id="history-log" class="history-log"></div>
+          <button type="button" id="log-modal-close" class="skip-cancel-btn">닫기</button>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- 엔딩 화면 -->
   <section id="screen-end" class="screen hidden">
-    <div class="card wide">
-      <div class="natal-top">
-        <div id="portrait-end" class="portrait-frame"></div>
-        <div class="natal-top-info">
-          <h1 id="end-title"></h1>
-          <p class="subtitle" id="end-age"></p>
-          <p class="epitaph" id="end-epitaph"></p>
-        </div>
+    <div class="stage" id="end-stage">
+      <div class="stage-bg-slot"></div>
+      <div class="stage-character-wrap"><div class="stage-character-slot" id="char-end"></div></div>
+
+      <div class="stage-dialogue tall">
+        <h1 id="end-title"></h1>
+        <p class="subtitle" id="end-age"></p>
+        <p class="epitaph" id="end-epitaph"></p>
+
+        <h3 class="section-title">최종 능력치</h3>
+        <div id="end-stats" class="stat-chip-wrap"></div>
+
+        <h3 class="section-title">인생의 기록</h3>
+        <div id="end-log" class="history-log"></div>
+
+        <button id="restart-btn" class="primary-btn">새로운 삶 시작하기</button>
       </div>
-
-      <h3 class="section-title">최종 능력치</h3>
-      <div id="end-stats" class="stat-chip-wrap"></div>
-
-      <h3 class="section-title">인생의 기록</h3>
-      <div id="end-log" class="history-log"></div>
-
-      <button id="restart-btn" class="primary-btn">새로운 삶 시작하기</button>
     </div>
   </section>
 

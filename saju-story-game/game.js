@@ -1,4 +1,4 @@
-/* 게임 루프: 캐릭터 생성 -> 사주 원국 확인 -> 월별 진행(0~100세) -> 엔딩 */
+/* 게임 루프: 캐릭터 생성 -> 사주 원국 확인 -> 월별 진행(19~100세, 무대형 UI) -> 엔딩 */
 
 (() => {
   const STAT_ELEMENT_MAP = {
@@ -11,6 +11,7 @@
   const RECENT_WINDOW = 8;
   const START_AGE = 19;
   const DOMAIN_MATCH_CHANCE = 0.75;
+  const MAX_AGE = 100;
 
   const SKIP_STRATEGIES = {
     challenge: { label: '도전적으로 산다', perYear: { wealth: 3, happy: 1, health: -2, wisdom: 1, fame: 2 } },
@@ -18,29 +19,56 @@
     relaxed: { label: '여유롭게 흘러가는 대로 둔다', perYear: { wealth: 0, happy: 3, health: 2, wisdom: 0, fame: -1 } },
   };
 
-  const PORTRAIT_MOOD = {
+  const CHAR_MOOD = {
     happy: { mouth: 'M68,86 Q80,98 92,86', browL: 'M62,58 Q68,52 76,58', browR: 'M84,58 Q92,52 98,58' },
     neutral: { mouth: 'M70,88 Q80,91 90,88', browL: 'M62,60 Q68,56 75,60', browR: 'M85,60 Q92,56 98,60' },
     tired: { mouth: 'M70,90 Q80,85 90,90', browL: 'M62,64 Q69,68 76,62', browR: 'M84,62 Q91,68 98,64' },
   };
 
-  const PORTRAIT_SVG = `<svg viewBox="0 0 160 180" class="portrait-svg">
-    <circle cx="80" cy="90" r="76" class="portrait-ring"/>
-    <path class="portrait-robe" d="M30,178 Q30,118 56,106 L104,106 Q130,118 130,178 Z"/>
-    <path class="portrait-collar" d="M56,106 L80,138 L104,106"/>
-    <rect x="68" y="93" width="24" height="24" rx="6" class="portrait-skin"/>
-    <circle cx="80" cy="68" r="34" class="portrait-skin"/>
-    <path class="portrait-hair-m" d="M46,58 Q46,28 80,28 Q114,28 114,58 Q114,42 80,42 Q46,42 46,58 Z"/>
-    <g class="portrait-hair-f">
-      <path d="M44,60 Q40,26 80,26 Q120,26 116,60 Q118,108 104,118 Q112,78 96,48 Q88,40 80,40 Q72,40 64,48 Q48,78 56,118 Q42,108 44,60 Z"/>
-      <circle cx="117" cy="64" r="4" class="portrait-pin"/>
+  // 전신 캐릭터: 배경 씬 위에 서 있는 스탠딩 스프라이트
+  const STAGE_CHARACTER_SVG = `<svg viewBox="0 0 160 340" class="stage-character-svg">
+    <path class="char-robe" d="M20,330 Q20,160 56,110 L104,110 Q140,160 140,330 Z"/>
+    <path class="char-sleeve-l" d="M56,114 Q28,140 34,182 Q48,155 60,124 Z"/>
+    <path class="char-sleeve-r" d="M104,114 Q132,140 126,182 Q112,155 100,124 Z"/>
+    <path class="char-sash" d="M32,200 Q80,214 128,200 L128,208 Q80,222 32,208 Z"/>
+    <path class="char-collar" d="M56,110 L80,142 L104,110"/>
+    <rect x="68" y="97" width="24" height="24" rx="6" class="char-skin"/>
+    <circle cx="80" cy="70" r="34" class="char-skin"/>
+    <path class="char-hair-m" d="M46,60 Q46,30 80,30 Q114,30 114,60 Q114,44 80,44 Q46,44 46,60 Z"/>
+    <g class="char-hair-f">
+      <path d="M44,62 Q40,28 80,28 Q120,28 116,62 Q118,110 104,120 Q112,80 96,50 Q88,42 80,42 Q72,42 64,50 Q48,80 56,120 Q42,110 44,62 Z"/>
+      <circle cx="117" cy="66" r="4" class="char-pin"/>
     </g>
-    <path class="portrait-brow-l" d="M62,60 Q68,56 75,60"/>
-    <path class="portrait-brow-r" d="M85,60 Q92,56 98,60"/>
-    <ellipse cx="68" cy="70" rx="3.2" ry="4" class="portrait-eye"/>
-    <ellipse cx="92" cy="70" rx="3.2" ry="4" class="portrait-eye"/>
-    <path class="portrait-mouth" d="M70,86 Q80,90 90,86"/>
+    <path class="char-brow-l" d="M62,60 Q68,56 75,60"/>
+    <path class="char-brow-r" d="M85,60 Q92,56 98,60"/>
+    <ellipse cx="68" cy="70" rx="3.2" ry="4" class="char-eye"/>
+    <ellipse cx="92" cy="70" rx="3.2" ry="4" class="char-eye"/>
+    <path class="char-mouth" d="M70,86 Q80,90 90,86"/>
   </svg>`;
+
+  // 배경 씬: 계절(data-season)에 따라 CSS 로 색이 바뀌는 산/한옥/나무 실루엣
+  const STAGE_BG_SVG = `<svg class="stage-bg-svg" viewBox="0 0 400 260" preserveAspectRatio="xMidYMax slice">
+    <circle class="scene-orb" cx="325" cy="45" r="24"/>
+    <path class="scene-mountain-far" d="M0,180 L60,120 L130,170 L200,110 L280,165 L340,130 L400,175 L400,260 L0,260 Z"/>
+    <path class="scene-mountain-near" d="M0,220 L90,160 L180,210 L260,150 L340,205 L400,175 L400,260 L0,260 Z"/>
+    <g class="scene-hanok" transform="translate(235,168)">
+      <path class="scene-hanok-roof" d="M-8,26 Q42,-18 92,26 Q42,10 -8,26 Z"/>
+      <rect class="scene-hanok-wall" x="4" y="26" width="76" height="38"/>
+      <rect class="scene-hanok-door" x="30" y="42" width="22" height="22"/>
+    </g>
+    <g class="scene-tree" transform="translate(55,188)">
+      <rect class="scene-tree-trunk" x="-3" y="0" width="6" height="48"/>
+      <circle class="scene-tree-foliage" cx="0" cy="-16" r="24"/>
+      <circle class="scene-blossom" cx="-13" cy="-24" r="3.2"/>
+      <circle class="scene-blossom" cx="9" cy="-30" r="3.2"/>
+      <circle class="scene-blossom" cx="15" cy="-8" r="3.2"/>
+      <circle class="scene-blossom" cx="-9" cy="-2" r="3.2"/>
+      <circle class="scene-blossom" cx="2" cy="-16" r="3.2"/>
+    </g>
+    <rect class="scene-ground" x="0" y="228" width="400" height="32"/>
+  </svg>`;
+
+  const SEASON_MONTHS = { spring: [3, 4, 5], summer: [6, 7, 8], autumn: [9, 10, 11], winter: [12, 1, 2] };
 
   let state = null;
 
@@ -54,6 +82,7 @@
 
   function showScreen(name) {
     for (const key in screens) screens[key].classList.toggle('hidden', key !== name);
+    document.body.classList.toggle('wide-mode', name !== 'intro');
   }
 
   function clampStats() {
@@ -63,7 +92,22 @@
     }
   }
 
-  // ── 캐릭터 초상화 ──
+  // ── 무대 배경 / 캐릭터 ──
+  function seasonFromMonth(month) {
+    for (const season in SEASON_MONTHS) if (SEASON_MONTHS[season].includes(month)) return season;
+    return 'winter';
+  }
+
+  function initStageScenery() {
+    document.querySelectorAll('.stage-bg-slot').forEach((el) => { el.innerHTML = STAGE_BG_SVG; });
+    document.querySelectorAll('.stage-character-slot').forEach((el) => { el.innerHTML = STAGE_CHARACTER_SVG; });
+  }
+
+  function updateSeason(stageSel, month) {
+    const stage = $(stageSel);
+    if (stage) stage.dataset.season = seasonFromMonth(month);
+  }
+
   function dominantElement() {
     let best = Saju.ELEMENTS[0], max = -Infinity;
     for (const el of Saju.ELEMENTS) {
@@ -78,27 +122,28 @@
     return 'neutral';
   }
 
-  function updatePortrait(container) {
+  function updateCharacter(container) {
     if (!container) return;
-    if (!container.querySelector('.portrait-svg')) container.innerHTML = PORTRAIT_SVG;
     const isMale = state.gender === 'M';
-    const hairM = container.querySelector('.portrait-hair-m');
-    const hairF = container.querySelector('.portrait-hair-f');
+    const hairM = container.querySelector('.char-hair-m');
+    const hairF = container.querySelector('.char-hair-f');
     if (hairM) hairM.style.display = isMale ? '' : 'none';
     if (hairF) hairF.style.display = isMale ? 'none' : '';
-    const robe = container.querySelector('.portrait-robe');
-    if (robe) robe.style.fill = `var(--el-${dominantElement()})`;
-    const mood = PORTRAIT_MOOD[moodFromHappy(state.stats.happy)];
-    const mouth = container.querySelector('.portrait-mouth');
-    const browL = container.querySelector('.portrait-brow-l');
-    const browR = container.querySelector('.portrait-brow-r');
+    ['.char-robe', '.char-sleeve-l', '.char-sleeve-r'].forEach((sel) => {
+      const el = container.querySelector(sel);
+      if (el) el.style.fill = `var(--el-${dominantElement()})`;
+    });
+    const mood = CHAR_MOOD[moodFromHappy(state.stats.happy)];
+    const mouth = container.querySelector('.char-mouth');
+    const browL = container.querySelector('.char-brow-l');
+    const browR = container.querySelector('.char-brow-r');
     if (mouth) mouth.setAttribute('d', mood.mouth);
     if (browL) browL.setAttribute('d', mood.browL);
     if (browR) browR.setAttribute('d', mood.browR);
   }
 
-  function renderAllPortraits() {
-    ['#portrait-natal', '#portrait-game', '#portrait-end'].forEach((sel) => updatePortrait($(sel)));
+  function renderAllCharacters() {
+    ['#char-natal', '#char-game', '#char-end'].forEach((sel) => updateCharacter($(sel)));
   }
 
   // ── 인트로 폼 ──
@@ -168,6 +213,7 @@
   // ── 사주 원국 화면 ──
   function renderNatalScreen() {
     const { saju, elements } = state;
+    updateSeason('#natal-stage', state.birth.m);
     $('#natal-name').textContent = `${state.name} (${state.gender === 'M' ? '남' : '여'})`;
     $('#natal-birth').textContent =
       `${state.birth.y}년 ${state.birth.m}월 ${state.birth.d}일` +
@@ -220,7 +266,7 @@
       statWrap.appendChild(item);
     }
 
-    renderAllPortraits();
+    renderAllCharacters();
 
     $('#start-life-btn').onclick = () => {
       showScreen('game');
@@ -263,8 +309,8 @@
     state.monthsElapsed++;
     const { age, year, month } = currentCalendar();
 
-    if (age >= 100) {
-      triggerEnding('lifespan', age);
+    if (age >= MAX_AGE) {
+      triggerEnding('lifespan', age, month);
       return;
     }
 
@@ -282,10 +328,11 @@
 
   function renderEventScreen() {
     const { age, year, month, fortune, event, isMilestone } = state.current;
+    updateSeason('#game-stage', month);
     $('#game-header-name').textContent = state.name;
     $('#game-header-age').textContent = `${age}세`;
     $('#game-header-date').textContent = `${year}년 ${month}월`;
-    renderStatBars();
+    renderStatChips();
 
     $('#fortune-badge').textContent = fortune.tier;
     $('#fortune-badge').className = `fortune-badge tier-${fortune.tier}`;
@@ -309,92 +356,7 @@
     renderLog();
 
     $('#skip-open-btn').classList.toggle('hidden', isMilestone);
-    closeSkipPanel();
-  }
-
-  // ── 시간 건너뛰기 ──
-  function findMilestoneCap(fromAge, toAge) {
-    let capAge = toAge;
-    for (const ms of GameData.MILESTONES) {
-      if (ms.age > fromAge && ms.age <= toAge && !state.usedMilestones.has(ms.id) && ms.age < capAge) {
-        capAge = ms.age;
-      }
-    }
-    return capAge;
-  }
-
-  function openSkipPanel() {
-    const currentAge = state.current ? state.current.age : currentCalendar().age;
-    const input = $('#skip-target-age');
-    input.min = currentAge + 1;
-    input.max = 100;
-    input.value = Math.min(100, currentAge + 5);
-    $('#skip-panel').classList.remove('hidden');
-  }
-
-  function closeSkipPanel() {
-    $('#skip-panel').classList.add('hidden');
-  }
-
-  function executeSkip(strategyKey) {
-    const strategy = SKIP_STRATEGIES[strategyKey];
-    const currentAge = state.current ? state.current.age : currentCalendar().age;
-    let targetAge = parseInt($('#skip-target-age').value, 10);
-    if (!targetAge || targetAge <= currentAge) targetAge = currentAge + 1;
-    targetAge = Math.min(100, targetAge);
-
-    const capAge = findMilestoneCap(currentAge, targetAge);
-    const targetMonthsElapsed = capAge * 12;
-    const skipMonths = targetMonthsElapsed - state.monthsElapsed;
-    if (skipMonths <= 0) { closeSkipPanel(); return; }
-
-    let tierSum = 0, count = 0;
-    for (let me = state.monthsElapsed + 1; me <= targetMonthsElapsed; me++) {
-      const cal = calendarForMonths(me);
-      if (cal.age >= 100) break;
-      const f = Saju.monthlyFortune(state.saju, cal.year, cal.month);
-      tierSum += f.tierMult;
-      count++;
-    }
-    const avgMult = count > 0 ? tierSum / count : 1;
-    const avgTier = avgMult >= 1.3 ? '대길' : avgMult >= 1.1 ? '길' : avgMult >= 0.95 ? '평' : avgMult >= 0.75 ? '흉' : '대흉';
-
-    const years = skipMonths / 12;
-    const applied = {};
-    for (const key in strategy.perYear) {
-      applied[key] = applyTier(strategy.perYear[key] * years, avgMult);
-      state.stats[key] = (state.stats[key] || 0) + applied[key];
-    }
-    clampStats();
-
-    const fromCal = currentCalendar();
-    state.log.unshift({
-      age: fromCal.age, year: fromCal.year, month: fromCal.month,
-      title: '시간을 건너뛰다',
-      choiceText: `${strategy.label} (${years.toFixed(1)}년)`,
-      result: `${fromCal.age}세부터 ${capAge}세까지, ${strategy.label} 시간을 보냈습니다.`,
-      applied, tier: avgTier,
-    });
-    if (state.log.length > 30) state.log.pop();
-
-    closeSkipPanel();
-
-    if (state.stats.health <= 0) {
-      state.alive = false;
-      triggerEnding('death', capAge);
-      return;
-    }
-
-    state.monthsElapsed = targetMonthsElapsed - 1;
-    advanceAndShow();
-  }
-
-  function initSkipPanel() {
-    $('#skip-open-btn').addEventListener('click', openSkipPanel);
-    $('#skip-cancel-btn').addEventListener('click', closeSkipPanel);
-    document.querySelectorAll('.skip-strategy-btn').forEach((btn) => {
-      btn.addEventListener('click', () => executeSkip(btn.dataset.strategy));
-    });
+    closeSkipModal();
   }
 
   function applyTier(delta, tierMult) {
@@ -418,7 +380,7 @@
     state.log.unshift({ age, year, month, title: event.title, choiceText: choice.text, result: choice.result, applied, tier: fortune.tier });
     if (state.log.length > 30) state.log.pop();
 
-    renderStatBars();
+    renderStatChips();
     $('#event-choices').classList.add('hidden');
     const panel = $('#result-panel');
     panel.classList.remove('hidden');
@@ -435,7 +397,7 @@
     if (state.stats.health <= 0) {
       state.alive = false;
       $('#next-month-btn').textContent = '결과 확인하기';
-      $('#next-month-btn').onclick = () => triggerEnding('death');
+      $('#next-month-btn').onclick = () => triggerEnding('death', age, month);
       return;
     }
 
@@ -443,25 +405,15 @@
     $('#next-month-btn').onclick = () => advanceAndShow();
   }
 
-  function renderStatBars() {
+  function renderStatChips() {
     const wrap = $('#stat-bars');
-    wrap.innerHTML = '';
-    for (const s of GameData.STATS) {
-      const val = state.stats[s.key];
-      const pct = s.key === 'wealth' ? Math.min(100, val / 3) : val;
-      const row = document.createElement('div');
-      row.className = 'stat-row';
-      row.innerHTML = `<span class="stat-icon">${s.icon}</span><span class="stat-name">${s.label}</span>
-        <div class="stat-track"><div class="stat-fill stat-${s.key}" style="width:${pct}%"></div></div>
-        <span class="stat-val">${val}</span>`;
-      wrap.appendChild(row);
-    }
-    renderAllPortraits();
+    wrap.innerHTML = GameData.STATS.map((s) => `<span class="hud-stat-chip">${s.icon} ${state.stats[s.key]}</span>`).join('');
+    renderAllCharacters();
   }
 
   function renderLog() {
     const wrap = $('#history-log');
-    wrap.innerHTML = state.log.slice(0, 6).map((entry) => `
+    wrap.innerHTML = state.log.slice(0, 10).map((entry) => `
       <div class="log-item">
         <span class="log-age">${entry.age}세 ${entry.year}.${String(entry.month).padStart(2, '0')}</span>
         <span class="log-tier tier-${entry.tier}">${entry.tier}</span>
@@ -469,6 +421,143 @@
       </div>`).join('');
   }
 
+  // ── 시간 건너뛰기 (달력) ──
+  let skipCalYear = null;
+  let skipCalSelected = null;
+
+  function findMilestoneCapMonths(fromMonths, toMonths) {
+    let cap = toMonths;
+    for (const ms of GameData.MILESTONES) {
+      const msMonths = ms.age * 12;
+      if (msMonths > fromMonths && msMonths <= toMonths && !state.usedMilestones.has(ms.id) && msMonths < cap) cap = msMonths;
+    }
+    return cap;
+  }
+
+  function monthsElapsedFor(year, month) {
+    return (year - state.birth.y) * 12 + (month - state.birth.m);
+  }
+
+  function yearHasSelectable(year) {
+    for (let m = 1; m <= 12; m++) {
+      const tm = monthsElapsedFor(year, m);
+      if (tm > state.monthsElapsed && tm <= MAX_AGE * 12) return true;
+    }
+    return false;
+  }
+
+  function openSkipModal() {
+    skipCalYear = currentCalendar().year;
+    skipCalSelected = null;
+    renderSkipCalendar();
+    $('#skip-cal-strategy').classList.add('hidden');
+    $('#skip-modal').classList.remove('hidden');
+  }
+
+  function closeSkipModal() {
+    $('#skip-modal').classList.add('hidden');
+  }
+
+  function renderSkipCalendar() {
+    $('#skip-cal-year').textContent = `${skipCalYear}년`;
+    $('#skip-cal-prev').disabled = !yearHasSelectable(skipCalYear - 1);
+    $('#skip-cal-next').disabled = !yearHasSelectable(skipCalYear + 1);
+
+    const grid = $('#skip-cal-grid');
+    grid.innerHTML = '';
+    for (let m = 1; m <= 12; m++) {
+      const tm = monthsElapsedFor(skipCalYear, m);
+      const selectable = tm > state.monthsElapsed && tm <= MAX_AGE * 12;
+      const isSelected = skipCalSelected && skipCalSelected.year === skipCalYear && skipCalSelected.month === m;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'skip-cal-cell' + (isSelected ? ' selected' : '');
+      btn.textContent = `${m}월`;
+      btn.disabled = !selectable;
+      btn.onclick = () => {
+        skipCalSelected = { year: skipCalYear, month: m };
+        renderSkipCalendar();
+        showSkipStrategyPanel();
+      };
+      grid.appendChild(btn);
+    }
+  }
+
+  function showSkipStrategyPanel() {
+    const targetMonths = monthsElapsedFor(skipCalSelected.year, skipCalSelected.month);
+    const capMonths = findMilestoneCapMonths(state.monthsElapsed, targetMonths);
+    const capCal = calendarForMonths(capMonths);
+    const label = capMonths < targetMonths
+      ? `${capCal.year}년 ${capCal.month}월(${capCal.age}세) — 그 전에 중요한 사건이 있어 그때까지만 이동합니다.`
+      : `${skipCalSelected.year}년 ${skipCalSelected.month}월(${capCal.age}세)까지 이동합니다.`;
+    $('#skip-cal-selected-label').textContent = label;
+    $('#skip-cal-strategy').classList.remove('hidden');
+  }
+
+  function executeSkip(strategyKey) {
+    if (!skipCalSelected) return;
+    const strategy = SKIP_STRATEGIES[strategyKey];
+    const targetMonths = monthsElapsedFor(skipCalSelected.year, skipCalSelected.month);
+    const capMonths = findMilestoneCapMonths(state.monthsElapsed, targetMonths);
+    const skipMonths = capMonths - state.monthsElapsed;
+    if (skipMonths <= 0) { closeSkipModal(); return; }
+
+    let tierSum = 0, count = 0;
+    for (let me = state.monthsElapsed + 1; me <= capMonths; me++) {
+      const cal = calendarForMonths(me);
+      if (cal.age >= MAX_AGE) break;
+      const f = Saju.monthlyFortune(state.saju, cal.year, cal.month);
+      tierSum += f.tierMult;
+      count++;
+    }
+    const avgMult = count > 0 ? tierSum / count : 1;
+    const avgTier = avgMult >= 1.3 ? '대길' : avgMult >= 1.1 ? '길' : avgMult >= 0.95 ? '평' : avgMult >= 0.75 ? '흉' : '대흉';
+
+    const years = skipMonths / 12;
+    const applied = {};
+    for (const key in strategy.perYear) {
+      applied[key] = applyTier(strategy.perYear[key] * years, avgMult);
+      state.stats[key] = (state.stats[key] || 0) + applied[key];
+    }
+    clampStats();
+
+    const fromCal = currentCalendar();
+    const capCal = calendarForMonths(capMonths);
+    state.log.unshift({
+      age: fromCal.age, year: fromCal.year, month: fromCal.month,
+      title: '시간을 건너뛰다',
+      choiceText: `${strategy.label} (${years.toFixed(1)}년)`,
+      result: `${fromCal.age}세부터 ${capCal.age}세까지, ${strategy.label} 시간을 보냈습니다.`,
+      applied, tier: avgTier,
+    });
+    if (state.log.length > 30) state.log.pop();
+
+    closeSkipModal();
+
+    if (state.stats.health <= 0) {
+      state.alive = false;
+      triggerEnding('death', capCal.age, capCal.month);
+      return;
+    }
+
+    state.monthsElapsed = capMonths - 1;
+    advanceAndShow();
+  }
+
+  function initModals() {
+    $('#skip-open-btn').addEventListener('click', openSkipModal);
+    $('#skip-modal-close').addEventListener('click', closeSkipModal);
+    $('#skip-cal-prev').addEventListener('click', () => { skipCalYear--; renderSkipCalendar(); });
+    $('#skip-cal-next').addEventListener('click', () => { skipCalYear++; renderSkipCalendar(); });
+    document.querySelectorAll('#skip-cal-strategy .skip-strategy-btn').forEach((btn) => {
+      btn.addEventListener('click', () => executeSkip(btn.dataset.strategy));
+    });
+
+    $('#log-open-btn').addEventListener('click', () => $('#log-modal').classList.remove('hidden'));
+    $('#log-modal-close').addEventListener('click', () => $('#log-modal').classList.add('hidden'));
+  }
+
+  // ── 엔딩 ──
   function dominantStat() {
     let best = null, max = -Infinity;
     for (const s of GameData.STATS) {
@@ -486,9 +575,11 @@
     fame: '많은 이들에게 신망을 받으며 살아간 사람이었습니다.',
   };
 
-  function triggerEnding(kind, ageOverride) {
+  function triggerEnding(kind, ageOverride, monthOverride) {
     showScreen('end');
     const age = ageOverride != null ? ageOverride : (state.current ? state.current.age : Math.floor(state.monthsElapsed / 12));
+    const month = monthOverride != null ? monthOverride : (state.current ? state.current.month : state.birth.m);
+    updateSeason('#end-stage', month);
     $('#end-title').textContent = kind === 'death' ? '생을 마감하다' : '천수를 다하다';
     $('#end-age').textContent = `향년 ${age}세`;
     const best = dominantStat();
@@ -510,11 +601,12 @@
       </div>`).join('');
 
     $('#restart-btn').onclick = () => window.location.reload();
-    renderAllPortraits();
+    renderAllCharacters();
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    initStageScenery();
     initIntroForm();
-    initSkipPanel();
+    initModals();
   });
 })();
