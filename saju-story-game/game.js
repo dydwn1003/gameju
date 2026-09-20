@@ -146,11 +146,61 @@
     ['#char-natal', '#char-game', '#char-end'].forEach((sel) => updateCharacter($(sel)));
   }
 
-  // ── 인트로 폼 ──
+  // ── 인트로 폼: 12지지 원형 시계 ──
+  const BRANCH_HOUR_START = [23, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21]; // 자축인묘진사오미신유술해
+
+  function branchIndexForHour(hh) {
+    return Math.floor((hh + 1) / 2) % 12;
+  }
+
+  function buildBirthClock() {
+    const face = $('#birth-clock');
+    const radius = 84;
+    for (let i = 0; i < 12; i++) {
+      const angle = (i * 30 - 90) * (Math.PI / 180);
+      const dx = radius * Math.cos(angle);
+      const dy = radius * Math.sin(angle);
+      const startH = BRANCH_HOUR_START[i];
+      const endH = (startH + 1) % 24;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'clock-wedge';
+      btn.dataset.branch = i;
+      btn.style.left = `calc(50% + ${dx}px)`;
+      btn.style.top = `calc(50% + ${dy}px)`;
+      btn.textContent = Saju.BRANCHES[i];
+      btn.title = `${Saju.BRANCHES[i]}시 (${String(startH).padStart(2, '0')}:00~${String(endH).padStart(2, '0')}:59)`;
+      btn.onclick = () => {
+        const timeInput = $('#birth-time');
+        const cur = timeInput.value || '12:00';
+        const mm = cur.slice(3, 5) || '00';
+        timeInput.value = `${String(startH).padStart(2, '0')}:${mm}`;
+        updateBirthClockDisplay();
+      };
+      face.appendChild(btn);
+    }
+  }
+
+  function updateBirthClockDisplay() {
+    const val = $('#birth-time').value || '12:00';
+    const hh = parseInt(val.slice(0, 2), 10);
+    const mm = val.slice(3, 5);
+    const branchIdx = branchIndexForHour(hh);
+    document.querySelectorAll('.clock-wedge').forEach((el) => {
+      el.classList.toggle('active', parseInt(el.dataset.branch, 10) === branchIdx);
+    });
+    $('#birth-clock-readout').textContent = `${String(hh).padStart(2, '0')}:${mm}`;
+    $('#birth-clock-branch').textContent = `${Saju.BRANCHES[branchIdx]}시`;
+  }
+
   function initIntroForm() {
     const timeInput = $('#birth-time');
+    buildBirthClock();
+    updateBirthClockDisplay();
+    timeInput.addEventListener('input', updateBirthClockDisplay);
     $('#unknown-time').addEventListener('change', (e) => {
       timeInput.disabled = e.target.checked;
+      $('#birth-clock').classList.toggle('disabled', e.target.checked);
     });
     $('#intro-form').addEventListener('submit', onSubmitIntro);
   }
@@ -635,6 +685,18 @@
 
     $('#saju-open-btn').addEventListener('click', openSajuModal);
     $('#saju-modal-close').addEventListener('click', () => $('#saju-modal').classList.add('hidden'));
+    document.querySelectorAll('.saju-tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => switchSajuTab(btn.dataset.tab));
+    });
+  }
+
+  function switchSajuTab(tab) {
+    document.querySelectorAll('.saju-tab-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    $('#saju-tab-natal').classList.toggle('hidden', tab !== 'natal');
+    $('#saju-tab-future').classList.toggle('hidden', tab !== 'future');
+    if (tab === 'future') renderFutureTab();
   }
 
   function openSajuModal() {
@@ -642,7 +704,50 @@
     renderElementsBar('#saju-modal-elements', state.elements);
     const dayMasterEl = Saju.elementOf(state.saju.day.stem, true);
     $('#saju-modal-daymaster').textContent = `일간: ${Saju.STEMS[state.saju.day.stem]}(${dayMasterEl}) · ${Saju.ANIMALS[state.saju.year.branch]}띠`;
+    switchSajuTab('natal');
     $('#saju-modal').classList.remove('hidden');
+  }
+
+  function renderFutureTab() {
+    const curAge = state.current ? state.current.age : Math.floor(state.monthsElapsed / 12);
+    const curYear = state.current ? state.current.year : state.birth.y + curAge;
+
+    const daeun = Saju.calcDaeun(
+      state.birth.y, state.birth.m, state.birth.d, state.birth.hh, state.birth.mm,
+      state.gender, state.saju
+    );
+    const daeunWrap = $('#daeun-list');
+    daeunWrap.innerHTML = '';
+    const daeunHeadNote = $('#daeun-head-note');
+    if (daeunHeadNote) {
+      daeunHeadNote.textContent = `대운수 ${daeun.startAge} · ${daeun.forward ? '순행' : '역행'}`;
+    }
+    for (const p of daeun.pillars) {
+      const isCurrent = curAge >= p.fromAge && curAge <= p.toAge;
+      const chip = document.createElement('div');
+      chip.className = 'daeun-chip' + (isCurrent ? ' current' : '');
+      chip.innerHTML = `
+        <span class="daeun-chip-age">${p.fromAge}~${p.toAge}세</span>
+        <span class="daeun-chip-ganzhi">${Saju.STEMS[p.stem]}${Saju.BRANCHES[p.branch]}</span>`;
+      daeunWrap.appendChild(chip);
+    }
+
+    const saeunWrap = $('#saeun-list');
+    saeunWrap.innerHTML = '';
+    const endYear = state.birth.y + Math.min(MAX_AGE, 100);
+    for (let year = curYear; year <= endYear; year++) {
+      const age = year - state.birth.y;
+      const fortune = Saju.yearlyFortune(state.saju, year);
+      const row = document.createElement('div');
+      row.className = `saeun-row tier-${fortune.tier}` + (year === curYear ? ' current' : '');
+      row.innerHTML = `
+        <span class="saeun-age">${age}세</span>
+        <span class="saeun-year">${year}년</span>
+        <span class="saeun-ganzhi">${fortune.pillarLabel}</span>
+        <span class="saeun-dominant">${fortune.dominant}</span>
+        <span class="saeun-tier-badge tier-${fortune.tier}">${fortune.tier}</span>`;
+      saeunWrap.appendChild(row);
+    }
   }
 
   // ── 엔딩 ──

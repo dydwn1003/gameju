@@ -31,8 +31,15 @@
         </label>
 
         <label class="field">
-          <span>태어난 시각 (분 단위까지 입력 가능)</span>
-          <div class="date-row">
+          <span>태어난 시각</span>
+          <div id="birth-clock" class="birth-clock">
+            <div class="birth-clock-center">
+              <span id="birth-clock-readout" class="birth-clock-readout">12:00</span>
+              <span id="birth-clock-branch" class="birth-clock-branch">오시</span>
+            </div>
+          </div>
+          <div class="date-row birth-time-exact">
+            <span class="birth-time-exact-label">직접 입력</span>
             <input type="time" id="birth-time" step="60" value="12:00" />
           </div>
           <label class="checkbox-row"><input type="checkbox" id="unknown-time" /> 태어난 시각을 모릅니다</label>
@@ -154,11 +161,29 @@
       <!-- 사주 원국 팝업 -->
       <div id="saju-modal" class="modal-overlay hidden">
         <div class="modal-panel saju-modal-panel">
-          <h4 class="section-title small">🔮 나의 사주 원국</h4>
-          <p class="skip-hint" id="saju-modal-daymaster"></p>
-          <div id="saju-modal-pillars" class="pillars-grid"></div>
-          <h4 class="section-title small">오행 분포</h4>
-          <div id="saju-modal-elements" class="elements-wrap"></div>
+          <h4 class="section-title small">🔮 나의 사주</h4>
+          <div class="saju-tabs">
+            <button type="button" class="saju-tab-btn active" data-tab="natal">원국</button>
+            <button type="button" class="saju-tab-btn" data-tab="future">미래 운세</button>
+          </div>
+
+          <div id="saju-tab-natal" class="saju-tab-panel">
+            <p class="skip-hint" id="saju-modal-daymaster"></p>
+            <div id="saju-modal-pillars" class="pillars-grid"></div>
+            <h4 class="section-title small">오행 분포</h4>
+            <div id="saju-modal-elements" class="elements-wrap"></div>
+          </div>
+
+          <div id="saju-tab-future" class="saju-tab-panel hidden">
+            <div class="future-tab-head">
+              <h4 class="section-title small">대운(大運) — 10년 단위 큰 흐름</h4>
+              <span id="daeun-head-note" class="skip-hint inline"></span>
+            </div>
+            <div id="daeun-list" class="daeun-list"></div>
+            <h4 class="section-title small">세운(歲運) — 연도별 흐름</h4>
+            <div id="saeun-list" class="saeun-list"></div>
+          </div>
+
           <button type="button" id="saju-modal-close" class="skip-cancel-btn">닫기</button>
         </div>
       </div>

@@ -311,10 +311,68 @@ const Saju = (() => {
     대흉: '사주에서 우려했던 대로 어려움을 겪었습니다.',
   };
 
+  // 연 단위 세운(歲運): 그 해 연주만으로 본 큰 흐름 (월주까지 보는 monthlyFortune보다 거시적)
+  function yearlyFortune(natalPillars, year) {
+    const dayMasterEl = elementOf(natalPillars.day.stem, true);
+    const cur = calcYearMonthPillar(year, 6);
+    const parts = [
+      { el: elementOf(cur.year.stem, true), w: 1 },
+      { el: elementOf(cur.year.branch, false), w: 1 },
+    ];
+    let score = 0;
+    const groups = {};
+    for (const part of parts) {
+      const g = tenGodGroup(dayMasterEl, part.el);
+      groups[g] = (groups[g] || 0) + part.w;
+      score += TEN_GOD_SCORE[g] * part.w;
+    }
+    let dominant = '비겁';
+    let max = -Infinity;
+    for (const g in groups) if (groups[g] > max) { max = groups[g]; dominant = g; }
+
+    let tier;
+    if (score >= 1.5) tier = '대길';
+    else if (score >= 0.5) tier = '길';
+    else if (score > -0.5) tier = '평';
+    else if (score > -1.5) tier = '흉';
+    else tier = '대흉';
+
+    return { tier, dominant, pillarLabel: pillarLabel(cur.year) };
+  }
+
+  // 대운(大運): 월주를 기준으로 순행/역행하며 10년마다 바뀌는 큰 운의 흐름
+  // gender: 'M' | 'F', natal: calcFourPillars 결과
+  function calcDaeun(y, m, d, hh, mm, gender, natal) {
+    const bhh = hh == null ? 12 : hh;
+    const bmm = hh == null ? 0 : mm;
+    const birthJD = kstToJD(y, m, d, bhh, bmm);
+    const yearStemYang = STEM_YINYANG[natal.year.stem] === 1;
+    const forward = (yearStemYang && gender === 'M') || (!yearStemYang && gender === 'F');
+
+    const boundaries = buildMonthBoundaries(y);
+    let idx = 0;
+    for (let i = 0; i < boundaries.length - 1; i++) {
+      if (birthJD >= boundaries[i].jd && birthJD < boundaries[i + 1].jd) { idx = i; break; }
+    }
+    const daysToTerm = forward ? (boundaries[idx + 1].jd - birthJD) : (birthJD - boundaries[idx].jd);
+    const startAge = Math.max(1, Math.round(daysToTerm / 3));
+
+    const dir = forward ? 1 : -1;
+    let cur = { stem: natal.month.stem, branch: natal.month.branch };
+    const pillars = [];
+    for (let i = 1; i <= 10; i++) {
+      cur = { stem: ((cur.stem + dir) % 10 + 10) % 10, branch: ((cur.branch + dir) % 12 + 12) % 12 };
+      const fromAge = startAge + (i - 1) * 10;
+      if (fromAge > 100) break;
+      pillars.push({ fromAge, toAge: fromAge + 9, stem: cur.stem, branch: cur.branch });
+    }
+    return { startAge, forward, pillars };
+  }
+
   return {
     STEMS, BRANCHES, STEM_HANJA, BRANCH_HANJA, ELEMENTS, ANIMALS,
     calcFourPillars, calcYearMonthPillar, pillarLabel,
-    elementOf, countElements, tenGodGroup, monthlyFortune, TIER_REMARK,
+    elementOf, countElements, tenGodGroup, monthlyFortune, yearlyFortune, calcDaeun, TIER_REMARK,
   };
 })();
 
