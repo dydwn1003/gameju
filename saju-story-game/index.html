@@ -89,6 +89,7 @@
             <span id="game-header-date" class="header-date"></span>
           </div>
           <div id="stat-bars" class="hud-stats"></div>
+          <button id="saju-open-btn" class="hud-icon-btn" type="button" title="사주 원국">🔮</button>
           <button id="log-open-btn" class="hud-icon-btn" type="button" title="최근 기록">📜</button>
           <button id="skip-open-btn" class="hud-icon-btn" type="button" title="시간 건너뛰기">📅</button>
         </div>
@@ -119,14 +120,21 @@
 
       <!-- 건너뛰기 달력 팝업 -->
       <div id="skip-modal" class="modal-overlay hidden">
-        <div class="modal-panel">
-          <h4 class="section-title small">시간 건너뛰기</h4>
+        <div class="modal-panel skip-cal-panel">
+          <h4 class="section-title small">🌙 시간 건너뛰기</h4>
           <div class="skip-cal-header">
             <button id="skip-cal-prev" type="button" class="cal-nav-btn">◀</button>
             <span id="skip-cal-year"></span>
             <button id="skip-cal-next" type="button" class="cal-nav-btn">▶</button>
           </div>
           <div id="skip-cal-grid" class="skip-cal-grid"></div>
+          <div class="cal-legend">
+            <span class="cal-legend-item"><i class="dot tier-대길"></i>대길</span>
+            <span class="cal-legend-item"><i class="dot tier-길"></i>길</span>
+            <span class="cal-legend-item"><i class="dot tier-평"></i>평</span>
+            <span class="cal-legend-item"><i class="dot tier-흉"></i>흉</span>
+            <span class="cal-legend-item"><i class="dot tier-대흉"></i>대흉</span>
+          </div>
           <p class="skip-hint" id="skip-cal-range-hint"></p>
           <div id="skip-cal-strategy" class="skip-strategy-panel hidden">
             <p class="skip-hint" id="skip-cal-selected-label"></p>
@@ -147,6 +155,18 @@
           <h4 class="section-title small">최근 기록</h4>
           <div id="history-log" class="history-log"></div>
           <button type="button" id="log-modal-close" class="skip-cancel-btn">닫기</button>
+        </div>
+      </div>
+
+      <!-- 사주 원국 팝업 -->
+      <div id="saju-modal" class="modal-overlay hidden">
+        <div class="modal-panel saju-modal-panel">
+          <h4 class="section-title small">🔮 나의 사주 원국</h4>
+          <p class="skip-hint" id="saju-modal-daymaster"></p>
+          <div id="saju-modal-pillars" class="pillars-grid"></div>
+          <h4 class="section-title small">오행 분포</h4>
+          <div id="saju-modal-elements" class="elements-wrap"></div>
+          <button type="button" id="saju-modal-close" class="skip-cancel-btn">닫기</button>
         </div>
       </div>
     </div>

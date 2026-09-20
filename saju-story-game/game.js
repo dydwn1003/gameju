@@ -197,19 +197,12 @@
     showScreen('natal');
   }
 
-  // ── 사주 원국 화면 ──
-  function renderNatalScreen() {
-    const { saju, elements } = state;
-    updateSeason('#natal-stage', state.birth.m);
-    $('#natal-name').textContent = `${state.name} (${state.gender === 'M' ? '남' : '여'})`;
-    $('#natal-birth').textContent =
-      `${state.birth.y}년 ${state.birth.m}월 ${state.birth.d}일` +
-      (state.birth.unknownTime ? ' (태어난 시 모름)' : ` ${String(state.birth.hh).padStart(2, '0')}시 ${String(state.birth.mm).padStart(2, '0')}분`);
-
+  // 사주 원국(4기둥 그리드) + 오행 분포 바 - 사주 확인 화면과 게임 중 사주 팝업에서 공용으로 사용
+  function renderPillarsGrid(sel, saju) {
     const pillars = [
       ['시주', saju.hour], ['일주', saju.day], ['월주', saju.month], ['연주', saju.year],
     ];
-    const wrap = $('#natal-pillars');
+    const wrap = $(sel);
     wrap.innerHTML = '';
     for (const [label, p] of pillars) {
       const col = document.createElement('div');
@@ -227,11 +220,10 @@
       }
       wrap.appendChild(col);
     }
+  }
 
-    const animal = Saju.ANIMALS[saju.year.branch];
-    $('#natal-animal').textContent = `${animal}띠`;
-
-    const elBar = $('#natal-elements');
+  function renderElementsBar(sel, elements) {
+    const elBar = $(sel);
     elBar.innerHTML = '';
     const total = Object.values(elements).reduce((a, b) => a + b, 0) || 1;
     for (const el of Saju.ELEMENTS) {
@@ -243,6 +235,23 @@
         <span class="elem-count">${elements[el]}</span>`;
       elBar.appendChild(row);
     }
+  }
+
+  // ── 사주 원국 화면 ──
+  function renderNatalScreen() {
+    const { saju, elements } = state;
+    updateSeason('#natal-stage', state.birth.m);
+    $('#natal-name').textContent = `${state.name} (${state.gender === 'M' ? '남' : '여'})`;
+    $('#natal-birth').textContent =
+      `${state.birth.y}년 ${state.birth.m}월 ${state.birth.d}일` +
+      (state.birth.unknownTime ? ' (태어난 시 모름)' : ` ${String(state.birth.hh).padStart(2, '0')}시 ${String(state.birth.mm).padStart(2, '0')}분`);
+
+    renderPillarsGrid('#natal-pillars', saju);
+
+    const animal = Saju.ANIMALS[saju.year.branch];
+    $('#natal-animal').textContent = `${animal}띠`;
+
+    renderElementsBar('#natal-elements', elements);
 
     const statWrap = $('#natal-initial-stats');
     statWrap.innerHTML = '';
@@ -538,10 +547,11 @@
       const tm = monthsElapsedFor(skipCalYear, m);
       const selectable = tm > state.monthsElapsed && tm <= cap;
       const isSelected = skipCalSelected && skipCalSelected.year === skipCalYear && skipCalSelected.month === m;
+      const fortune = Saju.monthlyFortune(state.saju, skipCalYear, m);
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'skip-cal-cell' + (isSelected ? ' selected' : '');
-      btn.textContent = `${m}월`;
+      btn.className = `skip-cal-cell tier-${fortune.tier}` + (isSelected ? ' selected' : '');
+      btn.innerHTML = `<span class="cal-cell-month">${m}월</span><span class="cal-cell-ganzhi">${fortune.pillarLabel}</span>`;
       btn.disabled = !selectable;
       btn.onclick = () => {
         skipCalSelected = { year: skipCalYear, month: m };
@@ -622,6 +632,17 @@
 
     $('#log-open-btn').addEventListener('click', () => $('#log-modal').classList.remove('hidden'));
     $('#log-modal-close').addEventListener('click', () => $('#log-modal').classList.add('hidden'));
+
+    $('#saju-open-btn').addEventListener('click', openSajuModal);
+    $('#saju-modal-close').addEventListener('click', () => $('#saju-modal').classList.add('hidden'));
+  }
+
+  function openSajuModal() {
+    renderPillarsGrid('#saju-modal-pillars', state.saju);
+    renderElementsBar('#saju-modal-elements', state.elements);
+    const dayMasterEl = Saju.elementOf(state.saju.day.stem, true);
+    $('#saju-modal-daymaster').textContent = `일간: ${Saju.STEMS[state.saju.day.stem]}(${dayMasterEl}) · ${Saju.ANIMALS[state.saju.year.branch]}띠`;
+    $('#saju-modal').classList.remove('hidden');
   }
 
   // ── 엔딩 ──

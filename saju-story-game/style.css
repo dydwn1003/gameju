@@ -301,16 +301,62 @@ input[type="text"], input[type="number"], input[type="time"], select {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
-.skip-cal-header { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 10px; font-weight: 700; color: var(--gold-soft); }
+.skip-cal-panel {
+  max-width: 360px;
+  background: radial-gradient(circle at 50% 0%, #2a2440 0%, var(--card) 65%);
+  border-color: rgba(216, 178, 92, 0.3);
+}
+
+.saju-modal-panel {
+  max-width: 420px;
+  background: radial-gradient(circle at 50% 0%, #2a2440 0%, var(--card) 65%);
+  border-color: rgba(216, 178, 92, 0.3);
+}
+.saju-modal-panel .pillars-grid { margin: 10px 0 4px; }
+.saju-modal-panel .section-title.small { margin-top: 14px; }
+
+.skip-cal-header { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 12px; font-weight: 700; font-size: 1.05rem; color: var(--gold-soft); letter-spacing: 0.5px; }
 .cal-nav-btn { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
 .cal-nav-btn:hover:not(:disabled) { border-color: var(--gold); }
 .cal-nav-btn:disabled { opacity: 0.3; cursor: default; }
 
-.skip-cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px; }
-.skip-cal-cell { padding: 10px 4px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-soft); color: var(--text); font-size: 0.85rem; cursor: pointer; }
-.skip-cal-cell:hover:not(:disabled) { border-color: var(--gold); }
-.skip-cal-cell.selected { border-color: var(--gold); background: #3a3320; color: var(--gold-soft); font-weight: 700; }
+.skip-cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.skip-cal-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.skip-cal-cell.tier-대길 { border-top-color: var(--tier-대길); }
+.skip-cal-cell.tier-길 { border-top-color: var(--tier-길); }
+.skip-cal-cell.tier-평 { border-top-color: var(--tier-평); }
+.skip-cal-cell.tier-흉 { border-top-color: var(--tier-흉); }
+.skip-cal-cell.tier-대흉 { border-top-color: var(--tier-대흉); }
+.cal-cell-month { font-weight: 700; }
+.cal-cell-ganzhi { font-size: 0.7rem; color: var(--text-dim); }
+.skip-cal-cell:hover:not(:disabled) { border-color: var(--gold); transform: translateY(-1px); }
+.skip-cal-cell.selected { outline: 2px solid var(--gold); outline-offset: -2px; background: #3a3320; }
+.skip-cal-cell.selected .cal-cell-month { color: var(--gold-soft); }
 .skip-cal-cell:disabled { opacity: 0.28; cursor: not-allowed; }
+.skip-cal-cell:disabled:hover { transform: none; }
+
+.cal-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 10px; font-size: 0.7rem; color: var(--text-dim); }
+.cal-legend-item { display: flex; align-items: center; gap: 4px; }
+.cal-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.cal-legend .dot.tier-대길 { background: var(--tier-대길); }
+.cal-legend .dot.tier-길 { background: var(--tier-길); }
+.cal-legend .dot.tier-평 { background: var(--tier-평); }
+.cal-legend .dot.tier-흉 { background: var(--tier-흉); }
+.cal-legend .dot.tier-대흉 { background: var(--tier-대흉); }
 
 .skip-strategy-panel.hidden { display: none; }
 .skip-strategy-panel { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
