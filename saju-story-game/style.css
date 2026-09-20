@@ -253,7 +253,7 @@ input[type="text"], input[type="number"], select {
 }
 .choice-btn:hover { border-color: var(--gold); background: #262b42; }
 .choice-text { display: block; }
-.choice-preview { display: block; font-size: 0.76rem; color: var(--text-dim); }
+.choice-preview { display: block; font-size: 0.78rem; color: var(--text-dim); line-height: 1.45; }
 
 .result-panel.hidden { display: none; }
 .result-panel { background: rgba(27, 30, 43, 0.9); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }

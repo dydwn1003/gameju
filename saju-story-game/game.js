@@ -346,7 +346,7 @@
     event.choices.forEach((choice, idx) => {
       const btn = document.createElement('button');
       btn.className = 'choice-btn';
-      btn.innerHTML = `<span class="choice-text">${choice.text}</span><span class="choice-preview">${previewLine(choice.effects)}</span>`;
+      btn.innerHTML = `<span class="choice-text">${choice.text}</span><span class="choice-preview">${choiceOutlook(idx, fortune.tier)}</span>`;
       btn.onclick = () => chooseOption(idx);
       choiceWrap.appendChild(btn);
     });
@@ -359,19 +359,25 @@
     closeSkipModal();
   }
 
-  // 선택 전 미리 보여줄 예상 결과 해석 - 가장 크게 움직일 스탯 1~2개를 방향/크기와 함께 서술
-  function previewLine(effects) {
-    const entries = Object.entries(effects).filter(([, v]) => v !== 0);
-    entries.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
-    if (entries.length === 0) return '큰 변화는 없을 것으로 보입니다';
-    const parts = entries.slice(0, 2).map(([key, v]) => {
-      const def = GameData.STATS.find((s) => s.key === key);
-      const mag = Math.abs(v);
-      const dir = v > 0 ? '상승' : '하락';
-      const qualifier = mag >= 8 ? '크게 ' : mag <= 3 ? '소폭 ' : '';
-      return `${def.icon} ${def.label} ${qualifier}${dir}`;
-    });
-    return parts.join(' · ') + ' 예상';
+  // 선택 전 미리 보여줄 해석: "내 사주(이번 달 기운) + 이 선택"을 합치면 어떤 한 달이 될지 서술
+  // 선택지는 항상 [최고/중간/안좋음/최악] 순서로 되어 있다는 전제 하에 idx 로 선택의 질을 판단한다.
+  const CHOICE_QUALITY_SCORE = [2, 1, -1, -2];
+  const FORTUNE_OUTLOOK_SCORE = { 대길: 2, 길: 1, 평: 0, 흉: -1, 대흉: -2 };
+  const OUTLOOK_NARRATIVE = {
+    best: '사주의 흐름과 이 선택이 강하게 맞아떨어져, 오래 기억에 남을 만큼 좋은 한 달을 보내게 될 것 같습니다.',
+    good: '전체적으로 무난하게, 그리고 꽤 만족스러운 한 달이 될 것 같습니다.',
+    mid: '특별히 좋지도 나쁘지도 않은, 평범하게 흘러가는 한 달이 될 것 같습니다.',
+    hard: '이런저런 어려움이 따르는, 다소 힘겨운 한 달이 될 수 있습니다.',
+    worst: '사주의 흐름과도 맞지 않는 선택이라, 뜻대로 되지 않는 힘든 한 달을 보낼 수도 있습니다.',
+  };
+
+  function choiceOutlook(idx, fortuneTier) {
+    const score = (CHOICE_QUALITY_SCORE[idx] || 0) + FORTUNE_OUTLOOK_SCORE[fortuneTier];
+    if (score >= 3) return OUTLOOK_NARRATIVE.best;
+    if (score >= 1) return OUTLOOK_NARRATIVE.good;
+    if (score === 0) return OUTLOOK_NARRATIVE.mid;
+    if (score >= -2) return OUTLOOK_NARRATIVE.hard;
+    return OUTLOOK_NARRATIVE.worst;
   }
 
   function applyTier(delta, tierMult) {
