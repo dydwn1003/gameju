@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>사주 인생 — 백년의 이야기</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- 캐릭터 생성 화면 -->
+  <section id="screen-intro" class="screen">
+    <div class="card">
+      <h1>사주 인생</h1>
+      <p class="subtitle">태어난 순간의 사주로 백 년의 삶을 살아갑니다.</p>
+      <form id="intro-form">
+        <label class="field">
+          <span>이름</span>
+          <input type="text" id="name" maxlength="10" placeholder="이름을 입력하세요" required />
+        </label>
+
+        <label class="field">
+          <span>성별</span>
+          <div class="radio-row">
+            <label><input type="radio" name="gender" value="M" checked /> 남</label>
+            <label><input type="radio" name="gender" value="F" /> 여</label>
+          </div>
+        </label>
+
+        <label class="field">
+          <span>생년월일</span>
+          <div class="date-row">
+            <input type="number" id="birth-year" placeholder="년(예: 2000)" min="1900" max="2100" required />
+            <input type="number" id="birth-month" placeholder="월" min="1" max="12" required />
+            <input type="number" id="birth-day" placeholder="일" min="1" max="31" required />
+          </div>
+        </label>
+
+        <label class="field">
+          <span>태어난 시각</span>
+          <div class="date-row">
+            <select id="birth-hour"></select>
+            <select id="birth-min"></select>
+          </div>
+          <label class="checkbox-row"><input type="checkbox" id="unknown-time" /> 태어난 시각을 모릅니다</label>
+        </label>
+
+        <button type="submit" class="primary-btn">사주 확인하기</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 사주 원국 화면 -->
+  <section id="screen-natal" class="screen hidden">
+    <div class="card wide">
+      <h2 id="natal-name"></h2>
+      <p class="subtitle" id="natal-birth"></p>
+      <p class="subtitle" id="natal-animal"></p>
+
+      <div id="natal-pillars" class="pillars-grid"></div>
+
+      <h3 class="section-title">오행 분포</h3>
+      <div id="natal-elements" class="elements-wrap"></div>
+
+      <h3 class="section-title">시작 능력치</h3>
+      <div id="natal-initial-stats" class="stat-chip-wrap"></div>
+
+      <button id="start-life-btn" class="primary-btn">인생 시작하기</button>
+    </div>
+  </section>
+
+  <!-- 메인 게임 화면 -->
+  <section id="screen-game" class="screen hidden">
+    <div class="card wide">
+      <div class="game-header">
+        <div>
+          <span id="game-header-name" class="header-name"></span>
+          <span id="game-header-age" class="header-age"></span>
+        </div>
+        <div class="header-right">
+          <span id="game-header-date" class="header-date"></span>
+          <label class="autoplay-label">
+            <input type="checkbox" id="autoplay-toggle" /> 자동 진행
+          </label>
+        </div>
+      </div>
+
+      <div id="stat-bars" class="stat-bars"></div>
+
+      <div class="fortune-box">
+        <span id="fortune-badge" class="fortune-badge"></span>
+        <span id="fortune-desc" class="fortune-desc"></span>
+      </div>
+
+      <div class="event-box">
+        <h3 id="event-title"></h3>
+        <p id="event-desc"></p>
+        <div id="event-choices" class="choices-wrap"></div>
+
+        <div id="result-panel" class="result-panel hidden">
+          <p id="result-text"></p>
+          <div id="result-effects" class="result-effects"></div>
+          <button id="next-month-btn" class="primary-btn">다음 달로</button>
+        </div>
+      </div>
+
+      <h4 class="section-title small">최근 기록</h4>
+      <div id="history-log" class="history-log"></div>
+    </div>
+  </section>
+
+  <!-- 엔딩 화면 -->
+  <section id="screen-end" class="screen hidden">
+    <div class="card wide">
+      <h1 id="end-title"></h1>
+      <p class="subtitle" id="end-age"></p>
+      <p class="epitaph" id="end-epitaph"></p>
+
+      <h3 class="section-title">최종 능력치</h3>
+      <div id="end-stats" class="stat-chip-wrap"></div>
+
+      <h3 class="section-title">인생의 기록</h3>
+      <div id="end-log" class="history-log"></div>
+
+      <button id="restart-btn" class="primary-btn">새로운 삶 시작하기</button>
+    </div>
+  </section>
+
+</div>
+<script src="saju.js"></script>
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
