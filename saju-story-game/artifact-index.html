@@ -47,9 +47,14 @@
   <!-- 사주 원국 화면 -->
   <section id="screen-natal" class="screen hidden">
     <div class="card wide">
-      <h2 id="natal-name"></h2>
-      <p class="subtitle" id="natal-birth"></p>
-      <p class="subtitle" id="natal-animal"></p>
+      <div class="natal-top">
+        <div id="portrait-natal" class="portrait-frame"></div>
+        <div class="natal-top-info">
+          <h2 id="natal-name"></h2>
+          <p class="subtitle" id="natal-birth"></p>
+          <p class="subtitle" id="natal-animal"></p>
+        </div>
+      </div>
 
       <div id="natal-pillars" class="pillars-grid"></div>
 
@@ -67,13 +72,29 @@
   <section id="screen-game" class="screen hidden">
     <div class="card wide">
       <div class="game-header">
-        <div>
-          <span id="game-header-name" class="header-name"></span>
-          <span id="game-header-age" class="header-age"></span>
-        </div>
-        <div class="header-right">
+        <div id="portrait-game" class="portrait-frame small"></div>
+        <div class="header-mid">
+          <div>
+            <span id="game-header-name" class="header-name"></span>
+            <span id="game-header-age" class="header-age"></span>
+          </div>
           <span id="game-header-date" class="header-date"></span>
         </div>
+        <button id="skip-open-btn" class="skip-open-btn" type="button">⏩ 건너뛰기</button>
+      </div>
+
+      <div id="skip-panel" class="skip-panel hidden">
+        <label class="skip-target-label">
+          몇 살까지 건너뛸까요?
+          <input type="number" id="skip-target-age" min="20" max="100" />
+        </label>
+        <p class="skip-hint">그 기간을 어떤 태도로 보낼지 골라주세요. (다음 마일스톤 직전까지만 이동합니다)</p>
+        <div class="skip-strategy-row">
+          <button type="button" class="skip-strategy-btn" data-strategy="challenge">도전적으로 산다</button>
+          <button type="button" class="skip-strategy-btn" data-strategy="stable">안정적으로 산다</button>
+          <button type="button" class="skip-strategy-btn" data-strategy="relaxed">여유롭게 흘러가는 대로 둔다</button>
+        </div>
+        <button type="button" id="skip-cancel-btn" class="skip-cancel-btn">취소</button>
       </div>
 
       <div id="stat-bars" class="stat-bars"></div>
@@ -104,9 +125,14 @@
   <!-- 엔딩 화면 -->
   <section id="screen-end" class="screen hidden">
     <div class="card wide">
-      <h1 id="end-title"></h1>
-      <p class="subtitle" id="end-age"></p>
-      <p class="epitaph" id="end-epitaph"></p>
+      <div class="natal-top">
+        <div id="portrait-end" class="portrait-frame"></div>
+        <div class="natal-top-info">
+          <h1 id="end-title"></h1>
+          <p class="subtitle" id="end-age"></p>
+          <p class="epitaph" id="end-epitaph"></p>
+        </div>
+      </div>
 
       <h3 class="section-title">최종 능력치</h3>
       <div id="end-stats" class="stat-chip-wrap"></div>

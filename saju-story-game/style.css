@@ -89,6 +89,25 @@ input[type="text"], input[type="number"], select {
 .primary-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(216, 178, 92, 0.35); }
 .primary-btn:active { transform: translateY(0); }
 
+/* ── 캐릭터 초상화 ── */
+.natal-top { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
+.natal-top-info { flex: 1; min-width: 0; }
+.natal-top-info h2, .natal-top-info h1 { margin: 0 0 2px; }
+.natal-top-info .subtitle { margin: 0 0 2px; }
+
+.portrait-frame { width: 96px; flex-shrink: 0; }
+.portrait-frame.small { width: 52px; }
+.portrait-svg { width: 100%; height: auto; display: block; }
+.portrait-ring { fill: var(--bg-soft); stroke: var(--gold); stroke-width: 2; }
+.portrait-skin { fill: #e8c9a0; }
+.portrait-hair-m, .portrait-hair-f { fill: #2b2a35; }
+.portrait-pin { fill: var(--gold); }
+.portrait-collar { fill: none; stroke: #f4ead0; stroke-width: 4; stroke-linejoin: round; }
+.portrait-robe { stroke: rgba(0, 0, 0, 0.25); stroke-width: 1; transition: fill 0.3s ease; }
+.portrait-brow-l, .portrait-brow-r { stroke: #2b2a35; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+.portrait-eye { fill: #2b2a35; }
+.portrait-mouth { stroke: #8a4b3d; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+
 /* ── 사주 원국 ── */
 .pillars-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
 .pillar-col {
@@ -126,11 +145,34 @@ input[type="text"], input[type="number"], select {
 .stat-chip b { color: var(--gold-soft); margin-left: 4px; }
 
 /* ── 게임 화면 ── */
-.game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 6px; }
+.game-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.header-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .header-name { font-weight: 700; font-size: 1.1rem; margin-right: 8px; }
 .header-age { color: var(--gold-soft); font-weight: 700; }
-.header-right { display: flex; align-items: center; gap: 12px; }
 .header-date { color: var(--text-dim); font-size: 0.9rem; }
+
+.skip-open-btn {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--gold-soft);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.skip-open-btn:hover { border-color: var(--gold); }
+.skip-open-btn.hidden { display: none; }
+
+.skip-panel { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
+.skip-panel.hidden { display: none; }
+.skip-target-label { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--text-dim); }
+.skip-target-label input { width: 90px; }
+.skip-hint { margin: 0; font-size: 0.78rem; color: var(--text-dim); }
+.skip-strategy-row { display: flex; flex-direction: column; gap: 6px; }
+.skip-strategy-btn { text-align: left; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: #20243a; color: var(--text); font-size: 0.85rem; cursor: pointer; }
+.skip-strategy-btn:hover { border-color: var(--gold); background: #262b42; }
+.skip-cancel-btn { align-self: flex-end; background: none; border: none; color: var(--text-dim); font-size: 0.8rem; cursor: pointer; text-decoration: underline; padding: 0; }
 
 .stat-bars { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .stat-row { display: grid; grid-template-columns: 20px 42px 1fr 34px; align-items: center; gap: 8px; font-size: 0.82rem; }
