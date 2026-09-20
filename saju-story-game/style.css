@@ -131,7 +131,6 @@ input[type="text"], input[type="number"], select {
 .header-age { color: var(--gold-soft); font-weight: 700; }
 .header-right { display: flex; align-items: center; gap: 12px; }
 .header-date { color: var(--text-dim); font-size: 0.9rem; }
-.autoplay-label { font-size: 0.82rem; color: var(--text-dim); display: flex; align-items: center; gap: 5px; }
 
 .stat-bars { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .stat-row { display: grid; grid-template-columns: 20px 42px 1fr 34px; align-items: center; gap: 8px; font-size: 0.82rem; }
@@ -160,6 +159,8 @@ input[type="text"], input[type="number"], select {
   padding: 3px 10px;
   border-radius: 8px;
   color: #14141c;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .fortune-badge.tier-대길 { background: var(--tier-대길); }
 .fortune-badge.tier-길 { background: var(--tier-길); }
@@ -189,6 +190,7 @@ input[type="text"], input[type="number"], select {
 .result-panel.hidden { display: none; }
 .result-panel { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
 .result-panel p { margin: 0 0 10px; line-height: 1.5; }
+.result-panel .result-remark { color: var(--gold-soft); font-style: italic; font-size: 0.88rem; margin-top: -4px; }
 .result-effects { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .eff { font-size: 0.8rem; padding: 3px 8px; border-radius: 6px; background: #2a2f46; }
 .eff.pos { color: #7fd18a; }

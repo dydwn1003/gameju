@@ -9,7 +9,8 @@
     fame: ['화', '금'],
   };
   const RECENT_WINDOW = 8;
-  const AUTO_DELAY = 550;
+  const START_AGE = 19;
+  const DOMAIN_MATCH_CHANCE = 0.75;
 
   let state = null;
 
@@ -85,13 +86,11 @@
     state = {
       name, gender, birth: { y, m, d, hh, mm, unknownTime },
       saju, elements, stats,
-      monthsElapsed: -1,
+      monthsElapsed: START_AGE * 12 - 1,
       recentEventIds: [],
       usedMilestones: new Set(),
       log: [],
       alive: true,
-      autoPlay: false,
-      pendingChoice: false,
     };
     clampStats();
     renderNatalScreen();
@@ -168,7 +167,7 @@
     return { age, year, month };
   }
 
-  function pickEvent(age, year, month) {
+  function pickEvent(age, year, month, fortune) {
     const anniversary = month === state.birth.m;
     if (anniversary) {
       const ms = GameData.MILESTONES.find((mm) => mm.age === age && !state.usedMilestones.has(mm.id));
@@ -177,9 +176,11 @@
         return ms;
       }
     }
-    let pool = GameData.EVENT_POOL.filter((ev) => age >= ev.minAge && age <= ev.maxAge);
-    let fresh = pool.filter((ev) => !state.recentEventIds.includes(ev.id));
-    if (fresh.length === 0) fresh = pool;
+    const pool = GameData.EVENT_POOL.filter((ev) => age >= ev.minAge && age <= ev.maxAge);
+    const domainPool = pool.filter((ev) => ev.domain === fortune.dominant);
+    const candidates = (domainPool.length > 0 && Math.random() < DOMAIN_MATCH_CHANCE) ? domainPool : pool;
+    let fresh = candidates.filter((ev) => !state.recentEventIds.includes(ev.id));
+    if (fresh.length === 0) fresh = candidates;
     if (fresh.length === 0) return null;
     return fresh[Math.floor(Math.random() * fresh.length)];
   }
@@ -194,7 +195,7 @@
     }
 
     const fortune = Saju.monthlyFortune(state.saju, year, month);
-    const event = pickEvent(age, year, month);
+    const event = pickEvent(age, year, month, fortune);
     if (!event) { advanceAndShow(); return; }
 
     state.recentEventIds.push(event.id);
@@ -232,16 +233,6 @@
     $('#result-panel').classList.add('hidden');
     choiceWrap.classList.remove('hidden');
     renderLog();
-
-    if (isMilestone && state.autoPlay) {
-      state.autoPlay = false;
-      $('#autoplay-toggle').checked = false;
-    } else if (state.autoPlay) {
-      setTimeout(() => {
-        if (!state.autoPlay || !state.alive || state.current.resolved || state.current.event !== event) return;
-        chooseOption(Math.floor(Math.random() * event.choices.length));
-      }, AUTO_DELAY);
-    }
   }
 
   function applyTier(delta, tierMult) {
@@ -270,6 +261,7 @@
     const panel = $('#result-panel');
     panel.classList.remove('hidden');
     $('#result-text').textContent = choice.result;
+    $('#result-remark').textContent = Saju.TIER_REMARK[fortune.tier];
     $('#result-effects').innerHTML = Object.entries(applied)
       .map(([k, v]) => {
         const def = GameData.STATS.find((s) => s.key === k);
@@ -282,19 +274,11 @@
       state.alive = false;
       $('#next-month-btn').textContent = '결과 확인하기';
       $('#next-month-btn').onclick = () => triggerEnding('death');
-      if (state.autoPlay) setTimeout(() => triggerEnding('death'), AUTO_DELAY);
       return;
     }
 
     $('#next-month-btn').textContent = '다음 달로';
     $('#next-month-btn').onclick = () => advanceAndShow();
-
-    if (state.autoPlay) {
-      setTimeout(() => {
-        if (!state.autoPlay || !state.alive) return;
-        advanceAndShow();
-      }, AUTO_DELAY);
-    }
   }
 
   function renderStatBars() {
@@ -365,22 +349,7 @@
     $('#restart-btn').onclick = () => window.location.reload();
   }
 
-  // ── 자동 진행 ──
-  function initAutoPlay() {
-    $('#autoplay-toggle').addEventListener('change', (e) => {
-      state.autoPlay = e.target.checked;
-      const waitingForChoice = $('#result-panel').classList.contains('hidden');
-      if (state.autoPlay && waitingForChoice && state.current && !state.current.isMilestone && !state.current.resolved) {
-        setTimeout(() => {
-          if (!state.autoPlay || state.current.resolved) return;
-          chooseOption(Math.floor(Math.random() * state.current.event.choices.length));
-        }, AUTO_DELAY);
-      }
-    });
-  }
-
   document.addEventListener('DOMContentLoaded', () => {
     initIntroForm();
-    initAutoPlay();
   });
 })();

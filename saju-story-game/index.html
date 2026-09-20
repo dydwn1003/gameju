@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>사주 인생 — 백년의 이야기</title>
+<title>사주 인생</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -13,7 +13,7 @@
   <section id="screen-intro" class="screen">
     <div class="card">
       <h1>사주 인생</h1>
-      <p class="subtitle">태어난 순간의 사주로 백 년의 삶을 살아갑니다.</p>
+      <p class="subtitle">태어난 순간의 사주로 열아홉 살부터 백 살까지의 삶을 살아갑니다.</p>
       <form id="intro-form">
         <label class="field">
           <span>이름</span>
@@ -66,7 +66,7 @@
       <h3 class="section-title">시작 능력치</h3>
       <div id="natal-initial-stats" class="stat-chip-wrap"></div>
 
-      <button id="start-life-btn" class="primary-btn">인생 시작하기</button>
+      <button id="start-life-btn" class="primary-btn">19세부터 시작하기</button>
     </div>
   </section>
 
@@ -80,9 +80,6 @@
         </div>
         <div class="header-right">
           <span id="game-header-date" class="header-date"></span>
-          <label class="autoplay-label">
-            <input type="checkbox" id="autoplay-toggle" /> 자동 진행
-          </label>
         </div>
       </div>
 
@@ -100,6 +97,7 @@
 
         <div id="result-panel" class="result-panel hidden">
           <p id="result-text"></p>
+          <p id="result-remark" class="result-remark"></p>
           <div id="result-effects" class="result-effects"></div>
           <button id="next-month-btn" class="primary-btn">다음 달로</button>
         </div>
