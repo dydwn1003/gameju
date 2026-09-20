@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>픽셀 서바이버</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hp-wrap">
+          <div class="bar-label">HP</div>
+          <div class="bar-bg"><div id="hp-fill" class="bar-fill hp-fill"></div></div>
+        </div>
+        <div class="hud-stats">
+          <span id="hud-timer">00:00</span>
+          <span id="hud-kills">☠ 0</span>
+        </div>
+      </div>
+      <div class="xp-wrap">
+        <div id="hud-level" class="level-badge">Lv.1</div>
+        <div class="bar-bg xp-bar-bg"><div id="xp-fill" class="bar-fill xp-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="joystick" class="hidden">
+      <div id="joystick-stick"></div>
+    </div>
+
+    <div id="start-screen" class="screen">
+      <h1 class="game-title">픽셀 서바이버</h1>
+      <p class="game-subtitle">몰려오는 적을 자동으로 쏘아버리고<br/>최대한 오래 살아남으세요!</p>
+      <button id="btn-start" class="btn-primary">시작하기</button>
+      <div class="leaderboard-box">
+        <h2>🏆 랭킹 TOP 5</h2>
+        <ol id="leaderboard-start" class="leaderboard-list"></ol>
+      </div>
+      <p class="controls-hint">PC: 방향키 / WASD 로 이동 · 공격은 자동<br/>모바일: 화면을 드래그해서 이동</p>
+    </div>
+
+    <div id="levelup-screen" class="screen hidden">
+      <h2 class="levelup-title">레벨 업!</h2>
+      <p class="levelup-sub">강화를 하나 선택하세요</p>
+      <div id="upgrade-cards" class="upgrade-cards"></div>
+    </div>
+
+    <div id="gameover-screen" class="screen hidden">
+      <h2 class="gameover-title">GAME OVER</h2>
+      <div class="gameover-stats">
+        <div><span>최종 점수</span><strong id="final-score">0</strong></div>
+        <div><span>도달 레벨</span><strong id="final-level">1</strong></div>
+        <div><span>생존 시간</span><strong id="final-time">00:00</strong></div>
+        <div><span>처치 수</span><strong id="final-kills">0</strong></div>
+      </div>
+      <div class="name-input-row">
+        <input id="name-input" maxlength="10" placeholder="이름 (최대 10자)" />
+        <button id="btn-save-score" class="btn-primary">기록 저장</button>
+      </div>
+      <div class="leaderboard-box">
+        <h2>🏆 랭킹 TOP 10</h2>
+        <ol id="leaderboard-gameover" class="leaderboard-list"></ol>
+      </div>
+      <button id="btn-retry" class="btn-secondary">다시 시작</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
