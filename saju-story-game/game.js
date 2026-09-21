@@ -241,6 +241,9 @@
 
     const saju = Saju.calcFourPillars(y, m, d, hh, mm);
     const elements = Saju.countElements(saju);
+    const strength = Saju.dayMasterStrength(saju);
+    const shinsal = Saju.calcShinsal(saju);
+    const daeun = Saju.calcDaeun(y, m, d, hh, mm, gender, saju);
 
     const stats = {};
     for (const s of GameData.STATS) {
@@ -252,7 +255,7 @@
 
     state = {
       name, gender, birth: { y, m, d, hh, mm, unknownTime },
-      saju, elements, stats,
+      saju, elements, strength, shinsal, daeun, stats,
       monthsElapsed: START_AGE * 12 - 1,
       recentEventIds: [],
       usedMilestones: new Set(),
@@ -278,11 +281,13 @@
       if (p) {
         const stemEl = Saju.elementOf(p.stem, true);
         const branchEl = Saju.elementOf(p.branch, false);
+        const hidden = Saju.hiddenStemsOf(p.branch).map((s) => Saju.STEMS[s]).join('');
         col.innerHTML = `
           <div class="pillar-label">${label}</div>
           <div class="pillar-char stem elem-${stemEl}">${Saju.STEM_HANJA[p.stem]}</div>
           <div class="pillar-char branch elem-${branchEl}">${Saju.BRANCH_HANJA[p.branch]}</div>
-          <div class="pillar-sub">${Saju.STEMS[p.stem]}${Saju.BRANCHES[p.branch]}</div>`;
+          <div class="pillar-sub">${Saju.STEMS[p.stem]}${Saju.BRANCHES[p.branch]}</div>
+          <div class="pillar-hidden" title="지장간(地藏干)">지장간 ${hidden}</div>`;
       } else {
         col.innerHTML = `<div class="pillar-label">${label}</div><div class="pillar-char unknown">?</div><div class="pillar-sub">미상</div>`;
       }
@@ -305,6 +310,26 @@
     }
   }
 
+  const STRENGTH_DESC = {
+    신강: '스스로의 기운이 넘치는 사주입니다. 식상·재성·관성의 기운이 들어올 때 오히려 반갑게 작용합니다.',
+    신약: '스스로의 기운이 다소 약한 사주입니다. 비겁·인성의 기운이 들어올 때 힘이 되어줍니다.',
+    중화: '오행이 비교적 고르게 균형 잡힌 사주입니다.',
+  };
+
+  // 일간 강약(신강/신약) + 신살 배지 - 사주 확인 화면과 게임 중 사주 팝업에서 공용으로 사용
+  function renderStrengthShinsal(sel, strength, shinsal) {
+    const wrap = $(sel);
+    let html = `
+      <div class="strength-row">
+        <span class="strength-badge level-${strength.level}">${strength.level}</span>
+        <p class="strength-desc">${STRENGTH_DESC[strength.level]}</p>
+      </div>`;
+    if (shinsal.length > 0) {
+      html += `<div class="shinsal-wrap">${shinsal.map((s) => `<span class="shinsal-tag" title="${s.desc}">${s.name}</span>`).join('')}</div>`;
+    }
+    wrap.innerHTML = html;
+  }
+
   // ── 사주 원국 화면 ──
   function renderNatalScreen() {
     const { saju, elements } = state;
@@ -320,6 +345,7 @@
     $('#natal-animal').textContent = `${animal}띠`;
 
     renderElementsBar('#natal-elements', elements);
+    renderStrengthShinsal('#natal-strength', state.strength, state.shinsal);
 
     const statWrap = $('#natal-initial-stats');
     statWrap.innerHTML = '';
@@ -349,6 +375,12 @@
 
   function currentCalendar() {
     return calendarForMonths(state.monthsElapsed);
+  }
+
+  // 그 나이에 흐르고 있는 대운(10년 단위 큰 운) 간지 - 월운/세운 계산에 함께 반영해 더 정밀하게 본다
+  function daeunPillarForAge(age) {
+    const p = state.daeun.pillars.find((p2) => age >= p2.fromAge && age <= p2.toAge);
+    return p ? { stem: p.stem, branch: p.branch } : null;
   }
 
   function findEventById(id) {
@@ -382,7 +414,7 @@
       return;
     }
 
-    const fortune = Saju.monthlyFortune(state.saju, year, month);
+    const fortune = Saju.monthlyFortune(state.saju, year, month, daeunPillarForAge(age));
     const event = pickEvent(age, year, month, fortune);
     if (!event) { advanceAndShow(); return; }
 
@@ -658,7 +690,7 @@
     grid.innerHTML = '';
     for (let m = 1; m <= 12; m++) {
       const tm = monthsElapsedFor(skipCalYear, m);
-      const fortune = Saju.monthlyFortune(state.saju, skipCalYear, m);
+      const fortune = Saju.monthlyFortune(state.saju, skipCalYear, m, daeunPillarForAge(calendarForMonths(tm).age));
       const btn = document.createElement('button');
       btn.type = 'button';
 
@@ -815,7 +847,7 @@
     for (let me = state.monthsElapsed + 1; me <= capMonths; me++) {
       const cal = calendarForMonths(me);
       if (cal.age >= MAX_AGE) break;
-      const f = Saju.monthlyFortune(state.saju, cal.year, cal.month);
+      const f = Saju.monthlyFortune(state.saju, cal.year, cal.month, daeunPillarForAge(cal.age));
       tierSum += f.tierMult;
       count++;
     }
@@ -893,6 +925,7 @@
   function openSajuModal() {
     renderPillarsGrid('#saju-modal-pillars', state.saju);
     renderElementsBar('#saju-modal-elements', state.elements);
+    renderStrengthShinsal('#saju-modal-strength', state.strength, state.shinsal);
     const dayMasterEl = Saju.elementOf(state.saju.day.stem, true);
     $('#saju-modal-daymaster').textContent = `일간: ${Saju.STEMS[state.saju.day.stem]}(${dayMasterEl}) · ${Saju.ANIMALS[state.saju.year.branch]}띠`;
     switchSajuTab('natal');
@@ -903,10 +936,7 @@
     const curAge = state.current ? state.current.age : Math.floor(state.monthsElapsed / 12);
     const curYear = state.current ? state.current.year : state.birth.y + curAge;
 
-    const daeun = Saju.calcDaeun(
-      state.birth.y, state.birth.m, state.birth.d, state.birth.hh, state.birth.mm,
-      state.gender, state.saju
-    );
+    const daeun = state.daeun;
     const daeunWrap = $('#daeun-list');
     daeunWrap.innerHTML = '';
     const daeunHeadNote = $('#daeun-head-note');
@@ -928,7 +958,7 @@
     const endYear = state.birth.y + Math.min(MAX_AGE, 100);
     for (let year = curYear; year <= endYear; year++) {
       const age = year - state.birth.y;
-      const fortune = Saju.yearlyFortune(state.saju, year);
+      const fortune = Saju.yearlyFortune(state.saju, year, daeunPillarForAge(age));
       const row = document.createElement('div');
       row.className = `saeun-card tier-${fortune.tier}` + (year === curYear ? ' current' : '');
       row.innerHTML = `

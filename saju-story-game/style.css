@@ -588,6 +588,33 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .pillar-char { font-size: 1.7rem; font-weight: 700; line-height: 1.25; }
 .pillar-char.unknown { color: var(--text-dim); }
 .pillar-sub { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+.pillar-hidden { font-size: 0.66rem; color: var(--text-dim); opacity: 0.75; margin-top: 3px; }
+
+.strength-wrap { margin: 4px 0 14px; }
+.strength-row { display: flex; align-items: center; gap: 10px; }
+.strength-badge {
+  flex: none;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+}
+.strength-badge.level-신강 { background: linear-gradient(135deg, var(--gold-soft), var(--gold)); color: #2a2110; border-color: var(--gold); }
+.strength-badge.level-신약 { background: rgba(93, 132, 201, 0.25); color: #9db8e8; border-color: #5d84c9; }
+.strength-badge.level-중화 { background: rgba(159, 165, 189, 0.2); color: var(--text-dim); }
+.strength-desc { margin: 0; font-size: 0.82rem; color: var(--text-dim); line-height: 1.4; }
+.shinsal-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.shinsal-tag {
+  font-size: 0.76rem;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: rgba(216, 178, 92, 0.12);
+  border: 1px solid rgba(216, 178, 92, 0.4);
+  color: var(--gold-soft);
+  cursor: default;
+}
 
 .elem-목 { color: var(--el-목); } .elem-화 { color: var(--el-화); } .elem-토 { color: var(--el-토); }
 .elem-금 { color: var(--el-금); } .elem-수 { color: var(--el-수); }

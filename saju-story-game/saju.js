@@ -197,6 +197,103 @@ const Saju = (() => {
   const GEN = { 목: '화', 화: '토', 토: '금', 금: '수', 수: '목' }; // 상생: 내가 낳는 오행
   const OVERCOME = { 목: '토', 토: '수', 수: '화', 화: '금', 금: '목' }; // 상극: 내가 극하는 오행
 
+  // 지장간(地藏干): 지지 속에 숨은 천간 - 여기/중기/정기 순서(마지막이 정기, 그 지지의 대표 오행과 일치)
+  const HIDDEN_STEMS = [
+    [8, 9],       // 자: 임, 계
+    [9, 7, 5],    // 축: 계, 신, 기
+    [4, 2, 0],    // 인: 무, 병, 갑
+    [0, 1],       // 묘: 갑, 을
+    [1, 9, 4],    // 진: 을, 계, 무
+    [4, 6, 2],    // 사: 무, 경, 병
+    [2, 5, 3],    // 오: 병, 기, 정
+    [3, 1, 5],    // 미: 정, 을, 기
+    [4, 8, 6],    // 신: 무, 임, 경
+    [6, 7],       // 유: 경, 신
+    [7, 3, 4],    // 술: 신, 정, 무
+    [4, 0, 8],    // 해: 무, 갑, 임
+  ];
+  function hiddenStemsOf(branchIdx) { return HIDDEN_STEMS[branchIdx]; }
+
+  // 일간의 강약(신강/신약) 판정 - 월지(득령)를 가장 크게, 일지(득지)를 다음으로,
+  // 나머지 천간지지(득세)와 월지 지장간을 가볍게 반영한다
+  function dayMasterStrength(pillars) {
+    const dmEl = elementOf(pillars.day.stem, true);
+    const supports = (el) => el === dmEl || GEN[el] === dmEl; // 비겁(같은 오행) 또는 인성(나를 생함)이면 힘을 보탬
+
+    let score = 0;
+    score += supports(elementOf(pillars.month.branch, false)) ? 3 : -3;
+    score += supports(elementOf(pillars.day.branch, false)) ? 2 : -2;
+
+    const others = [
+      elementOf(pillars.year.stem, true),
+      elementOf(pillars.year.branch, false),
+      elementOf(pillars.month.stem, true),
+    ];
+    if (pillars.hour) {
+      others.push(elementOf(pillars.hour.stem, true), elementOf(pillars.hour.branch, false));
+    }
+    for (const el of others) score += supports(el) ? 1 : -1;
+
+    const monthHidden = hiddenStemsOf(pillars.month.branch);
+    for (let i = 0; i < monthHidden.length - 1; i++) {
+      score += supports(elementOf(monthHidden[i], true)) ? 0.5 : -0.5;
+    }
+
+    const level = score >= 2 ? '신강' : score <= -2 ? '신약' : '중화';
+    return { score, level, dayMasterElement: dmEl };
+  }
+
+  // 지지 충(沖) 관계 - 정반대 지지끼리 부딪혀 변화·갈등을 일으킨다
+  const CLASH_PAIRS = { 0: 6, 6: 0, 1: 7, 7: 1, 2: 8, 8: 2, 3: 9, 9: 3, 4: 10, 10: 4, 5: 11, 11: 5 };
+  function isClash(a, b) { return CLASH_PAIRS[a] === b; }
+
+  // 신살(神殺): 삼합 그룹 기준 도화살/역마살/화개살 + 일간 기준 천을귀인
+  const SAMHAP_SETS = [
+    { branches: [8, 0, 4], key: 'shinjajin' },  // 신자진
+    { branches: [2, 6, 10], key: 'inosul' },    // 인오술
+    { branches: [5, 9, 1], key: 'sayuchuk' },   // 사유축
+    { branches: [11, 3, 7], key: 'haemyomi' },  // 해묘미
+  ];
+  const DOHWA_BY_GROUP = { shinjajin: 9, inosul: 3, sayuchuk: 6, haemyomi: 0 };
+  const YEOKMA_BY_GROUP = { shinjajin: 2, inosul: 8, sayuchuk: 11, haemyomi: 5 };
+  const HWAGAE_BY_GROUP = { shinjajin: 4, inosul: 10, sayuchuk: 1, haemyomi: 7 };
+  const CHEONEULGWIIN = {
+    0: [1, 7], 4: [1, 7], 6: [1, 7], // 갑무경 -> 축미
+    1: [0, 8], 5: [0, 8],            // 을기 -> 자신
+    2: [11, 9], 3: [11, 9],          // 병정 -> 해유
+    7: [2, 6],                       // 신 -> 인오
+    8: [5, 3], 9: [5, 3],            // 임계 -> 사묘
+  };
+
+  function groupOfBranch(branchIdx) {
+    const found = SAMHAP_SETS.find((s) => s.branches.includes(branchIdx));
+    return found ? found.key : null;
+  }
+
+  function calcShinsal(pillars) {
+    const branches = [pillars.year.branch, pillars.month.branch, pillars.day.branch];
+    if (pillars.hour) branches.push(pillars.hour.branch);
+
+    const results = [];
+    const refGroup = groupOfBranch(pillars.day.branch); // 일지 기준
+    if (refGroup) {
+      if (branches.includes(DOHWA_BY_GROUP[refGroup])) {
+        results.push({ name: '도화살', desc: '사람을 끌어당기는 매력과 인기운을 타고났습니다.' });
+      }
+      if (branches.includes(YEOKMA_BY_GROUP[refGroup])) {
+        results.push({ name: '역마살', desc: '한곳에 머물기보다 움직이고 이동할 때 기회가 따르는 사주입니다.' });
+      }
+      if (branches.includes(HWAGAE_BY_GROUP[refGroup])) {
+        results.push({ name: '화개살', desc: '예술적 감각과 깊은 사색을 즐기는, 홀로 몰입하는 시간에서 힘을 얻는 기질입니다.' });
+      }
+    }
+    const gwiin = CHEONEULGWIIN[pillars.day.stem];
+    if (gwiin && branches.some((b) => gwiin.includes(b))) {
+      results.push({ name: '천을귀인', desc: '어려운 순간마다 귀인의 도움을 받기 쉬운, 귀하게 보호받는 사주입니다.' });
+    }
+    return results;
+  }
+
   // dayMasterEl 관점에서 otherEl 과의 관계(십성 그룹) 반환
   function tenGodGroup(dayMasterEl, otherEl) {
     if (otherEl === dayMasterEl) return '비겁';
@@ -207,7 +304,19 @@ const Saju = (() => {
     return '비겁';
   }
 
-  const TEN_GOD_SCORE = { 비겁: 0.5, 인성: 2, 식상: 0.5, 재성: 1.5, 관성: -1.5 };
+  // 십성 점수는 고정값이 아니라 그 사람의 신강/신약(용신)에 따라 달라진다.
+  // 신약(스스로 힘이 약한 사주)일수록 비겁·인성처럼 나를 도와주는 쪽이 반갑고,
+  // 신강(스스로 힘이 넘치는 사주)일수록 식상·재성·관성처럼 기운을 덜어내는 쪽이 반갑다.
+  // (각 표는 합이 0이 되도록 잡아서, 좋은 달과 나쁜 달이 한쪽으로 쏠리지 않게 한다)
+  const TEN_GOD_SCORE_BY_LEVEL = {
+    신약: { 비겁: 1.0, 인성: 1.3, 식상: -0.6, 재성: -0.7, 관성: -1.0 },
+    신강: { 비겁: -1.0, 인성: -1.3, 식상: 0.6, 재성: 0.7, 관성: 1.0 },
+    중화: { 비겁: 0.2, 인성: 0.6, 식상: 0.1, 재성: 0.3, 관성: -1.2 },
+  };
+  function personalizedTenGodScore(group, strengthLevel) {
+    const table = TEN_GOD_SCORE_BY_LEVEL[strengthLevel] || TEN_GOD_SCORE_BY_LEVEL.중화;
+    return table[group];
+  }
 
   // 십성(오행 관계)별 이번 달에 들어오는 기운을 설명하는 도입부
   const DOMAIN_INTRO = {
@@ -266,9 +375,13 @@ const Saju = (() => {
     대흉: '가능하다면 무리한 도전이나 큰 결정은 피하고, 몸과 마음을 추스르는 데 집중하는 것이 좋습니다.',
   };
 
+  const CLASH_NOTE = '게다가 이 시기의 기운이 원국의 지지와 정면으로 부딪히는 충(沖)에 걸려 있어, 평소보다 변화의 폭이 크게 느껴질 수 있습니다.';
+
   // natalPillars: calcFourPillars 결과, currentYear/currentMonth: 게임상 현재 연/월
-  function monthlyFortune(natalPillars, currentYear, currentMonth) {
-    const dayMasterEl = elementOf(natalPillars.day.stem, true);
+  // daeunPillar: { stem, branch } - 그 시점에 흐르고 있는 대운(10년 단위 큰 운) 간지. 없으면 세운·월운만으로 계산한다
+  function monthlyFortune(natalPillars, currentYear, currentMonth, daeunPillar) {
+    const strength = dayMasterStrength(natalPillars);
+    const dayMasterEl = strength.dayMasterElement;
     const cur = calcYearMonthPillar(currentYear, currentMonth);
     const parts = [
       { el: elementOf(cur.year.stem, true), w: 1 },
@@ -276,29 +389,37 @@ const Saju = (() => {
       { el: elementOf(cur.month.stem, true), w: 1.2 },
       { el: elementOf(cur.month.branch, false), w: 1.2 },
     ];
-    let score = 0;
+    if (daeunPillar) {
+      parts.push({ el: elementOf(daeunPillar.stem, true), w: 1 });
+      parts.push({ el: elementOf(daeunPillar.branch, false), w: 1 });
+    }
+    let weightedSum = 0, totalWeight = 0;
     const groups = {};
     for (const part of parts) {
       const g = tenGodGroup(dayMasterEl, part.el);
       groups[g] = (groups[g] || 0) + part.w;
-      score += TEN_GOD_SCORE[g] * part.w;
+      weightedSum += personalizedTenGodScore(g, strength.level) * part.w;
+      totalWeight += part.w;
     }
+    const score = weightedSum / totalWeight;
     let dominant = '비겁';
     let max = -Infinity;
     for (const g in groups) if (groups[g] > max) { max = groups[g]; dominant = g; }
 
     let tier, tierMult;
-    if (score >= 3) { tier = '대길'; tierMult = 1.4; }
-    else if (score >= 1) { tier = '길'; tierMult = 1.15; }
-    else if (score > -1) { tier = '평'; tierMult = 1.0; }
-    else if (score > -3) { tier = '흉'; tierMult = 0.85; }
+    if (score >= 0.45) { tier = '대길'; tierMult = 1.4; }
+    else if (score >= 0.15) { tier = '길'; tierMult = 1.15; }
+    else if (score > -0.15) { tier = '평'; tierMult = 1.0; }
+    else if (score > -0.45) { tier = '흉'; tierMult = 0.85; }
     else { tier = '대흉'; tierMult = 0.6; }
 
-    const desc = `${DOMAIN_INTRO[dominant]} ${DOMAIN_TIER_BODY[dominant][tier]} ${TIER_ADVICE[tier]}`;
+    const clash = isClash(cur.month.branch, natalPillars.day.branch) || isClash(cur.month.branch, natalPillars.month.branch);
+    let desc = `${DOMAIN_INTRO[dominant]} ${DOMAIN_TIER_BODY[dominant][tier]} ${TIER_ADVICE[tier]}`;
+    if (clash) desc += ` ${CLASH_NOTE}`;
 
     return {
       tier, tierMult, score, dominant,
-      desc,
+      desc, clash, strength,
       pillarLabel: pillarLabel(cur.month),
     };
   }
@@ -321,34 +442,44 @@ const Saju = (() => {
   };
 
   // 연 단위 세운(歲運): 그 해 연주만으로 본 큰 흐름 (월주까지 보는 monthlyFortune보다 거시적)
-  function yearlyFortune(natalPillars, year) {
-    const dayMasterEl = elementOf(natalPillars.day.stem, true);
+  // daeunPillar: 그 해에 흐르고 있는 대운 간지 - 있으면 함께 반영해 더 정밀하게 계산한다
+  function yearlyFortune(natalPillars, year, daeunPillar) {
+    const strength = dayMasterStrength(natalPillars);
+    const dayMasterEl = strength.dayMasterElement;
     const cur = calcYearMonthPillar(year, 6);
     const parts = [
       { el: elementOf(cur.year.stem, true), w: 1 },
       { el: elementOf(cur.year.branch, false), w: 1 },
     ];
-    let score = 0;
+    if (daeunPillar) {
+      parts.push({ el: elementOf(daeunPillar.stem, true), w: 1 });
+      parts.push({ el: elementOf(daeunPillar.branch, false), w: 1 });
+    }
+    let weightedSum = 0, totalWeight = 0;
     const groups = {};
     for (const part of parts) {
       const g = tenGodGroup(dayMasterEl, part.el);
       groups[g] = (groups[g] || 0) + part.w;
-      score += TEN_GOD_SCORE[g] * part.w;
+      weightedSum += personalizedTenGodScore(g, strength.level) * part.w;
+      totalWeight += part.w;
     }
+    const score = weightedSum / totalWeight;
     let dominant = '비겁';
     let max = -Infinity;
     for (const g in groups) if (groups[g] > max) { max = groups[g]; dominant = g; }
 
     let tier;
-    if (score >= 1.5) tier = '대길';
-    else if (score >= 0.5) tier = '길';
-    else if (score > -0.5) tier = '평';
-    else if (score > -1.5) tier = '흉';
+    if (score >= 0.55) tier = '대길';
+    else if (score >= 0.2) tier = '길';
+    else if (score > -0.2) tier = '평';
+    else if (score > -0.55) tier = '흉';
     else tier = '대흉';
 
-    const desc = `${YEAR_DOMAIN_INTRO[dominant]} ${DOMAIN_TIER_BODY[dominant][tier]} ${TIER_ADVICE[tier]}`;
+    const clash = isClash(cur.year.branch, natalPillars.day.branch) || isClash(cur.year.branch, natalPillars.month.branch);
+    let desc = `${YEAR_DOMAIN_INTRO[dominant]} ${DOMAIN_TIER_BODY[dominant][tier]} ${TIER_ADVICE[tier]}`;
+    if (clash) desc += ` ${CLASH_NOTE}`;
 
-    return { tier, dominant, desc, pillarLabel: pillarLabel(cur.year) };
+    return { tier, score, dominant, desc, clash, strength, pillarLabel: pillarLabel(cur.year) };
   }
 
   // 대운(大運): 월주를 기준으로 순행/역행하며 10년마다 바뀌는 큰 운의 흐름
@@ -384,6 +515,7 @@ const Saju = (() => {
     STEMS, BRANCHES, STEM_HANJA, BRANCH_HANJA, ELEMENTS, ANIMALS,
     calcFourPillars, calcYearMonthPillar, pillarLabel,
     elementOf, countElements, tenGodGroup, monthlyFortune, yearlyFortune, calcDaeun, TIER_REMARK,
+    hiddenStemsOf, dayMasterStrength, calcShinsal, isClash,
   };
 })();
 
