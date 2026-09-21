@@ -63,6 +63,20 @@ const Saju = (() => {
     );
   }
 
+  // calendarJDN의 역함수: 정수 율리우스일 -> 그레고리력 y/m/d
+  function jdnToCalendar(jdn) {
+    const a = jdn + 32044;
+    const b = Math.floor((4 * a + 3) / 146097);
+    const c = a - Math.floor((146097 * b) / 4);
+    const d = Math.floor((4 * c + 3) / 1461);
+    const e = c - Math.floor((1461 * d) / 4);
+    const m = Math.floor((5 * e + 2) / 153);
+    const day = e - Math.floor((153 * m + 2) / 5) + 1;
+    const month = m + 3 - 12 * Math.floor(m / 10);
+    const year = 100 * b + d - 4800 + Math.floor(m / 10);
+    return { y: year, m: month, d: day };
+  }
+
   // 절기(절, 12개) 정의: branch = 그 절기가 시작하는 월지, angle = 태양황경, gm/gd = 탐색 초기값(월/일)
   const TERM_DEFS = [
     { branch: 1, angle: 285, gm: 1, gd: 6 },   // 축월 시작 - 소한
@@ -138,6 +152,146 @@ const Saju = (() => {
       y: d2.getUTCFullYear(), m: d2.getUTCMonth() + 1, d: d2.getUTCDate(),
       hh: d2.getUTCHours(), mm: d2.getUTCMinutes(),
     };
+  }
+
+  function kstDayIndex(jd) {
+    const p = jdToKstParts(jd);
+    return calendarJDN(p.y, p.m, p.d);
+  }
+
+  // ── 음력(陰曆) 계산: 신월(삭)과 24절기를 직접 계산해 양력<->음력을 변환한다 (조회용 하드코딩 표가 아님) ──
+
+  // 신월(삭) 시각 - Meeus, Astronomical Algorithms 2판 49장의 저정밀 근사식.
+  // k: 2000년 1월 6일 삭을 0으로 하는 삭망월 일련번호(실수 가능, 정수에 가까울수록 그 삭에 근접)
+  function newMoonJD(k) {
+    const T = k / 1236.85;
+    const T2 = T * T, T3 = T2 * T, T4 = T3 * T;
+    let jde = 2451550.09766 + 29.530588861 * k + 0.00015437 * T2 - 0.000000150 * T3 + 0.00000000073 * T4;
+
+    const M = toRad(normalize360(2.5534 + 29.10535669 * k - 0.0000218 * T2 - 0.00000011 * T3));
+    const Mp = toRad(normalize360(201.5643 + 385.81693528 * k + 0.0107582 * T2 + 0.00001238 * T3 - 0.000000058 * T4));
+    const F = toRad(normalize360(160.7108 + 390.67050284 * k - 0.0016118 * T2 - 0.00000227 * T3 + 0.000000011 * T4));
+    const Omega = toRad(normalize360(124.7746 - 1.56375588 * k + 0.0020672 * T2 + 0.00000215 * T3));
+    const E = 1 - 0.002516 * T - 0.0000074 * T2;
+
+    const corr =
+      -0.40720 * Math.sin(Mp) + 0.17241 * E * Math.sin(M) + 0.01608 * Math.sin(2 * Mp) + 0.01039 * Math.sin(2 * F)
+      + 0.00739 * E * Math.sin(Mp - M) - 0.00514 * E * Math.sin(Mp + M) + 0.00208 * E * E * Math.sin(2 * M)
+      - 0.00111 * Math.sin(Mp - 2 * F) - 0.00057 * Math.sin(Mp + 2 * F) + 0.00056 * E * Math.sin(2 * Mp + M)
+      - 0.00042 * Math.sin(3 * Mp) + 0.00042 * E * Math.sin(M + 2 * F) + 0.00038 * E * Math.sin(M - 2 * F)
+      - 0.00024 * E * Math.sin(2 * Mp - M) - 0.00017 * Math.sin(Omega) - 0.00007 * Math.sin(Mp + 2 * M)
+      + 0.00004 * Math.sin(2 * Mp - 2 * F) + 0.00004 * Math.sin(3 * M) + 0.00003 * Math.sin(Mp + M - 2 * F)
+      + 0.00003 * Math.sin(2 * Mp + 2 * F) - 0.00003 * Math.sin(Mp + M + 2 * F) + 0.00003 * Math.sin(Mp - M + 2 * F)
+      - 0.00002 * Math.sin(Mp - M - 2 * F) - 0.00002 * Math.sin(3 * Mp + M) + 0.00002 * Math.sin(4 * Mp);
+
+    return jde + corr;
+  }
+
+  function findNewMoonAtOrBefore(targetJD) {
+    let k = Math.floor((targetJD - 2451550.09766) / 29.530588861) - 1;
+    let jd = newMoonJD(k);
+    for (let i = 0; i < 5 && jd > targetJD; i++) { k--; jd = newMoonJD(k); }
+    for (let i = 0; i < 5 && newMoonJD(k + 1) <= targetJD; i++) { k++; jd = newMoonJD(k); }
+    return jd;
+  }
+
+  function nextNewMoonAfter(jd) {
+    let k = Math.round((jd - 2451550.09766) / 29.530588861) + 1;
+    let njd = newMoonJD(k);
+    for (let i = 0; i < 5 && njd <= jd; i++) { k++; njd = newMoonJD(k); }
+    return njd;
+  }
+
+  // 24절기 중 중기(中氣) 12개 - TERM_DEFS(12절)에서 각 15도씩 더한 지점
+  const MID_TERM_DEFS = TERM_DEFS.map((d) => ({ angle: (d.angle + 15) % 360, gm: d.gm, gd: d.gd + 15 }));
+
+  function dongjiJD(year) {
+    return findTermJD(year, 270, 12, 22);
+  }
+
+  // referenceYear의 동지가 속한 삭월(동짓달=11월)부터 다음 해 동지 직전 삭월까지의 달(29~30일) 목록을 만든다.
+  // 무중기(中氣 없는 달)월을 윤달로 판정하는 전통적 치윤법(置閏法)을 그대로 구현한다.
+  function buildLunarYearMonths(referenceYear) {
+    const dongji1 = dongjiJD(referenceYear);
+    const dongji2 = dongjiJD(referenceYear + 1);
+    const nm0 = findNewMoonAtOrBefore(dongji1);
+    const nmEnd = findNewMoonAtOrBefore(dongji2);
+
+    const starts = [nm0];
+    let cur = nm0;
+    for (let i = 0; i < 15 && kstDayIndex(cur) < kstDayIndex(nmEnd); i++) {
+      cur = nextNewMoonAfter(cur);
+      starts.push(cur);
+    }
+
+    const midTermJDs = [];
+    for (let y = referenceYear - 1; y <= referenceYear + 2; y++) {
+      for (const def of MID_TERM_DEFS) midTermJDs.push(findTermJD(y, def.angle, def.gm, def.gd));
+    }
+
+    let nextRegular = 11;
+    const months = [];
+    for (let i = 0; i < starts.length - 1; i++) {
+      const s = kstDayIndex(starts[i]), e = kstDayIndex(starts[i + 1]);
+      const hasZhongqi = midTermJDs.some((jd) => { const di = kstDayIndex(jd); return di >= s && di < e; });
+      const isLeap = i !== 0 && !hasZhongqi;
+      const month = isLeap ? months[i - 1].month : nextRegular;
+      months.push({ start: starts[i], end: starts[i + 1], month, isLeap });
+      if (!isLeap) nextRegular = (nextRegular % 12) + 1;
+    }
+    return months;
+  }
+
+  const lunarYearCache = new Map();
+  function lunarYearMonthsCached(referenceYear) {
+    if (!lunarYearCache.has(referenceYear)) lunarYearCache.set(referenceYear, buildLunarYearMonths(referenceYear));
+    return lunarYearCache.get(referenceYear);
+  }
+
+  // buildLunarYearMonths(refYear)는 동지(冬至) 기준으로 한 해를 구성하므로, 그 안의 11~12월은
+  // 관례상 refYear 그대로, 1~10월은 관례상 refYear+1 로 불린다 (설날 기준 연도 표기와 맞추기 위함).
+  function conventionalYearOf(refYear, month) {
+    return month >= 11 ? refYear : refYear + 1;
+  }
+  function refYearOf(conventionalYear, month) {
+    return month >= 11 ? conventionalYear : conventionalYear - 1;
+  }
+
+  // 양력 y/m/d -> 음력 { year(설날 기준 관례 연도), month, day, isLeap }
+  function solarToLunar(y, m, d) {
+    const targetDayIdx = calendarJDN(y, m, d);
+    for (const refYear of [y - 1, y]) {
+      const months = lunarYearMonthsCached(refYear);
+      for (const mo of months) {
+        const s = kstDayIndex(mo.start), e = kstDayIndex(mo.end);
+        if (targetDayIdx >= s && targetDayIdx < e) {
+          return { year: conventionalYearOf(refYear, mo.month), month: mo.month, day: targetDayIdx - s + 1, isLeap: mo.isLeap };
+        }
+      }
+    }
+    return null;
+  }
+
+  // 음력 { year(설날 기준 관례 연도), month, day, isLeap } -> 양력 { y, m, d } (해당 음력 날짜가 없으면 null)
+  function lunarToSolar(year, month, day, isLeap) {
+    const refYear = refYearOf(year, month);
+    const months = lunarYearMonthsCached(refYear);
+    const mo = months.find((mm) => mm.month === month && mm.isLeap === !!isLeap);
+    if (!mo) return null;
+    const dayIdx = kstDayIndex(mo.start) + day - 1;
+    if (dayIdx >= kstDayIndex(mo.end)) return null;
+    return jdnToCalendar(dayIdx);
+  }
+
+  // 특정 연도(설날 기준 관례 연도)에 존재하는 윤달 번호(없으면 null) - 입력 폼에서 "윤달" 체크박스를 보여줄지 판단할 때 사용
+  function leapMonthOfYear(year) {
+    // 관례 연도 `year`는 1~10월 구간(refYear=year-1)과 11~12월 구간(refYear=year) 두 조각으로 걸쳐 있을 수 있으므로 둘 다 확인한다.
+    for (const refYear of [year - 1, year]) {
+      const months = lunarYearMonthsCached(refYear);
+      const leap = months.find((mm) => mm.isLeap && conventionalYearOf(refYear, mm.month) === year);
+      if (leap) return leap.month;
+    }
+    return null;
   }
 
   // y,m,d,hh,mm: KST 기준 생년월일시 (hh/mm 은 null 허용 - 시주 미상)
@@ -556,6 +710,7 @@ const Saju = (() => {
     calcFourPillars, calcYearMonthPillar, pillarLabel,
     elementOf, countElements, tenGodGroup, monthlyFortune, yearlyFortune, calcDaeun, TIER_REMARK,
     hiddenStemsOf, dayMasterStrength, calcShinsal, isClash,
+    solarToLunar, lunarToSolar, leapMonthOfYear,
   };
 })();
 

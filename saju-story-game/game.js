@@ -225,6 +225,13 @@
       dstInput.disabled = unknown;
       if (unknown) { trueSolarTimeInput.checked = false; dstInput.checked = false; }
     });
+    document.querySelectorAll('input[name="cal-type"]').forEach((r) => {
+      r.addEventListener('change', (e) => {
+        const isLunar = e.target.value === 'lunar';
+        $('#lunar-leap-row').classList.toggle('hidden', !isLunar);
+        if (!isLunar) $('#lunar-leap').checked = false;
+      });
+    });
     $('#intro-form').addEventListener('submit', onSubmitIntro);
   }
 
@@ -232,9 +239,9 @@
     e.preventDefault();
     const name = $('#name').value.trim() || '이름 없음';
     const gender = $('input[name="gender"]:checked').value;
-    const y = parseInt($('#birth-year').value, 10);
-    const m = parseInt($('#birth-month').value, 10);
-    const d = parseInt($('#birth-day').value, 10);
+    const inputY = parseInt($('#birth-year').value, 10);
+    const inputM = parseInt($('#birth-month').value, 10);
+    const inputD = parseInt($('#birth-day').value, 10);
     const unknownTime = $('#unknown-time').checked;
     const timeVal = $('#birth-time').value; // "HH:MM"
     const hh = (unknownTime || !timeVal) ? null : parseInt(timeVal.slice(0, 2), 10);
@@ -244,9 +251,23 @@
       dst: $('#dst-correction').checked,
     };
 
-    if (!y || !m || !d) {
+    if (!inputY || !inputM || !inputD) {
       alert('생년월일을 모두 입력해주세요.');
       return;
+    }
+
+    const calType = $('input[name="cal-type"]:checked').value;
+    const lunarLeap = $('#lunar-leap').checked;
+    let y = inputY, m = inputM, d = inputD;
+    let lunarInfo = null;
+    if (calType === 'lunar') {
+      const solar = Saju.lunarToSolar(inputY, inputM, inputD, lunarLeap);
+      if (!solar) {
+        alert('입력한 음력 날짜를 양력으로 바꿀 수 없어요. 연/월/일과 윤달 여부를 다시 확인해주세요.');
+        return;
+      }
+      y = solar.y; m = solar.m; d = solar.d;
+      lunarInfo = { y: inputY, m: inputM, d: inputD, isLeap: lunarLeap };
     }
 
     const saju = Saju.calcFourPillars(y, m, d, hh, mm, timeOptions);
@@ -264,7 +285,7 @@
     }
 
     state = {
-      name, gender, birth: { y, m, d, hh, mm, unknownTime, ...timeOptions },
+      name, gender, birth: { y, m, d, hh, mm, unknownTime, lunarInfo, ...timeOptions },
       saju, elements, strength, shinsal, daeun, stats,
       monthsElapsed: START_AGE * 12 - 1,
       recentEventIds: [],
@@ -348,9 +369,13 @@
     const corrNotes = [];
     if (state.birth.trueSolarTime) corrNotes.push('진태양시 보정');
     if (state.birth.dst) corrNotes.push('서머타임 보정');
+    const lunarNote = state.birth.lunarInfo
+      ? ` (음력 ${state.birth.lunarInfo.y}년 ${state.birth.lunarInfo.isLeap ? '윤' : ''}${state.birth.lunarInfo.m}월 ${state.birth.lunarInfo.d}일 → 양력 변환)`
+      : '';
     $('#natal-birth').textContent =
       `${state.birth.y}년 ${state.birth.m}월 ${state.birth.d}일` +
       (state.birth.unknownTime ? ' (태어난 시 모름)' : ` ${String(state.birth.hh).padStart(2, '0')}시 ${String(state.birth.mm).padStart(2, '0')}분`) +
+      lunarNote +
       (corrNotes.length ? ` · ${corrNotes.join(', ')} 적용됨` : '');
 
     renderPillarsGrid('#natal-pillars', saju);

@@ -24,11 +24,16 @@
 
         <label class="field">
           <span>생년월일</span>
+          <div class="radio-row">
+            <label><input type="radio" name="cal-type" value="solar" checked /> 양력</label>
+            <label><input type="radio" name="cal-type" value="lunar" /> 음력</label>
+          </div>
           <div class="date-row">
             <input type="number" id="birth-year" placeholder="년(예: 2000)" min="1900" max="2100" required />
             <input type="number" id="birth-month" placeholder="월" min="1" max="12" required />
             <input type="number" id="birth-day" placeholder="일" min="1" max="31" required />
           </div>
+          <label class="checkbox-row hidden" id="lunar-leap-row"><input type="checkbox" id="lunar-leap" /> 윤달(閏月)이에요</label>
         </label>
 
         <label class="field">
