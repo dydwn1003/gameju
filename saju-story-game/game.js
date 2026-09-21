@@ -303,10 +303,12 @@
   }
 
   // 사주 원국(4기둥 그리드) + 오행 분포 바 - 사주 확인 화면과 게임 중 사주 팝업에서 공용으로 사용
+  // 각 기둥의 천간/지지가 일간(나) 기준으로 정확히 무슨 십성(비견/겁재/식신/상관/편재/정재/편관/정관/편인/정인)인지 함께 보여준다
   function renderPillarsGrid(sel, saju) {
     const pillars = [
       ['시주', saju.hour], ['일주', saju.day], ['월주', saju.month], ['연주', saju.year],
     ];
+    const dayStem = saju.day.stem;
     const wrap = $(sel);
     wrap.innerHTML = '';
     for (const [label, p] of pillars) {
@@ -316,10 +318,15 @@
         const stemEl = Saju.elementOf(p.stem, true);
         const branchEl = Saju.elementOf(p.branch, false);
         const hidden = Saju.hiddenStemsOf(p.branch).map((s) => Saju.STEMS[s]).join('');
+        const stemGod = label === '일주' ? '일간(나)' : Saju.tenGodDetail(dayStem, p.stem, true);
+        const branchGod = Saju.tenGodDetail(dayStem, p.branch, false);
+        const stemGodTitle = label === '일주' ? '이 사주의 기준이 되는 나 자신' : Saju.TEN_GOD_MEANING[stemGod];
         col.innerHTML = `
           <div class="pillar-label">${label}</div>
+          <div class="pillar-tengod" title="${stemGodTitle}">${stemGod}</div>
           <div class="pillar-char stem elem-${stemEl}">${Saju.STEM_HANJA[p.stem]}</div>
           <div class="pillar-char branch elem-${branchEl}">${Saju.BRANCH_HANJA[p.branch]}</div>
+          <div class="pillar-tengod" title="${Saju.TEN_GOD_MEANING[branchGod]}">${branchGod}</div>
           <div class="pillar-sub">${Saju.STEMS[p.stem]}${Saju.BRANCHES[p.branch]}</div>
           <div class="pillar-hidden" title="지장간(地藏干)">지장간 ${hidden}</div>`;
       } else {
@@ -670,11 +677,14 @@
   // 선택 하나를 "그 달의 사주 맥락 -> 선택 -> 결과 -> 예견과의 일치" 순서로 길게 풀어서 서술
   // (과거 달을 다시 선택할 때도 같은 함수로 그때그때의 해설을 다시 만들 수 있도록 개별 값만 받는다)
   function composeMonthlyReading({ title, fortune, age, year, month }, choiceText, choiceResult, applied) {
-    const domainNoun = DOMAIN_NOUN[fortune.dominant];
+    // dominantDetail(정확한 십성 하나, 예: 겁재)이 있으면 그걸 한자와 함께 쓰고, 옛 기록처럼 없는 경우만 그룹 명(비견·겁재)으로 대체한다
+    const godLabel = fortune.dominantDetail
+      ? `${fortune.dominantDetail}(${Saju.TEN_GOD_HANJA[fortune.dominantDetail]})`
+      : DOMAIN_NOUN[fortune.dominant];
     const detail = detailedResultText(applied, fortune);
     const remark = Saju.TIER_REMARK[fortune.tier];
     const parts = [
-      `${year}년 ${month}월(${fortune.pillarLabel}), ${age}세의 이 달은 ${domainNoun}의 기운이 짙게 흐르며 '${fortune.tier}'으로 풀이되던 시기였습니다.`,
+      `${year}년 ${month}월(${fortune.pillarLabel}), ${age}세의 이 달은 ${godLabel}의 기운이 짙게 흐르며 '${fortune.tier}'으로 풀이되던 시기였습니다.`,
       `그 가운데 「${title}」에서 '${choiceText}'를 선택했습니다. ${choiceResult}`,
       detail,
       remark,

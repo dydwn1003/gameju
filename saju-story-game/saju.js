@@ -12,6 +12,7 @@ const Saju = (() => {
   const STEM_ELEMENT_IDX = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4];
   const BRANCH_ELEMENT_IDX = [4, 2, 0, 0, 2, 1, 1, 2, 3, 3, 2, 4];
   const STEM_YINYANG = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0]; // 1=양, 0=음
+  const BRANCH_YINYANG = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]; // 자인진오신술=양, 축묘사미유해=음
   const ANIMALS = ['쥐', '소', '호랑이', '토끼', '용', '뱀', '말', '양', '원숭이', '닭', '개', '돼지'];
 
   function toRad(d) { return (d * Math.PI) / 180; }
@@ -487,6 +488,44 @@ const Saju = (() => {
     return '비겁';
   }
 
+  // 십성 그룹(5개)은 같은 음양이냐 다른 음양이냐에 따라 다시 둘로 나뉜다 - 이게 실제 사주 명식에서 쓰는 "십성" 10개다.
+  // [같은 음양, 다른 음양] 순서
+  const TEN_GOD_DETAIL_NAME = {
+    비겁: ['비견', '겁재'],
+    식상: ['식신', '상관'],
+    재성: ['편재', '정재'],
+    관성: ['편관', '정관'],
+    인성: ['편인', '정인'],
+  };
+  const TEN_GOD_HANJA = {
+    비견: '比肩', 겁재: '劫財', 식신: '食神', 상관: '傷官', 편재: '偏財',
+    정재: '正財', 편관: '偏官', 정관: '正官', 편인: '偏印', 정인: '正印',
+  };
+  // 각 십성이 구체적으로 어떤 결의 일을 부르기 쉬운지 - 그룹 설명(DOMAIN_INTRO/DOMAIN_TIER_BODY) 뒤에 덧붙여 한층 더 구체적으로 짚어준다
+  const TEN_GOD_MEANING = {
+    비견: '나와 대등한 동료·형제의 기운이라, 힘을 합칠 협력자나 선의의 경쟁자가 가까이에 등장하기 쉽습니다.',
+    겁재: '나와 같은 것을 두고 다투는 기운이라, 경쟁이나 금전·이해관계를 둘러싼 신경전이 두드러지기 쉽습니다.',
+    식신: '여유롭게 표현하고 즐기는 기운이라, 취미·미식·자기표현에서 오는 편안한 만족이 두드러지기 쉽습니다.',
+    상관: '날카롭게 드러내는 기운이라, 재능이 빛나는 만큼 구설수나 마찰도 함께 따르기 쉽습니다.',
+    편재: '크고 유동적인 재물의 기운이라, 통이 큰 거래나 투자·부업처럼 기복이 있는 돈의 흐름이 두드러지기 쉽습니다.',
+    정재: '차곡차곡 쌓는 재물의 기운이라, 월급이나 저축처럼 꾸준하고 안정적인 돈의 흐름이 두드러지기 쉽습니다.',
+    편관: '거칠게 몰아붙이는 책임의 기운이라, 갑작스러운 압박이나 도전적인 과제가 두드러지기 쉽습니다.',
+    정관: '반듯하게 짜인 책임의 기운이라, 원칙과 절차를 지키며 인정받는 흐름이 두드러지기 쉽습니다.',
+    편인: '독특하게 배우는 기운이라, 남다른 시각의 공부나 혼자만의 사색이 두드러지기 쉽습니다.',
+    정인: '든든하게 돌봐주는 기운이라, 귀인의 도움이나 정통적인 배움의 기회가 두드러지기 쉽습니다.',
+  };
+
+  // 일간 기준 특정 간지(otherIdx, isStem) 하나의 정확한 십성(10개 중 하나) 반환
+  function tenGodDetail(dayMasterStemIdx, otherIdx, otherIsStem) {
+    const dmEl = elementOf(dayMasterStemIdx, true);
+    const otherEl = elementOf(otherIdx, otherIsStem);
+    const group = tenGodGroup(dmEl, otherEl);
+    const dmYang = STEM_YINYANG[dayMasterStemIdx] === 1;
+    const otherYang = otherIsStem ? STEM_YINYANG[otherIdx] === 1 : BRANCH_YINYANG[otherIdx] === 1;
+    const [samePol, diffPol] = TEN_GOD_DETAIL_NAME[group];
+    return dmYang === otherYang ? samePol : diffPol;
+  }
+
   // 십성 점수는 고정값이 아니라 그 사람의 신강/신약(용신)에 따라 달라진다.
   // 신약(스스로 힘이 약한 사주)일수록 비겁·인성처럼 나를 도와주는 쪽이 반갑고,
   // 신강(스스로 힘이 넘치는 사주)일수록 식상·재성·관성처럼 기운을 덜어내는 쪽이 반갑다.
@@ -558,29 +597,40 @@ const Saju = (() => {
     대흉: '가능하다면 무리한 도전이나 큰 결정은 피하고, 몸과 마음을 추스르는 데 집중하는 것이 좋습니다.',
   };
 
-  const CLASH_NOTE = '게다가 이 시기의 기운이 원국의 지지와 정면으로 부딪히는 충(沖)에 걸려 있어, 평소보다 변화의 폭이 크게 느껴질 수 있습니다.';
+  // 이번 기운의 지지가 원국의 어느 기둥과 정면으로 충(沖)을 이루는지 구체적으로 짚어준다 (일지/월지 각각 이름+간지+한자까지)
+  function clashDetailNote(currentBranch, natalPillars) {
+    const hits = [];
+    if (isClash(currentBranch, natalPillars.day.branch)) hits.push({ label: '일지(나 자신·배우자 자리)', branch: natalPillars.day.branch });
+    if (isClash(currentBranch, natalPillars.month.branch)) hits.push({ label: '월지(사회활동의 자리)', branch: natalPillars.month.branch });
+    if (hits.length === 0) return '';
+    const names = hits.map((h) => `${h.label} ${BRANCHES[h.branch]}(${BRANCH_HANJA[h.branch]})`).join(', ');
+    return `게다가 이번 기운의 지지 ${BRANCHES[currentBranch]}(${BRANCH_HANJA[currentBranch]})이 원국의 ${names}와 정면으로 부딪히는 충(沖)에 걸려 있어, 평소보다 변화의 폭이 크게 느껴질 수 있습니다.`;
+  }
 
   // natalPillars: calcFourPillars 결과, currentYear/currentMonth: 게임상 현재 연/월
   // daeunPillar: { stem, branch } - 그 시점에 흐르고 있는 대운(10년 단위 큰 운) 간지. 없으면 세운·월운만으로 계산한다
   function monthlyFortune(natalPillars, currentYear, currentMonth, daeunPillar) {
     const strength = dayMasterStrength(natalPillars);
     const dayMasterEl = strength.dayMasterElement;
+    const dayMasterStem = natalPillars.day.stem;
     const cur = calcYearMonthPillar(currentYear, currentMonth);
     const parts = [
-      { el: elementOf(cur.year.stem, true), w: 1 },
-      { el: elementOf(cur.year.branch, false), w: 1 },
-      { el: elementOf(cur.month.stem, true), w: 1.2 },
-      { el: elementOf(cur.month.branch, false), w: 1.2 },
+      { el: elementOf(cur.year.stem, true), w: 1, idx: cur.year.stem, isStem: true },
+      { el: elementOf(cur.year.branch, false), w: 1, idx: cur.year.branch, isStem: false },
+      { el: elementOf(cur.month.stem, true), w: 1.2, idx: cur.month.stem, isStem: true },
+      { el: elementOf(cur.month.branch, false), w: 1.2, idx: cur.month.branch, isStem: false },
     ];
     if (daeunPillar) {
-      parts.push({ el: elementOf(daeunPillar.stem, true), w: 1 });
-      parts.push({ el: elementOf(daeunPillar.branch, false), w: 1 });
+      parts.push({ el: elementOf(daeunPillar.stem, true), w: 1, idx: daeunPillar.stem, isStem: true });
+      parts.push({ el: elementOf(daeunPillar.branch, false), w: 1, idx: daeunPillar.branch, isStem: false });
     }
     let weightedSum = 0, totalWeight = 0;
     const groups = {};
+    const groupRep = {}; // 그룹별 가장 비중이 큰 대표 간지 - 정확한 십성(10개) 이름을 뽑아내는 데 쓴다
     for (const part of parts) {
       const g = tenGodGroup(dayMasterEl, part.el);
       groups[g] = (groups[g] || 0) + part.w;
+      if (!groupRep[g] || part.w > groupRep[g].w) groupRep[g] = part;
       weightedSum += personalizedTenGodScore(g, strength.level) * part.w;
       totalWeight += part.w;
     }
@@ -588,6 +638,7 @@ const Saju = (() => {
     let dominant = '비겁';
     let max = -Infinity;
     for (const g in groups) if (groups[g] > max) { max = groups[g]; dominant = g; }
+    const dominantDetail = tenGodDetail(dayMasterStem, groupRep[dominant].idx, groupRep[dominant].isStem);
 
     let tier, tierMult;
     if (score >= 0.45) { tier = '대길'; tierMult = 1.4; }
@@ -596,13 +647,14 @@ const Saju = (() => {
     else if (score > -0.45) { tier = '흉'; tierMult = 0.85; }
     else { tier = '대흉'; tierMult = 0.6; }
 
-    const clash = isClash(cur.month.branch, natalPillars.day.branch) || isClash(cur.month.branch, natalPillars.month.branch);
+    const clashNote = clashDetailNote(cur.month.branch, natalPillars);
     let desc = `${DOMAIN_INTRO[dominant]} ${DOMAIN_TIER_BODY[dominant][tier]} ${TIER_ADVICE[tier]}`;
-    if (clash) desc += ` ${CLASH_NOTE}`;
+    desc += ` 특히 이번 기운은 ${dominantDetail}(${TEN_GOD_HANJA[dominantDetail]})의 결이 두드러집니다 - ${TEN_GOD_MEANING[dominantDetail]}`;
+    if (clashNote) desc += ` ${clashNote}`;
 
     return {
-      tier, tierMult, score, dominant,
-      desc, clash, strength,
+      tier, tierMult, score, dominant, dominantDetail,
+      desc, clash: !!clashNote, strength,
       pillarLabel: pillarLabel(cur.month),
     };
   }
@@ -629,20 +681,23 @@ const Saju = (() => {
   function yearlyFortune(natalPillars, year, daeunPillar) {
     const strength = dayMasterStrength(natalPillars);
     const dayMasterEl = strength.dayMasterElement;
+    const dayMasterStem = natalPillars.day.stem;
     const cur = calcYearMonthPillar(year, 6);
     const parts = [
-      { el: elementOf(cur.year.stem, true), w: 1 },
-      { el: elementOf(cur.year.branch, false), w: 1 },
+      { el: elementOf(cur.year.stem, true), w: 1, idx: cur.year.stem, isStem: true },
+      { el: elementOf(cur.year.branch, false), w: 1, idx: cur.year.branch, isStem: false },
     ];
     if (daeunPillar) {
-      parts.push({ el: elementOf(daeunPillar.stem, true), w: 1 });
-      parts.push({ el: elementOf(daeunPillar.branch, false), w: 1 });
+      parts.push({ el: elementOf(daeunPillar.stem, true), w: 1, idx: daeunPillar.stem, isStem: true });
+      parts.push({ el: elementOf(daeunPillar.branch, false), w: 1, idx: daeunPillar.branch, isStem: false });
     }
     let weightedSum = 0, totalWeight = 0;
     const groups = {};
+    const groupRep = {};
     for (const part of parts) {
       const g = tenGodGroup(dayMasterEl, part.el);
       groups[g] = (groups[g] || 0) + part.w;
+      if (!groupRep[g] || part.w > groupRep[g].w) groupRep[g] = part;
       weightedSum += personalizedTenGodScore(g, strength.level) * part.w;
       totalWeight += part.w;
     }
@@ -650,6 +705,7 @@ const Saju = (() => {
     let dominant = '비겁';
     let max = -Infinity;
     for (const g in groups) if (groups[g] > max) { max = groups[g]; dominant = g; }
+    const dominantDetail = tenGodDetail(dayMasterStem, groupRep[dominant].idx, groupRep[dominant].isStem);
 
     let tier;
     if (score >= 0.55) tier = '대길';
@@ -658,11 +714,12 @@ const Saju = (() => {
     else if (score > -0.55) tier = '흉';
     else tier = '대흉';
 
-    const clash = isClash(cur.year.branch, natalPillars.day.branch) || isClash(cur.year.branch, natalPillars.month.branch);
+    const clashNote = clashDetailNote(cur.year.branch, natalPillars);
     let desc = `${YEAR_DOMAIN_INTRO[dominant]} ${DOMAIN_TIER_BODY[dominant][tier]} ${TIER_ADVICE[tier]}`;
-    if (clash) desc += ` ${CLASH_NOTE}`;
+    desc += ` 특히 이 해는 ${dominantDetail}(${TEN_GOD_HANJA[dominantDetail]})의 결이 두드러집니다 - ${TEN_GOD_MEANING[dominantDetail]}`;
+    if (clashNote) desc += ` ${clashNote}`;
 
-    return { tier, score, dominant, desc, clash, strength, pillarLabel: pillarLabel(cur.year) };
+    return { tier, score, dominant, dominantDetail, desc, clash: !!clashNote, strength, pillarLabel: pillarLabel(cur.year) };
   }
 
   // 대운(大運): 월주를 기준으로 순행/역행하며 10년마다 바뀌는 큰 운의 흐름
@@ -711,6 +768,7 @@ const Saju = (() => {
     elementOf, countElements, tenGodGroup, monthlyFortune, yearlyFortune, calcDaeun, TIER_REMARK,
     hiddenStemsOf, dayMasterStrength, calcShinsal, isClash,
     solarToLunar, lunarToSolar, leapMonthOfYear,
+    tenGodDetail, TEN_GOD_HANJA, TEN_GOD_MEANING,
   };
 })();
 

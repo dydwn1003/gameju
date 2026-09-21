@@ -289,7 +289,7 @@ input[type="text"], input[type="number"], input[type="time"], select {
 
 .fortune-box {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   background: rgba(27, 30, 43, 0.85);
   border: 1px solid var(--border);
@@ -597,6 +597,7 @@ input[type="text"], input[type="number"], input[type="time"], select {
   text-align: center;
 }
 .pillar-label { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; }
+.pillar-tengod { font-size: 0.68rem; color: var(--gold-soft); font-weight: 600; line-height: 1.4; }
 .pillar-char { font-size: 1.7rem; font-weight: 700; line-height: 1.25; }
 .pillar-char.unknown { color: var(--text-dim); }
 .pillar-sub { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
