@@ -515,6 +515,10 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .cal-nav-btn:hover:not(:disabled) { border-color: var(--gold); }
 .cal-nav-btn:disabled { opacity: 0.3; cursor: default; }
 
+.cal-goto-today-btn { display: block; width: 100%; margin-bottom: 10px; padding: 8px 10px; border-radius: 8px; border: 1px dashed var(--gold); background: #20243a; color: var(--gold-soft); font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+.cal-goto-today-btn:hover { background: #262b42; border-style: solid; }
+.cal-goto-today-btn.hidden { display: none; }
+
 .skip-cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
 .skip-cal-cell {
   display: flex;

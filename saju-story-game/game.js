@@ -724,6 +724,30 @@
     return (year - state.birth.y) * 12 + (month - state.birth.m);
   }
 
+  // 게임 속 연월은 실제 생년월일에 이어 붙여 계산되므로, 실제 오늘 날짜에 대응하는 monthsElapsed도 그대로 구할 수 있다.
+  function realTodayMonthsElapsed() {
+    const now = new Date();
+    return monthsElapsedFor(now.getFullYear(), now.getMonth() + 1);
+  }
+
+  // '오늘 날짜로 가기' 버튼은 실제로 이동할 곳(19세 이후 & 아직 지나지 않은 미래)이 있을 때만 보여준다
+  function updateGotoTodayButton() {
+    const todayMonths = realTodayMonthsElapsed();
+    const canGoToToday = todayMonths >= START_AGE * 12 && todayMonths > state.monthsElapsed;
+    $('#skip-cal-goto-today').classList.toggle('hidden', !canGoToToday);
+  }
+
+  // 실제 오늘 날짜에 대응하는 지점(다음 마일스톤/100세를 넘지 않는 선에서)을 달력에서 선택한 것처럼 처리한다
+  function gotoCurrentAge() {
+    const target = Math.min(realTodayMonthsElapsed(), reachableCapMonths());
+    if (target <= state.monthsElapsed) return;
+    const targetCal = calendarForMonths(target);
+    skipCalYear = targetCal.year;
+    skipCalSelected = { year: targetCal.year, month: targetCal.month };
+    renderSkipCalendar();
+    showSkipStrategyPanel();
+  }
+
   // 달력에 의미 있게 표시할 최소~최대 범위: 19세(게임 시작) ~ 다음 미해결 마일스톤(또는 100세)
   function calendarBoundsMonths() {
     return { min: START_AGE * 12, max: reachableCapMonths() };
@@ -761,6 +785,7 @@
     $('#skip-cal-year').textContent = `${skipCalYear}년`;
     $('#skip-cal-prev').disabled = !yearHasContent(skipCalYear - 1);
     $('#skip-cal-next').disabled = !yearHasContent(skipCalYear + 1);
+    updateGotoTodayButton();
 
     const grid = $('#skip-cal-grid');
     grid.innerHTML = '';
@@ -917,6 +942,7 @@
     bindModalClose('#skip-modal', '#skip-modal-x', closeSkipModal);
     $('#skip-cal-prev').addEventListener('click', () => { skipCalYear--; renderSkipCalendar(); });
     $('#skip-cal-next').addEventListener('click', () => { skipCalYear++; renderSkipCalendar(); });
+    $('#skip-cal-goto-today').addEventListener('click', gotoCurrentAge);
     document.querySelectorAll('#skip-cal-strategy .skip-strategy-btn').forEach((btn) => {
       btn.addEventListener('click', () => executeSkip(btn.dataset.strategy));
     });
