@@ -593,16 +593,23 @@
   }
 
   // 실제로 적용된 수치(applied)를 스탯별로 구체적인 문장(금액, 증상 등)으로 풀어서 서술
-  // "만원" 단위로 체감 가능하게 연출 - 실제로 그 달에 적용된(이미 사주 등급까지 반영된) 확정값을 그대로 서술한다.
-  // 폭이 큰 선택(영끌 투자, 대출 등)일수록 단위당 환산액도 함께 커져서, 전 재산이 걸린 수준의 선택은 그만큼 무겁게 느껴지도록 했다.
-  function wealthFlavor(v) {
+  // "만원" 금액을 상한 없이 계산한다: 선택 자체의 판돈 크기(base) x 그 달 사주 기운의 세기(intensity, monthlyFortune의
+  // 연속 score값에서 뽑아낸 값이라 같은 등급이어도 매번 조금씩 다르다) x 우연성(luck, 로그정규 분포라 대부분은
+  // 평범하지만 아주 드물게 크게 튄다). 어디에도 Math.min/max 로 값을 잘라내지 않으므로 이론상 한도가 없다 -
+  // 사주가 강하게 좋거나/나쁠수록, 그리고 판돈이 큰 선택일수록 실제로 억대까지도 나올 수 있다.
+  function wealthAmount(v, fortune) {
     const av = Math.abs(v);
-    let amount;
-    if (av >= 12) amount = av * 70;
-    else if (av >= 8) amount = av * 30;
-    else if (av >= 4) amount = av * 15;
-    else amount = av * 10;
+    const base = av >= 12 ? av * 70 : av >= 8 ? av * 30 : av >= 4 ? av * 15 : av * 10;
+    const score = fortune ? Math.abs(fortune.score) : 0;
+    const intensity = 1 + score; // 사주 기운이 강할수록(등급이 아니라 연속 점수 기준) 변동폭도 함께 커진다
+    const luck = Math.exp((Math.random() - 0.5) * intensity * 2); // 로그정규 변동 - 상한을 별도로 두지 않는다
+    return Math.max(1, Math.round((base * luck) / 10) * 10);
+  }
 
+  // 실제로 그 달에 적용된(이미 사주 등급까지 반영된) 확정값을 그대로 서술한다 - "최대"처럼 범위인 듯한 표현은 쓰지 않는다.
+  function wealthFlavor(v, fortune) {
+    if (v === 0) return '';
+    const amount = wealthAmount(v, fortune);
     if (v >= 12) return `그야말로 인생이 바뀔 만한 재물운이 터져, ${amount}만원에 이르는 목돈을 거머쥐었습니다.`;
     if (v >= 8) return `재물운이 크게 트여, ${amount}만원 상당의 목돈이 들어왔습니다.`;
     if (v >= 4) return `쏠쏠한 수입이 생겨 ${amount}만원 정도의 여윳돈이 들어옵니다.`;
@@ -651,10 +658,10 @@
   }
   const STAT_FLAVOR = { health: healthFlavor, wealth: wealthFlavor, happy: happyFlavor, wisdom: wisdomFlavor, fame: fameFlavor };
 
-  function detailedResultText(applied) {
+  function detailedResultText(applied, fortune) {
     const entries = Object.entries(applied).filter(([, v]) => v !== 0);
     entries.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
-    return entries.map(([k, v]) => STAT_FLAVOR[k](v)).filter(Boolean).join(' ');
+    return entries.map(([k, v]) => STAT_FLAVOR[k](v, fortune)).filter(Boolean).join(' ');
   }
 
   const DOMAINS = ['비겁', '식상', '재성', '관성', '인성'];
@@ -664,7 +671,7 @@
   // (과거 달을 다시 선택할 때도 같은 함수로 그때그때의 해설을 다시 만들 수 있도록 개별 값만 받는다)
   function composeMonthlyReading({ title, fortune, age, year, month }, choiceText, choiceResult, applied) {
     const domainNoun = DOMAIN_NOUN[fortune.dominant];
-    const detail = detailedResultText(applied);
+    const detail = detailedResultText(applied, fortune);
     const remark = Saju.TIER_REMARK[fortune.tier];
     const parts = [
       `${year}년 ${month}월(${fortune.pillarLabel}), ${age}세의 이 달은 ${domainNoun}의 기운이 짙게 흐르며 '${fortune.tier}'으로 풀이되던 시기였습니다.`,

@@ -101,6 +101,66 @@ const GameData = (() => {
       { text: '신경 쓰이지만 그냥 내버려 둔다', effects: { happy: -3, fame: -1 }, result: '찜찜한 마음이 한동안 이어졌습니다.' },
       { text: '감정적으로 맞받아치며 논쟁을 키운다', effects: { fame: -7, happy: -4 }, result: '논쟁이 커지며 평판에 흠집이 났습니다.' },
     ] },
+    { id: 'yng_jobsearch', domain: '관성', minAge: 19, maxAge: 27, title: '취업 준비', desc: '본격적으로 취업 준비를 시작하며 진로를 고민합니다.', choices: [
+      { text: '여러 회사와 직무를 꼼꼼히 조사하고 지원한다', effects: { wisdom: 6, wealth: 3 }, result: '꼼꼼한 준비 끝에 원하는 곳에 자리를 잡았습니다.' },
+      { text: '일단 눈에 띄는 곳부터 지원해본다', effects: { wealth: 2, happy: 1 }, result: '무리하지 않고 하나씩 경험을 쌓았습니다.' },
+      { text: '막막한 마음에 준비를 계속 미룬다', effects: { happy: -4, wisdom: -2 }, result: '시간만 흘러가며 조급함이 커졌습니다.' },
+      { text: '묻지마 지원을 반복하다 지쳐버린다', effects: { happy: -6, health: -3 }, result: '성과 없는 반복에 몸도 마음도 지쳤습니다.' },
+    ] },
+    { id: 'yng_breakup', domain: '식상', minAge: 20, maxAge: 34, title: '이별의 후유증', desc: '오래 만난 사람과 헤어진 뒤 마음을 추스르는 중입니다.', choices: [
+      { text: '주변 사람들과 시간을 보내며 마음을 다잡는다', effects: { happy: 6, fame: 1 }, result: '따뜻한 사람들 덕에 서서히 마음을 추슬렀습니다.' },
+      { text: '혼자만의 시간을 가지며 천천히 회복한다', effects: { happy: 2, wisdom: 2 }, result: '스스로를 돌아보며 조금씩 나아졌습니다.' },
+      { text: '일에 파묻혀 애써 잊으려 한다', effects: { happy: -3, health: -2 }, result: '마음의 상처가 겉으로만 무뎌졌습니다.' },
+      { text: '괴로운 마음에 술로 나날을 보낸다', effects: { happy: -7, health: -6 }, result: '몸도 마음도 함께 무너져 내렸습니다.' },
+    ] },
+    { id: 'yng_scholarship', domain: '인성', minAge: 19, maxAge: 26, title: '장학금 기회', desc: '노력한 성과를 인정받아 장학금 지원 기회가 생겼습니다.', choices: [
+      { text: '서류를 꼼꼼히 준비해 지원한다', effects: { wealth: 7, wisdom: 3 }, result: '꼼꼼한 준비 덕에 장학금을 받게 되었습니다.' },
+      { text: '되든 안 되든 편하게 지원해본다', effects: { wealth: 3 }, result: '큰 기대 없이 지원했는데 좋은 결과를 얻었습니다.' },
+      { text: '귀찮아서 지원 자체를 미루다 놓친다', effects: { happy: -3 }, result: '아까운 기회를 그냥 흘려보냈습니다.' },
+      { text: '서류를 대충 준비해 제출한다', effects: { wisdom: -2, happy: -2 }, result: '성의 없는 준비가 결과로 이어지지 않았습니다.' },
+    ] },
+    { id: 'yng_carbuy', domain: '재성', minAge: 22, maxAge: 33, title: '첫 차 구입', desc: '생애 첫 자동차를 살지 고민하게 되었습니다.', choices: [
+      { text: '예산에 맞는 중고차를 꼼꼼히 알아본다', effects: { happy: 5, wealth: -4 }, result: '합리적인 선택으로 만족스러운 첫 차를 얻었습니다.' },
+      { text: '당분간 대중교통으로 만족하기로 한다', effects: { wealth: 2 }, result: '무리하지 않고 다음 기회를 기다리기로 했습니다.' },
+      { text: '할부로 무리해서 새 차를 산다', effects: { wealth: -8, happy: 2 }, result: '기분은 좋았지만 매달 할부금이 부담됐습니다.' },
+      { text: '덜컥 고가의 차를 계약한다', effects: { wealth: -13, happy: 1 }, result: '순간의 기분으로 지른 계약에 지갑이 크게 휘청였습니다.' },
+    ] },
+    { id: 'yng_credit', domain: '재성', minAge: 19, maxAge: 32, title: '카드값 압박', desc: '생각 없이 쓴 카드값 고지서를 보고 깜짝 놀랐습니다.', choices: [
+      { text: '지출 내역을 점검하고 씀씀이를 줄인다', effects: { wisdom: 5, wealth: -2 }, result: '지출 습관을 돌아보며 씀씀이를 바로잡았습니다.' },
+      { text: '이번 달만 허리띠를 졸라맨다', effects: { wealth: -1 }, result: '잠깐의 절약으로 고비를 넘겼습니다.' },
+      { text: '일단 최소 금액만 내고 미룬다', effects: { wealth: -6, wisdom: -2 }, result: '이자가 붙으며 부담이 점점 커졌습니다.' },
+      { text: '돌려막기로 더 큰 빚을 만든다', effects: { wealth: -14, happy: -4 }, result: '눈덩이처럼 불어난 빚에 마음이 무거워졌습니다.' },
+    ] },
+    { id: 'yng_group_project', domain: '비겁', minAge: 19, maxAge: 29, title: '팀플 갈등', desc: '함께하는 프로젝트에서 팀원과 의견이 크게 엇갈립니다.', choices: [
+      { text: '서로의 입장을 듣고 절충안을 찾는다', effects: { fame: 5, wisdom: 2 }, result: '차분한 조율 끝에 팀워크가 오히려 단단해졌습니다.' },
+      { text: '맡은 몫만 확실히 해낸다', effects: { fame: 2 }, result: '자기 역할에 충실하며 무난히 넘어갔습니다.' },
+      { text: '갈등이 불편해 대충 넘어간다', effects: { happy: -3 }, result: '찜찜함을 남긴 채 결과물도 아쉬웠습니다.' },
+      { text: '감정적으로 부딪혀 관계가 틀어진다', effects: { fame: -6, happy: -3 }, result: '팀 분위기가 크게 상하고 말았습니다.' },
+    ] },
+    { id: 'yng_bodypain', domain: '인성', minAge: 22, maxAge: 35, title: '직업병', desc: '같은 자세로 오래 일하다 보니 몸 여기저기가 아파옵니다.', choices: [
+      { text: '전문적인 치료와 자세 교정을 받는다', effects: { health: 7, wealth: -3 }, result: '제대로 된 관리로 통증이 눈에 띄게 줄었습니다.' },
+      { text: '스트레칭 등으로 틈틈이 관리한다', effects: { health: 3 }, result: '작은 습관들이 쌓여 몸이 한결 편해졌습니다.' },
+      { text: '바빠서 계속 방치한다', effects: { health: -4 }, result: '통증이 좀처럼 나아지지 않고 이어졌습니다.' },
+      { text: '통증을 참고 계속 무리한다', effects: { health: -9, happy: -2 }, result: '결국 크게 탈이 나 일상에 지장이 생겼습니다.' },
+    ] },
+    { id: 'yng_language', domain: '인성', minAge: 19, maxAge: 33, title: '새로운 도전', desc: '외국어(혹은 새로운 자격)에 도전해볼까 고민합니다.', choices: [
+      { text: '꾸준한 계획을 세워 매일 학습한다', effects: { wisdom: 8, happy: 1 }, result: '꾸준함이 쌓여 눈에 띄는 실력 향상을 이뤘습니다.' },
+      { text: '부담 없이 취미처럼 배운다', effects: { wisdom: 3, happy: 2 }, result: '즐기면서 배우니 부담 없이 실력이 늘었습니다.' },
+      { text: '의욕만 앞서다 흐지부지된다', effects: { wisdom: -2, happy: -2 }, result: '작심삼일로 끝나 아쉬움만 남았습니다.' },
+      { text: '비싼 교재와 강의만 결제하고 손 놓는다', effects: { wealth: -6, wisdom: -2 }, result: '돈만 쓰고 실속은 챙기지 못했습니다.' },
+    ] },
+    { id: 'yng_sibling', domain: '비겁', minAge: 19, maxAge: 35, title: '형제자매와의 갈등', desc: '가족 문제로 형제자매와 의견이 부딪혔습니다.', choices: [
+      { text: '시간을 두고 차분히 대화를 시도한다', effects: { happy: 5, fame: 2 }, result: '진솔한 대화 끝에 오해를 풀었습니다.' },
+      { text: '일단 감정이 가라앉기를 기다린다', effects: { happy: 1 }, result: '시간이 지나며 자연스레 누그러졌습니다.' },
+      { text: '서로 연락을 피하며 지낸다', effects: { happy: -3 }, result: '서먹한 사이가 한동안 이어졌습니다.' },
+      { text: '묵은 감정까지 꺼내며 크게 다툰다', effects: { happy: -7, fame: -2 }, result: '돌이키기 힘든 앙금을 남기고 말았습니다.' },
+    ] },
+    { id: 'yng_volunteering', domain: '식상', minAge: 19, maxAge: 35, title: '봉사활동', desc: '우연한 기회로 봉사활동에 참여하게 되었습니다.', choices: [
+      { text: '꾸준히 참여하며 의미를 찾아간다', effects: { happy: 6, fame: 3 }, result: '나누는 기쁨 속에서 삶의 의미를 새로 느꼈습니다.' },
+      { text: '가벼운 마음으로 한 번 참여해본다', effects: { happy: 3 }, result: '색다른 경험으로 기분 좋은 하루를 보냈습니다.' },
+      { text: '귀찮은 마음에 대충 시간만 때운다', effects: { happy: -1 }, result: '마지못해 참여하다 보니 남는 것이 적었습니다.' },
+      { text: '번거로움에 도중에 그만둔다', effects: { happy: -3, fame: -2 }, result: '중도 포기가 마음에 걸림돌로 남았습니다.' },
+    ] },
 
     // ── 장년기 36-55 ──
     { id: 'adt_promo', domain: '관성', minAge: 30, maxAge: 55, title: '승진 기회', desc: '치열한 경쟁 끝에 승진 기회가 찾아왔습니다.', choices: [
@@ -187,6 +247,66 @@ const GameData = (() => {
       { text: '그냥 참고 계속 버틴다', effects: { happy: -4, health: -3 }, result: '지친 몸과 마음이 좀처럼 회복되지 않았습니다.' },
       { text: '아무 대책 없이 일을 손에서 놓아버린다', effects: { wealth: -6, happy: -3, fame: -3 }, result: '갑작스러운 공백에 주변까지 곤란해졌습니다.' },
     ] },
+    { id: 'adt_divorce_thought', domain: '식상', minAge: 33, maxAge: 55, title: '권태기', desc: '배우자(혹은 반려자)와의 사이에 권태기가 찾아왔습니다.', choices: [
+      { text: '시간을 내어 관계 회복을 위해 노력한다', effects: { happy: 7, wealth: -2 }, result: '함께 노력한 끝에 다시 가까워졌습니다.' },
+      { text: '각자의 시간을 존중하며 지켜본다', effects: { happy: 2 }, result: '무리하지 않고 자연스럽게 흘러가도록 두었습니다.' },
+      { text: '문제를 외면한 채 지낸다', effects: { happy: -4 }, result: '외면한 문제가 조용히 쌓여갔습니다.' },
+      { text: '갈등 끝에 크게 틀어진다', effects: { happy: -9, wealth: -6 }, result: '돌이키기 힘든 갈등으로 마음이 크게 상했습니다.' },
+    ] },
+    { id: 'adt_franchise', domain: '재성', minAge: 35, maxAge: 55, title: '프랜차이즈 창업', desc: '안정적인 프랜차이즈 창업을 제안받았습니다.', choices: [
+      { text: '상권과 조건을 꼼꼼히 분석하고 시작한다', effects: { wealth: 10, happy: 2 }, result: '철저한 분석 덕에 안정적으로 자리 잡았습니다.' },
+      { text: '소자본으로 작게 시작해본다', effects: { wealth: 4 }, result: '무리하지 않고 차근차근 매장을 키워갔습니다.' },
+      { text: '분위기에 휩쓸려 계약부터 한다', effects: { wealth: -9, happy: -2 }, result: '준비 부족이 그대로 손해로 이어졌습니다.' },
+      { text: '무리한 대출로 큰 매장을 낸다', effects: { wealth: -15, health: -3 }, result: '감당 못할 대출 이자에 오래도록 시달렸습니다.' },
+    ] },
+    { id: 'adt_realestate_loss', domain: '재성', minAge: 33, maxAge: 55, title: '부동산 하락', desc: '가지고 있던 부동산 가격이 크게 떨어졌습니다.', choices: [
+      { text: '장기적인 관점에서 담담히 지켜본다', effects: { wisdom: 4, happy: -1 }, result: '흔들리지 않는 태도로 상황을 잘 넘겼습니다.' },
+      { text: '상황을 지켜보며 대응을 미룬다', effects: { happy: -2 }, result: '불안한 마음으로 시세를 지켜봤습니다.' },
+      { text: '불안한 마음에 손해를 보고 처분한다', effects: { wealth: -8, happy: -3 }, result: '성급한 처분이 손해로 돌아왔습니다.' },
+      { text: '공포에 휩쓸려 헐값에 급매한다', effects: { wealth: -14, happy: -5 }, result: '공포에 떠밀린 결정을 두고두고 후회했습니다.' },
+    ] },
+    { id: 'adt_award', domain: '관성', minAge: 33, maxAge: 55, title: '업계의 인정', desc: '그동안의 노력을 인정받아 상을 받을 기회가 생겼습니다.', choices: [
+      { text: '겸손하게, 그러나 당당히 수상한다', effects: { fame: 8, happy: 4 }, result: '노력을 제대로 인정받아 뿌듯한 하루였습니다.' },
+      { text: '큰 기대 없이 담담하게 참석한다', effects: { fame: 3 }, result: '담담한 태도로 자리를 잘 마무리했습니다.' },
+      { text: '부담스러워 자리를 피한다', effects: { happy: -2 }, result: '아까운 기회를 스스로 피하고 말았습니다.' },
+      { text: '우쭐해져 주변에 과시하고 다닌다', effects: { fame: -5, happy: -2 }, result: '지나친 과시가 오히려 눈총을 샀습니다.' },
+    ] },
+    { id: 'adt_coworker_conflict', domain: '비겁', minAge: 30, maxAge: 55, title: '동료와의 갈등', desc: '가깝게 지내던 동료와 업무 방식 차이로 부딪혔습니다.', choices: [
+      { text: '솔직한 대화로 오해를 풀어간다', effects: { happy: 5, fame: 2 }, result: '솔직한 대화 끝에 사이가 오히려 돈독해졌습니다.' },
+      { text: '적당히 거리를 두고 지낸다', effects: { happy: 2 }, result: '적당한 거리를 두며 무난히 지냈습니다.' },
+      { text: '불편해도 내색하지 않고 참는다', effects: { happy: -3, health: -1 }, result: '쌓인 불편함이 스트레스로 이어졌습니다.' },
+      { text: '다른 동료들 앞에서 크게 맞선다', effects: { fame: -6, happy: -4 }, result: '공개적인 갈등에 평판이 크게 흔들렸습니다.' },
+    ] },
+    { id: 'adt_stock_crash', domain: '재성', minAge: 30, maxAge: 55, title: '주식 폭락장', desc: '갑작스러운 폭락장에 투자한 자산이 크게 흔들립니다.', choices: [
+      { text: '분산된 포트폴리오 덕에 크게 흔들리지 않는다', effects: { wisdom: 4, wealth: -2 }, result: '평소의 신중함 덕에 손실을 최소화했습니다.' },
+      { text: '동요하지 않고 장기적으로 지켜본다', effects: { wisdom: 2 }, result: '흔들리지 않는 마음으로 폭풍을 넘겼습니다.' },
+      { text: '불안한 마음에 손해를 보고 정리한다', effects: { wealth: -9 }, result: '저점에서 정리하며 손실을 확정지었습니다.' },
+      { text: '패닉에 빠져 무리하게 물타기를 한다', effects: { wealth: -15, happy: -4 }, result: '패닉 속 판단이 더 큰 손실로 돌아왔습니다.' },
+    ] },
+    { id: 'adt_side_business', domain: '재성', minAge: 32, maxAge: 55, title: '부업의 사업화', desc: '취미 삼아 하던 부업이 꽤 잘 되어 사업화를 고민합니다.', choices: [
+      { text: '차근차근 규모를 키우며 사업자를 낸다', effects: { wealth: 9, happy: 3 }, result: '체계적인 확장으로 탄탄하게 자리 잡았습니다.' },
+      { text: '지금 규모를 유지하며 지켜본다', effects: { wealth: 3, happy: 1 }, result: '무리하지 않고 꾸준한 수입을 유지했습니다.' },
+      { text: '준비 없이 성급하게 확장한다', effects: { wealth: -7, health: -2 }, result: '준비 부족이 고스란히 손실로 이어졌습니다.' },
+      { text: '무리한 대출로 크게 벌인다', effects: { wealth: -14, health: -3 }, result: '과도한 확장이 감당 못할 빚으로 돌아왔습니다.' },
+    ] },
+    { id: 'adt_networking', domain: '비겁', minAge: 30, maxAge: 55, title: '인맥 모임', desc: '업계 사람들이 모이는 자리에 초대를 받았습니다.', choices: [
+      { text: '적극적으로 다가가 좋은 인연을 만든다', effects: { fame: 6, happy: 2 }, result: '좋은 인연들을 만나 앞으로에 큰 힘이 되었습니다.' },
+      { text: '가볍게 얼굴을 비추고 온다', effects: { fame: 2 }, result: '부담 없이 안면을 넓히고 돌아왔습니다.' },
+      { text: '낯을 가리다 별 소득 없이 돌아온다', effects: { happy: -2 }, result: '어색함 속에 별다른 소득이 없었습니다.' },
+      { text: '무리하게 어울리다 실수를 저지른다', effects: { fame: -5, happy: -2 }, result: '과음 끝에 저지른 실수가 두고두고 부끄러웠습니다.' },
+    ] },
+    { id: 'adt_health_scare', domain: '인성', minAge: 38, maxAge: 55, title: '중대 질병 진단', desc: '건강검진에서 정밀검사가 필요하다는 소견을 받았습니다.', choices: [
+      { text: '즉시 정밀검사와 치료를 받는다', effects: { health: 9, wealth: -6 }, result: '빠른 대처 덕에 건강을 잘 지켜냈습니다.' },
+      { text: '경과를 지켜보며 관리한다', effects: { health: 3, wealth: -2 }, result: '차분한 관리로 상태를 잘 유지했습니다.' },
+      { text: '바쁘다는 핑계로 검사를 미룬다', effects: { health: -5 }, result: '미루는 사이 몸 상태가 나빠졌습니다.' },
+      { text: '두려운 마음에 계속 외면한다', effects: { health: -12, happy: -4 }, result: '뒤늦은 대처로 몸과 마음이 크게 지쳤습니다.' },
+    ] },
+    { id: 'adt_car_accident', domain: '관성', minAge: 30, maxAge: 55, title: '교통사고', desc: '운전 중 작지 않은 교통사고를 겪었습니다.', choices: [
+      { text: '절차대로 침착하게 처리한다', effects: { wisdom: 3, wealth: -4 }, result: '침착한 대응으로 큰 탈 없이 마무리했습니다.' },
+      { text: '다행히 크게 다치지 않아 안도한다', effects: { happy: 1, wealth: -3 }, result: '놀란 가슴을 쓸어내리며 안도했습니다.' },
+      { text: '놀란 마음에 처리를 미룬다', effects: { happy: -3, wealth: -3 }, result: '미뤄둔 처리에 뒤늦게 골머리를 앓았습니다.' },
+      { text: '제대로 대응 못 해 손해를 크게 본다', effects: { wealth: -11, health: -3 }, result: '미숙한 대응이 더 큰 손해로 돌아왔습니다.' },
+    ] },
 
     // ── 중년기 56-70 ──
     { id: 'mid_retire', domain: '식상', minAge: 55, maxAge: 65, title: '은퇴 준비', desc: '은퇴 후의 삶을 어떻게 꾸릴지 고민이 됩니다.', choices: [
@@ -236,6 +356,54 @@ const GameData = (() => {
       { text: '아끼며 있는 자금을 지켜간다', effects: { wealth: 3 }, result: '무리하지 않고 자금을 잘 지켰습니다.' },
       { text: '점검을 미루고 그냥 지낸다', effects: { wealth: -3 }, result: '막연한 불안이 계속 마음 한구석에 남았습니다.' },
       { text: '불안한 마음에 무리한 곳에 손을 댄다', effects: { wealth: -12, happy: -4 }, result: '조급함이 부른 손실에 마음이 크게 무거워졌습니다.' },
+    ] },
+    { id: 'mid_inheritance', domain: '재성', minAge: 55, maxAge: 75, title: '상속 문제', desc: '부모님(혹은 친척)의 유산 문제로 가족 간 이야기가 오갑니다.', choices: [
+      { text: '가족과 터놓고 대화해 원만히 정리한다', effects: { happy: 6, fame: 2 }, result: '솔직한 대화 덕에 갈등 없이 잘 정리했습니다.' },
+      { text: '욕심내지 않고 흘러가는 대로 따른다', effects: { happy: 2 }, result: '무리하지 않고 담담하게 받아들였습니다.' },
+      { text: '서운한 마음을 속으로만 삭인다', effects: { happy: -4 }, result: '말 못 한 서운함이 마음에 쌓였습니다.' },
+      { text: '재산 문제로 크게 다투고 만다', effects: { happy: -8, fame: -4 }, result: '돈 문제로 가족 간 골이 깊어졌습니다.' },
+    ] },
+    { id: 'mid_travel', domain: '식상', minAge: 56, maxAge: 70, title: '은퇴 후 여행', desc: '시간 여유가 생겨 오래 벼르던 여행을 계획합니다.', choices: [
+      { text: '예산을 세워 알찬 일정으로 다녀온다', effects: { happy: 8, wealth: -5 }, result: '알찬 일정으로 오랫동안 기억에 남을 여행을 했습니다.' },
+      { text: '짧고 가벼운 일정으로 다녀온다', effects: { happy: 4, wealth: -2 }, result: '부담 없이 기분 좋은 나들이를 다녀왔습니다.' },
+      { text: '막상 귀찮아져 계획을 접는다', effects: { happy: -2 }, result: '벼르던 계획을 결국 접고 말았습니다.' },
+      { text: '즉흥적으로 무리한 장기 여행을 떠난다', effects: { wealth: -11, health: -3 }, result: '무리한 일정에 몸도 지갑도 크게 축났습니다.' },
+    ] },
+    { id: 'mid_volunteer', domain: '인성', minAge: 56, maxAge: 75, title: '재능기부', desc: '그동안 쌓아온 경험을 나눠볼까 고민합니다.', choices: [
+      { text: '정기적으로 재능기부 활동을 시작한다', effects: { happy: 7, fame: 3 }, result: '나누는 기쁨 속에서 삶의 활력을 되찾았습니다.' },
+      { text: '가끔 생각날 때만 참여한다', effects: { happy: 2 }, result: '부담 없는 선에서 가끔 보람을 느꼈습니다.' },
+      { text: '엄두가 안 나 미루기만 한다', effects: { happy: -2 }, result: '마음만 있고 실행하지 못해 아쉬웠습니다.' },
+      { text: '의욕만 앞서다 몸에 무리가 온다', effects: { happy: 2, health: -5 }, result: '지나친 의욕이 몸에는 무리가 되었습니다.' },
+    ] },
+    { id: 'mid_investment_scam', domain: '재성', minAge: 56, maxAge: 75, title: '노후자금을 노린 제안', desc: '모아둔 노후자금을 겨냥한 솔깃한 투자 제안을 받았습니다.', choices: [
+      { text: '단호히 거절하고 주변에도 알린다', effects: { wisdom: 6, fame: 2 }, result: '현명한 판단으로 소중한 노후자금을 지켜냈습니다.' },
+      { text: '정중히 거절하고 넘어간다', effects: { wisdom: 2 }, result: '괜한 위험을 피해 넘어갔습니다.' },
+      { text: '혹시나 하는 마음에 소액을 넣어본다', effects: { wealth: -6 }, result: '작게 시작했지만 결국 손해로 끝났습니다.' },
+      { text: '노후자금 대부분을 맡기고 만다', effects: { wealth: -16, happy: -5 }, result: '평생 모은 돈을 한순간에 잃고 크게 상심했습니다.' },
+    ] },
+    { id: 'mid_reskill', domain: '관성', minAge: 56, maxAge: 70, title: '재취업 도전', desc: '조금 더 일하고 싶은 마음에 재취업을 준비합니다.', choices: [
+      { text: '새로운 분야를 차분히 배우며 준비한다', effects: { wealth: 6, wisdom: 3 }, result: '꾸준한 준비 끝에 새로운 자리를 얻었습니다.' },
+      { text: '할 수 있는 만큼만 가볍게 알아본다', effects: { happy: 2 }, result: '부담 없이 가능성을 넓혀갔습니다.' },
+      { text: '막막한 마음에 자꾸 미룬다', effects: { happy: -3 }, result: '망설이는 사이 의욕이 조금씩 사그라들었습니다.' },
+      { text: '조급한 마음에 이상한 곳에 발을 들인다', effects: { wealth: -8, happy: -3 }, result: '성급한 선택이 손해로 돌아왔습니다.' },
+    ] },
+    { id: 'mid_pet', domain: '식상', minAge: 55, maxAge: 80, title: '반려동물과의 하루', desc: '반려동물(혹은 이웃의 동물)과 정을 나누는 하루입니다.', choices: [
+      { text: '정성껏 돌보며 하루를 함께 보낸다', effects: { happy: 6, wealth: -1 }, result: '함께한 시간이 큰 위안이 되었습니다.' },
+      { text: '가볍게 산책이나 함께 한다', effects: { happy: 3 }, result: '소소한 산책으로 기분이 좋아졌습니다.' },
+      { text: '귀찮은 마음에 소홀히 대한다', effects: { happy: -2 }, result: '소홀했던 마음이 뒤늦게 미안해졌습니다.' },
+      { text: '갑작스러운 병원비로 마음이 상한다', effects: { wealth: -7, happy: -2 }, result: '예상 못한 병원비에 마음이 무거워졌습니다.' },
+    ] },
+    { id: 'mid_community', domain: '비겁', minAge: 56, maxAge: 75, title: '마을 공동체 활동', desc: '동네 주민들과 함께하는 모임에 참여할 기회가 생겼습니다.', choices: [
+      { text: '적극적으로 참여하며 새 인연을 만든다', effects: { happy: 6, fame: 3 }, result: '새로운 인연들과 활기찬 나날을 보냈습니다.' },
+      { text: '가벼운 마음으로 몇 번 참여해본다', effects: { happy: 2 }, result: '부담 없이 좋은 시간을 보냈습니다.' },
+      { text: '낯설어서 참여를 망설이다 만다', effects: { happy: -2 }, result: '아쉬운 마음으로 기회를 흘려보냈습니다.' },
+      { text: '모임 내 갈등에 휘말려 마음이 상한다', effects: { happy: -5, fame: -2 }, result: '뜻하지 않은 갈등에 마음이 상했습니다.' },
+    ] },
+    { id: 'mid_health_major', domain: '인성', minAge: 58, maxAge: 75, title: '큰 수술', desc: '큰 수술이 필요하다는 진단을 받았습니다.', choices: [
+      { text: '믿을 수 있는 병원에서 제대로 치료받는다', effects: { health: 10, wealth: -9 }, result: '적극적인 치료 끝에 건강을 되찾았습니다.' },
+      { text: '필요한 만큼만 치료를 받는다', effects: { health: 4, wealth: -4 }, result: '무리하지 않는 선에서 치료를 마쳤습니다.' },
+      { text: '두려운 마음에 치료를 미룬다', effects: { health: -6 }, result: '미루는 사이 몸 상태가 더 나빠졌습니다.' },
+      { text: '끝까지 치료를 거부한다', effects: { health: -14, happy: -4 }, result: '치료 시기를 놓쳐 크게 고생했습니다.' },
     ] },
 
     // ── 노년기 71-100 ──
@@ -287,6 +455,54 @@ const GameData = (() => {
       { text: '괜히 마음만 심란해진다', effects: { happy: -3 }, result: '지난 기억들에 마음이 어수선해졌습니다.' },
       { text: '지난 후회에 잠겨 잠을 설친다', effects: { happy: -6, health: -3 }, result: '오래된 후회가 밤늦도록 마음을 붙들었습니다.' },
     ] },
+    { id: 'old_medical_bill', domain: '인성', minAge: 75, maxAge: 99, title: '큰 병원비', desc: '예상치 못한 병원비가 크게 나와 걱정이 됩니다.', choices: [
+      { text: '모아둔 돈으로 차분히 감당한다', effects: { wealth: -6, happy: 2 }, result: '준비해둔 덕에 큰 걱정 없이 넘겼습니다.' },
+      { text: '필요한 만큼만 우선 처리한다', effects: { wealth: -3 }, result: '무리하지 않는 선에서 처리했습니다.' },
+      { text: '부담에 치료를 미루며 넘긴다', effects: { health: -4 }, result: '미룬 치료에 몸 상태가 더 나빠졌습니다.' },
+      { text: '감당 못할 빚을 지고 만다', effects: { wealth: -13, happy: -4 }, result: '늘어난 빚 걱정에 마음이 무거워졌습니다.' },
+    ] },
+    { id: 'old_pension', domain: '재성', minAge: 71, maxAge: 99, title: '연금 이야기', desc: '매달 들어오는 연금을 어떻게 쓸지 고민이 됩니다.', choices: [
+      { text: '계획을 세워 알뜰하게 관리한다', effects: { wealth: 5, wisdom: 2 }, result: '계획적인 관리로 안정적인 생활을 이어갔습니다.' },
+      { text: '적당히 쓰며 지낸다', effects: { wealth: 2 }, result: '무난하게 한 달을 보냈습니다.' },
+      { text: '별생각 없이 흘러가는 대로 쓴다', effects: { wealth: -2 }, result: '생각보다 씀씀이가 헐거웠습니다.' },
+      { text: '자식(혹은 지인)에게 무리하게 보태준다', effects: { wealth: -9, happy: -1 }, result: '보태준 돈에 정작 생활이 빠듯해졌습니다.' },
+    ] },
+    { id: 'old_greatgrandkid', domain: '식상', minAge: 80, maxAge: 99, title: '증손주의 방문', desc: '귀여운 증손주가 오랜만에 찾아왔습니다.', choices: [
+      { text: '온 힘을 다해 반갑게 맞아준다', effects: { happy: 8, health: -2 }, result: '온 힘을 쏟은 만큼 행복이 넘쳤습니다.' },
+      { text: '무리하지 않는 선에서 함께 시간을 보낸다', effects: { happy: 4 }, result: '적당히 즐거운 시간을 보냈습니다.' },
+      { text: '피곤한 기색을 감추지 못한다', effects: { happy: -2 }, result: '아쉬운 표정을 감추지 못했습니다.' },
+      { text: '짜증을 내어 서운한 기억을 남긴다', effects: { happy: -5, fame: -2 }, result: '뜻하지 않게 서운한 기억을 남기고 말았습니다.' },
+    ] },
+    { id: 'old_donation', domain: '인성', minAge: 71, maxAge: 99, title: '기부의 마음', desc: '평생 모은 것 중 일부를 나누고 싶은 마음이 듭니다.', choices: [
+      { text: '의미 있는 곳을 찾아 꾸준히 기부한다', effects: { happy: 7, fame: 4, wealth: -3 }, result: '나눔의 기쁨 속에 뿌듯한 나날을 보냈습니다.' },
+      { text: '부담 없는 선에서 가볍게 나눈다', effects: { happy: 3, wealth: -1 }, result: '작은 나눔이 마음을 따뜻하게 채웠습니다.' },
+      { text: '마음만 있고 실행하지 못한다', effects: { happy: -1 }, result: '마음만 앞선 채 실행하지 못했습니다.' },
+      { text: '충동적으로 무리하게 다 내어준다', effects: { wealth: -10, happy: 1 }, result: '뿌듯함도 잠시, 생활이 빠듯해졌습니다.' },
+    ] },
+    { id: 'old_scam_target', domain: '재성', minAge: 71, maxAge: 99, title: '수상한 전화', desc: '낯선 번호로 걸려온 전화가 자꾸 불안한 제안을 합니다.', choices: [
+      { text: '단호히 끊고 가족에게 바로 알린다', effects: { wisdom: 6, fame: 2 }, result: '현명한 대처로 위험을 미리 피했습니다.' },
+      { text: '대충 둘러대고 전화를 끊는다', effects: { wisdom: 2 }, result: '괜한 위험을 피해 넘어갔습니다.' },
+      { text: '혹시나 하는 마음에 정보를 조금 알려준다', effects: { wealth: -5, wisdom: -2 }, result: '방심한 사이 정보를 이용당하고 말았습니다.' },
+      { text: '속아서 돈을 보내고 만다', effects: { wealth: -15, happy: -5 }, result: '뒤늦게 사기임을 깨닫고 크게 상심했습니다.' },
+    ] },
+    { id: 'old_reunion_family', domain: '비겁', minAge: 71, maxAge: 99, title: '온 가족이 모이는 날', desc: '명절(혹은 기념일)을 맞아 온 가족이 모였습니다.', choices: [
+      { text: '모두를 살뜰히 챙기며 자리를 즐긴다', effects: { happy: 8, fame: 2 }, result: '온 가족과 함께한 시간이 큰 행복으로 남았습니다.' },
+      { text: '조용히 앉아 흐뭇하게 지켜본다', effects: { happy: 4 }, result: '조용한 흐뭇함 속에 하루가 지나갔습니다.' },
+      { text: '서운한 마음이 자꾸 앞선다', effects: { happy: -3 }, result: '괜한 서운함에 마음이 편치 않았습니다.' },
+      { text: '묵은 감정이 터져 자리가 어색해진다', effects: { happy: -6, fame: -2 }, result: '뜻깊은 자리가 씁쓸하게 마무리됐습니다.' },
+    ] },
+    { id: 'old_hobbies_new', domain: '인성', minAge: 71, maxAge: 99, title: '늦게 배우는 즐거움', desc: '나이가 들어서도 새로운 것을 배워보고 싶은 마음이 듭니다.', choices: [
+      { text: '배우고 싶던 것을 용기 내어 시작한다', effects: { happy: 7, wisdom: 3 }, result: '늦은 도전이 삶에 새로운 활력을 주었습니다.' },
+      { text: '가벼운 마음으로 조금씩 익혀본다', effects: { happy: 3 }, result: '부담 없이 소소한 즐거움을 얻었습니다.' },
+      { text: '나이 탓을 하며 포기한다', effects: { happy: -3 }, result: '아쉬운 마음으로 도전을 접었습니다.' },
+      { text: '무리하게 욕심을 내다 몸이 상한다', effects: { happy: 1, health: -5 }, result: '지나친 의욕에 몸이 따라주지 않았습니다.' },
+    ] },
+    { id: 'old_loneliness', domain: '식상', minAge: 75, maxAge: 99, title: '홀로 있는 시간', desc: '혼자 지내는 시간이 길어지며 외로움이 밀려옵니다.', choices: [
+      { text: '먼저 연락하고 사람들을 만나러 나간다', effects: { happy: 6, fame: 1 }, result: '먼저 다가간 발걸음이 외로움을 달래주었습니다.' },
+      { text: '좋아하는 일을 하며 시간을 보낸다', effects: { happy: 3 }, result: '스스로 즐거움을 찾으며 시간을 채웠습니다.' },
+      { text: '외로움을 그저 견디며 지낸다', effects: { happy: -4 }, result: '깊어지는 외로움을 그저 견뎠습니다.' },
+      { text: '깊은 외로움에 마음의 병을 얻는다', effects: { happy: -8, health: -3 }, result: '오랜 외로움이 몸과 마음에 깊은 그늘을 남겼습니다.' },
+    ] },
 
     // ── 전 연령(19+) 공통 이벤트 ──
     { id: 'any_lottery', domain: '재성', minAge: 19, maxAge: 99, title: '뜻밖의 행운', desc: '길을 걷다 우연히 작은 행운이 찾아왔습니다.', choices: [
@@ -324,6 +540,30 @@ const GameData = (() => {
       { text: '가볍게 고맙다는 인사를 전한다', effects: { happy: 2 }, result: '부담 없이 고마운 마음을 전했습니다.' },
       { text: '별생각 없이 넘어간다', effects: { happy: -1 }, result: '무심코 넘긴 것이 살짝 마음에 걸렸습니다.' },
       { text: '당연하게 여기며 무심하게 대한다', effects: { happy: -3, fame: -3 }, result: '상대의 서운한 기색에 사이가 서먹해졌습니다.' },
+    ] },
+    { id: 'any_accident', domain: '관성', minAge: 19, maxAge: 99, title: '뜻밖의 사고', desc: '예상치 못한 작은 사고(낙상, 부딪힘 등)를 겪었습니다.', choices: [
+      { text: '바로 병원에서 제대로 치료받는다', effects: { health: 6, wealth: -3 }, result: '빠른 대처 덕에 큰 탈 없이 나았습니다.' },
+      { text: '가볍게 넘어갈 정도로 무난히 지나간다', effects: { health: 1 }, result: '다행히 큰 탈 없이 지나갔습니다.' },
+      { text: '대수롭지 않게 여기고 넘긴다', effects: { health: -3 }, result: '가볍게 여긴 것치고 여파가 오래갔습니다.' },
+      { text: '방치하다 상태가 더 나빠진다', effects: { health: -8, wealth: -4 }, result: '방치한 대가로 몸도 지갑도 상했습니다.' },
+    ] },
+    { id: 'any_old_friend', domain: '비겁', minAge: 19, maxAge: 99, title: '오래된 인연과의 재회', desc: '연락이 끊겼던 오래된 인연과 우연히 다시 마주쳤습니다.', choices: [
+      { text: '반갑게 안부를 나누고 인연을 다시 잇는다', effects: { happy: 6, fame: 2 }, result: '반가운 재회로 다시 좋은 인연을 이어갔습니다.' },
+      { text: '가볍게 인사만 나누고 지나간다', effects: { happy: 2 }, result: '짧지만 반가운 인사를 나눴습니다.' },
+      { text: '어색해서 모른 척 지나친다', effects: { happy: -2 }, result: '지나고 나니 못내 아쉬운 마음이 남았습니다.' },
+      { text: '지난 앙금이 떠올라 불편하게 마주친다', effects: { happy: -5, fame: -2 }, result: '불편한 기억이 되살아나 마음이 상했습니다.' },
+    ] },
+    { id: 'any_offer', domain: '재성', minAge: 19, maxAge: 90, title: '뜻밖의 제안', desc: '생각지도 못한 곳에서 솔깃한 제안이 들어왔습니다.', choices: [
+      { text: '조건을 꼼꼼히 따져보고 받아들인다', effects: { wealth: 8, wisdom: 2 }, result: '신중한 판단 끝에 좋은 기회로 이어졌습니다.' },
+      { text: '신중하게 조금 더 지켜보기로 한다', effects: { wisdom: 2 }, result: '서두르지 않고 상황을 더 지켜봤습니다.' },
+      { text: '별 고민 없이 거절해버린다', effects: { happy: -1 }, result: '나중에서야 아쉬운 마음이 들었습니다.' },
+      { text: '충동적으로 덥석 받아들였다 후회한다', effects: { wealth: -8, happy: -2 }, result: '성급한 결정을 뒤늦게 후회했습니다.' },
+    ] },
+    { id: 'any_fine', domain: '관성', minAge: 19, maxAge: 90, title: '작은 다툼과 벌금', desc: '사소한 부주의로 작은 다툼(혹은 범칙금 문제)이 생겼습니다.', choices: [
+      { text: '깔끔하게 인정하고 바로 처리한다', effects: { wisdom: 3, wealth: -2 }, result: '깔끔한 처리로 뒤탈 없이 넘겼습니다.' },
+      { text: '번거롭지만 절차대로 처리한다', effects: { wealth: -2 }, result: '번거로웠지만 무난히 마무리했습니다.' },
+      { text: '억울한 마음에 처리를 미룬다', effects: { wealth: -4, happy: -2 }, result: '미룬 사이 부담만 더 커졌습니다.' },
+      { text: '감정적으로 대응하다 일이 커진다', effects: { wealth: -7, fame: -3 }, result: '감정적인 대응이 일을 더 키우고 말았습니다.' },
     ] },
   ];
 
