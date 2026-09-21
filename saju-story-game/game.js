@@ -216,8 +216,14 @@
 
   function initIntroForm() {
     const timeInput = $('#birth-time');
+    const trueSolarTimeInput = $('#true-solar-time');
+    const dstInput = $('#dst-correction');
     $('#unknown-time').addEventListener('change', (e) => {
-      timeInput.disabled = e.target.checked;
+      const unknown = e.target.checked;
+      timeInput.disabled = unknown;
+      trueSolarTimeInput.disabled = unknown;
+      dstInput.disabled = unknown;
+      if (unknown) { trueSolarTimeInput.checked = false; dstInput.checked = false; }
     });
     $('#intro-form').addEventListener('submit', onSubmitIntro);
   }
@@ -233,17 +239,21 @@
     const timeVal = $('#birth-time').value; // "HH:MM"
     const hh = (unknownTime || !timeVal) ? null : parseInt(timeVal.slice(0, 2), 10);
     const mm = (unknownTime || !timeVal) ? null : parseInt(timeVal.slice(3, 5), 10);
+    const timeOptions = {
+      trueSolarTime: $('#true-solar-time').checked,
+      dst: $('#dst-correction').checked,
+    };
 
     if (!y || !m || !d) {
       alert('생년월일을 모두 입력해주세요.');
       return;
     }
 
-    const saju = Saju.calcFourPillars(y, m, d, hh, mm);
+    const saju = Saju.calcFourPillars(y, m, d, hh, mm, timeOptions);
     const elements = Saju.countElements(saju);
     const strength = Saju.dayMasterStrength(saju);
     const shinsal = Saju.calcShinsal(saju);
-    const daeun = Saju.calcDaeun(y, m, d, hh, mm, gender, saju);
+    const daeun = Saju.calcDaeun(y, m, d, hh, mm, gender, saju, timeOptions);
 
     const stats = {};
     for (const s of GameData.STATS) {
@@ -254,7 +264,7 @@
     }
 
     state = {
-      name, gender, birth: { y, m, d, hh, mm, unknownTime },
+      name, gender, birth: { y, m, d, hh, mm, unknownTime, ...timeOptions },
       saju, elements, strength, shinsal, daeun, stats,
       monthsElapsed: START_AGE * 12 - 1,
       recentEventIds: [],
@@ -335,9 +345,13 @@
     const { saju, elements } = state;
     updateStageAttrs('#natal-stage', state.birth.m, START_AGE);
     $('#natal-name').textContent = `${state.name} (${state.gender === 'M' ? '남' : '여'})`;
+    const corrNotes = [];
+    if (state.birth.trueSolarTime) corrNotes.push('진태양시 보정');
+    if (state.birth.dst) corrNotes.push('서머타임 보정');
     $('#natal-birth').textContent =
       `${state.birth.y}년 ${state.birth.m}월 ${state.birth.d}일` +
-      (state.birth.unknownTime ? ' (태어난 시 모름)' : ` ${String(state.birth.hh).padStart(2, '0')}시 ${String(state.birth.mm).padStart(2, '0')}분`);
+      (state.birth.unknownTime ? ' (태어난 시 모름)' : ` ${String(state.birth.hh).padStart(2, '0')}시 ${String(state.birth.mm).padStart(2, '0')}분`) +
+      (corrNotes.length ? ` · ${corrNotes.join(', ')} 적용됨` : '');
 
     renderPillarsGrid('#natal-pillars', saju);
 

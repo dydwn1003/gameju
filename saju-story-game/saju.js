@@ -126,22 +126,51 @@ const Saju = (() => {
     return Math.floor((hh + 1) / 2) % 12;
   }
 
-  // y,m,d,hh,mm: KST 기준 생년월일시 (hh/mm 은 null 허용 - 시주 미상)
-  function calcFourPillars(y, m, d, hh, mm) {
-    const birthJD = kstToJD(y, m, d, hh == null ? 12 : hh, hh == null ? 0 : mm);
+  // 대한민국 표준시(동경 135도) 기준 시계와, 한반도 실제 경도(약 동경 127도)에서의
+  // 진태양시(眞太陽時) 차이 - 정밀한 사주 계산에서는 이만큼을 보정해 "실제 태양 기준 시각"을 쓴다
+  const TRUE_SOLAR_TIME_OFFSET_MIN = -32;
 
-    const ipchun = ipchunJD(y);
-    const effYear = birthJD < ipchun ? y - 1 : y;
+  function jdToKstParts(jd) {
+    let ms = (jd - 2440587.5) * 86400000;
+    ms = Math.round(ms / 60000) * 60000; // 분 단위로 반올림해 부동소수점 오차 제거
+    const d2 = new Date(ms + 9 * 3600000);
+    return {
+      y: d2.getUTCFullYear(), m: d2.getUTCMonth() + 1, d: d2.getUTCDate(),
+      hh: d2.getUTCHours(), mm: d2.getUTCMinutes(),
+    };
+  }
+
+  // y,m,d,hh,mm: KST 기준 생년월일시 (hh/mm 은 null 허용 - 시주 미상)
+  // options.trueSolarTime: 경도 기준 진태양시 보정(-32분) 적용 여부
+  // options.dst: 서머타임(일광절약시간) 시행 기간에 태어나 시계가 1시간 빨랐던 경우의 보정
+  function calcFourPillars(y, m, d, hh, mm, options) {
+    const opts = options || {};
+    let birthJD = kstToJD(y, m, d, hh == null ? 12 : hh, hh == null ? 0 : mm);
+
+    let ey = y, em = m, ed = d, ehh = hh, emm = mm;
+    if (hh != null) {
+      let corrMin = 0;
+      if (opts.dst) corrMin -= 60;
+      if (opts.trueSolarTime) corrMin += TRUE_SOLAR_TIME_OFFSET_MIN;
+      if (corrMin !== 0) {
+        birthJD += corrMin / 1440;
+        const parts = jdToKstParts(birthJD);
+        ey = parts.y; em = parts.m; ed = parts.d; ehh = parts.hh; emm = parts.mm;
+      }
+    }
+
+    const ipchun = ipchunJD(ey);
+    const effYear = birthJD < ipchun ? ey - 1 : ey;
     const yearStem = ((effYear - 4) % 10 + 10) % 10;
     const yearBranch = ((effYear - 4) % 12 + 12) % 12;
 
-    const boundaries = buildMonthBoundaries(y);
+    const boundaries = buildMonthBoundaries(ey);
     const monthBranch = findBracketBranch(boundaries, birthJD);
     const monthStem = monthStemFromYearStem(yearStem, monthBranch);
 
-    let sajuY = y, sajuM = m, sajuD = d;
-    if (hh != null && hh >= 23) {
-      const nd = new Date(Date.UTC(y, m - 1, d + 1));
+    let sajuY = ey, sajuM = em, sajuD = ed;
+    if (ehh != null && ehh >= 23) {
+      const nd = new Date(Date.UTC(ey, em - 1, ed + 1));
       sajuY = nd.getUTCFullYear();
       sajuM = nd.getUTCMonth() + 1;
       sajuD = nd.getUTCDate();
@@ -151,8 +180,8 @@ const Saju = (() => {
     const dayBranch = ((jdn + 1) % 12 + 12) % 12;
 
     let hourPillar = null;
-    if (hh != null) {
-      const hb = hourBranchIndex(hh, mm);
+    if (ehh != null) {
+      const hb = hourBranchIndex(ehh, emm);
       const hs = hourStemFromDayStem(dayStem, hb);
       hourPillar = { stem: hs, branch: hb };
     }
@@ -483,15 +512,26 @@ const Saju = (() => {
   }
 
   // 대운(大運): 월주를 기준으로 순행/역행하며 10년마다 바뀌는 큰 운의 흐름
-  // gender: 'M' | 'F', natal: calcFourPillars 결과
-  function calcDaeun(y, m, d, hh, mm, gender, natal) {
+  // gender: 'M' | 'F', natal: calcFourPillars 결과, options: calcFourPillars와 동일한 진태양시/서머타임 보정 옵션
+  function calcDaeun(y, m, d, hh, mm, gender, natal, options) {
+    const opts = options || {};
     const bhh = hh == null ? 12 : hh;
     const bmm = hh == null ? 0 : mm;
-    const birthJD = kstToJD(y, m, d, bhh, bmm);
+    let birthJD = kstToJD(y, m, d, bhh, bmm);
+    let ey = y;
+    if (hh != null) {
+      let corrMin = 0;
+      if (opts.dst) corrMin -= 60;
+      if (opts.trueSolarTime) corrMin += TRUE_SOLAR_TIME_OFFSET_MIN;
+      if (corrMin !== 0) {
+        birthJD += corrMin / 1440;
+        ey = jdToKstParts(birthJD).y;
+      }
+    }
     const yearStemYang = STEM_YINYANG[natal.year.stem] === 1;
     const forward = (yearStemYang && gender === 'M') || (!yearStemYang && gender === 'F');
 
-    const boundaries = buildMonthBoundaries(y);
+    const boundaries = buildMonthBoundaries(ey);
     let idx = 0;
     for (let i = 0; i < boundaries.length - 1; i++) {
       if (birthJD >= boundaries[i].jd && birthJD < boundaries[i + 1].jd) { idx = i; break; }
