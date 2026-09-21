@@ -1,0 +1,775 @@
+/* 사주(四柱) 계산 엔진
+ * 절기(태양 황경) 기반의 정밀 월주 경계 계산 + 60갑자 연/월/일/시주 산출.
+ * 태양 황경 공식은 Meeus 저 "Astronomical Algorithms"의 저정밀(low-precision) 태양 좌표식(오차 수 분~1시간 이내).
+ */
+
+const Saju = (() => {
+  const STEMS = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'];
+  const BRANCHES = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'];
+  const STEM_HANJA = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+  const BRANCH_HANJA = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+  const ELEMENTS = ['목', '화', '토', '금', '수'];
+  const STEM_ELEMENT_IDX = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4];
+  const BRANCH_ELEMENT_IDX = [4, 2, 0, 0, 2, 1, 1, 2, 3, 3, 2, 4];
+  const STEM_YINYANG = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0]; // 1=양, 0=음
+  const BRANCH_YINYANG = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]; // 자인진오신술=양, 축묘사미유해=음
+  const ANIMALS = ['쥐', '소', '호랑이', '토끼', '용', '뱀', '말', '양', '원숭이', '닭', '개', '돼지'];
+
+  function toRad(d) { return (d * Math.PI) / 180; }
+  function normalize360(x) { return ((x % 360) + 360) % 360; }
+
+  function kstToJD(y, m, d, hh, mm) {
+    const ms = Date.UTC(y, m - 1, d, (hh || 0) - 9, mm || 0, 0);
+    return ms / 86400000 + 2440587.5;
+  }
+
+  function solarLongitude(jd) {
+    const T = (jd - 2451545.0) / 36525.0;
+    const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
+    const M = 357.52911 + 35999.05029 * T - 0.0001537 * T * T;
+    const Mr = toRad(normalize360(M));
+    const C =
+      (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(Mr) +
+      (0.019993 - 0.000101 * T) * Math.sin(2 * Mr) +
+      0.000289 * Math.sin(3 * Mr);
+    const trueLong = L0 + C;
+    const omega = 125.04 - 1934.136 * T;
+    const apparent = trueLong - 0.00569 - 0.00478 * Math.sin(toRad(omega));
+    return normalize360(apparent);
+  }
+
+  function findTermJD(year, targetDeg, guessMonth, guessDay) {
+    let jd = kstToJD(year, guessMonth, guessDay, 12, 0);
+    for (let i = 0; i < 8; i++) {
+      const L = solarLongitude(jd);
+      let diff = targetDeg - L;
+      diff = ((diff + 180) % 360 + 360) % 360 - 180;
+      jd += diff / 0.9856002;
+    }
+    return jd;
+  }
+
+  function calendarJDN(y, m, d) {
+    const a = Math.floor((14 - m) / 12);
+    const y2 = y + 4800 - a;
+    const m2 = m + 12 * a - 3;
+    return (
+      d +
+      Math.floor((153 * m2 + 2) / 5) +
+      365 * y2 +
+      Math.floor(y2 / 4) -
+      Math.floor(y2 / 100) +
+      Math.floor(y2 / 400) -
+      32045
+    );
+  }
+
+  // calendarJDN의 역함수: 정수 율리우스일 -> 그레고리력 y/m/d
+  function jdnToCalendar(jdn) {
+    const a = jdn + 32044;
+    const b = Math.floor((4 * a + 3) / 146097);
+    const c = a - Math.floor((146097 * b) / 4);
+    const d = Math.floor((4 * c + 3) / 1461);
+    const e = c - Math.floor((1461 * d) / 4);
+    const m = Math.floor((5 * e + 2) / 153);
+    const day = e - Math.floor((153 * m + 2) / 5) + 1;
+    const month = m + 3 - 12 * Math.floor(m / 10);
+    const year = 100 * b + d - 4800 + Math.floor(m / 10);
+    return { y: year, m: month, d: day };
+  }
+
+  // 절기(절, 12개) 정의: branch = 그 절기가 시작하는 월지, angle = 태양황경, gm/gd = 탐색 초기값(월/일)
+  const TERM_DEFS = [
+    { branch: 1, angle: 285, gm: 1, gd: 6 },   // 축월 시작 - 소한
+    { branch: 2, angle: 315, gm: 2, gd: 4 },   // 인월 시작 - 입춘
+    { branch: 3, angle: 345, gm: 3, gd: 6 },   // 묘월 시작 - 경칩
+    { branch: 4, angle: 15, gm: 4, gd: 5 },    // 진월 시작 - 청명
+    { branch: 5, angle: 45, gm: 5, gd: 6 },    // 사월 시작 - 입하
+    { branch: 6, angle: 75, gm: 6, gd: 6 },    // 오월 시작 - 망종
+    { branch: 7, angle: 105, gm: 7, gd: 7 },   // 미월 시작 - 소서
+    { branch: 8, angle: 135, gm: 8, gd: 8 },   // 신월 시작 - 입추
+    { branch: 9, angle: 165, gm: 9, gd: 8 },   // 유월 시작 - 백로
+    { branch: 10, angle: 195, gm: 10, gd: 8 }, // 술월 시작 - 한로
+    { branch: 11, angle: 225, gm: 11, gd: 8 }, // 해월 시작 - 입동
+    { branch: 0, angle: 255, gm: 12, gd: 7 },  // 자월 시작 - 대설
+  ];
+
+  const termJDCache = new Map();
+  function termJD(year, def) {
+    const key = year + '_' + def.angle;
+    if (!termJDCache.has(key)) {
+      termJDCache.set(key, findTermJD(year, def.angle, def.gm, def.gd));
+    }
+    return termJDCache.get(key);
+  }
+
+  // year 를 포함하도록 전년도 12월(자월) ~ 익년도 1월(축월)까지 경계 14개 생성
+  function buildMonthBoundaries(y) {
+    const points = [];
+    points.push({ branch: 0, jd: termJD(y - 1, TERM_DEFS[11]) }); // 전년도 자월
+    for (const def of TERM_DEFS) points.push({ branch: def.branch, jd: termJD(y, def) });
+    points.push({ branch: 1, jd: termJD(y + 1, TERM_DEFS[0]) }); // 익년도 축월
+    return points;
+  }
+
+  function findBracketBranch(points, jd) {
+    for (let i = 0; i < points.length - 1; i++) {
+      if (jd >= points[i].jd && jd < points[i + 1].jd) return points[i].branch;
+    }
+    return points[points.length - 2].branch;
+  }
+
+  function ipchunJD(year) {
+    return termJD(year, TERM_DEFS[1]);
+  }
+
+  const MONTH_STEM_BASE = [2, 4, 6, 8, 0]; // yearStem%5 -> 인월의 천간
+  function monthStemFromYearStem(yearStem, monthBranch) {
+    const base = MONTH_STEM_BASE[((yearStem % 5) + 5) % 5];
+    const offset = ((monthBranch - 2 + 12) % 12);
+    return (base + offset) % 10;
+  }
+
+  const HOUR_STEM_BASE = [0, 2, 4, 6, 8]; // dayStem%5 -> 자시의 천간
+  function hourStemFromDayStem(dayStem, hourBranch) {
+    const base = HOUR_STEM_BASE[((dayStem % 5) + 5) % 5];
+    return (base + hourBranch) % 10;
+  }
+
+  function hourBranchIndex(hh, mm) {
+    if (hh == null) return null;
+    return Math.floor((hh + 1) / 2) % 12;
+  }
+
+  // 대한민국 표준시(동경 135도) 기준 시계와, 한반도 실제 경도(약 동경 127도)에서의
+  // 진태양시(眞太陽時) 차이 - 정밀한 사주 계산에서는 이만큼을 보정해 "실제 태양 기준 시각"을 쓴다
+  const TRUE_SOLAR_TIME_OFFSET_MIN = -32;
+
+  function jdToKstParts(jd) {
+    let ms = (jd - 2440587.5) * 86400000;
+    ms = Math.round(ms / 60000) * 60000; // 분 단위로 반올림해 부동소수점 오차 제거
+    const d2 = new Date(ms + 9 * 3600000);
+    return {
+      y: d2.getUTCFullYear(), m: d2.getUTCMonth() + 1, d: d2.getUTCDate(),
+      hh: d2.getUTCHours(), mm: d2.getUTCMinutes(),
+    };
+  }
+
+  function kstDayIndex(jd) {
+    const p = jdToKstParts(jd);
+    return calendarJDN(p.y, p.m, p.d);
+  }
+
+  // ── 음력(陰曆) 계산: 신월(삭)과 24절기를 직접 계산해 양력<->음력을 변환한다 (조회용 하드코딩 표가 아님) ──
+
+  // 신월(삭) 시각 - Meeus, Astronomical Algorithms 2판 49장의 저정밀 근사식.
+  // k: 2000년 1월 6일 삭을 0으로 하는 삭망월 일련번호(실수 가능, 정수에 가까울수록 그 삭에 근접)
+  function newMoonJD(k) {
+    const T = k / 1236.85;
+    const T2 = T * T, T3 = T2 * T, T4 = T3 * T;
+    let jde = 2451550.09766 + 29.530588861 * k + 0.00015437 * T2 - 0.000000150 * T3 + 0.00000000073 * T4;
+
+    const M = toRad(normalize360(2.5534 + 29.10535669 * k - 0.0000218 * T2 - 0.00000011 * T3));
+    const Mp = toRad(normalize360(201.5643 + 385.81693528 * k + 0.0107582 * T2 + 0.00001238 * T3 - 0.000000058 * T4));
+    const F = toRad(normalize360(160.7108 + 390.67050284 * k - 0.0016118 * T2 - 0.00000227 * T3 + 0.000000011 * T4));
+    const Omega = toRad(normalize360(124.7746 - 1.56375588 * k + 0.0020672 * T2 + 0.00000215 * T3));
+    const E = 1 - 0.002516 * T - 0.0000074 * T2;
+
+    const corr =
+      -0.40720 * Math.sin(Mp) + 0.17241 * E * Math.sin(M) + 0.01608 * Math.sin(2 * Mp) + 0.01039 * Math.sin(2 * F)
+      + 0.00739 * E * Math.sin(Mp - M) - 0.00514 * E * Math.sin(Mp + M) + 0.00208 * E * E * Math.sin(2 * M)
+      - 0.00111 * Math.sin(Mp - 2 * F) - 0.00057 * Math.sin(Mp + 2 * F) + 0.00056 * E * Math.sin(2 * Mp + M)
+      - 0.00042 * Math.sin(3 * Mp) + 0.00042 * E * Math.sin(M + 2 * F) + 0.00038 * E * Math.sin(M - 2 * F)
+      - 0.00024 * E * Math.sin(2 * Mp - M) - 0.00017 * Math.sin(Omega) - 0.00007 * Math.sin(Mp + 2 * M)
+      + 0.00004 * Math.sin(2 * Mp - 2 * F) + 0.00004 * Math.sin(3 * M) + 0.00003 * Math.sin(Mp + M - 2 * F)
+      + 0.00003 * Math.sin(2 * Mp + 2 * F) - 0.00003 * Math.sin(Mp + M + 2 * F) + 0.00003 * Math.sin(Mp - M + 2 * F)
+      - 0.00002 * Math.sin(Mp - M - 2 * F) - 0.00002 * Math.sin(3 * Mp + M) + 0.00002 * Math.sin(4 * Mp);
+
+    return jde + corr;
+  }
+
+  function findNewMoonAtOrBefore(targetJD) {
+    let k = Math.floor((targetJD - 2451550.09766) / 29.530588861) - 1;
+    let jd = newMoonJD(k);
+    for (let i = 0; i < 5 && jd > targetJD; i++) { k--; jd = newMoonJD(k); }
+    for (let i = 0; i < 5 && newMoonJD(k + 1) <= targetJD; i++) { k++; jd = newMoonJD(k); }
+    return jd;
+  }
+
+  function nextNewMoonAfter(jd) {
+    let k = Math.round((jd - 2451550.09766) / 29.530588861) + 1;
+    let njd = newMoonJD(k);
+    for (let i = 0; i < 5 && njd <= jd; i++) { k++; njd = newMoonJD(k); }
+    return njd;
+  }
+
+  // 24절기 중 중기(中氣) 12개 - TERM_DEFS(12절)에서 각 15도씩 더한 지점
+  const MID_TERM_DEFS = TERM_DEFS.map((d) => ({ angle: (d.angle + 15) % 360, gm: d.gm, gd: d.gd + 15 }));
+
+  function dongjiJD(year) {
+    return findTermJD(year, 270, 12, 22);
+  }
+
+  // referenceYear의 동지가 속한 삭월(동짓달=11월)부터 다음 해 동지 직전 삭월까지의 달(29~30일) 목록을 만든다.
+  // 무중기(中氣 없는 달)월을 윤달로 판정하는 전통적 치윤법(置閏法)을 그대로 구현한다.
+  function buildLunarYearMonths(referenceYear) {
+    const dongji1 = dongjiJD(referenceYear);
+    const dongji2 = dongjiJD(referenceYear + 1);
+    const nm0 = findNewMoonAtOrBefore(dongji1);
+    const nmEnd = findNewMoonAtOrBefore(dongji2);
+
+    const starts = [nm0];
+    let cur = nm0;
+    for (let i = 0; i < 15 && kstDayIndex(cur) < kstDayIndex(nmEnd); i++) {
+      cur = nextNewMoonAfter(cur);
+      starts.push(cur);
+    }
+
+    const midTermJDs = [];
+    for (let y = referenceYear - 1; y <= referenceYear + 2; y++) {
+      for (const def of MID_TERM_DEFS) midTermJDs.push(findTermJD(y, def.angle, def.gm, def.gd));
+    }
+
+    let nextRegular = 11;
+    const months = [];
+    for (let i = 0; i < starts.length - 1; i++) {
+      const s = kstDayIndex(starts[i]), e = kstDayIndex(starts[i + 1]);
+      const hasZhongqi = midTermJDs.some((jd) => { const di = kstDayIndex(jd); return di >= s && di < e; });
+      const isLeap = i !== 0 && !hasZhongqi;
+      const month = isLeap ? months[i - 1].month : nextRegular;
+      months.push({ start: starts[i], end: starts[i + 1], month, isLeap });
+      if (!isLeap) nextRegular = (nextRegular % 12) + 1;
+    }
+    return months;
+  }
+
+  const lunarYearCache = new Map();
+  function lunarYearMonthsCached(referenceYear) {
+    if (!lunarYearCache.has(referenceYear)) lunarYearCache.set(referenceYear, buildLunarYearMonths(referenceYear));
+    return lunarYearCache.get(referenceYear);
+  }
+
+  // buildLunarYearMonths(refYear)는 동지(冬至) 기준으로 한 해를 구성하므로, 그 안의 11~12월은
+  // 관례상 refYear 그대로, 1~10월은 관례상 refYear+1 로 불린다 (설날 기준 연도 표기와 맞추기 위함).
+  function conventionalYearOf(refYear, month) {
+    return month >= 11 ? refYear : refYear + 1;
+  }
+  function refYearOf(conventionalYear, month) {
+    return month >= 11 ? conventionalYear : conventionalYear - 1;
+  }
+
+  // 양력 y/m/d -> 음력 { year(설날 기준 관례 연도), month, day, isLeap }
+  function solarToLunar(y, m, d) {
+    const targetDayIdx = calendarJDN(y, m, d);
+    for (const refYear of [y - 1, y]) {
+      const months = lunarYearMonthsCached(refYear);
+      for (const mo of months) {
+        const s = kstDayIndex(mo.start), e = kstDayIndex(mo.end);
+        if (targetDayIdx >= s && targetDayIdx < e) {
+          return { year: conventionalYearOf(refYear, mo.month), month: mo.month, day: targetDayIdx - s + 1, isLeap: mo.isLeap };
+        }
+      }
+    }
+    return null;
+  }
+
+  // 음력 { year(설날 기준 관례 연도), month, day, isLeap } -> 양력 { y, m, d } (해당 음력 날짜가 없으면 null)
+  function lunarToSolar(year, month, day, isLeap) {
+    const refYear = refYearOf(year, month);
+    const months = lunarYearMonthsCached(refYear);
+    const mo = months.find((mm) => mm.month === month && mm.isLeap === !!isLeap);
+    if (!mo) return null;
+    const dayIdx = kstDayIndex(mo.start) + day - 1;
+    if (dayIdx >= kstDayIndex(mo.end)) return null;
+    return jdnToCalendar(dayIdx);
+  }
+
+  // 특정 연도(설날 기준 관례 연도)에 존재하는 윤달 번호(없으면 null) - 입력 폼에서 "윤달" 체크박스를 보여줄지 판단할 때 사용
+  function leapMonthOfYear(year) {
+    // 관례 연도 `year`는 1~10월 구간(refYear=year-1)과 11~12월 구간(refYear=year) 두 조각으로 걸쳐 있을 수 있으므로 둘 다 확인한다.
+    for (const refYear of [year - 1, year]) {
+      const months = lunarYearMonthsCached(refYear);
+      const leap = months.find((mm) => mm.isLeap && conventionalYearOf(refYear, mm.month) === year);
+      if (leap) return leap.month;
+    }
+    return null;
+  }
+
+  // y,m,d,hh,mm: KST 기준 생년월일시 (hh/mm 은 null 허용 - 시주 미상)
+  // options.trueSolarTime: 경도 기준 진태양시 보정(-32분) 적용 여부
+  // options.dst: 서머타임(일광절약시간) 시행 기간에 태어나 시계가 1시간 빨랐던 경우의 보정
+  function calcFourPillars(y, m, d, hh, mm, options) {
+    const opts = options || {};
+    let birthJD = kstToJD(y, m, d, hh == null ? 12 : hh, hh == null ? 0 : mm);
+
+    let ey = y, em = m, ed = d, ehh = hh, emm = mm;
+    if (hh != null) {
+      let corrMin = 0;
+      if (opts.dst) corrMin -= 60;
+      if (opts.trueSolarTime) corrMin += TRUE_SOLAR_TIME_OFFSET_MIN;
+      if (corrMin !== 0) {
+        birthJD += corrMin / 1440;
+        const parts = jdToKstParts(birthJD);
+        ey = parts.y; em = parts.m; ed = parts.d; ehh = parts.hh; emm = parts.mm;
+      }
+    }
+
+    const ipchun = ipchunJD(ey);
+    const effYear = birthJD < ipchun ? ey - 1 : ey;
+    const yearStem = ((effYear - 4) % 10 + 10) % 10;
+    const yearBranch = ((effYear - 4) % 12 + 12) % 12;
+
+    const boundaries = buildMonthBoundaries(ey);
+    const monthBranch = findBracketBranch(boundaries, birthJD);
+    const monthStem = monthStemFromYearStem(yearStem, monthBranch);
+
+    let sajuY = ey, sajuM = em, sajuD = ed;
+    if (ehh != null && ehh >= 23) {
+      const nd = new Date(Date.UTC(ey, em - 1, ed + 1));
+      sajuY = nd.getUTCFullYear();
+      sajuM = nd.getUTCMonth() + 1;
+      sajuD = nd.getUTCDate();
+    }
+    const jdn = calendarJDN(sajuY, sajuM, sajuD);
+    const dayStem = ((jdn + 9) % 10 + 10) % 10;
+    const dayBranch = ((jdn + 1) % 12 + 12) % 12;
+
+    let hourPillar = null;
+    if (ehh != null) {
+      const hb = hourBranchIndex(ehh, emm);
+      const hs = hourStemFromDayStem(dayStem, hb);
+      hourPillar = { stem: hs, branch: hb };
+    }
+
+    return {
+      year: { stem: yearStem, branch: yearBranch },
+      month: { stem: monthStem, branch: monthBranch },
+      day: { stem: dayStem, branch: dayBranch },
+      hour: hourPillar,
+      effYear,
+    };
+  }
+
+  // 게임 진행용: 특정 (연,월)의 세운/월운 간지만 필요할 때 (일/시는 대표값으로 계산, 무시)
+  function calcYearMonthPillar(year, month) {
+    const p = calcFourPillars(year, month, 15, 12, 0);
+    return { year: p.year, month: p.month };
+  }
+
+  function pillarLabel(p, hanja) {
+    if (!p) return '-';
+    const stems = hanja ? STEM_HANJA : STEMS;
+    const branches = hanja ? BRANCH_HANJA : BRANCHES;
+    return stems[p.stem] + branches[p.branch];
+  }
+
+  function elementOf(idx, isStem) {
+    return ELEMENTS[isStem ? STEM_ELEMENT_IDX[idx] : BRANCH_ELEMENT_IDX[idx]];
+  }
+
+  function countElements(pillars) {
+    const counts = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 };
+    for (const key of ['year', 'month', 'day', 'hour']) {
+      const p = pillars[key];
+      if (!p) continue;
+      counts[elementOf(p.stem, true)]++;
+      counts[elementOf(p.branch, false)]++;
+    }
+    return counts;
+  }
+
+  const GEN = { 목: '화', 화: '토', 토: '금', 금: '수', 수: '목' }; // 상생: 내가 낳는 오행
+  const OVERCOME = { 목: '토', 토: '수', 수: '화', 화: '금', 금: '목' }; // 상극: 내가 극하는 오행
+
+  // 지장간(地藏干): 지지 속에 숨은 천간 - 여기/중기/정기 순서(마지막이 정기, 그 지지의 대표 오행과 일치)
+  const HIDDEN_STEMS = [
+    [8, 9],       // 자: 임, 계
+    [9, 7, 5],    // 축: 계, 신, 기
+    [4, 2, 0],    // 인: 무, 병, 갑
+    [0, 1],       // 묘: 갑, 을
+    [1, 9, 4],    // 진: 을, 계, 무
+    [4, 6, 2],    // 사: 무, 경, 병
+    [2, 5, 3],    // 오: 병, 기, 정
+    [3, 1, 5],    // 미: 정, 을, 기
+    [4, 8, 6],    // 신: 무, 임, 경
+    [6, 7],       // 유: 경, 신
+    [7, 3, 4],    // 술: 신, 정, 무
+    [4, 0, 8],    // 해: 무, 갑, 임
+  ];
+  function hiddenStemsOf(branchIdx) { return HIDDEN_STEMS[branchIdx]; }
+
+  // 일간의 강약(신강/신약) 판정 - 월지(득령)를 가장 크게, 일지(득지)를 다음으로,
+  // 나머지 천간지지(득세)와 월지 지장간을 가볍게 반영한다
+  function dayMasterStrength(pillars) {
+    const dmEl = elementOf(pillars.day.stem, true);
+    const supports = (el) => el === dmEl || GEN[el] === dmEl; // 비겁(같은 오행) 또는 인성(나를 생함)이면 힘을 보탬
+
+    let score = 0;
+    score += supports(elementOf(pillars.month.branch, false)) ? 3 : -3;
+    score += supports(elementOf(pillars.day.branch, false)) ? 2 : -2;
+
+    const others = [
+      elementOf(pillars.year.stem, true),
+      elementOf(pillars.year.branch, false),
+      elementOf(pillars.month.stem, true),
+    ];
+    if (pillars.hour) {
+      others.push(elementOf(pillars.hour.stem, true), elementOf(pillars.hour.branch, false));
+    }
+    for (const el of others) score += supports(el) ? 1 : -1;
+
+    const monthHidden = hiddenStemsOf(pillars.month.branch);
+    for (let i = 0; i < monthHidden.length - 1; i++) {
+      score += supports(elementOf(monthHidden[i], true)) ? 0.5 : -0.5;
+    }
+
+    const level = score >= 2 ? '신강' : score <= -2 ? '신약' : '중화';
+    return { score, level, dayMasterElement: dmEl };
+  }
+
+  // 지지 충(沖) 관계 - 정반대 지지끼리 부딪혀 변화·갈등을 일으킨다
+  const CLASH_PAIRS = { 0: 6, 6: 0, 1: 7, 7: 1, 2: 8, 8: 2, 3: 9, 9: 3, 4: 10, 10: 4, 5: 11, 11: 5 };
+  function isClash(a, b) { return CLASH_PAIRS[a] === b; }
+
+  // 신살(神殺): 삼합 그룹 기준 도화살/역마살/화개살 + 일간 기준 천을귀인
+  const SAMHAP_SETS = [
+    { branches: [8, 0, 4], key: 'shinjajin' },  // 신자진
+    { branches: [2, 6, 10], key: 'inosul' },    // 인오술
+    { branches: [5, 9, 1], key: 'sayuchuk' },   // 사유축
+    { branches: [11, 3, 7], key: 'haemyomi' },  // 해묘미
+  ];
+  const DOHWA_BY_GROUP = { shinjajin: 9, inosul: 3, sayuchuk: 6, haemyomi: 0 };
+  const YEOKMA_BY_GROUP = { shinjajin: 2, inosul: 8, sayuchuk: 11, haemyomi: 5 };
+  const HWAGAE_BY_GROUP = { shinjajin: 4, inosul: 10, sayuchuk: 1, haemyomi: 7 };
+  const CHEONEULGWIIN = {
+    0: [1, 7], 4: [1, 7], 6: [1, 7], // 갑무경 -> 축미
+    1: [0, 8], 5: [0, 8],            // 을기 -> 자신
+    2: [11, 9], 3: [11, 9],          // 병정 -> 해유
+    7: [2, 6],                       // 신 -> 인오
+    8: [5, 3], 9: [5, 3],            // 임계 -> 사묘
+  };
+
+  function groupOfBranch(branchIdx) {
+    const found = SAMHAP_SETS.find((s) => s.branches.includes(branchIdx));
+    return found ? found.key : null;
+  }
+
+  function calcShinsal(pillars) {
+    const branches = [pillars.year.branch, pillars.month.branch, pillars.day.branch];
+    if (pillars.hour) branches.push(pillars.hour.branch);
+
+    const results = [];
+    const refGroup = groupOfBranch(pillars.day.branch); // 일지 기준
+    if (refGroup) {
+      if (branches.includes(DOHWA_BY_GROUP[refGroup])) {
+        results.push({ name: '도화살', desc: '사람을 끌어당기는 매력과 인기운을 타고났습니다.' });
+      }
+      if (branches.includes(YEOKMA_BY_GROUP[refGroup])) {
+        results.push({ name: '역마살', desc: '한곳에 머물기보다 움직이고 이동할 때 기회가 따르는 사주입니다.' });
+      }
+      if (branches.includes(HWAGAE_BY_GROUP[refGroup])) {
+        results.push({ name: '화개살', desc: '예술적 감각과 깊은 사색을 즐기는, 홀로 몰입하는 시간에서 힘을 얻는 기질입니다.' });
+      }
+    }
+    const gwiin = CHEONEULGWIIN[pillars.day.stem];
+    if (gwiin && branches.some((b) => gwiin.includes(b))) {
+      results.push({ name: '천을귀인', desc: '어려운 순간마다 귀인의 도움을 받기 쉬운, 귀하게 보호받는 사주입니다.' });
+    }
+    return results;
+  }
+
+  // dayMasterEl 관점에서 otherEl 과의 관계(십성 그룹) 반환
+  function tenGodGroup(dayMasterEl, otherEl) {
+    if (otherEl === dayMasterEl) return '비겁';
+    if (GEN[otherEl] === dayMasterEl) return '인성';
+    if (GEN[dayMasterEl] === otherEl) return '식상';
+    if (OVERCOME[dayMasterEl] === otherEl) return '재성';
+    if (OVERCOME[otherEl] === dayMasterEl) return '관성';
+    return '비겁';
+  }
+
+  // 십성 그룹(5개)은 같은 음양이냐 다른 음양이냐에 따라 다시 둘로 나뉜다 - 이게 실제 사주 명식에서 쓰는 "십성" 10개다.
+  // [같은 음양, 다른 음양] 순서
+  const TEN_GOD_DETAIL_NAME = {
+    비겁: ['비견', '겁재'],
+    식상: ['식신', '상관'],
+    재성: ['편재', '정재'],
+    관성: ['편관', '정관'],
+    인성: ['편인', '정인'],
+  };
+  const TEN_GOD_HANJA = {
+    비견: '比肩', 겁재: '劫財', 식신: '食神', 상관: '傷官', 편재: '偏財',
+    정재: '正財', 편관: '偏官', 정관: '正官', 편인: '偏印', 정인: '正印',
+  };
+  // 각 십성이 구체적으로 어떤 결의 일을 부르기 쉬운지 - 그룹 설명(DOMAIN_INTRO/DOMAIN_TIER_BODY) 뒤에 덧붙여 한층 더 구체적으로 짚어준다
+  const TEN_GOD_MEANING = {
+    비견: '나와 대등한 동료·형제의 기운이라, 힘을 합칠 협력자나 선의의 경쟁자가 가까이에 등장하기 쉽습니다.',
+    겁재: '나와 같은 것을 두고 다투는 기운이라, 경쟁이나 금전·이해관계를 둘러싼 신경전이 두드러지기 쉽습니다.',
+    식신: '여유롭게 표현하고 즐기는 기운이라, 취미·미식·자기표현에서 오는 편안한 만족이 두드러지기 쉽습니다.',
+    상관: '날카롭게 드러내는 기운이라, 재능이 빛나는 만큼 구설수나 마찰도 함께 따르기 쉽습니다.',
+    편재: '크고 유동적인 재물의 기운이라, 통이 큰 거래나 투자·부업처럼 기복이 있는 돈의 흐름이 두드러지기 쉽습니다.',
+    정재: '차곡차곡 쌓는 재물의 기운이라, 월급이나 저축처럼 꾸준하고 안정적인 돈의 흐름이 두드러지기 쉽습니다.',
+    편관: '거칠게 몰아붙이는 책임의 기운이라, 갑작스러운 압박이나 도전적인 과제가 두드러지기 쉽습니다.',
+    정관: '반듯하게 짜인 책임의 기운이라, 원칙과 절차를 지키며 인정받는 흐름이 두드러지기 쉽습니다.',
+    편인: '독특하게 배우는 기운이라, 남다른 시각의 공부나 혼자만의 사색이 두드러지기 쉽습니다.',
+    정인: '든든하게 돌봐주는 기운이라, 귀인의 도움이나 정통적인 배움의 기회가 두드러지기 쉽습니다.',
+  };
+
+  // 일간 기준 특정 간지(otherIdx, isStem) 하나의 정확한 십성(10개 중 하나) 반환
+  function tenGodDetail(dayMasterStemIdx, otherIdx, otherIsStem) {
+    const dmEl = elementOf(dayMasterStemIdx, true);
+    const otherEl = elementOf(otherIdx, otherIsStem);
+    const group = tenGodGroup(dmEl, otherEl);
+    const dmYang = STEM_YINYANG[dayMasterStemIdx] === 1;
+    const otherYang = otherIsStem ? STEM_YINYANG[otherIdx] === 1 : BRANCH_YINYANG[otherIdx] === 1;
+    const [samePol, diffPol] = TEN_GOD_DETAIL_NAME[group];
+    return dmYang === otherYang ? samePol : diffPol;
+  }
+
+  // 십성 점수는 고정값이 아니라 그 사람의 신강/신약(용신)에 따라 달라진다.
+  // 신약(스스로 힘이 약한 사주)일수록 비겁·인성처럼 나를 도와주는 쪽이 반갑고,
+  // 신강(스스로 힘이 넘치는 사주)일수록 식상·재성·관성처럼 기운을 덜어내는 쪽이 반갑다.
+  // (각 표는 합이 0이 되도록 잡아서, 좋은 달과 나쁜 달이 한쪽으로 쏠리지 않게 한다)
+  const TEN_GOD_SCORE_BY_LEVEL = {
+    신약: { 비겁: 1.0, 인성: 1.3, 식상: -0.6, 재성: -0.7, 관성: -1.0 },
+    신강: { 비겁: -1.0, 인성: -1.3, 식상: 0.6, 재성: 0.7, 관성: 1.0 },
+    중화: { 비겁: 0.2, 인성: 0.6, 식상: 0.1, 재성: 0.3, 관성: -1.2 },
+  };
+  function personalizedTenGodScore(group, strengthLevel) {
+    const table = TEN_GOD_SCORE_BY_LEVEL[strengthLevel] || TEN_GOD_SCORE_BY_LEVEL.중화;
+    return table[group];
+  }
+
+  // 십성(오행 관계)별 이번 달에 들어오는 기운을 설명하는 도입부
+  const DOMAIN_INTRO = {
+    비겁: '이번 달은 비견·겁재의 기운이 두드러져, 나 자신과 동료·친구·형제 같은 주변 사람들과의 관계가 화두로 떠오릅니다.',
+    식상: '이번 달은 식신·상관의 기운이 강해져, 표현하고 움직이고 싶은 마음이 커지는 시기입니다.',
+    재성: '이번 달은 재성의 기운이 짙게 들어와, 돈과 관련된 크고 작은 일들이 중심에 놓이는 시기입니다.',
+    관성: '이번 달은 관성의 기운이 강하게 들어와, 책임과 역할, 평가와 관련된 일들이 무게감 있게 다가옵니다.',
+    인성: '이번 달은 인성의 기운이 두드러져, 배움과 휴식, 그리고 나를 돌보는 일이 중요해지는 시기입니다.',
+  };
+
+  // 십성 x 길흉 등급별 - "구체적으로 이런 일이 일어나기 쉽다"는 해석
+  const DOMAIN_TIER_BODY = {
+    비겁: {
+      대길: '동료나 친구와 힘을 합쳐 도전하면 경쟁에서 유리한 고지를 점하거나, 뜻이 맞는 사람과 새로운 일을 함께 도모하게 될 수 있습니다.',
+      길: '주변 사람들과의 관계에서 좋은 기운이 따라, 든든한 지원군을 얻거나 협력의 기회가 생길 수 있습니다.',
+      평: '큰 사건 없이 나 자신의 페이스를 지키며 무난히 흘러가지만, 주변과의 관계는 평소처럼 유지됩니다.',
+      흉: '경쟁 상대와 부딪히거나, 믿었던 사람과 사소한 마찰이 생겨 마음이 상할 수 있습니다.',
+      대흉: '가까운 사람과의 갈등이 커지거나, 동업·동료 관계에서 손해를 볼 수 있어 각별한 주의가 필요합니다.',
+    },
+    식상: {
+      대길: '아이디어를 실행에 옮기거나 하고 싶은 말을 용기 내어 전하면, 예상보다 훨씬 크게 인정받거나 좋은 결실로 이어질 수 있습니다.',
+      길: '활동적으로 움직이고 사람들과 어울리면 즐거운 인연이나 뜻밖의 기쁜 소식이 따를 수 있습니다.',
+      평: '큰 기복 없이 하고 싶은 일을 하나씩 해나갈 수 있는, 평온하게 흘러가는 시기입니다.',
+      흉: '의욕은 넘치지만 계획한 만큼의 성과로 이어지지 않아 헛수고가 되기 쉬우니 과욕을 조심해야 합니다.',
+      대흉: '경솔한 말이나 무리한 시도가 구설수나 큰 화를 부를 수 있으니, 언행에 각별히 신경 써야 하는 시기입니다.',
+    },
+    재성: {
+      대길: '뜻밖의 수입이 생기거나, 그동안 눈여겨보던 투자·사업 기회가 실제로 좋은 결과로 이어질 수 있는 시기입니다.',
+      길: '수입이 늘거나 돈이 들어올 좋은 흐름이 따르니, 계획했던 재정적인 결정을 실행에 옮기기 좋은 때입니다.',
+      평: '수입과 지출이 무난하게 흘러가며, 특별히 좋지도 나쁘지도 않은 평온한 재물운이 이어집니다.',
+      흉: '예상치 못한 지출이 늘거나, 손에 쥔 재물이 조금씩 새어나가기 쉬운 시기입니다.',
+      대흉: '충동적인 투자나 큰 지출, 금전 사고로 이어질 수 있는 위험한 시기이니 지갑을 단속해야 합니다.',
+    },
+    관성: {
+      대길: '맡은 책임을 다한 만큼 크게 인정받아, 승진이나 중요한 자리를 제안받는 등 좋은 기회로 이어질 수 있습니다.',
+      길: '맡은 일에 성실히 임하면 위에서 좋은 평가를 받거나, 신뢰를 쌓을 수 있는 기회가 생기는 시기입니다.',
+      평: '해야 할 일은 많지만 크게 무리하지 않고 감당할 수 있는, 안정적인 흐름이 이어집니다.',
+      흉: '책임과 부담이 평소보다 무겁게 느껴지고, 위에서의 압박이나 스트레스가 늘어날 수 있습니다.',
+      대흉: '감당하기 힘든 압박이나 시련이 닥칠 수 있는 시기이니, 무리한 도전이나 새로운 책임은 피하는 것이 좋습니다.',
+    },
+    인성: {
+      대길: '배움의 기회나 귀인의 도움이 자연스럽게 찾아와, 큰 힘을 들이지 않고도 원하는 것을 얻을 수 있는 시기입니다.',
+      길: '차분히 쌓아온 노력과 지식이 빛을 발하며, 주변의 조언이나 도움이 힘이 되는 시기입니다.',
+      평: '특별한 사건 없이 스스로를 돌아보고 재정비할 수 있는, 평온한 시기입니다.',
+      흉: '생각이 많아지고 결정이 자꾸 늦어지며, 의지할 곳이 마땅치 않게 느껴질 수 있습니다.',
+      대흉: '몸과 마음이 쉽게 지치고 건강에 적신호가 켜지기 쉬운 시기이니, 무리하지 말고 충분히 쉬어야 합니다.',
+    },
+  };
+
+  // 길흉 등급별 마무리 조언 (도입부·본문과 조합되어 한 달 해석 전체를 구성)
+  const TIER_ADVICE = {
+    대길: '이런 흐름이라면 다소 과감하게 움직여도 좋은 결과로 이어질 가능성이 높습니다.',
+    길: '무리하지 않는 선에서 적극적으로 움직여 보는 것도 좋은 시기입니다.',
+    평: '큰 욕심 부리지 않고 평소의 리듬을 지키는 것이 좋은 시기입니다.',
+    흉: '중요한 결정은 조금 미루고, 신중하게 상황을 살피는 편이 안전합니다.',
+    대흉: '가능하다면 무리한 도전이나 큰 결정은 피하고, 몸과 마음을 추스르는 데 집중하는 것이 좋습니다.',
+  };
+
+  // 이번 기운의 지지가 원국의 어느 기둥과 정면으로 충(沖)을 이루는지 구체적으로 짚어준다 (일지/월지 각각 이름+간지+한자까지)
+  function clashDetailNote(currentBranch, natalPillars) {
+    const hits = [];
+    if (isClash(currentBranch, natalPillars.day.branch)) hits.push({ label: '일지(나 자신·배우자 자리)', branch: natalPillars.day.branch });
+    if (isClash(currentBranch, natalPillars.month.branch)) hits.push({ label: '월지(사회활동의 자리)', branch: natalPillars.month.branch });
+    if (hits.length === 0) return '';
+    const names = hits.map((h) => `${h.label} ${BRANCHES[h.branch]}(${BRANCH_HANJA[h.branch]})`).join(', ');
+    return `게다가 이번 기운의 지지 ${BRANCHES[currentBranch]}(${BRANCH_HANJA[currentBranch]})이 원국의 ${names}와 정면으로 부딪히는 충(沖)에 걸려 있어, 평소보다 변화의 폭이 크게 느껴질 수 있습니다.`;
+  }
+
+  // natalPillars: calcFourPillars 결과, currentYear/currentMonth: 게임상 현재 연/월
+  // daeunPillar: { stem, branch } - 그 시점에 흐르고 있는 대운(10년 단위 큰 운) 간지. 없으면 세운·월운만으로 계산한다
+  function monthlyFortune(natalPillars, currentYear, currentMonth, daeunPillar) {
+    const strength = dayMasterStrength(natalPillars);
+    const dayMasterEl = strength.dayMasterElement;
+    const dayMasterStem = natalPillars.day.stem;
+    const cur = calcYearMonthPillar(currentYear, currentMonth);
+    const parts = [
+      { el: elementOf(cur.year.stem, true), w: 1, idx: cur.year.stem, isStem: true },
+      { el: elementOf(cur.year.branch, false), w: 1, idx: cur.year.branch, isStem: false },
+      { el: elementOf(cur.month.stem, true), w: 1.2, idx: cur.month.stem, isStem: true },
+      { el: elementOf(cur.month.branch, false), w: 1.2, idx: cur.month.branch, isStem: false },
+    ];
+    if (daeunPillar) {
+      parts.push({ el: elementOf(daeunPillar.stem, true), w: 1, idx: daeunPillar.stem, isStem: true });
+      parts.push({ el: elementOf(daeunPillar.branch, false), w: 1, idx: daeunPillar.branch, isStem: false });
+    }
+    let weightedSum = 0, totalWeight = 0;
+    const groups = {};
+    const groupRep = {}; // 그룹별 가장 비중이 큰 대표 간지 - 정확한 십성(10개) 이름을 뽑아내는 데 쓴다
+    for (const part of parts) {
+      const g = tenGodGroup(dayMasterEl, part.el);
+      groups[g] = (groups[g] || 0) + part.w;
+      if (!groupRep[g] || part.w > groupRep[g].w) groupRep[g] = part;
+      weightedSum += personalizedTenGodScore(g, strength.level) * part.w;
+      totalWeight += part.w;
+    }
+    const score = weightedSum / totalWeight;
+    let dominant = '비겁';
+    let max = -Infinity;
+    for (const g in groups) if (groups[g] > max) { max = groups[g]; dominant = g; }
+    const dominantDetail = tenGodDetail(dayMasterStem, groupRep[dominant].idx, groupRep[dominant].isStem);
+
+    let tier, tierMult;
+    if (score >= 0.45) { tier = '대길'; tierMult = 1.4; }
+    else if (score >= 0.15) { tier = '길'; tierMult = 1.15; }
+    else if (score > -0.15) { tier = '평'; tierMult = 1.0; }
+    else if (score > -0.45) { tier = '흉'; tierMult = 0.85; }
+    else { tier = '대흉'; tierMult = 0.6; }
+
+    const clashNote = clashDetailNote(cur.month.branch, natalPillars);
+    let desc = `${DOMAIN_INTRO[dominant]} ${DOMAIN_TIER_BODY[dominant][tier]} ${TIER_ADVICE[tier]}`;
+    desc += ` 특히 이번 기운은 ${dominantDetail}(${TEN_GOD_HANJA[dominantDetail]})의 결이 두드러집니다 - ${TEN_GOD_MEANING[dominantDetail]}`;
+    if (clashNote) desc += ` ${clashNote}`;
+
+    return {
+      tier, tierMult, score, dominant, dominantDetail,
+      desc, clash: !!clashNote, strength,
+      pillarLabel: pillarLabel(cur.month),
+    };
+  }
+
+  // 십성별 한 해 전체를 아우르는 도입부 (monthlyFortune의 DOMAIN_INTRO를 연 단위로 바꾼 버전)
+  const YEAR_DOMAIN_INTRO = {
+    비겁: '이 해는 비견·겁재의 기운이 두드러져, 나 자신과 동료·친구·형제 같은 주변 사람들과의 관계가 한 해의 화두로 떠오릅니다.',
+    식상: '이 해는 식신·상관의 기운이 강해져, 표현하고 움직이고 도전하고 싶은 마음이 한 해 내내 커지는 시기입니다.',
+    재성: '이 해는 재성의 기운이 짙게 들어와, 돈과 관련된 크고 작은 일들이 한 해의 중심에 놓이는 시기입니다.',
+    관성: '이 해는 관성의 기운이 강하게 들어와, 책임과 역할, 평가와 관련된 일들이 한 해 내내 무게감 있게 다가옵니다.',
+    인성: '이 해는 인성의 기운이 두드러져, 배움과 휴식, 나를 돌보는 일이 한 해의 중요한 화두가 되는 시기입니다.',
+  };
+
+  const TIER_REMARK = {
+    대길: '사주에서 예견된 대로 좋은 결과로 이어졌습니다.',
+    길: '전체적으로 무난하고 좋은 흐름이었습니다.',
+    평: '예상한 범위 안에서 흘러갔습니다.',
+    흉: '예상대로 순탄치만은 않았습니다.',
+    대흉: '사주에서 우려했던 대로 어려움을 겪었습니다.',
+  };
+
+  // 연 단위 세운(歲運): 그 해 연주만으로 본 큰 흐름 (월주까지 보는 monthlyFortune보다 거시적)
+  // daeunPillar: 그 해에 흐르고 있는 대운 간지 - 있으면 함께 반영해 더 정밀하게 계산한다
+  function yearlyFortune(natalPillars, year, daeunPillar) {
+    const strength = dayMasterStrength(natalPillars);
+    const dayMasterEl = strength.dayMasterElement;
+    const dayMasterStem = natalPillars.day.stem;
+    const cur = calcYearMonthPillar(year, 6);
+    const parts = [
+      { el: elementOf(cur.year.stem, true), w: 1, idx: cur.year.stem, isStem: true },
+      { el: elementOf(cur.year.branch, false), w: 1, idx: cur.year.branch, isStem: false },
+    ];
+    if (daeunPillar) {
+      parts.push({ el: elementOf(daeunPillar.stem, true), w: 1, idx: daeunPillar.stem, isStem: true });
+      parts.push({ el: elementOf(daeunPillar.branch, false), w: 1, idx: daeunPillar.branch, isStem: false });
+    }
+    let weightedSum = 0, totalWeight = 0;
+    const groups = {};
+    const groupRep = {};
+    for (const part of parts) {
+      const g = tenGodGroup(dayMasterEl, part.el);
+      groups[g] = (groups[g] || 0) + part.w;
+      if (!groupRep[g] || part.w > groupRep[g].w) groupRep[g] = part;
+      weightedSum += personalizedTenGodScore(g, strength.level) * part.w;
+      totalWeight += part.w;
+    }
+    const score = weightedSum / totalWeight;
+    let dominant = '비겁';
+    let max = -Infinity;
+    for (const g in groups) if (groups[g] > max) { max = groups[g]; dominant = g; }
+    const dominantDetail = tenGodDetail(dayMasterStem, groupRep[dominant].idx, groupRep[dominant].isStem);
+
+    let tier;
+    if (score >= 0.55) tier = '대길';
+    else if (score >= 0.2) tier = '길';
+    else if (score > -0.2) tier = '평';
+    else if (score > -0.55) tier = '흉';
+    else tier = '대흉';
+
+    const clashNote = clashDetailNote(cur.year.branch, natalPillars);
+    let desc = `${YEAR_DOMAIN_INTRO[dominant]} ${DOMAIN_TIER_BODY[dominant][tier]} ${TIER_ADVICE[tier]}`;
+    desc += ` 특히 이 해는 ${dominantDetail}(${TEN_GOD_HANJA[dominantDetail]})의 결이 두드러집니다 - ${TEN_GOD_MEANING[dominantDetail]}`;
+    if (clashNote) desc += ` ${clashNote}`;
+
+    return { tier, score, dominant, dominantDetail, desc, clash: !!clashNote, strength, pillarLabel: pillarLabel(cur.year) };
+  }
+
+  // 대운(大運): 월주를 기준으로 순행/역행하며 10년마다 바뀌는 큰 운의 흐름
+  // gender: 'M' | 'F', natal: calcFourPillars 결과, options: calcFourPillars와 동일한 진태양시/서머타임 보정 옵션
+  function calcDaeun(y, m, d, hh, mm, gender, natal, options) {
+    const opts = options || {};
+    const bhh = hh == null ? 12 : hh;
+    const bmm = hh == null ? 0 : mm;
+    let birthJD = kstToJD(y, m, d, bhh, bmm);
+    let ey = y;
+    if (hh != null) {
+      let corrMin = 0;
+      if (opts.dst) corrMin -= 60;
+      if (opts.trueSolarTime) corrMin += TRUE_SOLAR_TIME_OFFSET_MIN;
+      if (corrMin !== 0) {
+        birthJD += corrMin / 1440;
+        ey = jdToKstParts(birthJD).y;
+      }
+    }
+    const yearStemYang = STEM_YINYANG[natal.year.stem] === 1;
+    const forward = (yearStemYang && gender === 'M') || (!yearStemYang && gender === 'F');
+
+    const boundaries = buildMonthBoundaries(ey);
+    let idx = 0;
+    for (let i = 0; i < boundaries.length - 1; i++) {
+      if (birthJD >= boundaries[i].jd && birthJD < boundaries[i + 1].jd) { idx = i; break; }
+    }
+    const daysToTerm = forward ? (boundaries[idx + 1].jd - birthJD) : (birthJD - boundaries[idx].jd);
+    const startAge = Math.max(1, Math.round(daysToTerm / 3));
+
+    const dir = forward ? 1 : -1;
+    let cur = { stem: natal.month.stem, branch: natal.month.branch };
+    const pillars = [];
+    for (let i = 1; i <= 10; i++) {
+      cur = { stem: ((cur.stem + dir) % 10 + 10) % 10, branch: ((cur.branch + dir) % 12 + 12) % 12 };
+      const fromAge = startAge + (i - 1) * 10;
+      if (fromAge > 100) break;
+      pillars.push({ fromAge, toAge: fromAge + 9, stem: cur.stem, branch: cur.branch });
+    }
+    return { startAge, forward, pillars };
+  }
+
+  return {
+    STEMS, BRANCHES, STEM_HANJA, BRANCH_HANJA, ELEMENTS, ANIMALS,
+    calcFourPillars, calcYearMonthPillar, pillarLabel,
+    elementOf, countElements, tenGodGroup, monthlyFortune, yearlyFortune, calcDaeun, TIER_REMARK,
+    hiddenStemsOf, dayMasterStrength, calcShinsal, isClash,
+    solarToLunar, lunarToSolar, leapMonthOfYear,
+    tenGodDetail, TEN_GOD_HANJA, TEN_GOD_MEANING,
+  };
+})();
+
+if (typeof module !== 'undefined') module.exports = Saju;
