@@ -593,12 +593,22 @@
   }
 
   // 실제로 적용된 수치(applied)를 스탯별로 구체적인 문장(금액, 증상 등)으로 풀어서 서술
+  // "만원" 단위로 체감 가능하게 연출 - 실제로 그 달에 적용된(이미 사주 등급까지 반영된) 확정값을 그대로 서술한다.
+  // 폭이 큰 선택(영끌 투자, 대출 등)일수록 단위당 환산액도 함께 커져서, 전 재산이 걸린 수준의 선택은 그만큼 무겁게 느껴지도록 했다.
   function wealthFlavor(v) {
-    const amount = Math.abs(v) * 10; // "만원" 단위로 체감 가능하게 연출
-    if (v >= 8) return `재물운이 크게 트여, 최대 ${amount}만원 상당의 목돈이 들어올 수 있는 흐름입니다.`;
+    const av = Math.abs(v);
+    let amount;
+    if (av >= 12) amount = av * 70;
+    else if (av >= 8) amount = av * 30;
+    else if (av >= 4) amount = av * 15;
+    else amount = av * 10;
+
+    if (v >= 12) return `그야말로 인생이 바뀔 만한 재물운이 터져, ${amount}만원에 이르는 목돈을 거머쥐었습니다.`;
+    if (v >= 8) return `재물운이 크게 트여, ${amount}만원 상당의 목돈이 들어왔습니다.`;
     if (v >= 4) return `쏠쏠한 수입이 생겨 ${amount}만원 정도의 여윳돈이 들어옵니다.`;
     if (v >= 1) return `${amount}만원 안팎의 소소한 이득이 있습니다.`;
-    if (v <= -8) return `씀씀이가 크게 나가, 최대 ${amount}만원 상당의 손실을 볼 수 있는 흐름입니다.`;
+    if (v <= -12) return `전 재산이 흔들릴 만큼 크게 휘청여, ${amount}만원에 이르는 빚과 손실을 떠안았습니다.`;
+    if (v <= -8) return `씀씀이가 크게 나가, ${amount}만원 상당의 손실을 봤습니다.`;
     if (v <= -4) return `예상치 못한 지출로 ${amount}만원 가량 나갑니다.`;
     if (v <= -1) return `${amount}만원 안팎의 자잘한 지출이 있습니다.`;
     return '';
