@@ -113,6 +113,7 @@
         <div class="event-box">
           <h3 id="event-title"></h3>
           <p id="event-desc"></p>
+          <p class="skip-hint choice-tag-hint">선택지 옆 아이콘은 그 선택이 어떤 능력치에 어느 방향으로 영향을 줄 수 있는지 보여줘요. 정확한 정도는 이번 달 사주 운세에 따라 달라져요.</p>
           <div id="event-choices" class="choices-wrap"></div>
 
           <div id="result-panel" class="result-panel hidden">
@@ -164,6 +165,10 @@
             <h4 id="past-edit-title" class="past-edit-title"></h4>
             <p class="past-edit-desc" id="past-edit-desc"></p>
             <div id="past-edit-choices" class="choices-wrap"></div>
+            <div class="reading-box">
+              <span class="reading-label">사주 해설</span>
+              <p id="past-edit-reading"></p>
+            </div>
           </div>
         </div>
       </div>
@@ -201,6 +206,10 @@
           </div>
 
           <div id="saju-tab-future" class="saju-tab-panel hidden">
+            <h4 class="section-title small">인생의 흐름 — 지금까지 내 선택이 쌓아온 성향</h4>
+            <p class="skip-hint" id="life-trend-hint"></p>
+            <div id="life-trend-bar" class="elements-wrap"></div>
+
             <div class="future-tab-head">
               <h4 class="section-title small">대운(大運) — 10년 단위 큰 흐름</h4>
               <span id="daeun-head-note" class="skip-hint inline"></span>

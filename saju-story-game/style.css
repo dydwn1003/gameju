@@ -15,6 +15,13 @@
   --el-금: #b9bfd0;
   --el-수: #5d84c9;
 
+  /* 인생의 흐름(십성 domain) 표시용 - 오행과 무관한 구분용 색상 배정 */
+  --domain-비겁: #b9bfd0;
+  --domain-식상: #e2604f;
+  --domain-재성: #c9954b;
+  --domain-관성: #5d84c9;
+  --domain-인성: #5fb96c;
+
   --tier-대길: #e0b13a;
   --tier-길: #5fb96c;
   --tier-평: #9096ad;
@@ -343,7 +350,12 @@ input[type="text"], input[type="number"], input[type="time"], select {
 }
 .choice-btn.current-choice .choice-idx { background: var(--gold); color: #2a2110; }
 .choice-label { flex: 1; }
+.choice-tags { flex: none; display: flex; gap: 3px; margin-left: 6px; }
+.choice-tag { font-size: 0.72rem; padding: 1px 5px; border-radius: 5px; background: #2a2f46; white-space: nowrap; }
+.choice-tag.up { color: #7fd18a; }
+.choice-tag.down { color: #e08787; }
 .current-choice-tag { flex: none; margin-left: auto; font-size: 0.68rem; font-weight: 700; color: var(--gold); white-space: nowrap; }
+.choice-tag-hint { margin-top: -4px; }
 
 .result-panel.hidden { display: none; }
 .result-panel { background: rgba(27, 30, 43, 0.9); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
@@ -632,6 +644,10 @@ input[type="text"], input[type="number"], input[type="time"], select {
 .elem-bar-track { flex: 1; height: 9px; background: var(--bg-soft); border-radius: 5px; overflow: hidden; }
 .elem-bar-fill { height: 100%; border-radius: 5px; }
 .elem-count { width: 18px; text-align: right; color: var(--text-dim); }
+
+.domain-name { width: 42px; font-weight: 700; font-size: 0.82rem; }
+.domain-bg-비겁 { background: var(--domain-비겁); } .domain-bg-식상 { background: var(--domain-식상); } .domain-bg-재성 { background: var(--domain-재성); }
+.domain-bg-관성 { background: var(--domain-관성); } .domain-bg-인성 { background: var(--domain-인성); }
 
 .stat-chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
 .stat-chip {

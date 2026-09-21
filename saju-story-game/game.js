@@ -10,7 +10,9 @@
   };
   const RECENT_WINDOW = 8;
   const START_AGE = 19;
-  const DOMAIN_MATCH_CHANCE = 0.75;
+  // pickEvent 에서 다음 상황을 고를 때: 그 달의 사주 기운과 맞는 이벤트 / 지금까지 쌓아온 내 선택의 흐름과 맞는 이벤트 / 완전히 열린 확률, 순서로 우선 시도
+  const FORTUNE_MATCH_CHANCE = 0.5;
+  const TALLY_MATCH_CHANCE = 0.25;
   const MAX_AGE = 100;
 
   const SKIP_STRATEGIES = {
@@ -290,6 +292,7 @@
       monthsElapsed: START_AGE * 12 - 1,
       recentEventIds: [],
       usedMilestones: new Set(),
+      domainTally: { 비겁: 0, 식상: 0, 재성: 0, 관성: 0, 인성: 0 },
       log: [],
       alive: true,
     };
@@ -426,6 +429,20 @@
     return GameData.EVENT_POOL.find((e) => e.id === id) || GameData.MILESTONES.find((e) => e.id === id);
   }
 
+  // 지금까지 실제로 겪고 선택해온 이벤트의 domain(십성)을 누적 집계 - 과거의 선택이 앞으로 만날
+  // 상황의 결로도 이어지도록 pickEvent 에서 이 흐름을 함께 반영한다 (사주 모달의 "인생의 흐름"에도 그대로 노출)
+  function tallyDomain(domain) {
+    state.domainTally[domain] = (state.domainTally[domain] || 0) + 1;
+  }
+
+  // 가장 많이 쌓인 domain - 충분히 쌓이기 전(총 3회 미만)에는 아직 뚜렷한 흐름이 없다고 보고 null
+  function leadingTallyDomain() {
+    const entries = Object.entries(state.domainTally);
+    const total = entries.reduce((sum, [, v]) => sum + v, 0);
+    if (total < 3) return null;
+    return entries.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0];
+  }
+
   function pickEvent(age, year, month, fortune) {
     const anniversary = month === state.birth.m;
     if (anniversary) {
@@ -436,8 +453,16 @@
       }
     }
     const pool = GameData.EVENT_POOL.filter((ev) => age >= ev.minAge && age <= ev.maxAge);
-    const domainPool = pool.filter((ev) => ev.domain === fortune.dominant);
-    const candidates = (domainPool.length > 0 && Math.random() < DOMAIN_MATCH_CHANCE) ? domainPool : pool;
+    const fortunePool = pool.filter((ev) => ev.domain === fortune.dominant);
+    const leadDomain = leadingTallyDomain();
+    const tallyPool = leadDomain ? pool.filter((ev) => ev.domain === leadDomain) : [];
+
+    const roll = Math.random();
+    let candidates;
+    if (roll < FORTUNE_MATCH_CHANCE && fortunePool.length > 0) candidates = fortunePool;
+    else if (roll < FORTUNE_MATCH_CHANCE + TALLY_MATCH_CHANCE && tallyPool.length > 0) candidates = tallyPool;
+    else candidates = pool;
+
     let fresh = candidates.filter((ev) => !state.recentEventIds.includes(ev.id));
     if (fresh.length === 0) fresh = candidates;
     if (fresh.length === 0) return null;
@@ -476,10 +501,12 @@
       state.stats[key] = (state.stats[key] || 0) + applied[key];
     }
     clampStats();
+    tallyDomain(event.domain);
 
+    const reading = composeMonthlyReading({ title: event.title, fortune, age, year, month }, choice.text, choice.result, applied);
     state.log.unshift({
       age, year, month, title: event.title, choiceText: choice.text, result: choice.result,
-      applied, tier: fortune.tier, domain: event.domain,
+      applied, tier: fortune.tier, domain: event.domain, reading,
       eventId: event.id, choiceIndex: idx, monthsElapsed: state.monthsElapsed,
       isMilestone, fortune, autoStrategy: strategyKey,
     });
@@ -516,12 +543,26 @@
     return shuffled;
   }
 
+  // 정확한 수치나 그 달의 사주 등급은 숨기되, 이 선택이 대략 어느 스탯을 어느 방향으로 움직이는 경향이 있는지만 아이콘으로 보여준다
+  // (실제 결과는 그 달의 운세에 따라 더 크게/작게 나타날 수 있다)
+  function choiceTagsHtml(choice) {
+    const entries = Object.entries(choice.effects).filter(([, v]) => v !== 0);
+    entries.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+    return entries.map(([key, v]) => {
+      const def = GameData.STATS.find((s) => s.key === key);
+      const dir = v > 0 ? 'up' : 'down';
+      const arrow = v > 0 ? '▲' : '▼';
+      return `<span class="choice-tag ${dir}" title="${def.label}에 영향을 줄 수 있어요">${def.icon}${arrow}</span>`;
+    }).join('');
+  }
+
   // A/B/C/D 인덱스 배지가 달린 선택지 버튼을 만든다 (event-choices, past-edit-choices 공용)
-  function buildChoiceButton(text, i, isCurrent, onClick) {
+  function buildChoiceButton(text, i, isCurrent, onClick, tagsHtml) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'choice-btn' + (isCurrent ? ' current-choice' : '');
     btn.innerHTML = `<span class="choice-idx">${String.fromCharCode(65 + i)}</span><span class="choice-label">${text}</span>`
+      + (tagsHtml ? `<span class="choice-tags">${tagsHtml}</span>` : '')
       + (isCurrent ? '<span class="current-choice-tag">현재 선택</span>' : '');
     btn.onclick = onClick;
     return btn;
@@ -548,7 +589,7 @@
     const choiceWrap = $('#event-choices');
     choiceWrap.innerHTML = '';
     shuffled.forEach(({ choice, idx }, i) => {
-      choiceWrap.appendChild(buildChoiceButton(choice.text, i, false, () => chooseOption(idx)));
+      choiceWrap.appendChild(buildChoiceButton(choice.text, i, false, () => chooseOption(idx), choiceTagsHtml(choice)));
     });
 
     $('#result-panel').classList.add('hidden');
@@ -620,18 +661,19 @@
     return entries.map(([k, v]) => STAT_FLAVOR[k](v)).filter(Boolean).join(' ');
   }
 
+  const DOMAINS = ['비겁', '식상', '재성', '관성', '인성'];
   const DOMAIN_NOUN = { 비겁: '비견·겁재', 식상: '식신·상관', 재성: '재성', 관성: '관성', 인성: '인성' };
 
   // 선택 하나를 "그 달의 사주 맥락 -> 선택 -> 결과 -> 예견과의 일치" 순서로 길게 풀어서 서술
-  function composeMonthlyReading(current, choice, applied) {
-    const { event, fortune, age, year, month } = current;
+  // (과거 달을 다시 선택할 때도 같은 함수로 그때그때의 해설을 다시 만들 수 있도록 개별 값만 받는다)
+  function composeMonthlyReading({ title, fortune, age, year, month }, choiceText, choiceResult, applied) {
     const domainNoun = DOMAIN_NOUN[fortune.dominant];
     const detail = detailedResultText(applied);
     const remark = Saju.TIER_REMARK[fortune.tier];
     const parts = [
       `${year}년 ${month}월(${fortune.pillarLabel}), ${age}세의 이 달은 ${domainNoun}의 기운이 짙게 흐르며 '${fortune.tier}'으로 풀이되던 시기였습니다.`,
-      `그 가운데 「${event.title}」에서 '${choice.text}'를 선택했습니다.`,
-      choice.result,
+      `그 가운데 「${title}」에서 '${choiceText}'를 선택했습니다.`,
+      choiceResult,
       detail,
       remark,
     ];
@@ -649,10 +691,12 @@
       state.stats[key] = (state.stats[key] || 0) + applied[key];
     }
     clampStats();
+    tallyDomain(event.domain);
 
+    const reading = composeMonthlyReading({ title: event.title, fortune, age, year, month }, choice.text, choice.result, applied);
     state.log.unshift({
       age, year, month, title: event.title, choiceText: choice.text, result: choice.result,
-      applied, tier: fortune.tier, domain: event.domain,
+      applied, tier: fortune.tier, domain: event.domain, reading,
       eventId: event.id, choiceIndex: idx, monthsElapsed: state.monthsElapsed,
       isMilestone: state.current.isMilestone, fortune,
     });
@@ -662,7 +706,7 @@
     const panel = $('#result-panel');
     panel.classList.remove('hidden');
     $('#result-text').textContent = choice.result;
-    $('#result-reading').textContent = composeMonthlyReading(state.current, choice, applied);
+    $('#result-reading').textContent = reading;
     $('#result-effects').innerHTML = Object.entries(applied)
       .map(([k, v]) => {
         const def = GameData.STATS.find((s) => s.key === k);
@@ -835,6 +879,26 @@
   // ── 과거 선택 다시 하기 (건너뛰기로 자동 진행된 달도 동일한 이벤트 기록이라 여기서 그대로 열린다) ──
   let pastEditEntry = null;
 
+  // entry.reading 이 아직 없는(이 기능 이전에 만들어진) 기록이라면 지금 가진 값들로 즉석에서 다시 만들어준다
+  function readingOf(entry) {
+    if (entry.reading) return entry.reading;
+    return composeMonthlyReading(
+      { title: entry.title, fortune: entry.fortune, age: entry.age, year: entry.year, month: entry.month },
+      entry.choiceText, entry.result, entry.applied,
+    );
+  }
+
+  // past-edit-choices 와 그 아래 해설 박스를 entry 의 현재 상태로 (다시) 그린다 - 처음 열 때도, 다시 고른 직후에도 공용으로 쓴다
+  function renderPastEditChoices(entry, event) {
+    const wrap = $('#past-edit-choices');
+    wrap.innerHTML = '';
+    const shuffled = shuffleChoices(event.choices);
+    shuffled.forEach(({ choice, idx }, i) => {
+      wrap.appendChild(buildChoiceButton(choice.text, i, idx === entry.choiceIndex, () => applyPastEventChoice(entry, idx), choiceTagsHtml(choice)));
+    });
+    $('#past-edit-reading').textContent = readingOf(entry);
+  }
+
   function openPastEventEditor(entry) {
     const event = findEventById(entry.eventId);
     if (!event) return;
@@ -845,18 +909,14 @@
     $('#cal-legend').classList.add('hidden');
     $('#skip-cal-range-hint').classList.add('hidden');
     $('#skip-cal-strategy').classList.add('hidden');
+    $('#skip-cal-goto-today').classList.add('hidden');
 
     const autoNote = entry.autoStrategy ? ` · 건너뛰기 중 '${SKIP_STRATEGIES[entry.autoStrategy].label}'로 자동 선택됨` : '';
     $('#past-edit-label').textContent = `${entry.age}세 · ${entry.year}년 ${entry.month}월 (${entry.fortune.pillarLabel} · ${entry.tier})${autoNote}`;
     $('#past-edit-title').textContent = (entry.isMilestone ? '★ ' : '') + event.title;
     $('#past-edit-desc').textContent = event.desc;
 
-    const wrap = $('#past-edit-choices');
-    wrap.innerHTML = '';
-    const shuffled = shuffleChoices(event.choices);
-    shuffled.forEach(({ choice, idx }, i) => {
-      wrap.appendChild(buildChoiceButton(choice.text, i, idx === entry.choiceIndex, () => applyPastEventChoice(entry, idx)));
-    });
+    renderPastEditChoices(entry, event);
 
     $('#skip-cal-past-edit').classList.remove('hidden');
   }
@@ -868,9 +928,11 @@
     $('#skip-cal-grid').classList.remove('hidden');
     $('#cal-legend').classList.remove('hidden');
     $('#skip-cal-range-hint').classList.remove('hidden');
+    updateGotoTodayButton();
   }
 
-  // 과거 선택을 바꾸면 그때 적용됐던 효과를 되돌리고 새 선택의 효과를 같은 그 달의 사주 기운(tierMult)으로 다시 적용한다
+  // 과거 선택을 바꾸면 그때 적용됐던 효과를 되돌리고 새 선택의 효과를 같은 그 달의 사주 기운(tierMult)으로 다시 적용한다.
+  // 패널은 닫지 않고 그대로 두어, 새로 고른 선택의 해설을 바로 확인할 수 있게 한다.
   function applyPastEventChoice(entry, idx) {
     const event = findEventById(entry.eventId);
     const choice = event.choices[idx];
@@ -889,12 +951,16 @@
     entry.choiceText = choice.text;
     entry.result = choice.result;
     entry.applied = applied;
+    entry.reading = composeMonthlyReading(
+      { title: entry.title, fortune: entry.fortune, age: entry.age, year: entry.year, month: entry.month },
+      choice.text, choice.result, applied,
+    );
     delete entry.autoStrategy; // 직접 다시 골랐으니 더 이상 '자동 선택'이 아니다
 
     renderStatChips();
     renderLog();
-    closePastEventEditor();
-    renderSkipCalendar();
+    renderPastEditChoices(entry, event);
+    $('#past-edit-label').textContent = `${entry.age}세 · ${entry.year}년 ${entry.month}월 (${entry.fortune.pillarLabel} · ${entry.tier})`;
   }
 
   function showSkipStrategyPanel() {
@@ -977,7 +1043,35 @@
     $('#saju-modal').classList.remove('hidden');
   }
 
+  // 지금까지 실제로 겪고 선택해온 이벤트의 domain 누적치를 막대로 보여준다 - 과거의 선택이 앞으로 만날 상황과 이어진다는 걸 눈으로 확인할 수 있게
+  function renderLifeTrendBar() {
+    const tally = state.domainTally;
+    const total = Object.values(tally).reduce((a, b) => a + b, 0);
+    const wrap = $('#life-trend-bar');
+    wrap.innerHTML = '';
+    for (const domain of DOMAINS) {
+      const count = tally[domain] || 0;
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'elem-row';
+      row.innerHTML = `<span class="domain-name">${domain}</span>
+        <div class="elem-bar-track"><div class="elem-bar-fill domain-bg-${domain}" style="width:${pct}%"></div></div>
+        <span class="elem-count">${count}</span>`;
+      wrap.appendChild(row);
+    }
+    const leadDomain = leadingTallyDomain();
+    const hint = $('#life-trend-hint');
+    if (leadDomain) {
+      hint.textContent = `지금까지 ${DOMAIN_NOUN[leadDomain]} 쪽 상황을 가장 많이 마주하고 선택해왔어요. 이런 흐름이 쌓이면 앞으로도 비슷한 기회나 고비가 조금 더 자주 찾아올 수 있어요.`;
+    } else if (total > 0) {
+      hint.textContent = '아직 뚜렷한 흐름을 말하기엔 선택이 많지 않아요. 선택이 더 쌓이면 삶의 결이 드러나기 시작할 거예요.';
+    } else {
+      hint.textContent = '아직 아무 선택도 하지 않았어요. 앞으로의 선택 하나하나가 이 흐름을 만들어가고, 그 흐름은 다시 다음 상황에 영향을 줘요.';
+    }
+  }
+
   function renderFutureTab() {
+    renderLifeTrendBar();
     const curAge = state.current ? state.current.age : Math.floor(state.monthsElapsed / 12);
     const curYear = state.current ? state.current.year : state.birth.y + curAge;
 
