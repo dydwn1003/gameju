@@ -543,26 +543,12 @@
     return shuffled;
   }
 
-  // 정확한 수치나 그 달의 사주 등급은 숨기되, 이 선택이 대략 어느 스탯을 어느 방향으로 움직이는 경향이 있는지만 아이콘으로 보여준다
-  // (실제 결과는 그 달의 운세에 따라 더 크게/작게 나타날 수 있다)
-  function choiceTagsHtml(choice) {
-    const entries = Object.entries(choice.effects).filter(([, v]) => v !== 0);
-    entries.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
-    return entries.map(([key, v]) => {
-      const def = GameData.STATS.find((s) => s.key === key);
-      const dir = v > 0 ? 'up' : 'down';
-      const arrow = v > 0 ? '▲' : '▼';
-      return `<span class="choice-tag ${dir}" title="${def.label}에 영향을 줄 수 있어요">${def.icon}${arrow}</span>`;
-    }).join('');
-  }
-
   // A/B/C/D 인덱스 배지가 달린 선택지 버튼을 만든다 (event-choices, past-edit-choices 공용)
-  function buildChoiceButton(text, i, isCurrent, onClick, tagsHtml) {
+  function buildChoiceButton(text, i, isCurrent, onClick) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'choice-btn' + (isCurrent ? ' current-choice' : '');
     btn.innerHTML = `<span class="choice-idx">${String.fromCharCode(65 + i)}</span><span class="choice-label">${text}</span>`
-      + (tagsHtml ? `<span class="choice-tags">${tagsHtml}</span>` : '')
       + (isCurrent ? '<span class="current-choice-tag">현재 선택</span>' : '');
     btn.onclick = onClick;
     return btn;
@@ -589,7 +575,7 @@
     const choiceWrap = $('#event-choices');
     choiceWrap.innerHTML = '';
     shuffled.forEach(({ choice, idx }, i) => {
-      choiceWrap.appendChild(buildChoiceButton(choice.text, i, false, () => chooseOption(idx), choiceTagsHtml(choice)));
+      choiceWrap.appendChild(buildChoiceButton(choice.text, i, false, () => chooseOption(idx)));
     });
 
     $('#result-panel').classList.add('hidden');
@@ -672,12 +658,12 @@
     const remark = Saju.TIER_REMARK[fortune.tier];
     const parts = [
       `${year}년 ${month}월(${fortune.pillarLabel}), ${age}세의 이 달은 ${domainNoun}의 기운이 짙게 흐르며 '${fortune.tier}'으로 풀이되던 시기였습니다.`,
-      `그 가운데 「${title}」에서 '${choiceText}'를 선택했습니다.`,
-      choiceResult,
+      `그 가운데 「${title}」에서 '${choiceText}'를 선택했습니다. ${choiceResult}`,
       detail,
       remark,
     ];
-    return parts.filter(Boolean).join(' ');
+    // 한 덩어리 문단이 아니라 문장 단위로 줄을 나눠 읽기 편하게 한다 (표시 쪽에서 white-space: pre-line 처리)
+    return parts.filter(Boolean).join('\n');
   }
 
   function chooseOption(idx) {
@@ -878,6 +864,7 @@
 
   // ── 과거 선택 다시 하기 (건너뛰기로 자동 진행된 달도 동일한 이벤트 기록이라 여기서 그대로 열린다) ──
   let pastEditEntry = null;
+  let pastEditShuffled = null; // 패널을 여는 동안은 고정 - 다시 고를 때마다 선택지 위치가 바뀌지 않도록 한 번만 섞어서 재사용한다
 
   // entry.reading 이 아직 없는(이 기능 이전에 만들어진) 기록이라면 지금 가진 값들로 즉석에서 다시 만들어준다
   function readingOf(entry) {
@@ -888,21 +875,28 @@
     );
   }
 
-  // past-edit-choices 와 그 아래 해설 박스를 entry 의 현재 상태로 (다시) 그린다 - 처음 열 때도, 다시 고른 직후에도 공용으로 쓴다
-  function renderPastEditChoices(entry, event) {
+  // past-edit-choices 와 그 아래 해설/효과 박스를 entry 의 현재 상태로 (다시) 그린다 - 처음 열 때도, 다시 고른 직후에도 공용으로 쓴다
+  function renderPastEditChoices(entry) {
     const wrap = $('#past-edit-choices');
     wrap.innerHTML = '';
-    const shuffled = shuffleChoices(event.choices);
-    shuffled.forEach(({ choice, idx }, i) => {
-      wrap.appendChild(buildChoiceButton(choice.text, i, idx === entry.choiceIndex, () => applyPastEventChoice(entry, idx), choiceTagsHtml(choice)));
+    pastEditShuffled.forEach(({ choice, idx }, i) => {
+      wrap.appendChild(buildChoiceButton(choice.text, i, idx === entry.choiceIndex, () => applyPastEventChoice(entry, idx)));
     });
     $('#past-edit-reading').textContent = readingOf(entry);
+    $('#past-edit-effects').innerHTML = Object.entries(entry.applied)
+      .filter(([, v]) => v !== 0)
+      .map(([k, v]) => {
+        const def = GameData.STATS.find((s) => s.key === k);
+        const sign = v > 0 ? '+' : '';
+        return `<span class="eff ${v >= 0 ? 'pos' : 'neg'}">${def.icon} ${def.label} ${sign}${v}</span>`;
+      }).join(' ');
   }
 
   function openPastEventEditor(entry) {
     const event = findEventById(entry.eventId);
     if (!event) return;
     pastEditEntry = entry;
+    pastEditShuffled = shuffleChoices(event.choices);
 
     $('#skip-cal-header').classList.add('hidden');
     $('#skip-cal-grid').classList.add('hidden');
@@ -916,13 +910,14 @@
     $('#past-edit-title').textContent = (entry.isMilestone ? '★ ' : '') + event.title;
     $('#past-edit-desc').textContent = event.desc;
 
-    renderPastEditChoices(entry, event);
+    renderPastEditChoices(entry);
 
     $('#skip-cal-past-edit').classList.remove('hidden');
   }
 
   function closePastEventEditor() {
     pastEditEntry = null;
+    pastEditShuffled = null;
     $('#skip-cal-past-edit').classList.add('hidden');
     $('#skip-cal-header').classList.remove('hidden');
     $('#skip-cal-grid').classList.remove('hidden');
@@ -959,7 +954,7 @@
 
     renderStatChips();
     renderLog();
-    renderPastEditChoices(entry, event);
+    renderPastEditChoices(entry);
     $('#past-edit-label').textContent = `${entry.age}세 · ${entry.year}년 ${entry.month}월 (${entry.fortune.pillarLabel} · ${entry.tier})`;
   }
 
