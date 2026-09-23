@@ -78,11 +78,28 @@ R.CLASSES = {
     name: '암살자', weapon: 'dagger', desc: '쌍단검 / 고기동 치명타',
     base: { str: 11, dex: 10, int: 3, vit: 7, luk: 10 },
     grow: { str: 1, luk: 1 }, atkStat: 'str', melee: true,
-    range: 17, arc: 0.95, moveSpeed: 70, atkSpeed: 1.3, critBonus: 0.12,
+    range: 17, arc: 0.95, moveSpeed: 70, atkSpeed: 1.3, critBonus: 0.12, lukMul: 1.6,
     look: { skin: '#e8b890', hair: '#1c1c24', body: '#3a3a4a', bodyD: '#24242e', legs: '#24242e', boots: '#18181e', hat: 'mask', hatC: '#24242e', cape: '#5a2a6a' },
     skills: ['shadowstep', 'poisonblade', 'kunai', 'smokebomb'],
     adv: ['ASSASSIN2', 'NINJA'],
   },
+};
+
+// 스탯 효과 계수 (1포인트당). 주 능력치(atkStat)는 공격력 +2 (지능은 +2.2)
+R.STAT_FX = { lukCrit: 0.0015, lukCritDmg: 0.004, dexSpd: 0.004, strHp: 5 };
+// 직업별 추천 능력치 (스탯 창에 표시)
+R.STAT_REC = { GLADIATOR: ['str', 'vit'], RANGER: ['dex', 'luk'], MAGE: ['int', 'vit'], ASSASSIN: ['str', 'luk'] };
+// 스탯 +1 포인트의 효과 설명 (직업별)
+R.statEffect = (cls, k) => {
+  const c = R.CLASSES[cls], F = R.STAT_FX, m = c.lukMul || 1;
+  const out = [];
+  if (k === c.atkStat) out.push(`공격력 +${k === 'int' ? 2.2 : 2}`);
+  if (k === 'str' && c.atkStat !== 'str') out.push(`최대 HP +${F.strHp}`);
+  if (k === 'dex') out.push(`공격속도 +${(F.dexSpd * 100).toFixed(1)}%`);
+  if (k === 'int') out.push('최대 MP +5');
+  if (k === 'vit') out.push('최대 HP +20', '방어력 +1.5');
+  if (k === 'luk') out.push(`치명타 +${(F.lukCrit * m * 100).toFixed(2)}%`, `치명타 피해 +${(F.lukCritDmg * m * 100).toFixed(1)}%`, '희귀 드랍 ↑');
+  return out.join(' · ');
 };
 
 // 직업 선택 화면 연출용 정보

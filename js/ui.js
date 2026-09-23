@@ -385,7 +385,8 @@
   }
 
   // ─── 아이템 표시 ─────────────────────────────────────
-  const itemIcon = (it) => (it.slot === 'weapon' ? R.WEAPON_ICON[it.wtype] : R.SLOT_ICON[it.slot]);
+  // 장비 아이콘: 부위·티어·속성별 도트 그림
+  const itemIcon = (it) => `<img class="px-ic" alt="" src="${R.SPR.itemIconURL(R.SPR.itemBase(it), R.SPR.itemTier(it), it.elem)}">`;
   const gcol = (g) => R.GRADES[g].color;
   const mainVal = (it) => (it ? Math.round((it.atk || it.def || 0) * (1 + it.enh * 0.08)) : 0);
   function cellHtml(it, extra = '') {
@@ -510,7 +511,8 @@
         </section>
         <section class="card">
           <div class="card-h">능력치 <span class="pill ${s.points ? 'hot' : ''}">포인트 ${s.points}</span></div>
-          ${stats.map((k) => `<div class="stat"><span class="sn">${k.toUpperCase()}<small>${statName[k]}</small></span><div class="sbar"><i style="width:${Math.min(100, st[k] / (8 + s.level * 2.2) * 100)}%"></i></div><b>${st[k]}</b><button class="plus" data-a="stat" data-v="${k}" ${s.points > 0 ? '' : 'disabled'}>+</button></div>`).join('')}
+          ${stats.map((k) => { const rec = R.STAT_REC[s.cls].includes(k); return `<div class="stat ${rec ? 'rec' : ''}"><span class="sn">${k.toUpperCase()}<small>${statName[k]}</small>${rec ? '<em>추천</em>' : ''}</span><div class="sbar"><i style="width:${Math.min(100, st[k] / (8 + s.level * 2.2) * 100)}%"></i></div><b>${st[k]}</b><button class="plus" data-a="stat" data-v="${k}" ${s.points > 0 ? '' : 'disabled'}>+</button><div class="sfx">+1 → ${R.statEffect(s.cls, k)}</div></div>`; }).join('')}
+          ${s.points > 0 ? `<button class="btn wide gold" data-a="auto">추천 분배 (${R.STAT_REC[s.cls].map((k) => k.toUpperCase()).join(' 2 : 1 ')})</button>` : ''}
         </section>
         <section class="card">
           <div class="card-h">상세 능력</div>
@@ -540,6 +542,7 @@
       body.querySelectorAll('.pet-art').forEach((el) => el.appendChild(spriteCanvas(el.dataset.k, 84, 66, 'pet-cv')));
       bindActs(body, {
         stat: (k) => { if (s.points <= 0) return; s.points--; s.stats[k]++; R.refreshStats(); UI.refreshPanel(); },
+        auto: () => { const [a1, a2] = R.STAT_REC[s.cls]; let i = 0; while (s.points > 0) { s.stats[i++ % 3 === 2 ? a2 : a1]++; s.points--; } R.refreshStats(); R.sfx('levelup'); UI.refreshPanel(); },
         mp: () => { R.usePotion('mpPotion'); UI.refreshPanel(); },
         eat: (k) => { R.Prog.eat(k); UI.refreshPanel(); },
         bag: () => UI.openMenu('가방'),
@@ -752,7 +755,7 @@
       <section class="card"><div class="card-h">장비 목록</div><div class="dex-grid"><div></div>${TIER.map((t) => `<small>${t}</small>`).join('')}
       ${[...new Set(ent.map((e) => e.base))].map((b) => {
         const row = ent.filter((e) => e.base === b);
-        return `<small class="rowh">${R.SLOT_NAME[row[0].slot]}</small>` + row.map((e) => { const g = (s.itemDex || {})[e.key]; return g ? `<div class="dexi" style="--g:${gcol(g - 1)}" title="${e.name}">${e.slot === 'weapon' ? R.WEAPON_ICON[b] : R.SLOT_ICON[b]}<span>${e.name}</span></div>` : '<div class="dexi none">?</div>'; }).join('');
+        return `<small class="rowh">${R.SLOT_NAME[row[0].slot]}</small>` + row.map((e) => { const g = (s.itemDex || {})[e.key]; return g ? `<div class="dexi" style="--g:${gcol(g - 1)}" title="${e.name}"><img class="px-ic" alt="" src="${R.SPR.itemIconURL(b, e.tier)}"><span>${e.name}</span></div>` : '<div class="dexi none">?</div>'; }).join('');
       }).join('')}</div></section>`);
   }
 

@@ -668,3 +668,13 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .tabbar .tl { font-size: 2.1cqw; }
 .quick { top: 37cqw; }
 #target { top: 37cqw; }
+
+/* 스탯 효과 */
+.stat .sfx { grid-column: 1 / -1; font-size: 2.1cqw; color: var(--dim); margin: -0.4cqw 0 0.8cqw 1cqw; }
+.stat.rec .sfx { color: #ffe07a; }
+.stat .sn em { font-style: normal; font-size: 1.8cqw; color: #2a1600; background: var(--gold); border-radius: 99cqw; padding: 0 1cqw; margin-left: 1cqw; }
+.px-ic { image-rendering: pixelated; width: 80%; height: auto; display: block; margin: auto; }
+.cell .ic { display: grid; place-items: center; width: 100%; height: 100%; }
+.cell .ic .px-ic { width: 78%; }
+.ic-icon .px-ic { width: 100%; }
+.dexi .px-ic { width: 60%; }

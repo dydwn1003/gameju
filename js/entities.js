@@ -54,11 +54,12 @@
     return Object.assign(st, {
       atk: Math.round((baseAtk + wAtk) * (1 + atkPct / 100 + (adv.atkPct || 0))),
       def: Math.round((st.vit * 1.5 + aDef) * (1 + (adv.defPct || 0))),
-      crit: Math.min(0.9, 0.05 + st.luk * 0.0005 + crit / 100 + (cls.critBonus || 0) + (adv.crit || 0)),
-      critDmg: 1.5 + (adv.critDmg || 0),
-      maxHp: Math.round((100 + st.vit * 20 + s.level * 20 + hp) * (1 + (adv.hpPct || 0))),
+      // 행운: 치명타율·치명타 피해 (암살자는 행운 효율 ↑) / 민첩: 공격속도 / 힘: 모든 직업 체력 소폭
+      crit: Math.min(0.9, 0.05 + st.luk * R.STAT_FX.lukCrit * (cls.lukMul || 1) + crit / 100 + (cls.critBonus || 0) + (adv.crit || 0)),
+      critDmg: 1.5 + st.luk * R.STAT_FX.lukCritDmg * (cls.lukMul || 1) + (adv.critDmg || 0),
+      maxHp: Math.round((100 + st.vit * 20 + (cls.atkStat === 'str' ? 0 : st.str * R.STAT_FX.strHp) + s.level * 20 + hp) * (1 + (adv.hpPct || 0))),
       maxMp: Math.round(40 + st.int * 5 + s.level * 8 + mp),
-      atkSpd: cls.atkSpeed * (1 + st.dex * 0.002),
+      atkSpd: cls.atkSpeed * Math.min(1.8, 1 + st.dex * R.STAT_FX.dexSpd),
       moveSpd: cls.moveSpeed * (1 + moveSpd / 100 + (adv.movePct || 0)),
       elem, elemDmg: elemDmg / 100 + (adv.elemDmg || 0), adv,
     });

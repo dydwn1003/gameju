@@ -122,6 +122,45 @@
     g.restore();
   }
 
+  // 장비 외형 효과: 무기 등급·강화 빛, 속성 입자, 세트 오라 (뒤쪽 pass=false / 앞쪽 pass=true)
+  const ELEM_FX = { FIRE: ['#ffb040', '#ff5a2a'], ICE: ['#e8f8ff', '#8ad8ff'], THUNDER: ['#fff8a0', '#ffe040'], NATURE: ['#b8ff9a', '#5ad84a'], DARK: ['#e0b0ff', '#8a4aff'] };
+  function gearFx(g, p, front) {
+    const s = G.save, w = s.equip.weapon;
+    if (p.dead) return;
+    const t = G.time;
+    if (!front) {
+      // 세트 오라 (4세트 이상)
+      const sc = R.Prog.setCounts(s.equip);
+      let best = null;
+      for (const k in sc) if (sc[k] >= 4 && (!best || sc[k] > best.n)) best = { n: sc[k], set: R.SETS[k] };
+      if (best) {
+        g.strokeStyle = best.set.color; g.lineWidth = 1; g.globalAlpha = 0.55 + Math.sin(t * 3) * 0.2;
+        for (let i = 0; i < 3; i++) { const a0 = t * 1.5 + (i * Math.PI * 2) / 3; g.beginPath(); g.ellipse(p.x, p.y, 11, 4.5, 0, a0, a0 + 1.4); g.stroke(); }
+        g.globalAlpha = 1;
+        if (best.n >= 6 && Math.random() < 0.25) R.fx.push({ type: 'dust', x: p.x + (Math.random() - 0.5) * 16, y: p.y, vx: 0, vy: -30 - Math.random() * 20, life: 0.8, max: 0.8, color: best.set.color, size: 1, nograv: true });
+      }
+      // +10 강화: 몸 뒤 금빛 후광
+      if (w && w.enh >= 10) {
+        const grd = g.createRadialGradient(p.x, p.y - 10, 2, p.x, p.y - 10, 18);
+        grd.addColorStop(0, `rgba(255,220,120,${0.35 + Math.sin(t * 4) * 0.1})`); grd.addColorStop(1, 'rgba(255,200,80,0)');
+        g.fillStyle = grd; g.fillRect(p.x - 18, p.y - 28, 36, 36);
+      }
+      return;
+    }
+    if (!w) return;
+    const hx = p.x + (p.faceX || 1) * 6, hy = p.y - 9;
+    // 영웅 등급 이상 또는 +7 이상: 무기 쪽 빛 반짝임
+    if (w.grade >= 3 || w.enh >= 7) {
+      const col = w.enh >= 7 && w.grade < 3 ? '#fff0a0' : R.GRADES[w.grade].color;
+      g.globalAlpha = 0.25 + Math.sin(t * 5) * 0.12; g.fillStyle = col;
+      g.beginPath(); g.arc(hx, hy, 5, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+      if (Math.random() < 0.12) R.fx.push({ type: 'spark', x: hx + (Math.random() - 0.5) * 10, y: hy + (Math.random() - 0.5) * 10, vx: 0, vy: -20, life: 0.3, max: 0.3, color: col });
+    }
+    // 속성 무기: 속성 입자
+    const ef = ELEM_FX[w.elem];
+    if (ef && Math.random() < 0.3) R.fx.push({ type: 'dust', x: hx + (Math.random() - 0.5) * 8, y: hy + (Math.random() - 0.5) * 6, vx: (Math.random() - 0.5) * 10, vy: w.elem === 'ICE' ? 10 : -25, life: 0.5, max: 0.5, color: ef[Math.random() < 0.5 ? 0 : 1], size: 1, nograv: true });
+  }
+
   function drawPlayer(g, p) {
     const s = G.save, cls = R.CLASSES[s.cls];
     const c = Math.cos(p.aim);
@@ -135,7 +174,9 @@
     }
     if (SPR.frame(R.Anim.playerKey()) || R.Anim.hasFrames(R.Anim.playerKey())) {
       shadow(g, p.x, p.y, p.state === 'dodge' ? 5 : 7);
+      gearFx(g, p, false);
       R.Anim.player(g, p, G.rdt || 1 / 60);
+      gearFx(g, p, true);
       drawStatusMarks(g, p);
       return;
     }
@@ -345,11 +386,11 @@
       g.fillStyle = '#8a6a10'; g.fillRect(x - 2, y - 5, f === 2 ? 2 : 4, 4);
       g.fillStyle = '#ffd84a'; g.fillRect(x - 2, y - 5, f === 2 ? 1 : 3, 3);
     } else if (d.kind === 'item') {
-      const c = R.GRADES[d.item.grade].color;
-      if (d.item.grade >= 2) { g.globalAlpha = 0.25 + Math.sin(G.time * 5) * 0.1; g.fillStyle = c; g.fillRect(x - 1, y - 30, 3, 26); g.globalAlpha = 1; }
-      g.fillStyle = '#130f18'; g.fillRect(x - 4, y - 8, 8, 8);
-      g.fillStyle = '#8a6a44'; g.fillRect(x - 3, y - 7, 6, 6);
-      g.fillStyle = c; g.fillRect(x - 3, y - 7, 6, 2); g.fillRect(x - 1, y - 8, 2, 1);
+      // 바닥의 장비: 실제 아이콘 + 등급 빛기둥
+      const c = R.GRADES[d.item.grade].color, it = d.item;
+      if (it.grade >= 1) { g.globalAlpha = (it.grade >= 2 ? 0.28 : 0.15) + Math.sin(G.time * 5) * 0.08; g.fillStyle = c; g.fillRect(x - 1, y - 34, 3, 30); g.globalAlpha = 1; }
+      g.globalAlpha = 0.35; g.fillStyle = c; g.beginPath(); g.ellipse(x, y - 1, 7, 2.5, 0, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+      g.drawImage(SPR.itemIcon(SPR.itemBase(it), SPR.itemTier(it), it.elem), x - 8, y - 16 - Math.round(Math.sin(G.time * 3 + d.x) * 1));
     } else if (d.kind === 'mat') {
       g.fillStyle = '#130f18'; g.fillRect(x - 3, y - 6, 6, 6);
       g.fillStyle = d.id === 'iron' ? '#aab0bc' : d.id === 'stone' ? '#6ad8ff' : '#6a8aff'; g.fillRect(x - 2, y - 5, 4, 4);

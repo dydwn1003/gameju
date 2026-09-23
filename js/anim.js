@@ -155,7 +155,13 @@
 
   // ─── 플레이어 ──────────────────────────────────────────
   // 프레임 시트가 있는 쪽을 우선 (전직 전용 시트가 없으면 기본 직업의 걷기 프레임 사용)
-  A.playerKey = () => { const s = G.save; if (s.adv && FS[s.adv]) return s.adv; if (FS[s.cls]) return s.cls; return s.adv && SPR.frame(s.adv) ? s.adv : s.cls; };
+  // 외형: 입은 갑옷 티어별 시트(예: GLADIATOR@2)가 등록돼 있으면 그 모습으로 → 전직 → 기본 직업 순
+  A.playerKey = () => {
+    const s = G.save, ar = s.equip && s.equip.armor, t = ar ? SPR.itemTier(ar) : 0;
+    for (const k of [s.adv && `${s.adv}@${t}`, s.adv, `${s.cls}@${t}`]) if (k && FS[k]) return k;
+    if (FS[s.cls]) return s.cls;
+    return s.adv && SPR.frame(s.adv) ? s.adv : s.cls;
+  };
 
   A.player = function (g, p, dt) {
     const key = A.playerKey(), f = SPR.frame(key);

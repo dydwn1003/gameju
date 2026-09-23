@@ -325,6 +325,101 @@
     });
   };
 
+  // ─── 장비 아이콘 (16×16 도트) — 부위별 모양 × 티어별 재질 색 × 무기 속성 보석 ─────────
+  const TIER_PAL = [
+    { a: '#b4b9c4', b: '#6e7380', c: '#eef1f6', e: '#7a5230', e2: '#553820', d: '#c9a040' },   // 철
+    { a: '#c8d4e8', b: '#7282a4', c: '#ffffff', e: '#4a3a7a', e2: '#2e2450', d: '#f0c040' },   // 기사(은빛)
+    { a: '#e08040', b: '#8a3a1a', c: '#ffd08a', e: '#4a2a1a', e2: '#2e1a10', d: '#ff4a2a' },   // 용암
+    { a: '#90d4ff', b: '#3a78b8', c: '#effaff', e: '#2a4a6a', e2: '#1a3048', d: '#bff0ff' },   // 서리
+    { a: '#a070ff', b: '#4a2a8a', c: '#e8d4ff', e: '#241640', e2: '#140c26', d: '#ff4ad8' },   // 공허
+  ];
+  const GOLD = { a: '#e8b840', b: '#9a6a18', c: '#fff0a0' };
+  const ELEM_GEM = { FIRE: '#ff5a2a', ICE: '#8ae0ff', THUNDER: '#ffe84a', NATURE: '#7aee5a', DARK: '#c060ff' };
+  function line(g, x0, y0, x1, y1, w, c) {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+    for (let i = 0; i <= n; i++) rect(g, Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n), w, w, c);
+  }
+  const ICON_DRAW = {
+    sword(g, P) {
+      line(g, 4, 9, 12, 1, 2, P.a); line(g, 5, 9, 12, 2, 1, P.b); line(g, 4, 8, 11, 1, 1, P.c);          // 칼날
+      line(g, 2, 7, 6, 11, 1, P.d); px(g, 2, 7, P.c);                                                    // 가드
+      line(g, 1, 12, 3, 10, 2, P.e); px(g, 0, 13, P.d); px(g, 1, 13, P.d);                                // 손잡이·폼멜
+    },
+    dagger(g, P) {
+      line(g, 6, 7, 11, 2, 2, P.a); line(g, 7, 7, 11, 3, 1, P.b); line(g, 6, 6, 10, 2, 1, P.c); px(g, 12, 1, P.a);
+      line(g, 4, 6, 7, 9, 1, P.d);
+      line(g, 2, 11, 5, 8, 2, P.e); px(g, 1, 12, P.d); px(g, 2, 12, P.d);
+    },
+    staff(g, P) {
+      line(g, 1, 13, 9, 5, 1, P.e); line(g, 2, 13, 9, 6, 1, P.e2);
+      rect(g, 8, 4, 2, 2, P.d);                                                                          // 받침
+      ell(g, 11.5, 2.5, 2.6, 2.6, P.d); ell(g, 11.2, 2.2, 1.4, 1.4, P.c); px(g, 12, 3, P.a);          // 보석
+      px(g, 13, 0, P.c); px(g, 9, 0, P.c);
+    },
+    bow(g, P) {
+      for (let y = 0; y < 14; y++) { const x = Math.round(3 + Math.sin((y / 13) * Math.PI) * 6); rect(g, x, y, 2, 1, y % 5 === 2 ? P.d : P.e); px(g, x + 1, y, P.e2); }
+      line(g, 3, 0, 3, 13, 1, P.c);                                                                       // 시위
+      rect(g, 8, 6, 2, 2, P.a);                                                                          // 손잡이
+    },
+    helmet(g, P) {
+      rect(g, 4, 2, 6, 2, P.a); rect(g, 3, 3, 8, 7, P.a); rect(g, 3, 8, 2, 4, P.a); rect(g, 9, 8, 2, 4, P.a);
+      rect(g, 4, 2, 2, 5, P.c); rect(g, 3, 9, 8, 1, P.b); rect(g, 5, 6, 4, 1, '#1a1622');                  // 하이라이트·눈구멍
+      rect(g, 6, 0, 2, 2, P.d); rect(g, 7, 1, 3, 1, P.d);                                                  // 깃털
+      rect(g, 10, 4, 1, 6, P.b);
+    },
+    armor(g, P) {
+      rect(g, 1, 2, 3, 3, P.b); rect(g, 10, 2, 3, 3, P.b);                                                 // 어깨
+      rect(g, 3, 1, 8, 11, P.a); rect(g, 4, 2, 2, 8, P.c); rect(g, 7, 2, 1, 9, P.b);
+      rect(g, 3, 9, 8, 2, P.e); rect(g, 6, 9, 2, 2, P.d);                                                  // 허리띠·버클
+      rect(g, 3, 11, 3, 2, P.b); rect(g, 8, 11, 3, 2, P.b);
+      rect(g, 6, 4, 2, 2, P.d);
+    },
+    gloves(g, P) {
+      rect(g, 3, 1, 2, 5, P.a); rect(g, 5, 0, 2, 6, P.a); rect(g, 7, 0, 2, 6, P.a); rect(g, 9, 1, 2, 5, P.a);   // 손가락
+      rect(g, 3, 4, 8, 5, P.a); rect(g, 11, 5, 2, 3, P.a); rect(g, 4, 2, 1, 6, P.c); rect(g, 3, 8, 8, 1, P.b);
+      rect(g, 3, 9, 8, 4, P.e); rect(g, 3, 9, 8, 1, P.d);                                                  // 소매
+      rect(g, 5, 1, 1, 4, P.b); rect(g, 7, 1, 1, 4, P.b); rect(g, 9, 2, 1, 3, P.b);                           // 손가락 사이
+    },
+    boots(g, P) {
+      rect(g, 4, 0, 5, 9, P.a); rect(g, 5, 1, 1, 7, P.c); rect(g, 4, 0, 5, 2, P.e);
+      rect(g, 4, 8, 8, 4, P.a); rect(g, 11, 9, 2, 3, P.a); rect(g, 4, 12, 9, 1, P.b); rect(g, 4, 11, 9, 1, P.b);
+      rect(g, 4, 4, 5, 1, P.d);
+    },
+    ring(g, P) {
+      ell(g, 7, 8, 5, 5, GOLD.a); ell(g, 7, 8, 3.2, 3.2, 'rgba(0,0,0,0)'); g.clearRect(0, 0, 0, 0);
+      g.globalCompositeOperation = 'destination-out'; ell(g, 7, 8.3, 3.1, 3.1, '#000'); g.globalCompositeOperation = 'source-over';
+      rect(g, 3, 9, 1, 2, GOLD.c); rect(g, 10, 8, 1, 3, GOLD.b);
+      ell(g, 7, 3, 2.6, 2.4, P.d); px(g, 6, 2, '#ffffff'); rect(g, 5, 4, 5, 1, GOLD.b);                     // 보석
+    },
+    necklace(g, P) {
+      for (let i = 0; i <= 12; i++) { const a = Math.PI * (i / 12); px(g, Math.round(7 + Math.cos(a) * 6), Math.round(1 + Math.sin(a) * 6), i % 2 ? GOLD.a : GOLD.b); }
+      rect(g, 6, 7, 3, 1, GOLD.a);
+      rect(g, 6, 8, 3, 1, P.d); rect(g, 5, 9, 5, 2, P.d); rect(g, 6, 11, 3, 1, P.d); px(g, 7, 12, P.d); px(g, 6, 9, '#ffffff');
+    },
+    earring(g, P) {
+      px(g, 7, 1, GOLD.a); px(g, 8, 2, GOLD.a); px(g, 8, 3, GOLD.a); px(g, 7, 4, GOLD.b);
+      rect(g, 6, 5, 3, 2, GOLD.a);
+      rect(g, 6, 7, 3, 1, P.d); rect(g, 5, 8, 5, 3, P.d); rect(g, 6, 11, 3, 1, P.d); px(g, 7, 12, P.d); px(g, 6, 8, '#ffffff');
+      px(g, 3, 9, P.c); px(g, 11, 6, P.c);
+    },
+  };
+  // base: 무기 종류(sword/bow/staff/dagger) 또는 부위(helmet…)
+  S.itemIcon = function (base, tier = 0, elem = null) {
+    return get(`ic:${base}:${tier}:${elem || ''}`, () => {
+      const P = Object.assign({}, TIER_PAL[Math.max(0, Math.min(4, tier))]);
+      if (elem && ELEM_GEM[elem]) P.d = ELEM_GEM[elem];
+      return outlined(14, 14, (g) => (ICON_DRAW[base] || ICON_DRAW.ring)(g, P));
+    });
+  };
+  const iconURL = new Map();
+  S.itemIconURL = function (base, tier, elem) {
+    const k = `${base}:${tier}:${elem || ''}`;
+    if (!iconURL.has(k)) iconURL.set(k, S.itemIcon(base, tier, elem).toDataURL());
+    return iconURL.get(k);
+  };
+  S.itemTier = (it) => Math.max(0, Math.min(4, Math.floor((it.ilvl - 1) / 10)));
+  S.itemBase = (it) => (it.slot === 'weapon' ? it.wtype : it.slot);
+
   // ─── 타일 ─────────────────────────────────────────────
   R.THEMES = {
     forest: { floor: ['#3f7a34', '#468536', '#3a7030'], dots: ['#5fa84a', '#2f5e28', '#78b85a'], wall: 'tree', top: '#2d6a2a', mid: '#3f8a3a', hi: '#6ab84a', front: '#5a3a22', hazard: ['#5a3a7a', '#7a4a9a'], sky: '#1c3a1c' },
