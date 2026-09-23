@@ -54,152 +54,6 @@
   }
 
 
-  // ─── 모션 시스템 ──────────────────────────────────────
-  // 디자인 시트는 캐릭터당 한 장의 포즈라서, 움직임은 스쿼시·스트레치·기울기·반동 같은 변형으로 만든다.
-  // m = { sx, sy, rot, ox, oy } — 발밑을 기준점으로 적용된다. face: 1 오른쪽 / -1 왼쪽
-  const TAU = Math.PI * 2;
-  const mo = () => ({ sx: 1, sy: 1, rot: 0, ox: 0, oy: 0 });
-  const ease = (k) => 1 - (1 - k) * (1 - k);
-  function breathe(m, t, amp = 0.035, spd = 3) {
-    const s = Math.sin(t * spd);
-    m.sy *= 1 + s * amp; m.sx *= 1 - s * amp * 0.5;
-  }
-  function walk(m, t, face, k = 1, spd = 11) {
-    const ph = t * spd;
-    m.oy -= Math.abs(Math.sin(ph)) * 2 * k;
-    m.rot += Math.sin(ph) * 0.07 * k;
-    const land = Math.abs(Math.cos(ph));
-    m.sy *= 1 - land * 0.05 * k; m.sx *= 1 + land * 0.04 * k;
-    m.rot += face * 0.04 * k; // 진행 방향으로 살짝 숙임
-  }
-  // 예비동작(뒤로 젖힘) → 타격(앞으로 찌름) → 복귀
-  function strike(m, k, hitK, face, power = 1) {
-    if (k < hitK) {
-      const e = ease(k / hitK);
-      m.rot -= face * 0.2 * e * power; m.ox -= face * 1.5 * e * power;
-      m.sx *= 1 - 0.07 * e * power; m.sy *= 1 + 0.08 * e * power;
-    } else {
-      const s = 1 - Math.min(1, (k - hitK) / Math.max(0.01, 1 - hitK));
-      const e = s * s;
-      m.rot += face * 0.26 * e * power; m.ox += face * 3.5 * e * power;
-      m.sx *= 1 + 0.12 * e * power; m.sy *= 1 - 0.1 * e * power;
-    }
-  }
-  function lying(m, face, w) { m.rot = -face * Math.PI / 2; m.ox += face * 0; m.oy -= w * 0.3; }
-
-  // 시트 스프라이트 그리기. 성공하면 true
-  function drawActor(g, key, x, y, o) {
-    const f = SPR.frame(key);
-    if (!f) return false;
-    const w = f.w / S, h = f.h / S;
-    const m = o.m || mo();
-    const flip = f.face === -1 ? o.face > 0 : o.face < 0;
-    g.save();
-    if (o.alpha != null) g.globalAlpha = Math.max(0, Math.min(1, o.alpha));
-    const pv = m.center ? h * 0.45 : 0; // 굴림/회전베기는 몸 가운데를 축으로 돈다
-    g.translate(Math.round((x + m.ox) * S) / S, Math.round((y + m.oy - pv) * S) / S);
-    if (m.rot) g.rotate(m.rot);
-    g.scale((flip ? -1 : 1) * m.sx, m.sy);
-    g.drawImage(o.flash ? SPR.sheet.white : SPR.sheet.img, f.x, f.y, f.w, f.h, -w / 2, -h + pv, w, h);
-    g.restore();
-    return true;
-  }
-  R.drawActor = drawActor;
-
-  function playerKey() { const s = G.save; return s.adv && SPR.frame(s.adv) ? s.adv : s.cls; }
-
-  function playerMotion(p) {
-    const m = mo(), face = p.faceX, t = p.anim;
-    if (p.state === 'dodge') {
-      const k = Math.min(1, p.stateT / 0.24);
-      m.rot = face * k * TAU; m.oy = -Math.sin(k * Math.PI) * 4;
-      m.sx = m.sy = 0.88; m.center = true;
-    } else if (p.state === 'attack') {
-      const k = p.stateT / p.dur, hk = p.hitAt / p.dur;
-      strike(m, Math.min(1, k), hk, face, p.comboStep === 2 ? 1.5 : 1);
-      if (p.comboStep === 1 && k > hk) m.oy -= 3 * (1 - (k - hk) / (1 - hk)); // 올려베기: 몸이 떠오름
-    } else if (p.state === 'skill' && p.act) {
-      const k = Math.min(1, p.stateT / p.act.dur), id = p.act.id;
-      if (id === 'whirl') { m.rot = face * ease(k) * TAU; m.center = true; m.sx = m.sy = 1.05; }
-      else if (id === 'charge') { m.rot = face * 0.3; m.sx = 1.18; m.sy = 0.88; m.oy = -1; }
-      else if (id === 'shadowstep') { m.sx = 1 - Math.sin(k * Math.PI) * 0.4; m.sy = 1 + Math.sin(k * Math.PI) * 0.25; }
-      else if (id === 'poisonblade') { strike(m, (k * 5) % 1, 0.35, face, 0.8); }
-      else strike(m, k, 0.35, face, 1.2);
-    } else if (p.state === 'walk') walk(m, t, face);
-    else breathe(m, t);
-    if (p.flash > 0) { const k = p.flash / 0.15; m.rot -= face * 0.16 * k; m.ox -= face * 2 * k; }
-    if (p.status.stun > 0) m.rot += Math.sin(G.time * 30) * 0.05;
-    return m;
-  }
-
-  const MOB_KIND = { blob: 'blob', flyer: 'flyer', ghost: 'ghost', golem: 'heavy', quad: 'quad', worm: 'worm', spider: 'spider', mushroom: 'blob', human: 'human' };
-  function mobMotion(mob) {
-    const m = mo(), face = mob.face || 1, t = mob.anim;
-    const kind = mob.boss && mob.def.arch === 'human' ? 'heavyHuman' : MOB_KIND[mob.def.arch] || 'human';
-    const moving = G.time - (mob.movedAt || -9) < 0.12;
-    switch (kind) {
-      case 'blob': {
-        const ph = t * (moving ? 8 : 3.5);
-        m.sy *= 1 + Math.sin(ph) * 0.13; m.sx *= 1 - Math.sin(ph) * 0.11;
-        if (moving) m.oy -= Math.max(0, Math.sin(ph)) * 3;
-        break;
-      }
-      case 'flyer':
-        m.oy -= 5 + Math.sin(t * 4) * 2;
-        m.sy *= 1 + Math.sin(t * 18) * 0.1; m.sx *= 1 - Math.sin(t * 18) * 0.06;
-        m.rot += (moving ? face * 0.12 : 0) + Math.sin(t * 3) * 0.05;
-        break;
-      case 'ghost':
-        m.oy -= 4 + Math.sin(t * 3) * 2.5;
-        m.rot += Math.sin(t * 2) * 0.08 + (moving ? face * 0.1 : 0);
-        m.sx *= 1 + Math.sin(t * 5) * 0.03;
-        break;
-      case 'heavy':
-        if (moving) { m.oy -= Math.abs(Math.sin(t * 6)) * 1.5; m.rot += Math.sin(t * 6) * 0.05; m.sy *= 1 - Math.abs(Math.cos(t * 6)) * 0.04; }
-        else breathe(m, t, 0.025, 2);
-        break;
-      case 'heavyHuman':
-        if (moving) walk(m, t, face, 0.6, 8); else breathe(m, t, 0.025, 2);
-        break;
-      case 'quad':
-        if (moving) { const ph = t * 14; m.rot += Math.sin(ph) * 0.09 + face * 0.05; m.oy -= Math.abs(Math.sin(ph)) * 2.2; m.sx *= 1 + Math.cos(ph) * 0.05; }
-        else breathe(m, t, 0.04, 3);
-        break;
-      case 'worm': {
-        const s = Math.sin(t * (moving ? 10 : 5));
-        m.sx *= 1 + s * 0.09; m.sy *= 1 - s * 0.07; m.rot += Math.sin(t * 3) * 0.04;
-        break;
-      }
-      case 'spider':
-        if (moving) { m.ox += Math.sin(t * 40) * 0.4; m.oy -= Math.abs(Math.sin(t * 24)) * 1; }
-        else breathe(m, t, 0.05, 4);
-        break;
-      default:
-        if (moving) walk(m, t, face, 0.9, 10); else breathe(m, t);
-    }
-    const a = mob.act;
-    if (a) {
-      const dur = a.dur || 0.5;
-      if (a.type === 'lunge' || a.type === 'charge') {
-        const wind = a.type === 'lunge' ? 0.4 : dur;
-        if (a.t < wind) { const e = ease(a.t / wind); m.sy *= 1 - 0.12 * e; m.sx *= 1 + 0.1 * e; m.rot -= face * 0.14 * e; if (mob.boss) m.ox += (Math.random() - 0.5) * 1.5; }
-        else if (a.t < wind + (a.type === 'lunge' ? 0.32 : 0.5)) { m.sx *= 1.22; m.sy *= 0.84; m.rot += face * 0.18; }
-      } else if (a.t < dur) {
-        const e = ease(a.t / dur);
-        if (a.type === 'slam' || a.type === 'melee') { m.rot -= face * 0.2 * e; m.sy *= 1 + 0.12 * e; m.sx *= 1 - 0.05 * e; m.oy -= (mob.boss ? 4 : 1) * e; }
-        else { m.sy *= 1 + 0.08 * e + Math.sin(a.t * 40) * 0.02 * e; m.sx *= 1 - 0.04 * e; m.rot -= face * 0.08 * e; }
-      } else {
-        const e = Math.max(0, 1 - (a.t - dur) / 0.22);
-        const q = e * e;
-        m.rot += face * 0.28 * q; m.ox += face * 3.5 * q * (mob.boss ? 1.6 : 1);
-        m.sx *= 1 + 0.12 * q; m.sy *= 1 - 0.12 * q;
-      }
-    }
-    if (mob.stunT > 0) m.rot += Math.sin(G.time * 32) * 0.06;
-    if (mob.flash > 0 && !mob.boss) { const k = mob.flash / 0.12; m.rot -= face * 0.14 * k; m.ox -= face * 1.6 * k; }
-    return m;
-  }
-
   function drawWeapon(g, p, cls) {
     const w = cls.weapon;
     const img = SPR.weapon(w);
@@ -231,17 +85,9 @@
     const c = Math.cos(p.aim);
     if (!p.faceX) p.faceX = 1;
     if (Math.abs(c) > 0.25 && p.state !== 'dodge') p.faceX = c > 0 ? 1 : -1;
-    const key = playerKey();
-    if (SPR.frame(key)) {
-      const f = SPR.frame(key);
-      const w = f.w / S;
+    if (SPR.frame(R.Anim.playerKey())) {
       shadow(g, p.x, p.y, p.state === 'dodge' ? 5 : 7);
-      let m, alpha = 1;
-      if (p.dead) { m = mo(); lying(m, p.faceX, w); alpha = 0.85; }
-      else m = playerMotion(p);
-      const blink = p.iframes > 0 && p.state !== 'dodge' && Math.floor(G.time * 20) % 2 === 0;
-      drawActor(g, key, p.x, p.y + 1 - p.z, { face: p.faceX, m, flash: p.flash > 0, alpha: blink ? 0.4 : alpha });
-      p.lastRot = m.rot;
+      R.Anim.player(g, p, G.rdt || 1 / 60);
       drawStatusMarks(g, p);
       return;
     }
@@ -355,18 +201,12 @@
       g.strokeStyle = `rgba(255,210,80,${0.5 + Math.sin(G.time * 5) * 0.3})`; g.lineWidth = 1;
       g.beginPath(); g.ellipse(mob.x, mob.y, mob.r + 5, (mob.r + 5) * 0.45, 0, 0, Math.PI * 2); g.stroke();
     }
-    let m, alpha = 1;
-    if (mob.dead) {
-      const k = mob.deathT / 0.45;
-      m = mo(); m.rot = -face * k * 1.1; m.sy = 1 - k * 0.4; m.sx = 1 + k * 0.2; alpha = 1 - k;
-    } else if (mob.downT > 0) {
-      m = mo(); lying(m, face, w);
-      if (Math.floor(G.time * 8) % 2) { g.fillStyle = '#ffe86a'; g.fillRect(Math.round(mob.x) - 4, Math.round(mob.y) - 14, 1, 1); g.fillRect(Math.round(mob.x) + 3, Math.round(mob.y) - 12, 1, 1); }
-    } else m = mobMotion(mob);
-    if (mob.elite) { m.sx *= 1.2; m.sy *= 1.2; }
+    let alpha = 1;
+    if (mob.dead) alpha = 1 - mob.deathT / 0.45;
+    if (mob.downT > 0 && Math.floor(G.time * 8) % 2) { g.fillStyle = '#ffe86a'; g.fillRect(Math.round(mob.x) - 4, Math.round(mob.y) - 14, 1, 1); g.fillRect(Math.round(mob.x) + 3, Math.round(mob.y) - 12, 1, 1); }
     if (mob.shield && !mob.dead) alpha = 0.45 + Math.sin(G.time * 8) * 0.15;
     if (mob.def.arch === 'ghost' && !mob.boss) alpha *= 0.9;
-    drawActor(g, mob.id, mob.x, mob.y + 1 - mob.z, { face, m, flash: mob.flash > 0, alpha });
+    const m = R.Anim.mob(g, mob, f, G.rdt || 1 / 60, { alpha });
     const top = mob.y - h - mob.z + m.oy;
     if (mob.shield && !mob.dead) { g.strokeStyle = '#e0a0ff'; g.lineWidth = 1.5; g.globalAlpha = 0.7; g.beginPath(); g.arc(mob.x, mob.y - h / 2, mob.r + 12, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
     if (!mob.dead) {
@@ -490,11 +330,7 @@
         g.fillRect(Math.round(f.x), Math.round(f.y), f.size || 2, f.size || 2); g.globalAlpha = 1;
         break;
       case 'ghost': {
-        if (SPR.frame(playerKey())) {
-          const m = mo(); m.rot = f.rot || 0;
-          drawActor(g, playerKey(), f.x, f.y + 1, { face: f.face, m, flash: true, alpha: k * 0.22 });
-          break;
-        }
+        if (R.Anim.ghost(g, f, k * 0.22)) break;
         const s = G.save, cls = R.CLASSES[s.cls];
         const d = f.dir;
         const img = SPR.human('pl' + s.cls, Object.assign({ shield: s.cls === 'GLADIATOR' }, cls.look), d === 'left' || d === 'right' ? 'side' : d, 1, d === 'left');
@@ -526,14 +362,16 @@
     const time = G.time;
     // 카메라
     const p = G.player;
-    let cx = p.x - VW / 2, cy = p.y - VH * 0.52;
+    const look = 0.18;
+    let cx = p.x + (p.vxs || 0) * look - VW / 2, cy = p.y + (p.vys || 0) * look - VH * 0.52;
     cx = Math.max(0, Math.min(m.w * TS - VW, cx));
     cy = Math.max(-40, Math.min(m.h * TS - VH + 60, cy));
-    G.cam.x += (cx - G.cam.x) * 0.25; G.cam.y += (cy - G.cam.y) * 0.25;
+    const ck = 1 - Math.exp(-9 * (G.rdt || 1 / 60));
+    G.cam.x += (cx - G.cam.x) * ck; G.cam.y += (cy - G.cam.y) * ck;
     if (Math.abs(cx - G.cam.x) > 200 || Math.abs(cy - G.cam.y) > 200) { G.cam.x = cx; G.cam.y = cy; }
     let sx = 0, sy = 0;
     if (G.shake > 0) { sx = (Math.random() - 0.5) * G.shake; sy = (Math.random() - 0.5) * G.shake; }
-    const camX = Math.round(G.cam.x + sx), camY = Math.round(G.cam.y + sy);
+    const camX = Math.round((G.cam.x + sx) * S) / S, camY = Math.round((G.cam.y + sy) * S) / S;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;

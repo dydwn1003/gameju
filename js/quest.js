@@ -43,10 +43,13 @@
     if (rw.gold) { s.gold += rw.gold; parts.push(`${rw.gold} 골드`); }
     if (rw.mats) for (const k in rw.mats) if (rw.mats[k]) { s.bag[k] = (s.bag[k] || 0) + rw.mats[k]; parts.push(`${R.MATERIALS[k].name} x${rw.mats[k]}`); }
     if (rw.potions) { s.bag.hpPotion = (s.bag.hpPotion || 0) + rw.potions; parts.push(`빨간 물약 x${rw.potions}`); }
+    if (q.id[0] === 'm' && !rw.gems) { s.gems = (s.gems || 0) + 50; parts.push('보석 50'); }
     if (rw.item) {
       const it = R.makeItem(rw.item.slot, Math.max(rw.item.ilvl, s.level), rw.item.grade, s.cls);
       s.inv.push(it); parts.push(it.name);
     }
+    if (rw.gems) { s.gems = (s.gems || 0) + rw.gems; parts.push(`보석 ${rw.gems}`); }
+    if (rw.coins) { s.coins = (s.coins || 0) + rw.coins; parts.push(`던전 코인 ${rw.coins}`); }
     if (rw.exp) { parts.push(`경험치 ${rw.exp}`); R.gainExp(rw.exp); }
     Q.remove(q.id);
     s.questsDone = (s.questsDone || 0) + 1;
@@ -171,7 +174,7 @@
       choices.push({ label: `[의뢰] ${rg.name} 토벌 (Lv.${rg.lv[0]}~${rg.lv[1]})`, fn: () => Q.give({
         id: 'guild', title: `${rg.name} 토벌 의뢰`, type: 'kill', region: i, count: 15, giverName: name,
         desc: `${rg.name}에서 몬스터 15마리를 처치하라.`,
-        reward: { gold: 120 * i * i, exp: Math.round(R.expToNext(rg.lv[0]) * 0.6), mats: { iron: 2 + i, stone: i >= 2 ? 1 : 0, hstone: i >= 5 ? 1 : 0 } },
+        reward: { gold: 120 * i * i, exp: Math.round(R.expToNext(rg.lv[0]) * 0.6), gems: 20, coins: 5, mats: { iron: 2 + i, stone: i >= 2 ? 1 : 0, hstone: i >= 5 ? 1 : 0 } },
       }) });
     }
     choices.push({ label: '다음에 올게요.' });
@@ -211,6 +214,7 @@
     const s = G.save, rg = G.dungeon.region;
     const first = !s.cleared[rg.id];
     s.cleared[rg.id] = true;
+    if (first) R.Prog.addGems(300, `${m.def.name} 첫 토벌`);
     R.UI.bossBar(null);
     R.UI.banner(`${m.def.name} 토벌!`, '#ff9a5a', first ? '대량의 경험치와 전리품을 획득했다' : '');
     R.Audio.playBgm(1 + rg.bgm);

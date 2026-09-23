@@ -18,10 +18,13 @@
       equip: {}, inv: [], bag: { hpPotion: 5, mpPotion: 3, reviveStone: 1, iron: 2 },
       quests: [], mainIdx: 0, unlocked: 1, cleared: {}, codex: {}, flags: {}, favor: {}, honor: 0,
       hp: null, mp: null, playTime: 0,
+      gems: 300, coins: 0, sp: 0, skillLv: {}, runes: {}, pity: 0, itemDex: {}, summons: 0,
     };
     R.SLOTS.forEach((k) => (s.equip[k] = null));
     s.equip.weapon = R.makeItem('weapon', 1, 0, cls);
     s.equip.armor = R.makeItem('armor', 1, 0, cls);
+    s.spInit = true;
+    s.itemDex[`${c.weapon}:0`] = 1; s.itemDex['armor:0'] = 1;
     return s;
   }
   R.hasSave = () => { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } };
@@ -37,6 +40,7 @@
       if (!s || !R.CLASSES[s.cls]) return null;
       const d = newSave(s.cls);
       for (const k in d) if (s[k] === undefined) s[k] = d[k];
+      if (!s.spInit) { s.sp = (s.sp || 0) + (s.level - 1); s.spInit = true; } // 이전 버전 저장 데이터: 레벨만큼 SP 지급
       return s;
     } catch (e) { return null; }
   }
@@ -343,6 +347,7 @@
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
+    G.rdt = dt;
     if (G.state === 'play' && G.map) {
       R.UI.updateDialog(dt);
       const paused = R.UI.isOpen();

@@ -15,7 +15,13 @@
   // ─── 스탯 계산 (GDD COMBAT MATH) ─────────────────────
   R.computeStats = function (s) {
     const cls = R.CLASSES[s.cls];
-    const adv = s.adv ? R.ADVANCES[s.adv].mod : {};
+    // 전직 + 세트 + 도감 보정을 하나로 합친다 (이후 코드에서는 st.adv 로 참조)
+    const adv = Object.assign({}, s.adv ? R.ADVANCES[s.adv].mod : {});
+    const setMods = R.Prog ? R.Prog.setMods(s.equip) : {};
+    for (const k in setMods) adv[k] = (adv[k] || 0) + setMods[k];
+    const dexB = R.Prog ? R.Prog.dexBonus() : 0;
+    adv.atkPct = (adv.atkPct || 0) + dexB;
+    adv.hpPct = (adv.hpPct || 0) + dexB;
     const st = Object.assign({}, s.stats);
     let wAtk = 0, aDef = 0, hp = 0, mp = 0, crit = 0, atkPct = 0, elemDmg = 0, moveSpd = 0, elem = 'NONE';
     for (const slot of R.SLOTS) {
@@ -44,11 +50,11 @@
       def: Math.round((st.vit * 1.5 + aDef) * (1 + (adv.defPct || 0))),
       crit: Math.min(0.9, 0.05 + st.luk * 0.0005 + crit / 100 + (cls.critBonus || 0) + (adv.crit || 0)),
       critDmg: 1.5 + (adv.critDmg || 0),
-      maxHp: Math.round(100 + st.vit * 20 + s.level * 20 + hp),
+      maxHp: Math.round((100 + st.vit * 20 + s.level * 20 + hp) * (1 + (adv.hpPct || 0))),
       maxMp: Math.round(50 + st.int * 10 + s.level * 10 + mp),
       atkSpd: cls.atkSpeed * (1 + st.dex * 0.002),
       moveSpd: cls.moveSpeed * (1 + moveSpd / 100 + (adv.movePct || 0)),
-      elem, elemDmg: elemDmg / 100, adv,
+      elem, elemDmg: elemDmg / 100 + (adv.elemDmg || 0), adv,
     });
   };
 
@@ -59,7 +65,7 @@
     let g = r < 0.005 ? 4 : r < 0.03 ? 3 : r < 0.15 ? 2 : r < 0.45 ? 1 : 0;
     return Math.max(g, min);
   };
-  R.makeItem = function (slot, ilvl, grade, cls) {
+  R.makeItem = function (slot, ilvl, grade, cls, setChance = 0) {
     const tier = clamp(Math.floor((ilvl - 1) / 10), 0, 4);
     const wtype = slot === 'weapon' ? R.CLASSES[cls].weapon : null;
     const gm = 1 + grade * 0.15;
@@ -88,6 +94,7 @@
       it.elem = els[(Math.random() * els.length) | 0];
       it.name = R.ELEM_PREFIX[it.elem] + ' ' + it.name;
     }
+    if (setChance > 0 && R.SET_SLOTS.includes(slot) && Math.random() < setChance) it.set = tier;
     return it;
   };
   R.sellPrice = (it) => Math.round((8 + it.ilvl * 3) * (1 + it.grade * it.grade * 0.8) * (1 + it.enh * 0.25));
@@ -276,6 +283,7 @@
       meleeArc(p, range, arc, opt);
       R.fx.push({ type: 'slash', x: p.x, y: p.y - 6, ang: p.aim, arc, r: range, life: 0.16, max: 0.16, dir: p.swingDir, color: p.comboStep === 2 ? '#ffe070' : '#ffffff' });
       if (p.comboStep === 2) { G.shake = Math.max(G.shake, 2); }
+      R.fxAfterimage(p);
     } else if (cls.weapon === 'bow') {
       shoot({ x: p.x, y: p.y - 7, ang: p.aim, speed: 270, kind: 'arrow', team: 'p', r: 3, life: 0.6, opt, pierce: p.comboStep === 2 });
     } else {
@@ -311,24 +319,27 @@
     if (p.skillCd[i] > 0) return;
     if (p.mp < sk.mp) { R.toast('MP가 부족합니다', '#6fb6ff'); p.skillCd[i] = 0.3; return; }
     const adv = p.st.adv;
-    const aoe = 1 + (adv.aoePct || 0);
-    const baseOpt = () => ({ rate: sk.rate, elem: sk.elem, skill: true, ca: comboAction() });
+    const md = R.Prog.skillMod(id); // 스킬 레벨 + 룬
+    const aoe = (1 + (adv.aoePct || 0)) * md.aoe;
+    const st = (base) => Object.assign({}, base || {}, md.status || {});
     autoAim(p, cls.melee ? 70 : 130);
     p.mp -= sk.mp;
-    p.skillCd[i] = sk.cd;
+    p.skillCd[i] = sk.cd * md.cdMul;
     p.state = 'skill'; p.stateT = 0;
     R.sfx(sk.elem === 'FIRE' ? 'fire' : sk.elem === 'ICE' ? 'ice' : sk.elem === 'THUNDER' ? 'thunder' : 'skill');
-    const opt = baseOpt();
+    const opt = { rate: sk.rate * md.dmg, elem: sk.elem, skill: true, ca: comboAction() };
+    if (md.status) opt.status = st();
     switch (id) {
       case 'charge': {
         const hitSet = new Set();
         p.iframes = 0.3;
-        p.act = { dur: 0.28, update(p, dt) {
+        const dur = 0.28 * md.dist;
+        p.act = { dur, update(p, dt) {
           R.moveBody(G.map, p, Math.cos(p.aim) * 280 * dt, Math.sin(p.aim) * 280 * dt);
           R.fxAfterimage(p);
           for (const m of G.mobs) {
             if (m.dead || hitSet.has(m)) continue;
-            if (Math.hypot(m.x - p.x, m.y - p.y) < m.r + 12) { hitSet.add(m); hitMob(m, Object.assign({}, opt, { stun: 0.8 }), p.x, p.y); }
+            if (Math.hypot(m.x - p.x, m.y - p.y) < m.r + 12) { hitSet.add(m); hitMob(m, Object.assign({}, opt, { stun: 0.8 + md.stunAdd }), p.x, p.y); }
           }
         } };
         break;
@@ -346,22 +357,28 @@
         G.shake = Math.max(G.shake, 3);
         break;
       }
-      case 'multishot':
+      case 'multishot': {
         p.act = { dur: 0.25, update() {} };
-        for (let k = -2; k <= 2; k++) shoot({ x: p.x, y: p.y - 7, ang: p.aim + k * 0.2, speed: 260, kind: 'arrow', team: 'p', r: 3, life: 0.55, opt: Object.assign({}, opt) });
+        const n = 5 + md.extra, half = (n - 1) / 2;
+        for (let k = 0; k < n; k++) shoot({ x: p.x, y: p.y - 7, ang: p.aim + (k - half) * (0.4 / Math.max(1, half)), speed: 260, kind: 'arrow', team: 'p', r: 3, life: 0.55, opt: Object.assign({}, opt) });
         break;
-      case 'pierce':
+      }
+      case 'pierce': {
         p.act = { dur: 0.3, update() {} };
-        shoot({ x: p.x, y: p.y - 7, ang: p.aim, speed: 340, kind: 'thunder', team: 'p', r: 5, life: 0.7, pierce: true, opt: Object.assign(opt, { down: true, stun: 0.8, status: { stun: 0.6 } }) });
+        const n = 1 + md.extra;
+        for (let k = 0; k < n; k++) shoot({ x: p.x, y: p.y - 7, ang: p.aim + (k - (n - 1) / 2) * 0.12, speed: 340, kind: 'thunder', team: 'p', r: 5, life: 0.7, pierce: true, opt: Object.assign({}, opt, { down: true, stun: 0.8 + md.stunAdd, status: st({ stun: 0.6 + md.stunAdd }) }) });
         break;
+      }
       case 'fireball':
         p.act = { dur: 0.3, update() {} };
-        shoot({ x: p.x + Math.cos(p.aim) * 8, y: p.y - 9, ang: p.aim, speed: 170, kind: 'fireball', team: 'p', r: 5, life: 0.9, opt: Object.assign(opt, { status: { burn: 3 } }), explode: { r: 30 * aoe, rate: sk.rate } });
+        shoot({ x: p.x + Math.cos(p.aim) * 8, y: p.y - 9, ang: p.aim, speed: 170, kind: 'fireball', team: 'p', r: 5, life: 0.9, opt: Object.assign(opt, { status: st({ burn: 3 }) }), explode: { r: 30 * aoe, rate: opt.rate } });
         break;
-      case 'icelance':
+      case 'icelance': {
         p.act = { dur: 0.28, update() {} };
-        shoot({ x: p.x + Math.cos(p.aim) * 8, y: p.y - 9, ang: p.aim, speed: 250, kind: 'icelance', team: 'p', r: 4, life: 0.7, pierce: true, opt: Object.assign(opt, { status: { slow: 3 }, stun: 0.3 }) });
+        const n = 1 + md.extra;
+        for (let k = 0; k < n; k++) shoot({ x: p.x + Math.cos(p.aim) * 8, y: p.y - 9, ang: p.aim + (k - (n - 1) / 2) * 0.28, speed: 250, kind: 'icelance', team: 'p', r: 4, life: 0.7, pierce: true, opt: Object.assign({}, opt, { status: st({ slow: 3 }), stun: 0.3 }) });
         break;
+      }
       case 'shadowstep': {
         const t = nearestMob(p.x, p.y - 6, 110, 0, null);
         R.fxSmoke(p.x, p.y - 6);
@@ -383,11 +400,12 @@
       }
       case 'poisonblade': {
         let n = 0, t = 0;
-        p.act = { dur: 0.5, update(p, dt) {
+        const hits = 5 + md.extra;
+        p.act = { dur: 0.1 * hits, update(p, dt) {
           t -= dt;
-          if (t <= 0 && n < 5) {
+          if (t <= 0 && n < hits) {
             t = 0.09; n++;
-            meleeArc(p, 24, 1.0, Object.assign({}, opt, { stun: 0.2, status: { poison: 4 } }));
+            meleeArc(p, 24, 1.0, Object.assign({}, opt, { stun: 0.2, status: st({ poison: 4 }) }));
             R.fx.push({ type: 'slash', x: p.x, y: p.y - 6, ang: p.aim + (n % 2 ? 0.3 : -0.3), arc: 0.9, r: 22, life: 0.12, max: 0.12, dir: n % 2 ? 1 : -1, color: '#9aff7a' });
             R.sfx('swing');
           }
@@ -858,28 +876,32 @@
     // 장비
     const luck = p.st.luk * 0.004;
     if (m.boss) {
-      for (let i = 0; i < 3; i++) dropAt(m.x, m.y, { kind: 'item', item: randomDrop(m.lv, R.rollGrade(0.6 + luck, i === 0 ? 2 : 1)) });
+      for (let i = 0; i < 3; i++) dropAt(m.x, m.y, { kind: 'item', item: randomDrop(m.lv, R.rollGrade(0.6 + luck, i === 0 ? 2 : 1), 0.5) });
+      R.Prog.addCoins(10 + 5 * R.REGIONS.findIndex((r) => r.boss === m.id));
       dropAt(m.x, m.y, { kind: 'mat', id: 'stone', n: 2 + R.REGIONS.findIndex((r) => r.boss === m.id) });
       if (m.lv >= 26) dropAt(m.x, m.y, { kind: 'mat', id: 'hstone', n: 1 });
     } else {
       const chance = m.elite ? 1 : 0.16;
-      if (Math.random() < chance) dropAt(m.x, m.y, { kind: 'item', item: randomDrop(m.lv, R.rollGrade(luck + (m.elite ? 0.5 : 0), m.elite ? 1 : 0)) });
+      if (Math.random() < chance) dropAt(m.x, m.y, { kind: 'item', item: randomDrop(m.lv, R.rollGrade(luck + (m.elite ? 0.5 : 0), m.elite ? 1 : 0), m.elite ? 0.25 : 0.03) });
+      if (m.elite) R.Prog.addCoins(3);
+      else if (Math.random() < 0.05) R.Prog.addCoins(1, true);
       if (Math.random() < 0.22) dropAt(m.x, m.y, { kind: 'mat', id: 'iron', n: 1 });
       if (m.lv >= 10 && Math.random() < 0.06) dropAt(m.x, m.y, { kind: 'mat', id: 'stone', n: 1 });
       if (m.lv >= 28 && Math.random() < 0.015) dropAt(m.x, m.y, { kind: 'mat', id: 'hstone', n: 1 });
       if (Math.random() < 0.08) dropAt(m.x, m.y, { kind: 'potion', id: Math.random() < 0.6 ? 'hpPotion' : 'mpPotion', n: 1 });
     }
     // 도감 & 퀘스트
+    if (!s.codex[m.id]) R.Prog.addGems(m.boss ? 50 : 10, `도감 등록: ${m.def.name}`);
     s.codex[m.id] = (s.codex[m.id] || 0) + 1;
     R.Quest.onKill(m);
     if (m.boss) R.onBossKilled(m);
   }
   R.killMob = killMob;
 
-  function randomDrop(lv, grade) {
+  function randomDrop(lv, grade, setChance = 0.03) {
     const slot = R.SLOTS[(Math.random() * R.SLOTS.length) | 0];
     const ilvl = Math.max(1, lv + ((Math.random() * 3) | 0) - 1);
-    return R.makeItem(slot, ilvl, grade, G.save.cls);
+    return R.makeItem(slot, ilvl, grade, G.save.cls, setChance);
   }
   R.randomDrop = randomDrop;
 
@@ -921,7 +943,8 @@
     if (d.kind === 'item') {
       if (s.inv.length >= 40) { R.toast('가방이 가득 찼습니다', '#ff8a8a'); return false; }
       s.inv.push(d.item);
-      R.toast(`${d.item.name} 획득`, R.GRADES[d.item.grade].color);
+      R.toast(`${d.item.name} 획득${d.item.set != null ? ` [${R.SETS[d.item.set].name} 세트]` : ''}`, R.GRADES[d.item.grade].color);
+      R.Prog.dexAdd(d.item);
       R.sfx(d.item.grade >= 2 ? 'rare' : 'pickup');
       return true;
     }
@@ -939,6 +962,8 @@
       const g = R.CLASSES[s.cls].grow;
       for (const k in g) s.stats[k] += g[k];
       s.points += 3;
+      s.sp = (s.sp || 0) + 1;
+      if (s.level % 5 === 0) R.Prog.addGems(50, `Lv.${s.level} 달성`);
       up = true;
     }
     if (up) {
@@ -1078,7 +1103,9 @@
     for (let i = 0; i < 10; i++) G.fx.push({ type: 'dust', x: x + rand(-6, 6), y: y + rand(-6, 6), vx: rand(-20, 20), vy: rand(-30, 0), life: 0.5, max: 0.5, color: i % 2 ? '#3a2a4a' : '#6a5a7a', size: 3, nograv: true });
   };
   R.fxAfterimage = function (p) {
-    G.fx.push({ type: 'ghost', x: p.x, y: p.y, dir: p.dir, face: p.faceX || 1, rot: p.lastRot || 0, anim: p.anim, life: 0.18, max: 0.18 });
+    const lp = p.lastPose;
+    G.fx.push({ type: 'ghost', x: p.x, y: p.y, dir: p.dir, face: p.faceX || 1, anim: p.anim, life: 0.18, max: 0.18,
+      pose: lp && { rot: lp.rot, center: lp.center, sx: lp.sx, sy: lp.sy, oy: lp.oy, torso: { rot: lp.torso.rot } } });
   };
   R.updateFx = function (dt) {
     for (const f of G.fx) {

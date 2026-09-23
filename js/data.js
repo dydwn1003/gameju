@@ -260,3 +260,52 @@ R.ENDINGS = {
   B: { title: 'ENDING B — 공존', text: '당신은 균열을 닫지 않기로 했다.\n하늘의 힘은 여전히 세계에 흐르고,\n사람들은 균열과 함께 살아가는 법을 배워 간다.\n당신은 그 경계를 지키는 파수꾼이 되었다.' },
   C: { title: 'ENDING C — 귀환', text: '당신은 자신이 균열을 만든 최초의 마도병기였음을 받아들였다.\n몸에 새겨진 문양이 빛으로 흩어지며 세계를 꿰맨다.\n루멘의 광장에는 이름 없는 영웅의 석상이 세워졌다.' },
 };
+
+// ─── 스킬 성장 (GDD 39·40) ───────────────────────────────
+// 스킬 레벨 1~5: 레벨당 피해 +12%, Lv4 범위 +10%, Lv5 쿨타임 -20%. 레벨업 비용 = 현재 레벨 SP
+R.SKILL_MAX = 5;
+R.skillLevelMod = (lv) => ({ dmg: 1 + 0.12 * (lv - 1), aoe: lv >= 4 ? 1.1 : 1, cdMul: lv >= 5 ? 0.8 : 1 });
+// 룬: 스킬당 3종 중 1개 장착. 던전 코인으로 해금
+R.RUNE_COST = 30;
+R.RUNES = {
+  charge:      [{ name: '돌풍', desc: '돌진 거리 +40%', mod: { dist: 1.4 } }, { name: '충격', desc: '기절 시간 +0.8초', mod: { stunAdd: 0.8 } }, { name: '분쇄', desc: '피해 +25%', mod: { dmg: 1.25 } }],
+  whirl:       [{ name: '폭풍', desc: '범위 +30%', mod: { aoe: 1.3 } }, { name: '출혈', desc: '적중 시 출혈(지속 피해)', mod: { status: { poison: 4 } } }, { name: '강철', desc: '피해 +25%', mod: { dmg: 1.25 } }],
+  multishot:   [{ name: '산탄', desc: '화살 +2발', mod: { extra: 2 } }, { name: '마비', desc: '적중 시 둔화', mod: { status: { slow: 2 } } }, { name: '정밀', desc: '피해 +25%', mod: { dmg: 1.25 } }],
+  pierce:      [{ name: '연쇄', desc: '번개 화살 +1발', mod: { extra: 1 } }, { name: '과부하', desc: '기절 +0.6초', mod: { stunAdd: 0.6 } }, { name: '고압', desc: '피해 +25%', mod: { dmg: 1.25 } }],
+  fireball:    [{ name: '대폭발', desc: '폭발 범위 +30%', mod: { aoe: 1.3 } }, { name: '업화', desc: '화상 지속 +3초·강화', mod: { status: { burn: 6 } } }, { name: '압축', desc: '피해 +25%', mod: { dmg: 1.25 } }],
+  icelance:    [{ name: '삼지창', desc: '얼음창 3갈래', mod: { extra: 2 } }, { name: '절대영도', desc: '빙결 5초 + 기절 0.5초', mod: { status: { slow: 5, stun: 0.5 } } }, { name: '예리', desc: '피해 +25%', mod: { dmg: 1.25 } }],
+  shadowstep:  [{ name: '연속 암습', desc: '쿨타임 -40%', mod: { cdMul: 0.6 } }, { name: '독 묻은 칼', desc: '적중 시 중독', mod: { status: { poison: 5 } } }, { name: '처형', desc: '피해 +25%', mod: { dmg: 1.25 } }],
+  poisonblade: [{ name: '난무', desc: '타수 +3', mod: { extra: 3 } }, { name: '맹독', desc: '중독 강화', mod: { status: { poison: 7 } } }, { name: '예리', desc: '피해 +25%', mod: { dmg: 1.25 } }],
+};
+
+// ─── 재화 (GDD 29) ───────────────────────────────────────
+// 보석: 플레이로만 획득 (실제 결제 없음). 던전 코인: 던전 파밍 전용 (룬 해금)
+R.CURRENCY = {
+  gold: { name: '골드', icon: '💰' },
+  gems: { name: '보석', icon: '💎' },
+  coins: { name: '던전 코인', icon: '🪙' },
+  honor: { name: '명예 메달', icon: '🏅' },
+};
+
+// ─── 장비 소환 (GDD 30~33) ───────────────────────────────
+R.SUMMON = { cost1: 100, cost10: 900, pity: 80, rates: [0.55, 0.30, 0.12, 0.025, 0.005] };
+
+// ─── 장비 세트 (GDD 69) ──────────────────────────────────
+// 방어구·장신구 6부위(투구·갑옷·장갑·신발·반지·목걸이)에 붙는다. 지역 티어별 1세트
+R.SET_SLOTS = ['helmet', 'armor', 'gloves', 'boots', 'ring', 'necklace'];
+R.SETS = [
+  { id: 'warden', name: '숲지기', color: '#7ad85a', bonus: { 2: { hpPct: 0.1 }, 4: { movePct: 0.08 }, 6: { atkPct: 0.15 } } },
+  { id: 'knight', name: '기사', color: '#9ab4ff', bonus: { 2: { defPct: 0.1 }, 4: { hpPct: 0.15 }, 6: { skillPct: 0.3 } } },
+  { id: 'magma', name: '용암', color: '#ff8a4a', bonus: { 2: { atkPct: 0.08 }, 4: { elemDmg: 0.2 }, 6: { crit: 0.1 } } },
+  { id: 'frost', name: '서리', color: '#8ad8ff', bonus: { 2: { defPct: 0.12 }, 4: { hpPct: 0.2 }, 6: { dmgTaken: -0.15 } } },
+  { id: 'void', name: '공허', color: '#c890ff', bonus: { 2: { atkPct: 0.12 }, 4: { critDmg: 0.4 }, 6: { skillPct: 0.4 } } },
+];
+R.MOD_TEXT = {
+  hpPct: (v) => `최대 HP +${Math.round(v * 100)}%`, defPct: (v) => `방어력 +${Math.round(v * 100)}%`, atkPct: (v) => `공격력 +${Math.round(v * 100)}%`,
+  movePct: (v) => `이동속도 +${Math.round(v * 100)}%`, skillPct: (v) => `스킬 피해 +${Math.round(v * 100)}%`, elemDmg: (v) => `속성 피해 +${Math.round(v * 100)}%`,
+  crit: (v) => `치명타 +${Math.round(v * 100)}%`, critDmg: (v) => `치명타 피해 +${Math.round(v * 100)}%`, dmgTaken: (v) => `받는 피해 ${Math.round(v * 100)}%`,
+};
+
+// ─── 장비 도감 (GDD 34) ──────────────────────────────────
+// 5종 수집마다 공격력 +1%, 최대 HP +1%
+R.DEX_STEP = 5;

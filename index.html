@@ -15,18 +15,19 @@
   <!-- HUD -->
   <div id="hud" class="hidden">
     <div class="hud-left">
-      <div class="hud-name"><span id="hud-lv">Lv.1</span> <span id="hud-cls">검투사</span></div>
-      <div class="bar hp"><div class="fill" id="hp-fill"></div><span id="hp-text">0/0</span></div>
-      <div class="bar mp"><div class="fill" id="mp-fill"></div><span id="mp-text">0/0</span></div>
-      <div class="bar exp"><div class="fill" id="exp-fill"></div></div>
-      <div class="hud-status" id="hud-status"></div>
+      <div class="hud-face"><canvas id="hud-face" width="96" height="96"></canvas><span class="hud-lvbadge" id="hud-lv">1</span></div>
+      <div class="hud-bars">
+        <div class="hud-name"><span id="hud-cls">검투사</span><span class="hud-status" id="hud-status"></span></div>
+        <div class="bar hp"><div class="fill" id="hp-fill"></div><span id="hp-text">0/0</span></div>
+        <div class="bar mp"><div class="fill" id="mp-fill"></div><span id="mp-text">0/0</span></div>
+        <div class="bar exp"><div class="fill" id="exp-fill"></div></div>
+      </div>
     </div>
     <div class="hud-right">
-      <canvas id="minimap" width="96" height="96"></canvas>
-      <div class="hud-area" id="hud-area">루멘</div>
-      <div class="hud-gold">💰 <span id="hud-gold">0</span></div>
+      <div class="mm-wrap"><canvas id="minimap" width="96" height="96"></canvas><div class="hud-area" id="hud-area">루멘</div></div>
+      <div class="hud-gold"><span>💰 <b id="hud-gold">0</b></span><span>💎 <b id="hud-gems">0</b></span></div>
     </div>
-    <button id="btn-menu" class="round-btn" aria-label="메뉴">☰</button>
+    <button id="btn-menu" class="round-btn" aria-label="메뉴"><span></span><span></span><span></span><i id="menu-dot" class="dot hidden"></i></button>
     <button id="btn-quest" class="quest-tracker" aria-label="퀘스트"></button>
   </div>
 
@@ -53,18 +54,25 @@
 
   <!-- 대화창 -->
   <div id="dialog" class="hidden">
-    <div class="dlg-name" id="dlg-name"></div>
-    <div class="dlg-text" id="dlg-text"></div>
+    <div class="dlg-face"><canvas id="dlg-face" width="120" height="120"></canvas></div>
+    <div class="dlg-main">
+      <div class="dlg-name" id="dlg-name"></div>
+      <div class="dlg-text" id="dlg-text"></div>
+    </div>
     <div class="dlg-choices" id="dlg-choices"></div>
     <div class="dlg-next" id="dlg-next">▼</div>
   </div>
 
-  <!-- 모달 패널 (메뉴/상점/대장간 등) -->
+  <!-- 메뉴 시트 (메뉴/상점/대장간 등) -->
   <div id="panel" class="hidden">
-    <div class="win">
-      <div class="win-head"><span id="panel-title">메뉴</span><button id="panel-close" class="x-btn" aria-label="닫기">✕</button></div>
-      <div class="win-tabs" id="panel-tabs"></div>
-      <div class="win-body" id="panel-body"></div>
+    <div class="sheet">
+      <header class="sheet-head">
+        <button id="panel-close" class="icon-btn" aria-label="닫기">✕</button>
+        <div class="sheet-title" id="panel-title">메뉴</div>
+        <div class="wallet" id="wallet"></div>
+      </header>
+      <div class="sheet-body" id="panel-body"></div>
+      <nav class="tabbar" id="panel-tabs"></nav>
     </div>
   </div>
   <div id="popup" class="hidden"><div class="pop" id="pop"></div></div>
@@ -110,7 +118,9 @@
 <script src="js/map.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/entities.js"></script>
+<script src="js/progression.js"></script>
 <script src="js/quest.js"></script>
+<script src="js/anim.js"></script>
 <script src="js/render.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
