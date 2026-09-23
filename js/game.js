@@ -48,13 +48,13 @@
   R.deleteSave = () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 무시 */ } };
 
   // ─── 입력 ────────────────────────────────────────────
-  const inp = (G.input = { move: { x: 0, y: 0 }, moving: false, atkHeld: false, atkPressed: false, skillPressed: [false, false, false], dodgePressed: false, potionPressed: false, mpPotionPressed: false });
-  const buf = { atk: 0, s0: 0, s1: 0, s2: 0, dodge: 0, pot: 0, mp: 0, act: 0 };
+  const inp = (G.input = { move: { x: 0, y: 0 }, moving: false, atkHeld: false, atkPressed: false, skillPressed: [false, false, false, false, false], dodgePressed: false, potionPressed: false, mpPotionPressed: false });
+  const buf = { atk: 0, s0: 0, s1: 0, s2: 0, s3: 0, s4: 0, dodge: 0, pot: 0, mp: 0, act: 0 };
   const keys = new Set();
   const stick = { x: 0, y: 0, id: null };
 
   const KEYMAP = {
-    KeyJ: 'atk', KeyZ: 'atk', KeyK: 's0', KeyX: 's0', KeyL: 's1', KeyC: 's1', KeyU: 's2', KeyV: 's2', Space: 'dodge', ShiftLeft: 'dodge', KeyQ: 'pot', KeyR: 'mp', KeyE: 'act', Enter: 'act',
+    KeyJ: 'atk', KeyZ: 'atk', KeyK: 's0', KeyX: 's0', KeyL: 's1', KeyC: 's1', KeyU: 's2', KeyV: 's2', KeyO: 's3', KeyB: 's3', KeyP: 's4', KeyN: 's4', Space: 'dodge', ShiftLeft: 'dodge', KeyQ: 'pot', KeyR: 'mp', KeyE: 'act', Enter: 'act',
   };
   window.addEventListener('keydown', (e) => {
     R.Audio.unlock();
@@ -127,6 +127,8 @@
   bindBtn('btn-s1', () => { buf.s0 = 0.25; });
   bindBtn('btn-s2', () => { buf.s1 = 0.25; });
   bindBtn('btn-s3', () => { buf.s2 = 0.25; });
+  bindBtn('btn-s4', () => { buf.s3 = 0.25; });
+  bindBtn('btn-s5', () => { buf.s4 = 0.25; });
   bindBtn('btn-dodge', () => { buf.dodge = 0.25; });
   bindBtn('btn-pot', () => { buf.pot = 0.25; });
   bindBtn('btn-mp', () => { buf.mp = 0.25; });
@@ -140,6 +142,8 @@
   bindBtn('btn-act', () => { buf.act = 0.25; });
   $('btn-menu').onclick = () => { R.sfx('ui'); if (!G.player.dead) R.UI.openMenu(); };
   $('btn-quest').onclick = () => { R.sfx('ui'); if (!G.player.dead) R.UI.openMenu('퀘스트'); };
+  // 화면 오른쪽 바로가기 아이콘: 스탯 · 장비 · 가방 · 스킬
+  document.querySelectorAll('#quick button').forEach((b) => { b.onclick = () => { R.sfx('ui'); if (!G.player.dead && !R.UI.isOpen()) R.UI.openMenu(b.dataset.tab); }; });
   document.addEventListener('contextmenu', (e) => e.preventDefault());
 
   const DIR_KEYS = { KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0], KeyW: [0, -1], ArrowUp: [0, -1], KeyS: [0, 1], ArrowDown: [0, 1] };
@@ -162,9 +166,7 @@
     inp.atkHeld = atkBtnDown || keys.has('KeyJ') || keys.has('KeyZ');
     for (const k in buf) buf[k] = Math.max(0, buf[k] - dt);
     inp.atkPressed = buf.atk > 0;
-    inp.skillPressed[0] = buf.s0 > 0;
-    inp.skillPressed[1] = buf.s1 > 0;
-    inp.skillPressed[2] = buf.s2 > 0;
+    for (let i = 0; i < 5; i++) inp.skillPressed[i] = buf['s' + i] > 0;
     inp.dodgePressed = buf.dodge > 0;
     inp.potionPressed = buf.pot > 0;
     inp.mpPotionPressed = buf.mp > 0;
@@ -172,12 +174,10 @@
   function consumeInput() {
     const p = G.player;
     if (p.state === 'attack' && p.stateT === 0) buf.atk = 0;
-    if (p.state === 'skill' && p.stateT === 0) { buf.s0 = 0; buf.s1 = 0; buf.s2 = 0; }
+    if (p.state === 'skill' && p.stateT === 0) { for (let i = 0; i < 5; i++) buf['s' + i] = 0; }
     if (p.state === 'dodge' && p.stateT === 0) buf.dodge = 0;
     if (p.potionCd > 0.9) { buf.pot = 0; buf.mp = 0; }
-    if (p.skillCd[0] > 0) buf.s0 = 0;
-    if (p.skillCd[1] > 0) buf.s1 = 0;
-    if (p.skillCd[2] > 0) buf.s2 = 0;
+    for (let i = 0; i < 5; i++) if (p.skillCd[i] > 0) buf['s' + i] = 0;
   }
 
   // ─── 맵 전환 ─────────────────────────────────────────

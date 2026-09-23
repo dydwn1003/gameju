@@ -149,6 +149,7 @@
   function advance(id) {
     const s = G.save;
     s.adv = id;
+    R.advanceSlots(s);
     R.refreshStats();
     R.UI.banner(`2차 전직 : ${R.ADVANCES[id].name}`, '#ffb0ff');
     R.sfx('levelup');

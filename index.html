@@ -29,6 +29,12 @@
     </div>
     <button id="btn-menu" class="round-btn" aria-label="메뉴"><span></span><span></span><span></span><i id="menu-dot" class="dot hidden"></i></button>
     <button id="btn-quest" class="quest-tracker" aria-label="퀘스트"></button>
+    <div id="quick" class="quick">
+      <button data-tab="캐릭터" aria-label="스탯"><span>👤</span><small>스탯</small><i class="dot hidden" id="q-dot-stat"></i></button>
+      <button data-tab="장비" aria-label="장비"><span>⚔️</span><small>장비</small></button>
+      <button data-tab="가방" aria-label="가방"><span>🎒</span><small>가방</small></button>
+      <button data-tab="스킬" aria-label="스킬"><span>✨</span><small>스킬</small><i class="dot hidden" id="q-dot-skill"></i></button>
+    </div>
   </div>
 
   <div id="boss-bar" class="hidden">
@@ -51,7 +57,9 @@
       <button class="cbtn atk" id="btn-atk"><span class="lbl">공격</span></button>
       <button class="cbtn s1" id="btn-s1"><span class="ico" id="s1-ico">✦</span><span class="lbl" id="s1-lbl">스킬1</span><span class="cd" id="s1-cd"></span></button>
       <button class="cbtn s2" id="btn-s2"><span class="ico" id="s2-ico">✦</span><span class="lbl" id="s2-lbl">스킬2</span><span class="cd" id="s2-cd"></span></button>
-      <button class="cbtn s3 hidden" id="btn-s3"><span class="ico" id="s3-ico">✦</span><span class="lbl" id="s3-lbl">궁극기</span><span class="cd" id="s3-cd"></span></button>
+      <button class="cbtn s3" id="btn-s3"><span class="ico" id="s3-ico">✦</span><span class="lbl" id="s3-lbl">스킬3</span><span class="cd" id="s3-cd"></span></button>
+      <button class="cbtn s4" id="btn-s4"><span class="ico" id="s4-ico">✦</span><span class="lbl" id="s4-lbl">스킬4</span><span class="cd" id="s4-cd"></span></button>
+      <button class="cbtn s5 hidden" id="btn-s5"><span class="ico" id="s5-ico">✦</span><span class="lbl" id="s5-lbl">궁극기</span><span class="cd" id="s5-cd"></span></button>
       <button class="cbtn dodge" id="btn-dodge"><span class="lbl">회피</span><span class="cd" id="dodge-cd"></span></button>
       <button class="cbtn pot" id="btn-pot"><span class="ico">🧪</span><span class="cnt" id="pot-cnt">0</span><span class="cd" id="pot-cd"></span></button>
       <button class="cbtn pot mp" id="btn-mp"><span class="ico">💧</span><span class="cnt" id="mp-cnt">0</span><span class="cd" id="mp-cd"></span></button>

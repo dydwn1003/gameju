@@ -217,9 +217,13 @@
     if (hudCache.st !== sh) { hudCache.st = sh; $('hud-status').innerHTML = sh; }
     // 메뉴 알림 점 (스탯/스킬 포인트)
     const dot = (s.points > 0 || (s.sp || 0) > 0);
-    if (hudCache.dot !== dot) { hudCache.dot = dot; $('menu-dot').classList.toggle('hidden', !dot); }
+    if (hudCache.dot !== dot) {
+      hudCache.dot = dot; $('menu-dot').classList.toggle('hidden', !dot);
+      $('q-dot-stat').classList.toggle('hidden', !(s.points > 0)); $('q-dot-skill').classList.toggle('hidden', !((s.sp || 0) > 0));
+    }
     // 스킬 쿨타임
     R.skillIds(s).forEach((id, i) => {
+      if (!id) return;
       const sk = R.SKILLS[id];
       const cdMax = sk.cd * R.Prog.skillMod(id).cdMul;
       const v = (p.skillCd[i] > 0 ? (p.skillCd[i] / cdMax) * 100 : 0).toFixed(0) + '%';
@@ -258,12 +262,16 @@
     }
   };
   UI.resetHudCache = () => { for (const k in hudCache) delete hudCache[k]; };
+  // 스킬 버튼 5개: 슬롯 4개 + 궁극기. 빈 슬롯은 흐리게
   UI.setSkillButtons = function () {
     R.skillIds(G.save).forEach((id, i) => {
-      $(`s${i + 1}-ico`).textContent = R.SKILLS[id].icon;
-      $(`s${i + 1}-lbl`).textContent = R.SKILLS[id].name;
+      const b = $(`btn-s${i + 1}`);
+      b.classList.toggle('empty', !id);
+      $(`s${i + 1}-ico`).textContent = id ? R.SKILLS[id].icon : '＋';
+      $(`s${i + 1}-lbl`).textContent = id ? R.SKILLS[id].name : '빈 슬롯';
     });
-    $('btn-s3').classList.toggle('hidden', !G.save.adv);
+    $('btn-s5').classList.toggle('hidden', !G.save.adv);
+    for (const k in hudCache) if (/^(cd|nm)\d/.test(k)) delete hudCache[k];
     UI.drawFace();
   };
   UI.setArea = (t) => { $('hud-area').textContent = t; };
@@ -315,7 +323,7 @@
   };
 
   // ─── 메뉴 시트 ───────────────────────────────────────
-  const TAB_ICON = { 캐릭터: '👤', 장비: '🎒', 스킬: '✨', 소환: '💎', 퀘스트: '📜', 도감: '📖', 설정: '⚙️' };
+  const TAB_ICON = { 캐릭터: '👤', 장비: '⚔️', 가방: '🎒', 스킬: '✨', 소환: '💎', 퀘스트: '📜', 도감: '📖', 설정: '⚙️' };
   let panelState = null;
   function wallet() {
     const s = G.save;
@@ -435,12 +443,48 @@
   }
 
   // ─── 메인 메뉴 ───────────────────────────────────────
-  const MENU_TABS = ['캐릭터', '장비', '스킬', '소환', '퀘스트', '도감', '설정'];
+  const MENU_TABS = ['캐릭터', '장비', '가방', '스킬', '소환', '퀘스트', '도감', '설정'];
   UI.openMenu = function (tab) { UI.openPanel('메뉴', MENU_TABS, renderMenu, tab); };
   let invFilter = 'all', dexMode = 'mon';
 
   function renderMenu(body, tab) {
     const s = G.save, p = G.player, st = p.st, cls = R.CLASSES[s.cls];
+    // 장비 목록 (장비·가방 탭 공용)
+    const invSection = () => {
+      const filters = { all: '전체', weapon: '무기', armor: '방어구', acc: '장신구' };
+      const pass = (it) => invFilter === 'all' || (invFilter === 'weapon' && it.slot === 'weapon') || (invFilter === 'armor' && ['helmet', 'armor', 'gloves', 'boots'].includes(it.slot)) || (invFilter === 'acc' && ['ring', 'necklace', 'earring'].includes(it.slot));
+      const list = s.inv.map((it, i) => ({ it, i })).filter((o) => pass(o.it));
+      return `<section class="card">
+          <div class="card-h">가방 <span class="pill">${s.inv.length}/40</span><button class="btn xs ghost" data-a="sort">정렬</button></div>
+          <div class="chips">${Object.entries(filters).map(([k, v]) => `<button class="fchip ${invFilter === k ? 'on' : ''}" data-a="filter" data-v="${k}">${v}</button>`).join('')}</div>
+          <div class="inv">${list.map(({ it, i }) => { const cur = s.equip[it.slot]; const better = mainVal(it) > mainVal(cur); return cell(it, `data-a="inv" data-v="${i}"`, better ? '<span class="up-mark">▲</span>' : ''); }).join('')}${Array(Math.max(0, 24 - list.length)).fill('<div class="cell empty"></div>').join('')}</div>
+        </section>`;
+    };
+    const invActs = () => ({
+      inv: (i) => {
+        const it = s.inv[i];
+        const cur = s.equip[it.slot];
+        popup(itemCard(it, cur) + `<div class="row-btns"><button class="btn gold" data-a="eq">장착</button><button class="btn danger" data-a="drop">버리기</button><button class="btn ghost" data-a="x">닫기</button></div>`,
+          (r) => bindActs(r, { eq: () => { equip(it); closePopup(); UI.refreshPanel(); }, drop: () => { s.inv.splice(s.inv.indexOf(it), 1); closePopup(); UI.refreshPanel(); }, x: closePopup }), false, 'sheet-pop');
+      },
+      sort: () => { s.inv.sort((a, b) => b.grade - a.grade || R.SLOTS.indexOf(a.slot) - R.SLOTS.indexOf(b.slot) || b.ilvl - a.ilvl); UI.refreshPanel(); },
+      filter: (k) => { invFilter = k; UI.refreshPanel(); },
+    });
+    const matsSection = () => `<section class="card">
+          <div class="card-h">재료 · 소비 아이템</div>
+          <div class="mats">
+            ${Object.keys(R.MATERIALS).map((k) => `<div class="mat"><span>${R.MATERIALS[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.MATERIALS[k].name}</small></div>`).join('')}
+            ${Object.keys(R.CONSUMABLES).map((k) => `<div class="mat"><span>${R.CONSUMABLES[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.CONSUMABLES[k].name}</small></div>`).join('')}
+            ${Object.keys(R.GATHER).map((k) => `<div class="mat"><span>${R.GATHER[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.GATHER[k].name}</small></div>`).join('')}
+            ${Object.keys(R.FOODS).map((k) => `<div class="mat"><span>${R.FOODS[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.FOODS[k].name}</small></div>`).join('')}
+            <div class="mat"><span>🏅</span><b>${s.honor || 0}</b><small>명예 메달</small></div>
+          </div>
+          <div class="row-btns">
+          ${s.bag.hpPotion ? '<button class="btn ghost" data-a="hp">🧪 빨간 물약 사용</button>' : ''}
+          ${s.bag.mpPotion ? '<button class="btn ghost" data-a="mp">💧 파란 물약 사용</button>' : ''}
+          ${Object.keys(R.FOODS).filter((k) => s.bag[k]).map((k) => `<button class="btn gold" data-a="eat" data-v="${k}">${R.FOODS[k].icon} ${R.FOODS[k].name} 먹기</button>`).join('')}
+          </div>
+        </section>`;
     if (tab === '캐릭터') {
       const need = R.expToNext(s.level);
       const stats = ['str', 'dex', 'int', 'vit', 'luk'];
@@ -491,77 +535,71 @@
           <div class="card-h">동행 펫 <span class="pill">${(s.pets || []).length}/${R.PETS.length}</span></div>
           ${(s.pets || []).length ? `<div class="pets">${R.PETS.filter((d) => s.pets.includes(d.id)).map((d) => `<button class="pet ${s.pet === d.id ? 'on' : ''}" data-a="pet" data-v="${d.id}"><span class="pet-art" data-k="${d.id}"></span><b>${d.name}</b><small>${d.desc}</small>${s.pet === d.id ? '<i>동행 중</i>' : ''}</button>`).join('')}</div>` : '<div class="muted">마을 광장의 수상한 상인 모르에게서 펫을 데려올 수 있습니다.</div>'}
         </section>
-        <section class="card">
-          <div class="card-h">가방 · 재료</div>
-          <div class="mats">
-            ${Object.keys(R.MATERIALS).map((k) => `<div class="mat"><span>${R.MATERIALS[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.MATERIALS[k].name}</small></div>`).join('')}
-            ${Object.keys(R.CONSUMABLES).map((k) => `<div class="mat"><span>${R.CONSUMABLES[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.CONSUMABLES[k].name}</small></div>`).join('')}
-            ${Object.keys(R.GATHER).map((k) => `<div class="mat"><span>${R.GATHER[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.GATHER[k].name}</small></div>`).join('')}
-            ${Object.keys(R.FOODS).map((k) => `<div class="mat"><span>${R.FOODS[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.FOODS[k].name}</small></div>`).join('')}
-            <div class="mat"><span>🏅</span><b>${s.honor || 0}</b><small>명예 메달</small></div>
-          </div>
-          <div class="row-btns">
-          ${s.bag.mpPotion ? '<button class="btn ghost" data-a="mp">💧 파란 물약 사용</button>' : ''}
-          ${Object.keys(R.FOODS).filter((k) => s.bag[k]).map((k) => `<button class="btn gold" data-a="eat" data-v="${k}">${R.FOODS[k].icon} ${R.FOODS[k].name} 먹기</button>`).join('')}
-          </div>
-        </section>`;
+        <section class="card"><button class="btn wide ghost" data-a="bag">🎒 가방 · 재료 · 소비 아이템 보기</button></section>`;
       $('hero-art').appendChild(spriteCanvas(playerKey(), 240, 270, 'hero-cv'));
       body.querySelectorAll('.pet-art').forEach((el) => el.appendChild(spriteCanvas(el.dataset.k, 84, 66, 'pet-cv')));
       bindActs(body, {
         stat: (k) => { if (s.points <= 0) return; s.points--; s.stats[k]++; R.refreshStats(); UI.refreshPanel(); },
         mp: () => { R.usePotion('mpPotion'); UI.refreshPanel(); },
         eat: (k) => { R.Prog.eat(k); UI.refreshPanel(); },
+        bag: () => UI.openMenu('가방'),
         title: (id) => { R.Season.setTitle(id); UI.refreshPanel(); },
         pet: (id) => { R.Prog.setPet(id); R.spawnPet(); UI.refreshPanel(); },
       });
     } else if (tab === '장비') {
       const slotCell = (sl) => { const it = s.equip[sl]; return it ? `<div class="doll-slot">${cell(it, `data-a="eq" data-v="${sl}"`)}<small>${R.SLOT_NAME[sl]}</small></div>` : `<div class="doll-slot"><div class="cell empty">${R.SLOT_ICON[sl]}</div><small>${R.SLOT_NAME[sl]}</small></div>`; };
       const L = ['weapon', 'helmet', 'armor', 'gloves'], Rr = ['boots', 'ring', 'necklace', 'earring'];
-      const filters = { all: '전체', weapon: '무기', armor: '방어구', acc: '장신구' };
-      const pass = (it) => invFilter === 'all' || (invFilter === 'weapon' && it.slot === 'weapon') || (invFilter === 'armor' && ['helmet', 'armor', 'gloves', 'boots'].includes(it.slot)) || (invFilter === 'acc' && ['ring', 'necklace', 'earring'].includes(it.slot));
-      const list = s.inv.map((it, i) => ({ it, i })).filter((o) => pass(o.it));
       body.innerHTML = `
         <section class="doll">
           <div class="doll-col">${L.map(slotCell).join('')}</div>
           <div class="doll-mid"><div id="doll-art"></div><div class="power sm"><small>전투 지표</small>${fmt(power())}</div></div>
           <div class="doll-col">${Rr.map(slotCell).join('')}</div>
         </section>
-        <section class="card">
-          <div class="card-h">가방 <span class="pill">${s.inv.length}/40</span><button class="btn xs ghost" data-a="sort">정렬</button></div>
-          <div class="chips">${Object.entries(filters).map(([k, v]) => `<button class="fchip ${invFilter === k ? 'on' : ''}" data-a="filter" data-v="${k}">${v}</button>`).join('')}</div>
-          <div class="inv">${list.map(({ it, i }) => { const cur = s.equip[it.slot]; const better = mainVal(it) > mainVal(cur); return cell(it, `data-a="inv" data-v="${i}"`, better ? '<span class="up-mark">▲</span>' : ''); }).join('')}${Array(Math.max(0, 24 - list.length)).fill('<div class="cell empty"></div>').join('')}</div>
-        </section>`;
+        ${invSection()}`;
       $('doll-art').appendChild(spriteCanvas(playerKey(), 200, 240, 'doll-cv'));
       bindActs(body, {
         eq: (sl) => { const it = s.equip[sl]; popup(itemCard(it) + `<div class="row-btns"><button class="btn ghost" data-a="un">해제</button><button class="btn" data-a="x">닫기</button></div>`, (r) => bindActs(r, { un: () => { unequip(sl); closePopup(); UI.refreshPanel(); }, x: closePopup }), false, 'sheet-pop'); },
-        inv: (i) => {
-          const it = s.inv[i];
-          const cur = s.equip[it.slot];
-          popup(itemCard(it, cur) + `<div class="row-btns"><button class="btn gold" data-a="eq">장착</button><button class="btn danger" data-a="drop">버리기</button><button class="btn ghost" data-a="x">닫기</button></div>`,
-            (r) => bindActs(r, { eq: () => { equip(it); closePopup(); UI.refreshPanel(); }, drop: () => { s.inv.splice(s.inv.indexOf(it), 1); closePopup(); UI.refreshPanel(); }, x: closePopup }), false, 'sheet-pop');
-        },
-        sort: () => { s.inv.sort((a, b) => b.grade - a.grade || R.SLOTS.indexOf(a.slot) - R.SLOTS.indexOf(b.slot) || b.ilvl - a.ilvl); UI.refreshPanel(); },
-        filter: (k) => { invFilter = k; UI.refreshPanel(); },
+        ...invActs(),
       });
+    } else if (tab === '가방') {
+      body.innerHTML = invSection() + matsSection();
+      bindActs(body, Object.assign(invActs(), {
+        mp: () => { R.usePotion('mpPotion'); UI.refreshPanel(); },
+        hp: () => { R.usePotion('hpPotion'); UI.refreshPanel(); },
+        eat: (k) => { R.Prog.eat(k); UI.refreshPanel(); },
+      }));
     } else if (tab === '스킬') {
       const combo = R.COMBO_STEPS.map((c, i) => `<span class="cstep"><b>${i + 1}타</b>${c.name}<em>${Math.round(c.rate * 100)}%</em></span>`).join('<span class="arr">›</span>');
       body.innerHTML = `
         <section class="card sp-card"><div class="card-h">스킬 포인트 <span class="pill ${s.sp ? 'hot' : ''}">SP ${s.sp || 0}</span></div>
           <div class="muted">레벨업마다 SP 1 · 스킬 레벨당 피해 +12% · Lv.4 범위 +10% · Lv.5 쿨타임 -20%</div></section>
-        ${R.skillIds(s).map((id, i) => {
-          const k = R.SKILLS[id], lv = R.Prog.skillLv(id), md = R.Prog.skillMod(id), rs = R.Prog.runeState(id);
-          const cost = R.Prog.skillUpCost(id);
-          return `<section class="card skill">
-            <div class="sk-top"><div class="sk-ico ${k.ult ? 'ult' : ''}">${k.icon}<small>${k.ult ? '궁극기' : `스킬${i + 1}`}</small></div>
+        ${(() => {
+          const ids = R.skillIds(s), learned = R.learnedSkills(s);
+          const slotBar = `<section class="card slot-card"><div class="card-h">스킬 슬롯 <span class="muted">버튼 순서 · 스킬 카드의 [장착]으로 바꾸기</span></div><div class="slots">${ids.map((id, i) => {
+            if (i === 4 && !s.adv) return '';
+            const k = id && R.SKILLS[id];
+            return `<div class="slot ${i === 4 ? 'ult' : ''} ${k ? '' : 'empty'}"><em>${i === 4 ? '궁극' : ['K', 'L', 'U', 'O'][i]}</em><span>${k ? k.icon : '＋'}</span><small>${k ? k.name : '빈 슬롯'}</small></div>`;
+          }).join('')}</div></section>`;
+          const card = (id) => {
+            const k = R.SKILLS[id], lv = R.Prog.skillLv(id), md = R.Prog.skillMod(id), rs = R.Prog.runeState(id);
+            const cost = R.Prog.skillUpCost(id), has = learned.includes(id), slot = ids.indexOf(id);
+            const need = R.skillUnlockLv(s, id);
+            return `<section class="card skill ${has ? '' : 'locked'}">
+            <div class="sk-top"><div class="sk-ico ${k.ult ? 'ult' : ''}">${k.icon}<small>${k.ult ? '궁극기' : slot >= 0 ? `슬롯${slot + 1}` : has ? '미장착' : `Lv.${need}`}</small></div>
               <div class="sk-info"><div class="sk-name">${k.name} <span class="elem">${R.ELEM[k.elem].icon}</span></div>
                 <div class="pips">${Array.from({ length: R.SKILL_MAX }, (_, j) => `<i class="${j < lv ? 'on' : ''}"></i>`).join('')}<em>Lv.${lv}</em></div>
                 <div class="muted">${k.desc}</div></div>
-              <button class="btn xs gold" data-a="up" data-v="${id}" ${lv < R.SKILL_MAX && (s.sp || 0) >= cost ? '' : 'disabled'}>${lv >= R.SKILL_MAX ? 'MAX' : `강화<br><small>SP ${cost}</small>`}</button></div>
-            <div class="sk-stats"><span>피해 <b>${Math.round(k.rate * md.dmg * 100)}%</b></span><span>MP <b>${R.skillCost(k, s.level)}</b></span><span>쿨타임 <b>${(k.cd * md.cdMul).toFixed(1)}s</b></span>${md.aoe > 1 ? `<span>범위 <b>+${Math.round((md.aoe - 1) * 100)}%</b></span>` : ''}</div>
-            ${k.ult ? '<div class="muted">2차 전직 전용 궁극기 · [U] 키 / 보라색 버튼</div>' : ''}<div class="runes">${(R.RUNES[id] || []).map((r, j) => `<button class="rune ${rs.eq === j ? 'eq' : ''} ${rs.owned[j] ? 'own' : 'lock'}" data-a="rune" data-v="${id}:${j}">
-              <b>${'ABC'[j]}</b><span>${r.name}</span><small>${r.desc}</small><em>${rs.eq === j ? '장착 중' : rs.owned[j] ? '장착' : `🪙 ${R.RUNE_COST}`}</em></button>`).join('')}</div>
+              <div class="sk-btns">${has && !k.ult ? `<button class="btn xs ${slot >= 0 ? 'ghost' : ''}" data-a="slot" data-v="${id}">${slot >= 0 ? '위치 변경' : '장착'}</button>` : ''}
+              ${has ? `<button class="btn xs gold" data-a="up" data-v="${id}" ${lv < R.SKILL_MAX && (s.sp || 0) >= cost ? '' : 'disabled'}>${lv >= R.SKILL_MAX ? 'MAX' : `강화 · SP ${cost}`}</button>` : `<span class="lockt">🔒 Lv.${need}</span>`}</div></div>
+            <div class="sk-stats">${k.rate ? `<span>피해 <b>${Math.round(k.rate * md.dmg * 100)}%</b></span>` : ''}<span>MP <b>${R.skillCost(k, s.level)}</b></span><span>쿨타임 <b>${(k.cd * md.cdMul).toFixed(1)}s</b></span>${md.aoe > 1 ? `<span>범위 <b>+${Math.round((md.aoe - 1) * 100)}%</b></span>` : ''}</div>
+            ${k.ult ? '<div class="muted">2차 전직 전용 궁극기 · [P] 키 / 보라색 버튼</div>' : ''}<div class="runes">${has ? (R.RUNES[id] || []).map((r, j) => `<button class="rune ${rs.eq === j ? 'eq' : ''} ${rs.owned[j] ? 'own' : 'lock'}" data-a="rune" data-v="${id}:${j}">
+              <b>${'ABC'[j]}</b><span>${r.name}</span><small>${r.desc}</small><em>${rs.eq === j ? '장착 중' : rs.owned[j] ? '장착' : `🪙 ${R.RUNE_COST}`}</em></button>`).join('') : ''}</div>
           </section>`;
-        }).join('')}
+          };
+          const base = cls.skills, adv = s.adv ? [...R.ADV_SKILLS[s.adv], R.ADV_SKILL[s.adv]] : [];
+          return slotBar + (adv.length ? `<div class="sk-group">✦ ${R.ADVANCES[s.adv].name} 스킬</div>` + adv.map(card).join('') : '') +
+            `<div class="sk-group">${cls.name} 스킬${s.adv ? ' <small>슬롯에 넣어 계속 쓸 수 있어요</small>' : ''}</div>` + base.map(card).join('');
+        })()}
         <section class="card link-card"><div class="card-h">스킬 연계</div>
           <div class="link-flow"><span>공격</span><i>›</i><span>3타 마무리</span><i>›</i><span class="l1">스킬 A</span><i>›</i><span class="l2">스킬 B</span><i>›</i><span class="l3">스킬 C</span></div>
           <div class="muted">· 기본 공격이 맞으면 MP ${Math.round(R.REGEN.mpOnHit * 100)}% 회복 → 스킬로 이어가세요<br>· 공격이 적중한 뒤엔 스킬로 후딜을 끊을 수 있고, 스킬 후반엔 <b>다른 스킬</b>로 바로 이어집니다<br>· 스킬이 끝나고 ${R.LINK.window}초 안에 다른 스킬 → 연계 단계 +1 (최대 ${R.LINK.max}): 단계마다 피해 +${R.LINK.dmg * 100}%, MP -15%<br>· 3타 마무리 직후 스킬은 "콤보 연계"로 1단계부터 시작 (+${R.LINK.finisherBonus * 100}%)<br>· 같은 스킬을 반복하면 연계가 끊깁니다</div></section>
@@ -571,10 +609,25 @@
           <div class="card-h" style="margin-top:2cqw">속성 상성 +25%</div><div class="muted">🔥 화염 › 🌿 자연 › ⚡ 번개 › ❄ 냉기 › 🔥 화염 · 🌑 암흑 ↔ 🌑 암흑</div></section>
         <section class="card"><div class="card-h">2차 전직 · Lv.30</div>
           <div class="advs">${cls.adv.map((a) => `<div class="adv ${s.adv === a ? 'on' : s.adv ? 'off' : ''}">${R.SPR.frame(a) ? '<span data-adv="' + a + '"></span>' : ''}<b>${R.ADVANCES[a].name}</b><small>${R.ADVANCES[a].desc}</small><small class="adv-ult">${R.SKILLS[R.ADV_SKILL[a]].icon} ${R.SKILLS[R.ADV_SKILL[a]].name}</small></div>`).join('')}</div>
-          ${!s.adv ? '<div class="muted">Lv.30 달성 후 촌장 엘든에게 말을 걸면 전직할 수 있습니다. 전직하면 전용 궁극기가 열립니다.</div>' : ''}</section>`;
+          ${!s.adv ? '<div class="muted">Lv.30 달성 후 촌장 엘든에게 말을 걸면 전직할 수 있습니다. 전직하면 새 스킬 3개와 궁극기가 열리고, 기존 스킬 중 1개를 슬롯에 남겨 계속 쓸 수 있습니다.</div>' : ''}</section>`;
       body.querySelectorAll('[data-adv]').forEach((el) => el.replaceWith(spriteCanvas(el.dataset.adv, 120, 120, 'adv-cv')));
       bindActs(body, {
         up: (id) => { if (R.Prog.levelUpSkill(id)) { R.toast(`${R.SKILLS[id].name} Lv.${R.Prog.skillLv(id)}`, '#ffe070'); UI.refreshPanel(); } },
+        slot: (id) => {
+          const ids = R.ensureSlots(s);
+          popup(`<div class="slot-pick"><div class="ic-name">${R.SKILLS[id].icon} ${R.SKILLS[id].name} — 어느 슬롯에 넣을까요?</div>
+            <div class="slots">${ids.map((sid, i) => `<button class="slot ${sid ? '' : 'empty'} ${sid === id ? 'cur' : ''}" data-a="to" data-v="${i}"><em>${['K', 'L', 'U', 'O'][i]}</em><span>${sid ? R.SKILLS[sid].icon : '＋'}</span><small>${sid ? R.SKILLS[sid].name : '빈 슬롯'}</small></button>`).join('')}</div>
+            <div class="row-btns"><button class="btn ghost" data-a="x">취소</button></div></div>`, (r) => bindActs(r, {
+            to: (v) => {
+              const ids = R.ensureSlots(s), i = +v, from = ids.indexOf(id);
+              if (from >= 0) ids[from] = ids[i];     // 이미 다른 슬롯에 있으면 서로 자리 바꿈
+              ids[i] = id;
+              closePopup(); UI.setSkillButtons(); UI.refreshPanel(); R.saveGame();
+              R.toast(`${R.SKILLS[id].name} → 슬롯 ${i + 1}`, '#ffe070');
+            },
+            x: closePopup,
+          }), false, 'sheet-pop');
+        },
         rune: (v) => {
           const [id, j] = v.split(':'); const rs = R.Prog.runeState(id);
           if (rs.owned[+j]) { R.Prog.equipRune(id, +j); UI.refreshPanel(); return; }

@@ -116,7 +116,7 @@
   R.createPlayer = function (save, x, y) {
     const p = {
       x, y, r: 5, vx: 0, vy: 0, z: 0, dir: 'down', aim: Math.PI / 2, state: 'idle', stateT: 0,
-      comboStep: 0, comboWindow: 0, hitDone: false, iframes: 0, dodgeCd: 0, skillCd: [0, 0, 0], potionCd: 0, guardT: 0,
+      comboStep: 0, comboWindow: 0, hitDone: false, iframes: 0, dodgeCd: 0, skillCd: [0, 0, 0, 0, 0], potionCd: 0, guardT: 0, buffs: [],
       flash: 0, anim: 0, status: {}, dead: false, deadT: 0, act: null, hazardT: 0,
     };
     p.st = R.computeStats(save);
@@ -190,9 +190,9 @@
     p.iframes = Math.max(0, p.iframes - dt);
     p.dodgeCd = Math.max(0, p.dodgeCd - dt);
     p.potionCd = Math.max(0, p.potionCd - dt);
-    p.skillCd[0] = Math.max(0, p.skillCd[0] - dt);
-    p.skillCd[1] = Math.max(0, p.skillCd[1] - dt);
-    p.skillCd[2] = Math.max(0, (p.skillCd[2] || 0) - dt);
+    for (let i = 0; i < p.skillCd.length; i++) p.skillCd[i] = Math.max(0, (p.skillCd[i] || 0) - dt);
+    // 스킬 버프 만료
+    if (p.buffs && p.buffs.length) p.buffs = p.buffs.filter((b) => (b.t -= dt) > 0);
     p.guardT = Math.max(0, (p.guardT || 0) - dt);
     updateJobs(dt);
     p.flash = Math.max(0, p.flash - dt);
@@ -274,16 +274,14 @@
     // ─── 칸 이동 (상하좌우 4방향) ───
     const mv = inp.move;
     const want = Math.hypot(mv.x, mv.y) > 0.3 ? Gd.dirOf(mv.x, mv.y) : null;
-    const stepDur = TS / (p.st.moveSpd * speedMul);
+    const stepDur = TS / (p.st.moveSpd * speedMul * (1 + R.pbuf(p, 'move')));
     const ox = p.x, oy = p.y;
     // 스킬·넉백 등으로 칸 중심에서 벗어났으면 가장 가까운 빈 칸으로 정렬
     if (!p.step && (Math.abs(p.x - Gd.cx(p.gx)) > 0.5 || Math.abs(p.y - Gd.cy(p.gy)) > 0.5)) Gd.snap(p);
     if (p.step) {
       // 이동 중 입력은 도착 후 실행 (선입력)
       if (inp.dodgePressed && p.dodgeCd <= 0) p.queued = 'dodge';
-      else if (inp.skillPressed[0]) p.queued = 's0';
-      else if (inp.skillPressed[1]) p.queued = 's1';
-      else if (inp.skillPressed[2]) p.queued = 's2';
+      else if (skillInput(inp) >= 0) p.queued = 's' + skillInput(inp);
       else if (inp.atkPressed && !p.queued) p.queued = 'atk';
       const arrived = Gd.update(p, dt);
       p.vx = (p.x - ox) / Math.max(dt, 1e-3); p.vy = (p.y - oy) / Math.max(dt, 1e-3);
@@ -304,9 +302,8 @@
 
     // 행동
     if ((inp.dodgePressed || q === 'dodge') && p.dodgeCd <= 0) return startDodge(p);
-    if (inp.skillPressed[0] || q === 's0') { castSkill(p, 0); if (p.state === 'skill') return; }
-    else if (inp.skillPressed[1] || q === 's1') { castSkill(p, 1); if (p.state === 'skill') return; }
-    else if ((inp.skillPressed[2] || q === 's2') && G.save.adv) { castSkill(p, 2); if (p.state === 'skill') return; }
+    const si = skillInput(inp) >= 0 ? skillInput(inp) : q && q[0] === 's' ? +q[1] : -1;
+    if (si >= 0) { castSkill(p, si); if (p.state === 'skill') return; }
     else if (((inp.atkPressed || inp.atkHeld || q === 'atk') && !G.interact) || (auto && auto.attack)) { startAttack(p, cls); return; }
 
     if (mdir && Gd.tryStep(p, mdir, stepDur)) {
@@ -556,7 +553,15 @@
     if (chain) R.fx.push({ type: 'ring', x: p.x, y: p.y - 8, r0: 6, r1: 18 + chain * 6, life: 0.3, max: 0.3, color: chain >= 3 ? '#ffb040' : '#c9a2ff', w: 2 });
     return true;
   }
-  const skillInput = (inp) => (inp.skillPressed[0] ? 0 : inp.skillPressed[1] ? 1 : inp.skillPressed[2] && G.save.adv ? 2 : -1);
+  const skillInput = (inp) => { for (let i = 0; i < 5; i++) if (inp.skillPressed[i] && (i < 4 || G.save.adv)) return i; return -1; };
+  // 스킬 버프 합산 (atk, dmgTaken, move, crit)
+  R.pbuf = (p, k) => { let v = 0; if (p && p.buffs) for (const b of p.buffs) v += b.mods[k] || 0; return v; };
+  function addBuff(p, id, dur, mods, color) {
+    p.buffs = (p.buffs || []).filter((b) => b.id !== id);
+    p.buffs.push({ id, t: dur, max: dur, mods, color });
+    R.fx.push({ type: 'ring', x: p.x, y: p.y - 8, r0: 20, r1: 6, life: 0.4, max: 0.4, color: color || '#ffe070', w: 3 });
+    for (let i = 0; i < 12; i++) R.fx.push({ type: 'dust', x: p.x + rand(-7, 7), y: p.y, vx: rand(-8, 8), vy: rand(-70, -30), life: 0.7, max: 0.7, color: color || '#ffe070', size: 2, nograv: true });
+  }
 
   // ─── 예약 작업 (궁극기 지연 피해·덫) ─────────────────
   // job.update(dt) 가 false 를 반환하면 제거
@@ -594,8 +599,143 @@
     p.dir = Gd.dirOf(t.x - p.x, t.y - p.y); p.aim = Gd.ANG[p.dir];
   }
 
+  // ─── 데이터형 스킬 (R.SKILLS 의 type 으로 동작) ──────────
+  const ELC = { FIRE: '#ff8a3a', ICE: '#9ad8ff', THUNDER: '#ffe86a', NATURE: '#9aff7a', DARK: '#c890ff', NONE: '#ffffff' };
+  function genericSkill(p, sk, opt, md, aoe, st) {
+    const col = sk.color || ELC[sk.elem] || '#ffffff';
+    const o = Object.assign({}, opt, { stun: (sk.stun || 0.3) + md.stunAdd, down: !!sk.down, status: sk.status || md.status ? st(sk.status) : undefined, forceCrit: !!sk.forceCrit });
+    const cx = Math.cos(p.aim), cy = Math.sin(p.aim);
+    const healOn = (n) => { if (sk.heal && n) { const h = Math.round(p.st.maxHp * sk.heal * n); p.hp = Math.min(p.st.maxHp, p.hp + h); R.addNum(p.x, p.y - 26, '+' + h, '#7fffa0', 1); } };
+    switch (sk.type) {
+      case 'cone': {
+        const hits = sk.hits || 1, range = (sk.reach || 1) * TS + 6;
+        let n = 0, t = 0;
+        p.act = { dur: 0.22 + hits * 0.1, update(p, dt) {
+          t -= dt;
+          if (t > 0 || n >= hits) return;
+          t = 0.1; n++;
+          const c = meleeArc(p, range * aoe, sk.wide ? 1.2 : 0.8, o);
+          healOn(c);
+          R.fx.push({ type: 'slash', x: p.x, y: p.y - 6, ang: p.aim, arc: sk.wide ? 1.3 : 0.7, r: range, life: 0.2, max: 0.2, dir: n % 2 ? 1 : -1, color: col });
+          if (sk.reach > 1) R.fx.push({ type: 'beam', x: p.x, y: p.y - 6, ang: p.aim, len: range, life: 0.2, max: 0.2, color: col, w: sk.wide ? 10 : 5 });
+          G.shake = Math.max(G.shake, 2.5);
+        } };
+        break;
+      }
+      case 'nova': {
+        const hits = sk.hits || 1, r = (sk.r || 36) * aoe;
+        let n = 0, t = 0;
+        p.act = { dur: 0.2 + hits * 0.12, update(p, dt) {
+          t -= dt;
+          if (t > 0 || n >= hits) return;
+          t = 0.12; n++;
+          healOn(areaHit(p.x, p.y - 6, r, o));
+          R.fx.push({ type: 'ring', x: p.x, y: p.y - 4, r0: 6, r1: r, life: 0.3, max: 0.3, color: col, w: 3, flat: true });
+          R.fx.push({ type: 'slash', x: p.x, y: p.y - 6, ang: p.aim + n, arc: Math.PI, r: r * 0.8, life: 0.2, max: 0.2, dir: 1, color: col, full: true });
+        } };
+        if (sk.selfBuff) addBuff(p, sk.name, sk.selfBuff.dur, sk.selfBuff.mods, col);
+        G.shake = Math.max(G.shake, 3);
+        break;
+      }
+      case 'line': case 'ring': {
+        const n = (sk.count || 1) + (md.extra || 0);
+        const fire = (k) => {
+          const ang = sk.type === 'ring' ? p.aim + (k / n) * Math.PI * 2 : p.aim + (sk.seq ? 0 : (k - (n - 1) / 2) * (sk.spread || 0.15));
+          shoot({ x: p.x + Math.cos(ang) * 6, y: p.y - 7, ang, speed: sk.speed || 240, kind: sk.kind || 'bolt', team: 'p', r: sk.kind === 'wave' || sk.kind === 'orb' ? 6 : 4, life: sk.life || 0.8, pierce: !!sk.pierce, opt: Object.assign({}, o), color: col, elem: sk.elem });
+        };
+        if (sk.seq) {
+          let k = 0, t = 0;
+          p.act = { dur: 0.12 * n + 0.1, update(p, dt) { t -= dt; if (t <= 0 && k < n) { t = 0.12; fire(k++); R.sfx('swing'); } } };
+        } else { p.act = { dur: 0.3, update() {} }; for (let k = 0; k < n; k++) fire(k); }
+        break;
+      }
+      case 'zone': {
+        p.act = { dur: 0.4, update() {} };
+        const t0 = sk.at === 'target' ? nearestMob(p.x, p.y - 6, 150, 0, null) : null;
+        const count = sk.count || 1, hits = sk.hits || 1;
+        for (let c = 0; c < count; c++) {
+          let x, y;
+          if (sk.at === 'front') { x = p.x + cx * TS * (c + 1.2); y = p.y + cy * TS * (c + 1.2); }
+          else { x = t0 ? t0.x : p.x + cx * 48; y = t0 ? t0.y : p.y + cy * 40; }
+          const r = (sk.r || 30) * aoe, delay = (sk.delay || 0.4) + c * 0.18;
+          let t = 0, done = 0;
+          addJob({ update(dt) {
+            t += dt;
+            if (t < delay) { R.fx.push({ type: 'zone', x, y, r: r * (0.4 + 0.6 * t / delay), life: 0.02, max: 0.02, color: col, a: 0.22 }); return true; }
+            if (t >= delay + done * 0.28) {
+              done++;
+              areaHit(x, y - 4, r, o);
+              zoneFx(sk.fx, x, y, r, col);
+            }
+            return done < hits;
+          } });
+        }
+        break;
+      }
+      case 'buff': {
+        p.act = { dur: 0.35, update() {} };
+        if (sk.hpCost) { const c = Math.round(p.hp * sk.hpCost); p.hp = Math.max(1, p.hp - c); R.addNum(p.x, p.y - 24, '-' + c, '#ff6a6a', 1); }
+        addBuff(p, sk.name, sk.dur, sk.mods, col);
+        R.toast(`${sk.icon} ${sk.name} — ${sk.desc}`, col);
+        break;
+      }
+      case 'leap': {
+        const back = Gd.dirFromAng(p.aim + Math.PI);
+        p.iframes = 0.4;
+        let k = 0;
+        p.act = { dur: 0.3, update(p) { if (!p.step && k < (sk.tiles || 2)) { if (Gd.tryStep(p, back, 0.09)) k++; else k = 99; } if (p.step) Gd.update(p, 1 / 60); R.fxAfterimage(p); } };
+        addBuff(p, sk.name, sk.dur, sk.mods, col);
+        break;
+      }
+      case 'dash': {
+        const hitSet = new Set(), len = (sk.tiles || 3) * TS;
+        let run = 0;
+        p.iframes = 0.35;
+        p.act = { dur: 0.3, update(p, dt) {
+          if (run < len) { const v = Math.min(len - run, 320 * dt); if (!R.moveBody(G.map, p, cx * v, cy * v)) run = len; run += v; }
+          R.fxAfterimage(p);
+          for (const m of G.mobs) {
+            if (m.dead || hitSet.has(m)) continue;
+            if (Math.hypot(m.x - p.x, m.y - p.y) < m.r + 12) { hitSet.add(m); hitMob(m, o, p.x, p.y); }
+          }
+        } };
+        break;
+      }
+      case 'blink': {
+        const t = nearestMob(p.x, p.y - 6, 120, 0, null);
+        p.act = { dur: 0.3, update() {} };
+        R.fxSmoke(p.x, p.y - 6);
+        if (!t) { R.toast('대상이 없다', '#c890ff'); break; }
+        blinkTo(p, t);
+        p.iframes = 0.3;
+        hitMob(t, o, p.x, p.y);
+        R.fx.push({ type: 'slash', x: t.x, y: t.y - t.hh / 2, ang: p.aim, arc: 1.2, r: 26, life: 0.22, max: 0.22, dir: 1, color: col });
+        R.fxSmoke(p.x, p.y - 6);
+        break;
+      }
+      case 'drain': {
+        const t = nearestMob(p.x, p.y - 6, 120, 0, null);
+        p.act = { dur: 0.45, update() {} };
+        if (!t) { R.toast('대상이 없다', '#c890ff'); break; }
+        hitMob(t, o, p.x, p.y);
+        healOn(1);
+        R.fx.push({ type: 'beam', x: p.x, y: p.y - 8, ang: Math.atan2(t.y - t.hh / 2 - p.y + 8, t.x - p.x), len: Math.hypot(t.x - p.x, t.y - t.hh / 2 - p.y + 8), life: 0.4, max: 0.4, color: col, w: 3 });
+        break;
+      }
+    }
+  }
+  function zoneFx(kind, x, y, r, col) {
+    if (kind === 'thunder') { R.fx.push({ type: 'beam', x, y: y - 80, ang: Math.PI / 2, len: 80, life: 0.18, max: 0.18, color: '#fff8a0', w: 4 }); G.shake = Math.max(G.shake, 3); R.sfx('thunder'); }
+    else if (kind === 'fire') { for (let i = 0; i < 10; i++) R.fx.push({ type: 'dust', x: x + rand(-r / 2, r / 2), y, vx: rand(-10, 10), vy: rand(-110, -50), life: 0.5, max: 0.5, color: i % 2 ? '#ffb040' : '#ff5a2a', size: 2, nograv: true }); R.sfx('fire'); }
+    else if (kind === 'arrows') { for (let i = 0; i < 6; i++) R.fx.push({ type: 'beam', x: x + rand(-r, r) * 0.7, y: y + rand(-r, r) * 0.4 - 24, ang: Math.PI / 2 + 0.2, len: 22, life: 0.15, max: 0.15, color: '#e8d8b0', w: 1 }); R.sfx('swing'); }
+    else if (kind === 'ice') { for (let i = 0; i < 8; i++) R.fx.push({ type: 'dust', x: x + rand(-r, r) * 0.8, y: y + rand(-r, r) * 0.5, vx: rand(-20, 20), vy: rand(10, 40), life: 0.6, max: 0.6, color: '#e8f8ff', size: 2, nograv: true }); R.sfx('ice'); }
+    else if (kind === 'poison') { R.fx.push({ type: 'zone', x, y, r, life: 0.35, max: 0.35, color: '#7ad85a', a: 0.3 }); }
+    R.fx.push({ type: 'ring', x, y, r0: 4, r1: r, life: 0.3, max: 0.3, color: col, w: 3, flat: true });
+  }
+
   function ultimate(p, id, opt, md, aoe, st) {
     switch (id) {
+      default: genericSkill(p, R.SKILLS[id], opt, md, aoe, st); break;
       case 'bulwark': {
         p.act = { dur: 0.45, update() {} };
         p.guardT = 5;
@@ -766,11 +906,11 @@
     if (opt.ca) comboLand(opt.ca);
     const bonus = opt.ca ? opt.ca.bonus : 0;
     const em = R.elemMod(opt.elem, m.elem);
-    let dmg = st.atk * opt.rate * em * (100 / (100 + m.armor)) * (1 + bonus) * rand(0.92, 1.08);
+    let dmg = st.atk * opt.rate * em * (100 / (100 + m.armor)) * (1 + bonus) * (1 + R.pbuf(p, 'atk')) * rand(0.92, 1.08);
     if (opt.elem && opt.elem !== 'NONE') dmg *= (1 + st.elemDmg) * (G.dungeon && G.dungeon.mod && G.dungeon.mod.id === 'resist' ? 0.5 : 1);
     if (opt.skill && adv.skillPct) dmg *= 1 + adv.skillPct;
     if (adv.berserk && p.hp < st.maxHp * 0.5) dmg *= 1 + adv.berserk;
-    const crit = opt.forceCrit || Math.random() < st.crit;
+    const crit = opt.forceCrit || Math.random() < st.crit + R.pbuf(p, 'crit');
     if (crit) dmg *= st.critDmg;
     dmg = Math.max(1, Math.round(dmg));
     if (m.shield) { dmg = 0; }
@@ -849,6 +989,7 @@
     let dmg = o.raw ? raw : raw * (100 / (100 + p.st.def)) * rand(0.9, 1.1);
     dmg *= 1 + (adv.dmgTaken || 0);
     if (p.guardT > 0) dmg *= 0.4;
+    dmg *= Math.max(0.2, 1 + R.pbuf(p, 'dmgTaken'));
     if (G.dungeon && G.dungeon.mod && G.dungeon.mod.id === 'fragile') dmg *= 1.3;
     dmg = Math.max(1, Math.round(dmg));
     p.hp -= dmg;
@@ -1348,6 +1489,8 @@
       s.points += 3;
       s.sp = (s.sp || 0) + 1;
       if (s.level % 5 === 0) R.Prog.addGems(50, `Lv.${s.level} 달성`);
+      const nsk = R.CLASSES[s.cls].skills.filter((id, i) => R.SKILL_UNLOCK[i] === s.level);
+      for (const id of nsk) setTimeout(() => { R.toast(`${R.SKILLS[id].icon} 새 스킬 습득: ${R.SKILLS[id].name}`, '#ffe070'); R.ensureSlots(s); R.UI.setSkillButtons(); }, 900);
       up = true;
     }
     if (up) {

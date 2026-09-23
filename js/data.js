@@ -53,7 +53,7 @@ R.CLASSES = {
     grow: { str: 1, vit: 1 }, atkStat: 'str', melee: true,
     range: 20, arc: 1.1, moveSpeed: 62, atkSpeed: 1.0,
     look: { skin: '#f1c29a', hair: '#7a4a24', body: '#8e9bb0', bodyD: '#5d6a80', legs: '#4a4f5c', boots: '#3a2a20', hat: 'helm', hatC: '#c9d1dc', cape: '#b33a3a' },
-    skills: ['charge', 'whirl'],
+    skills: ['charge', 'whirl', 'shieldbash', 'warcry'],
     adv: ['GUARDIAN', 'BERSERKER'],
   },
   RANGER: {
@@ -62,7 +62,7 @@ R.CLASSES = {
     grow: { dex: 1, luk: 1 }, atkStat: 'dex', melee: false,
     range: 120, moveSpeed: 66, atkSpeed: 1.05,
     look: { skin: '#f1c29a', hair: '#c68a3c', body: '#3f8a3a', bodyD: '#2a5e28', legs: '#5a4630', boots: '#3a2a20', hat: 'hood', hatC: '#3f8a3a', cape: '#2a5e28' },
-    skills: ['multishot', 'pierce'],
+    skills: ['multishot', 'pierce', 'arrowrain', 'evade'],
     adv: ['SNIPER', 'TRAPPER'],
   },
   MAGE: {
@@ -71,7 +71,7 @@ R.CLASSES = {
     grow: { int: 1, vit: 1 }, atkStat: 'int', melee: false,
     range: 110, moveSpeed: 60, atkSpeed: 0.95,
     look: { skin: '#f1c29a', hair: '#e8e0d0', body: '#3a57b8', bodyD: '#263c85', legs: '#263c85', boots: '#3a2a20', hat: 'wizard', hatC: '#3a57b8', cape: '#263c85' },
-    skills: ['fireball', 'icelance'],
+    skills: ['fireball', 'icelance', 'thunder', 'frostnova'],
     adv: ['ARCHMAGE', 'WARLOCK'],
   },
   ASSASSIN: {
@@ -80,7 +80,7 @@ R.CLASSES = {
     grow: { str: 1, luk: 1 }, atkStat: 'str', melee: true,
     range: 17, arc: 0.95, moveSpeed: 70, atkSpeed: 1.3, critBonus: 0.12,
     look: { skin: '#e8b890', hair: '#1c1c24', body: '#3a3a4a', bodyD: '#24242e', legs: '#24242e', boots: '#18181e', hat: 'mask', hatC: '#24242e', cape: '#5a2a6a' },
-    skills: ['shadowstep', 'poisonblade'],
+    skills: ['shadowstep', 'poisonblade', 'kunai', 'smokebomb'],
     adv: ['ASSASSIN2', 'NINJA'],
   },
 };
@@ -125,9 +125,99 @@ R.SKILLS = {
   execute:     { name: '처형',        mp: 35, cd: 12, rate: 4.0, elem: 'DARK',    icon: '💀', ult: true, desc: '가장 약한 적에게 순간이동 400% 확정 치명타, 체력 30% 이하면 2배' },
   clones:      { name: '분신술',      mp: 40, cd: 15, rate: 1.3, elem: 'NONE',    icon: '🥷', ult: true, desc: '무적 상태로 주변 적 사이를 8회 순간이동하며 각 130%' },
 };
+// ─── 추가 스킬 (type 으로 동작을 정하는 데이터형 스킬) ─────────────
+//  cone: 앞 칸 베기(reach 칸, wide 좌우 포함, hits 연타)  nova: 내 주변 폭발(r, hits)
+//  line: 투사체(count, spread, kind, speed, pierce, seq=연속 발사)  ring: 8방향 투사체
+//  zone: 지점 폭발(at: target/front, count, r, delay)  buff: 자기 강화(mods, dur)
+//  leap: 뒤로 도약 + 버프   dash: 앞으로 돌진하며 베기(tiles)   blink: 가장 가까운 적 뒤로   drain: 흡수
+Object.assign(R.SKILLS, {
+  // 검투사
+  shieldbash:  { name: '방패 강타',   mp: 16, cd: 5,  rate: 1.8, elem: 'NONE', icon: '🛡', type: 'cone', reach: 1, stun: 1.6, desc: '앞의 적을 방패로 후려쳐 180% 피해 + 기절 1.6초' },
+  warcry:      { name: '전투의 함성', mp: 22, cd: 20, rate: 0,   elem: 'NONE', icon: '📣', type: 'buff', dur: 8, mods: { atk: 0.25, dmgTaken: -0.15 }, color: '#ffb040', desc: '8초간 공격력 +25%, 받는 피해 -15%' },
+  // 레인저
+  arrowrain:   { name: '화살비',     mp: 20, cd: 8,  rate: 0.9, elem: 'NONE', icon: '🌧', type: 'zone', at: 'target', r: 34, hits: 3, delay: 0.45, fx: 'arrows', desc: '지정 지점에 화살비 3회, 각 90% 범위 피해' },
+  evade:       { name: '후방 도약',   mp: 14, cd: 7,  rate: 0,   elem: 'NONE', icon: '🦘', type: 'leap', tiles: 2, dur: 3, mods: { move: 0.3 }, color: '#7ad85a', desc: '뒤로 2칸 도약(무적) 후 3초간 이동속도 +30%' },
+  // 원소술사
+  thunder:     { name: '낙뢰',       mp: 22, cd: 6,  rate: 2.6, elem: 'THUNDER', icon: '🌩', type: 'zone', at: 'target', r: 22, delay: 0.3, stun: 0.8, fx: 'thunder', desc: '가장 가까운 적에게 번개가 떨어져 260% + 기절' },
+  frostnova:   { name: '서리 폭발',   mp: 26, cd: 9,  rate: 1.4, elem: 'ICE',  icon: '💠', type: 'nova', r: 40, status: { slow: 4 }, stun: 0.6, desc: '주변을 얼려 140% 피해 + 빙결 4초' },
+  // 암살자
+  kunai:       { name: '표창 투척',   mp: 12, cd: 4,  rate: 1.2, elem: 'NATURE', icon: '✴', type: 'line', count: 3, spread: 0.22, kind: 'knife', speed: 260, status: { poison: 3 }, desc: '독 묻은 표창 3개, 각 120% + 중독' },
+  smokebomb:   { name: '연막탄',     mp: 20, cd: 12, rate: 0.8, elem: 'DARK', icon: '💨', type: 'nova', r: 38, stun: 1.4, selfBuff: { dur: 3, mods: { move: 0.25, dmgTaken: -0.3 } }, color: '#9a8aaa', desc: '연막으로 주변 적 기절 1.4초, 3초간 이동속도 +25%·받는 피해 -30%' },
+
+  // 가디언
+  fortress:    { name: '철벽',       mp: 26, cd: 16, rate: 0,   elem: 'NONE', icon: '🏰', type: 'buff', dur: 6, mods: { dmgTaken: -0.4 }, color: '#9ad8ff', desc: '6초간 받는 피해 -40%' },
+  shieldwave:  { name: '방패 파동',   mp: 28, cd: 7,  rate: 2.4, elem: 'NONE', icon: '🌊', type: 'line', count: 1, kind: 'wave', speed: 200, pierce: true, down: true, desc: '관통하는 방패 충격파 240% + 다운' },
+  holystrike:  { name: '심판의 일격', mp: 30, cd: 9,  rate: 3.0, elem: 'NONE', icon: '⚜', type: 'cone', reach: 2, wide: true, heal: 0.04, down: true, desc: '앞 2칸을 넓게 내리쳐 300% — 맞힌 적마다 HP 4% 회복' },
+  // 버서커
+  frenzy:      { name: '광란',       mp: 20, cd: 18, rate: 0,   elem: 'NONE', icon: '😡', type: 'buff', dur: 8, mods: { atk: 0.4, dmgTaken: 0.15 }, color: '#ff4a3a', desc: '8초간 공격력 +40% (받는 피해 +15%)' },
+  cleave:      { name: '대지 가르기', mp: 26, cd: 6,  rate: 2.8, elem: 'NONE', icon: '🪓', type: 'cone', reach: 3, down: true, desc: '앞 3칸을 일직선으로 갈라 280% + 다운' },
+  bloodspin:   { name: '피의 회오리', mp: 30, cd: 9,  rate: 1.1, elem: 'FIRE', icon: '🌪', type: 'nova', r: 36, hits: 3, heal: 0.015, desc: '회전하며 주변 3연타 각 110% — 적중마다 HP 1.5% 회복' },
+  // 스나이퍼
+  headshot:    { name: '헤드샷',     mp: 24, cd: 8,  rate: 4.0, elem: 'NONE', icon: '🎯', type: 'line', count: 1, kind: 'arrow', speed: 420, forceCrit: true, desc: '빠른 한 발 400%, 확정 치명타' },
+  focus:       { name: '집중',       mp: 20, cd: 18, rate: 0,   elem: 'NONE', icon: '👁', type: 'buff', dur: 8, mods: { crit: 0.25, atk: 0.15 }, color: '#ffe070', desc: '8초간 치명타 +25%, 공격력 +15%' },
+  burstshot:   { name: '연발 사격',   mp: 22, cd: 5,  rate: 1.6, elem: 'NONE', icon: '🏹', type: 'line', count: 3, seq: true, kind: 'arrow', speed: 320, desc: '같은 방향으로 3연발, 각 160%' },
+  // 트래퍼
+  netshot:     { name: '그물 화살',   mp: 18, cd: 6,  rate: 1.4, elem: 'NATURE', icon: '🕸', type: 'line', count: 1, kind: 'arrow', speed: 260, stun: 1.2, status: { slow: 4 }, desc: '그물 화살 140% + 기절 1.2초 + 둔화' },
+  poisoncloud: { name: '독안개',     mp: 26, cd: 9,  rate: 0.7, elem: 'NATURE', icon: '☁', type: 'zone', at: 'target', r: 40, hits: 4, delay: 0.3, status: { poison: 6 }, fx: 'poison', desc: '지정 지점에 독안개 4회 각 70% + 강한 중독' },
+  volley:      { name: '일제 사격',   mp: 28, cd: 8,  rate: 1.3, elem: 'NONE', icon: '✳', type: 'ring', count: 8, kind: 'arrow', speed: 240, desc: '8방향으로 화살 발사, 각 130%' },
+  // 아크메이지
+  flamepillar: { name: '화염 기둥',   mp: 28, cd: 8,  rate: 2.2, elem: 'FIRE', icon: '🔥', type: 'zone', at: 'front', count: 3, r: 18, delay: 0.25, status: { burn: 4 }, fx: 'fire', desc: '앞으로 불기둥 3개가 차례로 솟아 각 220% + 화상' },
+  blizzard:    { name: '눈보라',     mp: 34, cd: 12, rate: 1.0, elem: 'ICE',  icon: '🌨', type: 'zone', at: 'target', r: 48, hits: 4, delay: 0.35, status: { slow: 3 }, fx: 'ice', desc: '넓은 눈보라 4회 각 100% + 빙결' },
+  arcanemissile: { name: '마력 탄환', mp: 20, cd: 4,  rate: 1.0, elem: 'NONE', icon: '✨', type: 'line', count: 5, spread: 0.18, kind: 'bolt', speed: 230, desc: '마력 탄환 5발, 각 100%' },
+  // 워록
+  curseorb:    { name: '저주 구체',   mp: 24, cd: 6,  rate: 2.4, elem: 'DARK', icon: '🔮', type: 'line', count: 1, kind: 'orb', speed: 120, pierce: true, status: { curse: 6 }, desc: '느리게 관통하는 저주 구체 240% + 저주' },
+  drain:       { name: '생명 흡수',   mp: 22, cd: 7,  rate: 2.0, elem: 'DARK', icon: '🩸', type: 'drain', heal: 0.08, desc: '가까운 적 하나에서 생명을 빼앗아 200% + HP 8% 회복' },
+  darkpact:    { name: '어둠의 계약', mp: 10, cd: 20, rate: 0,   elem: 'DARK', icon: '📜', type: 'buff', dur: 8, hpCost: 0.1, mods: { atk: 0.35 }, color: '#b27bff', desc: 'HP 10%를 바쳐 8초간 공격력 +35%' },
+  // 어쌔신
+  backstab:    { name: '암습',       mp: 22, cd: 8,  rate: 3.0, elem: 'DARK', icon: '🗡', type: 'blink', forceCrit: true, desc: '가까운 적의 뒤로 이동해 300% 확정 치명타' },
+  bladedance:  { name: '칼날 폭풍',   mp: 28, cd: 9,  rate: 0.8, elem: 'NONE', icon: '🌀', type: 'nova', r: 34, hits: 4, desc: '주변을 4연타 각 80%' },
+  deathmark:   { name: '죽음의 표식', mp: 20, cd: 18, rate: 0,   elem: 'DARK', icon: '☠', type: 'buff', dur: 6, mods: { crit: 0.3, atk: 0.1 }, color: '#ff3a5a', desc: '6초간 치명타 +30%, 공격력 +10%' },
+  // 닌자
+  shuriken:    { name: '풍마 수리검', mp: 20, cd: 5,  rate: 2.2, elem: 'NONE', icon: '✴', type: 'line', count: 1, kind: 'knife', speed: 280, pierce: true, desc: '모든 적을 꿰뚫는 거대 수리검 220%' },
+  flashstep:   { name: '섬광보',     mp: 18, cd: 6,  rate: 1.8, elem: 'NONE', icon: '⚡', type: 'dash', tiles: 4, desc: '무적 상태로 앞으로 4칸 질주하며 경로의 적 180%' },
+  kage:        { name: '그림자 분신', mp: 22, cd: 16, rate: 0,   elem: 'DARK', icon: '👥', type: 'buff', dur: 6, mods: { move: 0.35, dmgTaken: -0.2 }, color: '#8a8aff', desc: '6초간 이동속도 +35%, 받는 피해 -20%' },
+});
+// 기본 스킬 습득 레벨 (직업 스킬 순서대로)
+R.SKILL_UNLOCK = [1, 1, 8, 16];
+// 전직 시 새로 얻는 스킬 3개 (+ 궁극기)
+R.ADV_SKILLS = {
+  GUARDIAN: ['fortress', 'shieldwave', 'holystrike'], BERSERKER: ['frenzy', 'cleave', 'bloodspin'],
+  SNIPER: ['headshot', 'focus', 'burstshot'], TRAPPER: ['netshot', 'poisoncloud', 'volley'],
+  ARCHMAGE: ['flamepillar', 'blizzard', 'arcanemissile'], WARLOCK: ['curseorb', 'drain', 'darkpact'],
+  ASSASSIN2: ['backstab', 'bladedance', 'deathmark'], NINJA: ['shuriken', 'flashstep', 'kage'],
+};
+R.SLOT_COUNT = 4;   // 일반 스킬 슬롯 (+ 전직 후 궁극기 슬롯 1)
+// 지금 배운 스킬 (레벨 도달 + 전직)
+R.learnedSkills = (save) => {
+  const c = R.CLASSES[save.cls];
+  const base = c.skills.filter((id, i) => save.level >= R.SKILL_UNLOCK[i]);
+  return save.adv ? [...base, ...R.ADV_SKILLS[save.adv], R.ADV_SKILL[save.adv]] : base;
+};
+R.skillUnlockLv = (save, id) => { const i = R.CLASSES[save.cls].skills.indexOf(id); return i >= 0 ? R.SKILL_UNLOCK[i] : 30; };
+// 슬롯 정리: 없으면 만들고, 배운 스킬 중 빈 슬롯은 자동으로 채운다
+R.ensureSlots = (save) => {
+  if (!save.slots) {
+    save.slots = [null, null, null, null];
+    if (save.adv) save.slots = [...R.ADV_SKILLS[save.adv], R.CLASSES[save.cls].skills[0]];
+  }
+  const learned = R.learnedSkills(save).filter((id) => !R.SKILLS[id].ult);
+  for (let i = 0; i < R.SLOT_COUNT; i++) if (!save.slots[i] || !learned.includes(save.slots[i])) save.slots[i] = null;   // 제자리에서 정리 (참조 유지)
+  for (const id of learned) {
+    if (save.slots.includes(id)) continue;
+    const e = save.slots.indexOf(null);
+    if (e < 0) break;
+    save.slots[e] = id;
+  }
+  return save.slots;
+};
+// 전직: 새 스킬 3개 + 기존 스킬 1개(첫 슬롯에 있던 것)를 남긴다
+R.advanceSlots = (save) => {
+  const keep = (save.slots || []).find((id) => id && R.CLASSES[save.cls].skills.includes(id)) || R.CLASSES[save.cls].skills[0];
+  save.slots = [...R.ADV_SKILLS[save.adv], keep];
+};
 R.ADV_SKILL = { GUARDIAN: 'bulwark', BERSERKER: 'bloodrage', SNIPER: 'deadeye', TRAPPER: 'snare', ARCHMAGE: 'meteor', WARLOCK: 'hex', ASSASSIN2: 'execute', NINJA: 'clones' };
-// 현재 사용 가능한 스킬 목록 (전직 후 3개)
-R.skillIds = (save) => { const c = R.CLASSES[save.cls]; return save.adv ? [...c.skills, R.ADV_SKILL[save.adv]] : c.skills.slice(); };
+// 스킬 버튼 5칸: 슬롯 4개 + 궁극기 (비어 있으면 null)
+R.skillIds = (save) => [...R.ensureSlots(save), save.adv ? R.ADV_SKILL[save.adv] : null];
 
 // ─── 장비 ───────────────────────────────────────────────
 R.SLOTS = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'necklace', 'earring'];

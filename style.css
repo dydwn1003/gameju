@@ -624,3 +624,47 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 40; }
 #fade.go { animation: mapFade 0.45s ease-out; }
 @keyframes mapFade { from { opacity: 1; } to { opacity: 0; } }
+
+/* ─── 바로가기 아이콘 (스탯·장비·가방·스킬) ─────────────────── */
+.quick { position: absolute; right: 2.4cqw; top: 30cqw; display: flex; flex-direction: column; gap: 1.4cqw; pointer-events: auto; }
+.quick button { position: relative; width: 10.5cqw; height: 10.5cqw; border-radius: 3cqw; border: 1px solid var(--stroke2); background: linear-gradient(160deg, rgba(40, 30, 72, 0.9), rgba(14, 10, 26, 0.9)); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2cqw; padding: 0; box-shadow: 0 1cqw 2cqw rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+.quick button:active { transform: scale(0.92); }
+.quick span { font-size: 4.4cqw; line-height: 1; }
+.quick small { font-size: 1.9cqw; color: #d8cce8; }
+.quick .dot { top: -0.6cqw; right: -0.6cqw; }
+#target { top: 30cqw; right: 15.5cqw; width: 30%; }
+#boss-bar { right: 15%; }
+
+/* ─── 스킬 버튼 5개 배치 (공격 버튼을 둘러싼 반원) ─── */
+.cbtn.s1 { right: 28.5cqw; bottom: 4cqw; width: 13cqw; height: 13cqw; }
+.cbtn.s2 { right: 27cqw; bottom: 19cqw; width: 13cqw; height: 13cqw; }
+.cbtn.s3 { --c: #2fb58a; right: 17.5cqw; bottom: 31cqw; width: 13cqw; height: 13cqw; box-shadow: inset 0 -1cqw 0 rgba(0, 0, 0, 0.25), 0 1.2cqw 3cqw rgba(0, 0, 0, 0.45), 0 0 0 0.8cqw rgba(0, 0, 0, 0.25); }
+.cbtn.s4 { --c: #d0567a; right: 3.5cqw; bottom: 32cqw; width: 13cqw; height: 13cqw; }
+.cbtn.s5 { --c: #a24bff; right: 10cqw; bottom: 47cqw; width: 12.5cqw; height: 12.5cqw; box-shadow: inset 0 -1cqw 0 rgba(0, 0, 0, 0.25), 0 0 3cqw rgba(170, 90, 255, 0.55), 0 0 0 0.8cqw rgba(0, 0, 0, 0.25); }
+.cbtn.dodge { right: 43cqw; bottom: 4cqw; width: 12cqw; height: 12cqw; }
+.cbtn.pot { right: 43.5cqw; bottom: 18.5cqw; width: 10cqw; height: 10cqw; }
+.cbtn.pot.mp { right: 32cqw; bottom: 34cqw; }
+.act-btn { bottom: 62cqw; }
+.cbtn.empty { filter: grayscale(1) brightness(0.55); }
+.cbtn .lbl { font-size: 2cqw; }
+/* 스킬 탭 슬롯 */
+.slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.4cqw; }
+.slot { display: flex; flex-direction: column; align-items: center; gap: 0.4cqw; padding: 1.2cqw 0.4cqw; border-radius: 2.4cqw; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--stroke2); color: inherit; font: inherit; }
+.slot em { font-style: normal; font-size: 1.9cqw; color: var(--mute); }
+.slot span { font-size: 5cqw; line-height: 1.1; }
+.slot small { font-size: 1.9cqw; text-align: center; line-height: 1.2; }
+.slot.ult { border-color: #a24bff; background: rgba(120, 60, 200, 0.2); }
+.slot.empty { opacity: 0.55; }
+.slot.cur { border-color: var(--gold); box-shadow: 0 0 2cqw rgba(255, 200, 80, 0.4); }
+.slot-pick .slots { grid-template-columns: repeat(4, 1fr); margin: 3cqw 0; }
+.slot-pick button.slot { padding: 2cqw 0.4cqw; }
+.sk-group { margin: 3cqw 1cqw 1.2cqw; font-size: 3cqw; color: var(--gold2); font-family: var(--display); }
+.sk-group small { font-family: inherit; font-size: 2.2cqw; color: var(--dim); margin-left: 1.2cqw; }
+.sk-btns { display: flex; flex-direction: column; gap: 1cqw; align-items: stretch; }
+.card.skill.locked { opacity: 0.5; }
+.lockt { font-size: 2.4cqw; color: var(--mute); white-space: nowrap; }
+.tabbar { grid-template-columns: repeat(8, 1fr); padding-left: 1cqw; padding-right: 1cqw; }
+.tabbar .ti { font-size: 4.2cqw; }
+.tabbar .tl { font-size: 2.1cqw; }
+.quick { top: 37cqw; }
+#target { top: 37cqw; }
