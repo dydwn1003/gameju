@@ -48,13 +48,13 @@
   R.deleteSave = () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 무시 */ } };
 
   // ─── 입력 ────────────────────────────────────────────
-  const inp = (G.input = { move: { x: 0, y: 0 }, moving: false, atkHeld: false, atkPressed: false, skillPressed: [false, false, false], dodgePressed: false, potionPressed: false });
-  const buf = { atk: 0, s0: 0, s1: 0, s2: 0, dodge: 0, pot: 0, act: 0 };
+  const inp = (G.input = { move: { x: 0, y: 0 }, moving: false, atkHeld: false, atkPressed: false, skillPressed: [false, false, false], dodgePressed: false, potionPressed: false, mpPotionPressed: false });
+  const buf = { atk: 0, s0: 0, s1: 0, s2: 0, dodge: 0, pot: 0, mp: 0, act: 0 };
   const keys = new Set();
   const stick = { x: 0, y: 0, id: null };
 
   const KEYMAP = {
-    KeyJ: 'atk', KeyZ: 'atk', KeyK: 's0', KeyX: 's0', KeyL: 's1', KeyC: 's1', KeyU: 's2', KeyV: 's2', Space: 'dodge', ShiftLeft: 'dodge', KeyQ: 'pot', KeyE: 'act', Enter: 'act',
+    KeyJ: 'atk', KeyZ: 'atk', KeyK: 's0', KeyX: 's0', KeyL: 's1', KeyC: 's1', KeyU: 's2', KeyV: 's2', Space: 'dodge', ShiftLeft: 'dodge', KeyQ: 'pot', KeyR: 'mp', KeyE: 'act', Enter: 'act',
   };
   window.addEventListener('keydown', (e) => {
     R.Audio.unlock();
@@ -129,6 +129,14 @@
   bindBtn('btn-s3', () => { buf.s2 = 0.25; });
   bindBtn('btn-dodge', () => { buf.dodge = 0.25; });
   bindBtn('btn-pot', () => { buf.pot = 0.25; });
+  bindBtn('btn-mp', () => { buf.mp = 0.25; });
+  // 화면 터치: 그 칸으로 이동 / 몬스터 지정(자동 기본 공격) / NPC·상자 등은 걸어가서 상호작용
+  $('cv').addEventListener('pointerdown', (e) => {
+    if (G.state !== 'play' || !G.player || R.UI.isOpen()) return;
+    R.Audio.unlock();
+    const r = $('cv').getBoundingClientRect();
+    R.tapWorld((e.clientX - r.left) / r.width * R.VIEW_W + G.cam.x, (e.clientY - r.top) / r.height * R.VIEW_H + G.cam.y);
+  });
   bindBtn('btn-act', () => { buf.act = 0.25; });
   $('btn-menu').onclick = () => { R.sfx('ui'); if (!G.player.dead) R.UI.openMenu(); };
   $('btn-quest').onclick = () => { R.sfx('ui'); if (!G.player.dead) R.UI.openMenu('퀘스트'); };
@@ -159,13 +167,14 @@
     inp.skillPressed[2] = buf.s2 > 0;
     inp.dodgePressed = buf.dodge > 0;
     inp.potionPressed = buf.pot > 0;
+    inp.mpPotionPressed = buf.mp > 0;
   }
   function consumeInput() {
     const p = G.player;
     if (p.state === 'attack' && p.stateT === 0) buf.atk = 0;
     if (p.state === 'skill' && p.stateT === 0) { buf.s0 = 0; buf.s1 = 0; buf.s2 = 0; }
     if (p.state === 'dodge' && p.stateT === 0) buf.dodge = 0;
-    if (p.potionCd > 0.9) buf.pot = 0;
+    if (p.potionCd > 0.9) { buf.pot = 0; buf.mp = 0; }
     if (p.skillCd[0] > 0) buf.s0 = 0;
     if (p.skillCd[1] > 0) buf.s1 = 0;
     if (p.skillCd[2] > 0) buf.s2 = 0;
@@ -173,7 +182,7 @@
 
   // ─── 맵 전환 ─────────────────────────────────────────
   function clearWorld() {
-    G.pet = null; G.jobs = [];
+    G.pet = null; G.jobs = []; G.tap = null; G.lastHit = null; G.tapInteract = false;
     G.mobs = []; G.shots = []; G.drops = []; G.nums = []; G.teles = [];
     G.fx.length = 0;
     G.combo.count = 0; G.combo.t = 0;
@@ -536,6 +545,7 @@
         G.time += dt;
         G.save.playTime += dt;
         if (buf.act > 0 || (inp.atkPressed && G.interact && G.interact.kind !== 'gate')) { buf.act = 0; buf.atk = 0; doInteract(); }
+        if (G.tapInteract) { G.tapInteract = false; if (G.interact) doInteract(); }
         tick(dt, true);
         saveT += dt;
         if (saveT > 20) { saveT = 0; R.saveGame(); }
@@ -594,7 +604,7 @@
       startPlay();
       R.enterTown(false);
       R.UI.banner('루멘 마을', '#ffe9a8', '촌장 엘든에게 말을 걸어 보자');
-      setTimeout(() => R.toast('왼쪽을 드래그해 이동 · NPC 근처에서 [대화]', '#9ad8ff'), 2500);
+      setTimeout(() => R.toast('왼쪽 드래그·방향키로 이동 · 화면을 누르면 그곳으로 이동, 몬스터를 누르면 자동 공격', '#9ad8ff'), 2500);
     });
   };
 

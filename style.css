@@ -567,3 +567,19 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .dg-b b { display: block; font-weight: normal; font-size: 3cqw; }
 .dg-b small { font-size: 2.2cqw; color: var(--dim); }
 .dg-s { font-size: 3.2cqw; }
+
+/* ─── 바람의나라:연식 HUD: 시스템 로그 · 타겟 · 경험치 바 ─────────────────── */
+#syslog { position: absolute; left: 2.4cqw; bottom: calc(46% + 1cqw); width: 52%; display: flex; flex-direction: column; gap: 0.4cqw; z-index: 5; pointer-events: none; }
+#syslog div { align-self: flex-start; max-width: 100%; padding: 0.4cqw 1.8cqw; border-radius: 1cqw; background: rgba(8, 6, 16, 0.55); color: var(--c); font-size: 2.3cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: logIn 0.2s ease-out; transition: opacity 0.6s; }
+#syslog div.out { opacity: 0; }
+@keyframes logIn { from { transform: translateX(-3cqw); opacity: 0; } }
+#target { position: absolute; top: 31cqw; right: 2.4cqw; width: 32%; z-index: 6; pointer-events: none; text-align: right; padding: 1cqw 1.6cqw; border-radius: 1.6cqw; background: rgba(8, 6, 16, 0.5); }
+.tg-name { font-size: 2.3cqw; color: #fff; text-shadow: 0 1px 0 #000, 0 0 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tg-name em { font-style: normal; } .tg-name i { font-style: normal; } .tg-name b { color: #ff5a5a; font-weight: normal; }
+.bar.tg { height: 1.6cqw; margin-top: 0.4cqw; }
+.bar.tg .fill { background: linear-gradient(#ff6a5a, #c02a2a); }
+#expbar { position: absolute; left: 0; right: 0; bottom: 0; height: 2.2cqw; background: rgba(6, 4, 12, 0.8); z-index: 6; pointer-events: none; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+#expbar .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #3a8aff, #8ad8ff); transition: width 0.3s; }
+#expbar span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.8cqw; color: #fff; text-shadow: 0 1px 0 #000; }
+.cbtn.pot.mp { --c: #3a5ab0; right: 33cqw; bottom: 37cqw; }
+#hud.hidden ~ #expbar, #hud.hidden ~ #syslog, #hud.hidden ~ #target { display: none; }

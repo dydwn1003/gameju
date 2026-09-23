@@ -157,7 +157,7 @@
 
   // 조준 보조 (칸 기준): 방향키를 누르지 않았으면 같은 행·열의 가장 가까운 적 쪽으로 돌아선다
   function autoAim(p, range) {
-    if (!G.input.moving) {
+    if (!G.input.moving && !(G.tap && G.tap.kind === 'mob')) {
       let best = null, bd = range + 8;
       for (const m of G.mobs) {
         if (m.dead || m.hidden) continue;
@@ -223,6 +223,7 @@
     }
     if (G.map.switchPos && tile === R.T.SWITCH) R.onSwitch();
     if (inp.potionPressed) R.usePotion('hpPotion');
+    if (inp.mpPotionPressed) R.usePotion('mpPotion');
 
     const stunned = p.status.stun > 0;
     const speedMul = p.status.slow > 0 ? 0.55 : 1;
@@ -290,6 +291,11 @@
       // 빙판: 멈추지 못하고 같은 방향으로 계속 미끄러진다
       if (G.map.tileAt(p.x, p.y) === R.T.ICE && p.stepDir && Gd.tryStep(p, p.stepDir, stepDur * 0.7)) { p.state = 'walk'; return; }
     }
+    // 터치 이동·타겟 (바람의나라:연 식): 방향 입력이 있으면 취소
+    if (want) G.tap = null;
+    const auto = !want && G.tap ? autoPlan(p, cls) : null;
+    const mdir = want || (auto && auto.dir);
+    if (auto && auto.face) { p.dir = auto.face; p.aim = Gd.ANG[auto.face]; }
     const q = p.queued; p.queued = null;
     if (want) { p.dir = want; p.aim = Gd.ANG[want]; }
 
@@ -298,13 +304,72 @@
     if (inp.skillPressed[0] || q === 's0') { castSkill(p, 0); if (p.state === 'skill') return; }
     else if (inp.skillPressed[1] || q === 's1') { castSkill(p, 1); if (p.state === 'skill') return; }
     else if ((inp.skillPressed[2] || q === 's2') && G.save.adv) { castSkill(p, 2); if (p.state === 'skill') return; }
-    else if ((inp.atkPressed || inp.atkHeld || q === 'atk') && !G.interact) { startAttack(p, cls); return; }
+    else if (((inp.atkPressed || inp.atkHeld || q === 'atk') && !G.interact) || (auto && auto.attack)) { startAttack(p, cls); return; }
 
-    if (want && Gd.tryStep(p, want, stepDur)) {
-      p.stepDir = want;
+    if (mdir && Gd.tryStep(p, mdir, stepDur)) {
+      if (!want) { p.dir = mdir; p.aim = Gd.ANG[mdir]; }
+      p.stepDir = mdir;
       p.state = 'walk';
       Gd.update(p, 0);
     } else { p.state = 'idle'; p.vx = 0; p.vy = 0; }
+  };
+
+  // 터치 목표까지의 다음 행동: { dir: 한 칸 이동 } / { face, attack } / null
+  function autoPlan(p, cls) {
+    const t = G.tap;
+    if (t.kind === 'mob') {
+      const m = t.mob;
+      if (!m || m.dead || m.hidden) { G.tap = null; return null; }
+      const mx = m.boss ? Gd.tx(m.x) : m.gx, my = m.boss ? Gd.ty(m.y) : m.gy;
+      const rr = m.boss ? Math.max(1, Math.round(m.r / TS)) : 1;
+      const reach = cls.melee ? rr : Math.max(2, Math.floor((cls.range || 100) / TS) - 1);
+      const goal = (x, y) => {
+        const dx = mx - x, dy = my - y, d = Math.abs(dx) + Math.abs(dy);
+        if (dx && dy) return false;                                   // 같은 행·열
+        if (cls.melee) return d >= 1 && d <= rr;
+        return d >= 2 && d <= reach && Gd.lineClear(x, y, mx, my);
+      };
+      if (goal(p.gx, p.gy)) return { face: Gd.dirOf(mx - p.gx, my - p.gy), attack: true };
+      const d = Gd.pathDir(p, goal);
+      return d && d !== 'here' ? { dir: d } : null;
+    }
+    // 대상 옆(또는 위) 칸까지 걸어가서 상호작용
+    const on = t.kind === 'tile' || t.kind === 'portal' || t.kind === 'node' || t.kind === 'exit';
+    const goal = on ? (x, y) => x === t.tx && y === t.ty : (x, y) => Math.abs(x - t.tx) + Math.abs(y - t.ty) === 1;
+    const d = Gd.pathDir(p, goal);
+    if (d === 'here') {
+      if (!on) { const f = Gd.dirOf(t.tx - p.gx, t.ty - p.gy); p.dir = f; p.aim = Gd.ANG[f]; }
+      if (t.kind !== 'tile') G.tapInteract = true;
+      G.tap = null;
+      return null;
+    }
+    if (!d) { G.tap = null; return null; }
+    return { dir: d };
+  }
+  // 화면 터치 → 목표 지정
+  R.tapWorld = function (wx, wy) {
+    const m = G.map, p = G.player;
+    if (!m || !p || p.dead) return;
+    let best = null, bd = 1e9;
+    for (const mob of G.mobs) {
+      if (mob.dead || mob.hidden) continue;
+      const hw = Math.max(8, mob.r + 3);
+      if (Math.abs(wx - mob.x) > hw || wy < mob.y - mob.hh - 3 || wy > mob.y + 5) continue;
+      const d = Math.hypot(wx - mob.x, wy - (mob.y - mob.hh / 2));
+      if (d < bd) { bd = d; best = mob; }
+    }
+    const ring = (x, y, c) => R.fx.push({ type: 'ring', x, y, r0: 10, r1: 3, life: 0.35, max: 0.35, color: c, w: 2, flat: true });
+    if (best) { G.tap = { kind: 'mob', mob: best }; ring(best.x, best.y, '#ff5a5a'); R.sfx('ui'); return; }
+    const tx = Gd.tx(wx), ty = Gd.ty(wy + 4);
+    const near = (o, r = 10) => Math.abs(wx - o.x) < r && wy > o.y - 26 && wy < o.y + 6;
+    for (const n of m.npcs) if (near(n)) { G.tap = { kind: 'npc', tx: Gd.tx(n.x), ty: Gd.ty(n.y) }; ring(n.x, n.y, '#ffe070'); return; }
+    for (const c of m.chests) if (!c.open && near(c)) { G.tap = { kind: 'chest', tx: Gd.tx(c.x), ty: Gd.ty(c.y) }; ring(c.x, c.y, '#ffe070'); return; }
+    if (m.lever && near(m.lever)) { G.tap = { kind: 'lever', tx: Gd.tx(m.lever.x), ty: Gd.ty(m.lever.y) }; ring(m.lever.x, m.lever.y, '#ffe070'); return; }
+    for (const n of m.nodes || []) if (!n.done && near(n, 9)) { G.tap = { kind: 'node', tx: Gd.tx(n.x), ty: Gd.ty(n.y) }; ring(n.x, n.y, '#b8f0a0'); return; }
+    const tile = m.get(tx, ty);
+    if (R.isSolidTile(tile)) return;
+    G.tap = { kind: tile === R.T.PORTAL ? 'portal' : tile === R.T.EXIT ? 'exit' : 'tile', tx, ty };
+    ring(Gd.cx(tx), Gd.cy(ty), '#ffffff');
   };
 
   function startDodge(p) {
@@ -708,6 +773,7 @@
     if (m.shield) { dmg = 0; }
     m.hp -= dmg;
     m.flash = 0.12;
+    G.lastHit = { m, t: G.time };
     p.calmT = 0;
     // 기본 공격 적중 → MP 회복 (한 번 휘두를 때 한 번)
     if (opt.basic && !opt.mpGot) { opt.mpGot = true; p.mp = Math.min(st.maxMp, p.mp + st.maxMp * R.REGEN.mpOnHit); }
@@ -1179,6 +1245,7 @@
     const petM = R.Prog.petMod();
     const exp = Math.round(m.exp * R.expMod(m.lv - s.level));
     R.gainExp(exp);
+    if (exp > 0) R.log('✦ 경험치 +{n}', '#9ad8ff', 'exp', exp);
     // 골드
     const coins = m.boss ? 8 : m.elite ? 4 : 1 + (Math.random() < 0.5 ? 1 : 0);
     const gold = Math.round(m.gold * rand(0.8, 1.2) * (m.boss ? 6 : 1));
@@ -1244,18 +1311,20 @@
 
   R.pickup = function (d) {
     const s = G.save;
-    if (d.kind === 'gold') { s.gold += Math.round(d.v * (1 + (R.Prog.petMod().goldPct || 0))); R.sfx('coin'); return true; }
+    if (d.kind === 'gold') { const v = Math.round(d.v * (1 + (R.Prog.petMod().goldPct || 0))); s.gold += v; R.log('💰 골드 +{n}', '#ffd35a', 'gold', v); R.sfx('coin'); return true; }
     if (d.kind === 'mat' || d.kind === 'potion') {
       s.bag[d.id] = (s.bag[d.id] || 0) + d.n;
       const info = R.Prog.itemInfo(d.id);
-      R.toast(`${info.icon} ${info.name} x${d.n}`, '#e8e8e8');
+      R.log(`${info.icon} ${info.name} +{n}`, '#e8e8e8', 'mat:' + d.id, d.n);
       R.sfx('pickup');
       return true;
     }
     if (d.kind === 'item') {
       if (s.inv.length >= 40) { R.toast('가방이 가득 찼습니다', '#ff8a8a'); return false; }
       s.inv.push(d.item);
-      R.toast(`${d.item.name} 획득${d.item.set != null ? ` [${R.SETS[d.item.set].name} 세트]` : ''}`, R.GRADES[d.item.grade].color);
+      const nm = `${d.item.name} 획득${d.item.set != null ? ` [${R.SETS[d.item.set].name} 세트]` : ''}`;
+      R.log('🎒 ' + nm, R.GRADES[d.item.grade].color);
+      if (d.item.grade >= 2) R.toast(nm, R.GRADES[d.item.grade].color);
       R.Prog.dexAdd(d.item);
       R.sfx(d.item.grade >= 2 ? 'rare' : 'pickup');
       return true;

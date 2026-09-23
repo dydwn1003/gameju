@@ -286,6 +286,8 @@ R.REGEN = {
   restDelay: 5,
   mpOnHit: 0.05,                     // 기본 공격 적중 시 최대 MP의 4% (공격 → 스킬 순환)
 };
+// 몬스터 레벨 색 (바람의나라:연처럼 나보다 약하면 회색, 강할수록 노랑·빨강)
+R.levelColor = (gap) => (gap <= -5 ? '#9a9aa4' : gap <= 2 ? '#ffffff' : gap <= 5 ? '#ffe070' : '#ff6a5a');
 R.BOSS_HP_MUL = 1.5;             // 스킬 연계 도입으로 보스 체력 상향
 R.POTION = { hp: 0.3, hpFlat: 30, mp: 0.35, mpFlat: 15, cd: 2.5 };
 R.potionPrice = (k, lv) => Math.round(R.CONSUMABLES[k].price * (1 + (lv - 1) * 0.08));

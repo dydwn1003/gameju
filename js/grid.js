@@ -91,4 +91,27 @@
     }
     return true;
   };
+
+  // 길찾기 (BFS): goal(tx, ty) 를 만족하는 가장 가까운 칸까지의 첫 걸음 방향. 없으면 null
+  //  - 가까운(3칸 이내) 캐릭터는 피해 가고, 먼 캐릭터는 도착할 즈음 비켜 있을 테니 무시한다
+  Gd.pathDir = function (e, goal, maxNodes = 1600) {
+    if (goal(e.gx, e.gy)) return 'here';
+    const seen = new Set([e.gx + ',' + e.gy]);
+    const q = [[e.gx, e.gy, null]];
+    const order = ['up', 'down', 'left', 'right'];
+    for (let h = 0; h < q.length && seen.size < maxNodes; h++) {
+      const [x, y, first] = q[h];
+      for (const d of order) {
+        const [dx, dy] = Gd.DIRS[d];
+        const nx = x + dx, ny = y + dy, k = nx + ',' + ny;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        if (Gd.blocked(nx, ny, e, { noUnits: Math.abs(nx - e.gx) + Math.abs(ny - e.gy) > 3 })) continue;
+        const f = first || d;
+        if (goal(nx, ny)) return f;
+        q.push([nx, ny, f]);
+      }
+    }
+    return null;
+  };
 })();

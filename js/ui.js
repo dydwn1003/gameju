@@ -44,6 +44,23 @@
     setTimeout(() => d.classList.add('out'), 2300);
     setTimeout(() => d.remove(), 2700);
   };
+  // 시스템 로그 (바람의나라:연 채팅창처럼 획득 내역을 왼쪽에 쌓는다). 같은 종류는 잠깐 묶어서 합산
+  const logAgg = {};
+  R.log = function (text, color = '#e8e0d0', key, n) {
+    const box = $('syslog');
+    if (key) {
+      const a = logAgg[key];
+      if (a && a.el.isConnected && performance.now() - a.t < 900) { a.n += n; a.t = performance.now(); a.el.textContent = text.replace('{n}', a.n.toLocaleString('ko-KR')); return; }
+    }
+    const d = document.createElement('div');
+    d.style.setProperty('--c', color);
+    d.textContent = key ? text.replace('{n}', n.toLocaleString('ko-KR')) : text;
+    box.appendChild(d);
+    if (key) logAgg[key] = { el: d, n, t: performance.now() };
+    while (box.children.length > 5) box.removeChild(box.firstChild);
+    setTimeout(() => d.classList.add('out'), 5000);
+    setTimeout(() => d.remove(), 5600);
+  };
   UI.banner = function (text, color = '#fff', sub = '') {
     const b = $('banner');
     b.classList.add('hidden');
@@ -170,8 +187,23 @@
     setText('hud-gold', fmt(s.gold));
     setText('hud-gems', fmt(s.gems || 0));
     setText('pot-cnt', String(s.bag.hpPotion || 0));
+    setText('mp-cnt', String(s.bag.mpPotion || 0));
+    // 하단 경험치 바
+    const need = R.expToNext(s.level), xp = s.level >= R.MAX_LEVEL ? 100 : (s.exp / need) * 100;
+    const xt = `Lv.${s.level}  ${s.level >= R.MAX_LEVEL ? 'MAX' : xp.toFixed(1) + '%'}`;
+    if (hudCache.xb !== xt) { hudCache.xb = xt; $('xb-fill').style.width = xp + '%'; $('xb-text').textContent = xt; }
+    // 타겟 정보 (지정한 몬스터 또는 최근에 때린 몬스터)
+    const tm = G.tap && G.tap.kind === 'mob' ? G.tap.mob : G.lastHit && G.time - G.lastHit.t < 4 ? G.lastHit.m : null;
+    const showT = tm && !tm.dead && !tm.boss;
+    if (showT) {
+      const gap = tm.lv - s.level;
+      const tn = `${tm.elite ? '정예 ' : ''}${tm.def.name} <em style="color:${R.levelColor(gap)}">Lv.${tm.lv}</em> <i>${R.ELEM[tm.elem].icon}</i>${G.tap && G.tap.mob === tm ? ' <b>◎</b>' : ''}`;
+      if (hudCache.tn !== tn) { hudCache.tn = tn; $('tg-name').innerHTML = tn; }
+      $('tg-fill').style.width = Math.max(0, (tm.hp / tm.maxHp) * 100) + '%';
+    }
+    if (hudCache.tshow !== !!showT) { hudCache.tshow = !!showT; $('target').classList.toggle('hidden', !showT); }
     const pcd = p.potionCd > 0 ? ((p.potionCd / R.POTION.cd) * 100).toFixed(0) + '%' : '0%';
-    if (hudCache.pcd !== pcd) { hudCache.pcd = pcd; $('pot-cd').style.setProperty('--p', pcd); }
+    if (hudCache.pcd !== pcd) { hudCache.pcd = pcd; $('pot-cd').style.setProperty('--p', pcd); $('mp-cd').style.setProperty('--p', pcd); }
     // 스킬 연계 대기 표시
     const L = G.link, nextChain = L && L.t > 0 ? Math.min(R.LINK.max, L.n + 1) : 0;
     const ln = p.finT > 0 ? Math.max(1, nextChain) : nextChain;
@@ -604,7 +636,7 @@
             <button class="btn danger" data-a="reset">데이터 초기화</button>
           </div></section>
         <section class="card"><div class="card-h">조작법</div>
-          <div class="muted">키보드: 이동 WASD/방향키 · 공격 J (누르고 있으면 연속) · 스킬 K/L · 회피 Space · 물약 Q · 대화 E · 메뉴 Esc/M · 가방 I<br>터치: 화면 왼쪽을 드래그해 이동, 오른쪽 버튼으로 공격·스킬·회피</div></section>
+          <div class="muted">키보드: 이동 WASD/방향키 · 공격 J (누르고 있으면 연속) · 스킬 K/L · 궁극기 U · 회피 Space · 빨간 물약 Q · 파란 물약 R · 대화 E · 메뉴 Esc/M · 가방 I<br>터치: 화면 왼쪽을 드래그해 이동, 오른쪽 버튼으로 공격·스킬·회피<br>화면 터치: 빈 칸 → 그곳까지 이동 · 몬스터 → 지정 후 자동 기본 공격 (스킬은 직접) · NPC·상자·채집 → 걸어가서 상호작용</div></section>
         <section class="card"><div class="card-h">게임 원칙</div>
           <div class="muted">자동 사냥 없음 · 전투력 경쟁 없음 · VIP/강제 광고 없음 · 필드 파밍만으로 엔딩 가능 · 플레이 시간 ${Math.floor((s.playTime || 0) / 60)}분</div></section>`;
       bindActs(body, {

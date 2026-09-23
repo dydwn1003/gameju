@@ -166,6 +166,12 @@
 
   function drawMob(g, m) {
     if (m.dead && m.deathT > 0.45) return;
+    if (!m.dead && G.tap && G.tap.mob === m) {
+      // 지정한 적: 발밑에 도는 붉은 표식
+      const r = Math.max(8, m.r * 1.3), a0 = G.time * 3;
+      g.strokeStyle = '#ff4a4a'; g.lineWidth = 1.2;
+      for (let i = 0; i < 4; i++) { g.beginPath(); g.ellipse(m.x, m.y, r, r * 0.45, 0, a0 + i * Math.PI / 2, a0 + i * Math.PI / 2 + 0.9); g.stroke(); }
+    }
     const f = SPR.frame(m.sk || m.id);
     if (f) return drawMobSheet(g, m, f);
     const img = mobImage(m);
@@ -561,7 +567,18 @@
     };
     for (const n of m.npcs) label(n.name, n.x, n.y - 25, '#ffe9a8');
     for (const pr of m.props) if (pr.label && pr.kind === 'house') label(pr.label, pr.x + 32, pr.y + 22, '#ffffff');
-    for (const mob of G.mobs) if (mob.elite && !mob.dead) label('정예 ' + mob.def.name, mob.x, mob.y - mob.hh - 10, '#ffd060');
+    // 몬스터 이름·레벨 (싸우는 중이거나 지정한 적, 정예) — 레벨 차이에 따라 색
+    const tgt = G.tap && G.tap.kind === 'mob' ? G.tap.mob : null;
+    ctx.font = `${Math.round(4.5 * S)}px Galmuri11, "Noto Sans KR", sans-serif`;
+    for (const mob of G.mobs) {
+      if (mob.dead || mob.boss || mob.hidden) continue;
+      if (!(mob.elite || mob === tgt || mob.ai === 'CHASE' || (G.lastHit && G.lastHit.m === mob))) continue;
+      const hb = mob.hp < mob.maxHp ? 6 : 0;
+      label(`${mob.elite ? '정예 ' : ''}Lv.${mob.lv} ${mob.def.name}`, mob.x, mob.y - mob.hh * (mob.elite ? 1.2 : 1) * (mob.ss || 1) - 6 - hb - mob.z, mob.elite ? '#ffd060' : R.levelColor(mob.lv - G.save.level));
+    }
+    // 바닥의 장비 이름 (등급 색)
+    for (const d of G.drops) if (d.kind === 'item' && d.t > 0.4) label(d.item.name.replace(/^\S+의 /, ''), d.x, d.y - 11, R.GRADES[d.item.grade].color);
+    ctx.font = `${Math.round(5.5 * S)}px Galmuri11, "Noto Sans KR", sans-serif`;
     if (G.interact && !p.dead) {
       const it = G.interact;
       const b = Math.sin(time * 6) * 1.5;
