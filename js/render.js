@@ -13,6 +13,12 @@
       const t = m.tiles[ty * m.w + tx];
       const X = tx * TS, Y = ty * TS;
       if (t === T.PATH || t === T.EXIT) g.drawImage(SPR.path(tileVariantFloor(m, tx, ty)), X, Y);
+      else if (t === T.RAIL) {
+        g.drawImage(SPR.floor(theme, tileVariantFloor(m, tx, ty)), X, Y);
+        g.fillStyle = '#4a3020'; for (let i = 1; i < TS; i += 5) g.fillRect(X + i, Y + 4, 3, 10);
+        g.fillStyle = '#9a9aa8'; g.fillRect(X, Y + 5, TS, 1); g.fillRect(X, Y + 12, TS, 1);
+        g.fillStyle = '#5a5a66'; g.fillRect(X, Y + 6, TS, 1); g.fillRect(X, Y + 13, TS, 1);
+      }
       else if (t === T.ICE) g.drawImage(SPR.iceFloor(), X, Y);
       else if (t === T.WALL && R.THEMES[theme].wall !== 'tree') { /* 벽 스프라이트가 덮음 */ g.drawImage(SPR.floor(theme, 0), X, Y); }
       else g.drawImage(SPR.floor(theme, tileVariantFloor(m, tx, ty)), X, Y);
@@ -85,6 +91,12 @@
     const c = Math.cos(p.aim);
     if (!p.faceX) p.faceX = 1;
     if (Math.abs(c) > 0.25 && p.state !== 'dodge') p.faceX = c > 0 ? 1 : -1;
+    if (p.guardT > 0) {
+      const a = Math.min(1, p.guardT) * (0.55 + Math.sin(G.time * 10) * 0.15);
+      g.strokeStyle = `rgba(154,216,255,${a})`; g.lineWidth = 1.5;
+      g.beginPath(); g.ellipse(p.x, p.y - 9, 13, 16, 0, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = `rgba(154,216,255,${a * 0.18})`; g.fill();
+    }
     if (SPR.frame(R.Anim.playerKey())) {
       shadow(g, p.x, p.y, p.state === 'dodge' ? 5 : 7);
       R.Anim.player(g, p, G.rdt || 1 / 60);
@@ -213,6 +225,36 @@
       g.fillStyle = '#ffe0d0'; g.fillRect(x - 4, y - 7, 1, 1); g.fillRect(x - 1, y - 6, 1, 1); g.fillRect(x + 3, y - 5, 1, 1);
     }
     g.globalAlpha = 1;
+  }
+  // 광차 · 레버 · 잔해
+  function drawCart(g, c) {
+    const x = Math.round(c.x), y = Math.round(c.y), sh = c.moving ? Math.round(Math.sin(G.time * 40)) : 0;
+    shadow(g, x, y + 4, 9);
+    g.fillStyle = '#2a2a30'; g.fillRect(x - 6, y + 1, 3, 3); g.fillRect(x + 3, y + 1, 3, 3);
+    g.fillStyle = '#6a4a2a'; g.fillRect(x - 9, y - 9 + sh, 18, 10);
+    g.fillStyle = '#8a6a3a'; g.fillRect(x - 9, y - 9 + sh, 18, 2);
+    g.fillStyle = '#9a9aa8'; g.fillRect(x - 9, y - 4 + sh, 18, 1); g.fillRect(x - 9, y - 9 + sh, 1, 10); g.fillRect(x + 8, y - 9 + sh, 1, 10);
+    g.fillStyle = '#5a5a66'; g.fillRect(x - 7, y - 12 + sh, 5, 3); g.fillRect(x - 1, y - 13 + sh, 6, 4); g.fillRect(x + 4, y - 11 + sh, 3, 2);
+    g.fillStyle = '#ffd35a'; g.fillRect(x + 1, y - 12 + sh, 1, 1);
+    if (c.moving) for (let i = 0; i < 2; i++) R.fx.push({ type: 'spark', x: x - c.dir * 7, y: y + 3, vx: -c.dir * (60 + Math.random() * 60), vy: -Math.random() * 60, life: 0.15, max: 0.15, color: '#ffd35a' });
+  }
+  function drawLever(g, l) {
+    const x = Math.round(l.x), y = Math.round(l.y);
+    shadow(g, x, y, 5);
+    g.fillStyle = '#3a3a44'; g.fillRect(x - 4, y - 4, 8, 4);
+    g.fillStyle = '#5a5a66'; g.fillRect(x - 4, y - 4, 8, 1);
+    const a = l.on ? 0.6 : -0.6;
+    g.save(); g.translate(x, y - 3); g.rotate(a);
+    g.fillStyle = '#8a8a96'; g.fillRect(-1, -10, 2, 10);
+    g.fillStyle = l.on ? '#6aff8a' : '#ff5a4a'; g.fillRect(-2, -12, 4, 3);
+    g.restore();
+  }
+  function drawRubble(g, r) {
+    const x = r.x, y = r.y;
+    g.fillStyle = '#3a3036'; g.fillRect(x, y - 6, 16, 22);
+    const c = ['#6a5a50', '#7a6a5e', '#544842'];
+    for (let i = 0; i < 6; i++) { const px = x + ((i * 5 + r.v * 3) % 12), py = y - 6 + ((i * 7 + r.v) % 16); g.fillStyle = c[i % 3]; g.fillRect(px, py, 5, 4); }
+    g.fillStyle = '#8a7a6a'; g.fillRect(x + 3, y - 6, 4, 2); g.fillRect(x + 9, y - 4, 5, 2);
   }
   function drawPet(g, pt) {
     const f = SPR.frame(pt.sk);
@@ -349,6 +391,32 @@
         g.beginPath(); g.ellipse(f.x, f.y, f.r0 + (f.r1 - f.r0) * (1 - k), (f.r0 + (f.r1 - f.r0) * (1 - k)) * (f.flat ? 0.6 : 1), 0, 0, Math.PI * 2); g.stroke();
         g.globalAlpha = 1;
         break;
+      case 'zone':
+        g.fillStyle = f.color; g.globalAlpha = (f.a || 0.3) * Math.min(1, k * 2);
+        g.beginPath(); g.ellipse(f.x, f.y, f.r, f.r * 0.6, 0, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = Math.min(1, k * 2) * 0.8; g.strokeStyle = f.color; g.lineWidth = 1; g.stroke(); g.globalAlpha = 1;
+        break;
+      case 'beam':
+        g.save(); g.translate(f.x, f.y); g.rotate(f.ang); g.globalAlpha = Math.min(1, k * 1.5);
+        g.fillStyle = f.color; g.fillRect(0, -f.w / 2, f.len, f.w);
+        if (f.w > 2) { g.fillStyle = '#ffffff'; g.fillRect(0, -f.w / 6, f.len, f.w / 3); }
+        g.restore(); g.globalAlpha = 1;
+        break;
+      case 'trap': {
+        const x = Math.round(f.x), y = Math.round(f.y);
+        g.fillStyle = '#5a4a30'; g.fillRect(x - 5, y - 1, 10, 2);
+        g.fillStyle = f.armed ? '#c8c8d0' : '#7a7a80';
+        for (let i = -4; i <= 4; i += 2) g.fillRect(x + i, y - 3, 1, 2);
+        if (f.armed && Math.floor(G.time * 4) % 2) { g.fillStyle = '#9aff7a'; g.fillRect(x, y - 1, 1, 1); }
+        break;
+      }
+      case 'meteor': {
+        g.fillStyle = 'rgba(255,120,40,0.35)'; g.beginPath(); g.arc(f.x, f.y, 9, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#ff6a2a'; g.beginPath(); g.arc(f.x, f.y, 6, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#ffe070'; g.beginPath(); g.arc(f.x - 1.5, f.y + 1.5, 3, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(255,160,60,0.5)'; g.lineWidth = 3; g.beginPath(); g.moveTo(f.x, f.y); g.lineTo(f.x + 16, f.y - 34); g.stroke();
+        break;
+      }
       case 'spark':
         g.strokeStyle = f.color; g.lineWidth = 1; g.globalAlpha = k;
         g.beginPath(); g.moveTo(f.x, f.y); g.lineTo(f.x - f.vx * 0.04, f.y - f.vy * 0.04); g.stroke(); g.globalAlpha = 1;
@@ -424,6 +492,7 @@
         list.push({ y: (ty + 1) * TS, img: SPR.wall(wallTheme, m.variant[ty * m.w + tx] === 2 ? 1 : m.variant[ty * m.w + tx] === 1 ? 2 : 0), x: tx * TS, dy: ty * TS - 12 });
       } else if (t === T.GATE) list.push({ y: (ty + 1) * TS, img: SPR.gate(wallTheme), x: tx * TS, dy: ty * TS - 12 });
       else if (t === T.VINE) list.push({ y: (ty + 1) * TS, img: SPR.vine(m.vineHp.get(m.idx(tx, ty)) || 1), x: tx * TS, dy: ty * TS - 12 });
+      else if (t === T.BLOCK && m.kind === 'dungeon') list.push({ y: (ty + 1) * TS, rubble: { x: tx * TS, y: ty * TS, v: (tx * 7 + ty * 3) % 4 } });
     }
     // 맵 가장자리 바깥 벽 (빈 공간 방지)
     for (const pr of m.props) list.push({ y: pr.bottom, prop: pr });
@@ -432,6 +501,8 @@
     for (const d of G.drops) list.push({ y: d.y, drop: d });
     for (const mob of G.mobs) list.push({ y: mob.y, mob });
     for (const nd of m.nodes || []) list.push({ y: nd.y, node: nd });
+    if (m.cart) list.push({ y: m.cart.y + 4, cart: m.cart });
+    if (m.lever) list.push({ y: m.lever.y, lever: m.lever });
     if (G.pet) list.push({ y: G.pet.y, pet: G.pet });
     list.push({ y: p.y, player: true });
     list.sort((a, b) => a.y - b.y);
@@ -441,6 +512,9 @@
       else if (o.player) drawPlayer(ctx, p);
       else if (o.drop) drawDrop(ctx, o.drop);
       else if (o.node) drawNode(ctx, o.node);
+      else if (o.cart) drawCart(ctx, o.cart);
+      else if (o.lever) drawLever(ctx, o.lever);
+      else if (o.rubble) drawRubble(ctx, o.rubble);
       else if (o.pet) drawPet(ctx, o.pet);
       else if (o.chest) { const c = o.chest; shadow(ctx, c.x, c.y, 7); const img = SPR.chest(c.open); ctx.drawImage(img, Math.round(c.x - img.width / 2), Math.round(c.y - img.height)); }
       else if (o.npc) {
@@ -459,6 +533,7 @@
 
     for (const s of G.shots) drawShot(ctx, s);
     for (const f of G.fx) drawFx(ctx, f);
+    R.Season.draw(ctx, camX, camY, G.rdt || 1 / 60);
     for (const n of G.nums) {
       ctx.globalAlpha = Math.min(1, n.life * 3);
       SPR.num(ctx, n.text, n.x, n.y, n.color, n.sc);

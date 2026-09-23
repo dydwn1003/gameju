@@ -182,7 +182,7 @@
     const dot = (s.points > 0 || (s.sp || 0) > 0);
     if (hudCache.dot !== dot) { hudCache.dot = dot; $('menu-dot').classList.toggle('hidden', !dot); }
     // 스킬 쿨타임
-    cls.skills.forEach((id, i) => {
+    R.skillIds(s).forEach((id, i) => {
       const sk = R.SKILLS[id];
       const cdMax = sk.cd * R.Prog.skillMod(id).cdMul;
       const v = (p.skillCd[i] > 0 ? (p.skillCd[i] / cdMax) * 100 : 0).toFixed(0) + '%';
@@ -222,11 +222,11 @@
   };
   UI.resetHudCache = () => { for (const k in hudCache) delete hudCache[k]; };
   UI.setSkillButtons = function () {
-    const cls = R.CLASSES[G.save.cls];
-    cls.skills.forEach((id, i) => {
+    R.skillIds(G.save).forEach((id, i) => {
       $(`s${i + 1}-ico`).textContent = R.SKILLS[id].icon;
       $(`s${i + 1}-lbl`).textContent = R.SKILLS[id].name;
     });
+    $('btn-s3').classList.toggle('hidden', !G.save.adv);
     UI.drawFace();
   };
   UI.setArea = (t) => { $('hud-area').textContent = t; };
@@ -413,6 +413,7 @@
         <section class="hero">
           <div class="hero-art" id="hero-art"></div>
           <div class="hero-info">
+            ${s.title ? `<div class="hero-title" style="--c:${R.Season.byId(s.title).color}">${R.Season.byId(s.title).icon} ${R.Season.byId(s.title).title.name}</div>` : ''}
             <div class="hero-cls">${esc(cls.name)}${s.adv ? ` <b>→ ${R.ADVANCES[s.adv].name}</b>` : ''}</div>
             <div class="hero-lv">Lv.<b>${s.level}</b></div>
             <div class="xp"><i style="width:${s.level >= R.MAX_LEVEL ? 100 : (s.exp / need) * 100}%"></i></div>
@@ -448,6 +449,7 @@
           ${s.adv ? `<div class="kv"><span>전직 · ${R.ADVANCES[s.adv].name}</span><b>${R.ADVANCES[s.adv].desc}</b></div>` : ''}
           ${Object.keys(R.FOODS).filter((k) => R.Prog.buffLeft(k) > 0).map((k) => `<div class="kv"><span>${R.FOODS[k].icon} ${R.FOODS[k].name}</span><b>${R.FOODS[k].desc.replace(/^\S+ /, '')} · ${Math.ceil(R.Prog.buffLeft(k) / 60)}분 남음</b></div>`).join('')}
         </section>
+        ${(s.titles || []).length ? `<section class="card"><div class="card-h">칭호</div><div class="titles">${s.titles.map((id) => { const se = R.Season.byId(id); return `<button class="ttl ${s.title === id ? 'on' : ''}" style="--c:${se.color}" data-a="title" data-v="${id}"><b>${se.icon} ${se.title.name}</b><small>${se.title.desc}</small></button>`; }).join('')}</div></section>` : ''}
         <section class="card">
           <div class="card-h">동행 펫 <span class="pill">${(s.pets || []).length}/${R.PETS.length}</span></div>
           ${(s.pets || []).length ? `<div class="pets">${R.PETS.filter((d) => s.pets.includes(d.id)).map((d) => `<button class="pet ${s.pet === d.id ? 'on' : ''}" data-a="pet" data-v="${d.id}"><span class="pet-art" data-k="${d.id}"></span><b>${d.name}</b><small>${d.desc}</small>${s.pet === d.id ? '<i>동행 중</i>' : ''}</button>`).join('')}</div>` : '<div class="muted">마을 광장의 수상한 상인 모르에게서 펫을 데려올 수 있습니다.</div>'}
@@ -472,6 +474,7 @@
         stat: (k) => { if (s.points <= 0) return; s.points--; s.stats[k]++; R.refreshStats(); UI.refreshPanel(); },
         mp: () => { R.usePotion('mpPotion'); UI.refreshPanel(); },
         eat: (k) => { R.Prog.eat(k); UI.refreshPanel(); },
+        title: (id) => { R.Season.setTitle(id); UI.refreshPanel(); },
         pet: (id) => { R.Prog.setPet(id); R.spawnPet(); UI.refreshPanel(); },
       });
     } else if (tab === '장비') {
@@ -508,17 +511,17 @@
       body.innerHTML = `
         <section class="card sp-card"><div class="card-h">스킬 포인트 <span class="pill ${s.sp ? 'hot' : ''}">SP ${s.sp || 0}</span></div>
           <div class="muted">레벨업마다 SP 1 · 스킬 레벨당 피해 +12% · Lv.4 범위 +10% · Lv.5 쿨타임 -20%</div></section>
-        ${cls.skills.map((id, i) => {
+        ${R.skillIds(s).map((id, i) => {
           const k = R.SKILLS[id], lv = R.Prog.skillLv(id), md = R.Prog.skillMod(id), rs = R.Prog.runeState(id);
           const cost = R.Prog.skillUpCost(id);
           return `<section class="card skill">
-            <div class="sk-top"><div class="sk-ico">${k.icon}<small>스킬${i + 1}</small></div>
+            <div class="sk-top"><div class="sk-ico ${k.ult ? 'ult' : ''}">${k.icon}<small>${k.ult ? '궁극기' : `스킬${i + 1}`}</small></div>
               <div class="sk-info"><div class="sk-name">${k.name} <span class="elem">${R.ELEM[k.elem].icon}</span></div>
                 <div class="pips">${Array.from({ length: R.SKILL_MAX }, (_, j) => `<i class="${j < lv ? 'on' : ''}"></i>`).join('')}<em>Lv.${lv}</em></div>
                 <div class="muted">${k.desc}</div></div>
               <button class="btn xs gold" data-a="up" data-v="${id}" ${lv < R.SKILL_MAX && (s.sp || 0) >= cost ? '' : 'disabled'}>${lv >= R.SKILL_MAX ? 'MAX' : `강화<br><small>SP ${cost}</small>`}</button></div>
             <div class="sk-stats"><span>피해 <b>${Math.round(k.rate * md.dmg * 100)}%</b></span><span>MP <b>${k.mp}</b></span><span>쿨타임 <b>${(k.cd * md.cdMul).toFixed(1)}s</b></span>${md.aoe > 1 ? `<span>범위 <b>+${Math.round((md.aoe - 1) * 100)}%</b></span>` : ''}</div>
-            <div class="runes">${R.RUNES[id].map((r, j) => `<button class="rune ${rs.eq === j ? 'eq' : ''} ${rs.owned[j] ? 'own' : 'lock'}" data-a="rune" data-v="${id}:${j}">
+            ${k.ult ? '<div class="muted">2차 전직 전용 궁극기 · [U] 키 / 보라색 버튼</div>' : ''}<div class="runes">${(R.RUNES[id] || []).map((r, j) => `<button class="rune ${rs.eq === j ? 'eq' : ''} ${rs.owned[j] ? 'own' : 'lock'}" data-a="rune" data-v="${id}:${j}">
               <b>${'ABC'[j]}</b><span>${r.name}</span><small>${r.desc}</small><em>${rs.eq === j ? '장착 중' : rs.owned[j] ? '장착' : `🪙 ${R.RUNE_COST}`}</em></button>`).join('')}</div>
           </section>`;
         }).join('')}
@@ -527,8 +530,8 @@
         <section class="card"><div class="card-h">회피</div><div class="muted">쿨타임 ${(R.DODGE_CD * (1 - (st.adv.dodgeCdr || 0))).toFixed(1)}초 · 발동 즉시 0.25초 무적</div>
           <div class="card-h" style="margin-top:2cqw">속성 상성 +25%</div><div class="muted">🔥 화염 › 🌿 자연 › ⚡ 번개 › ❄ 냉기 › 🔥 화염 · 🌑 암흑 ↔ 🌑 암흑</div></section>
         <section class="card"><div class="card-h">2차 전직 · Lv.30</div>
-          <div class="advs">${cls.adv.map((a) => `<div class="adv ${s.adv === a ? 'on' : s.adv ? 'off' : ''}">${R.SPR.frame(a) ? '<span data-adv="' + a + '"></span>' : ''}<b>${R.ADVANCES[a].name}</b><small>${R.ADVANCES[a].desc}</small></div>`).join('')}</div>
-          ${!s.adv ? '<div class="muted">Lv.30 달성 후 촌장 엘든에게 말을 걸면 전직할 수 있습니다.</div>' : ''}</section>`;
+          <div class="advs">${cls.adv.map((a) => `<div class="adv ${s.adv === a ? 'on' : s.adv ? 'off' : ''}">${R.SPR.frame(a) ? '<span data-adv="' + a + '"></span>' : ''}<b>${R.ADVANCES[a].name}</b><small>${R.ADVANCES[a].desc}</small><small class="adv-ult">${R.SKILLS[R.ADV_SKILL[a]].icon} ${R.SKILLS[R.ADV_SKILL[a]].name}</small></div>`).join('')}</div>
+          ${!s.adv ? '<div class="muted">Lv.30 달성 후 촌장 엘든에게 말을 걸면 전직할 수 있습니다. 전직하면 전용 궁극기가 열립니다.</div>' : ''}</section>`;
       body.querySelectorAll('[data-adv]').forEach((el) => el.replaceWith(spriteCanvas(el.dataset.adv, 120, 120, 'adv-cv')));
       bindActs(body, {
         up: (id) => { if (R.Prog.levelUpSkill(id)) { R.toast(`${R.SKILLS[id].name} Lv.${R.Prog.skillLv(id)}`, '#ffe070'); UI.refreshPanel(); } },
@@ -561,7 +564,7 @@
       ['GUARDIAN', 'ARCHMAGE', 'NINJA'].forEach((k) => art.appendChild(spriteCanvas(k, 120, 140, 'bn-cv')));
       bindActs(body, { pull: (n) => doSummon(+n) });
     } else if (tab === '퀘스트') {
-      body.innerHTML = `<section class="card"><div class="card-h">진행 중</div>
+      body.innerHTML = seasonCard(false) + `<section class="card"><div class="card-h">진행 중</div>
         ${s.quests.length ? s.quests.map((q) => `<div class="quest ${q.ready ? 'ready' : ''}"><div class="q-ico">${q.ready ? '✔' : q.id[0] === 'm' ? '★' : q.id === 'guild' ? '⚔' : '🎵'}</div>
           <div class="q-body"><div class="q-title">${esc(q.title)}</div><div class="muted">${esc(q.desc)}</div>
           <div class="qbar"><i style="width:${(q.p / q.count) * 100}%"></i><span>${q.ready ? `완료 · ${esc(q.giverName || '')}에게 보고` : `${q.p} / ${q.count}`}</span></div></div></div>`).join('') : '<div class="muted">진행 중인 퀘스트가 없습니다. 촌장 엘든이나 길드장 레오를 찾아가 보세요.</div>'}</section>
@@ -777,6 +780,36 @@
     });
   };
 
+  // ─── 시즌 이벤트: 축제 교환소 ───────────────────────
+  function seasonCard(withBtn) {
+    const se = R.Season.current(), st = R.Season.state(), ms = st.mission, need = R.SEASON_MISSION.kills;
+    return `<section class="card season" style="--c:${se.color}">
+      <div class="ss-h"><span class="ss-ico">${se.icon}</span><div><b>${se.name}</b><small>이번 시즌 누적 ${se.token.icon} ${fmt(st.total)}</small></div><em>${se.token.icon} ${fmt(st.tokens)}</em></div>
+      <div class="kv"><span>오늘의 미션 · 던전 몬스터 ${need}마리</span><b>${ms.claimed ? '완료 ✔' : `${Math.min(ms.kills, need)} / ${need}`}</b></div>
+      <div class="pbar"><i style="width:${(Math.min(ms.kills, need) / need) * 100}%"></i></div>
+      <div class="muted">보상: ${se.token.icon} ${R.SEASON_MISSION.reward.tokens} · 💎 ${R.SEASON_MISSION.reward.gems} — 마을 광장의 축제 안내원 루루에게서 받기</div>
+      ${withBtn && ms.kills >= need && !ms.claimed ? '<button class="btn gold wide" data-a="claim">🎁 미션 보상 받기</button>' : ''}
+    </section>`;
+  }
+  UI.eventShop = function () {
+    const se = R.Season.current();
+    UI.openPanel(`${se.icon} ${se.name} 교환소`, null, (body) => {
+      const s = G.save, st = R.Season.state();
+      body.innerHTML = seasonCard(true) + `<section class="card shop">${R.SEASON_SHOP.map((it) => {
+        const n = R.Season.boughtN(it.id), sold = n >= it.limit || (it.id === 'title' && (s.titles || []).includes(se.id));
+        const title = it.id === 'title' ? `「${se.title.name}」 칭호` : it.name;
+        const desc = it.id === 'title' ? se.title.desc : `교환 ${n}/${it.limit}`;
+        return `<div class="li"><div class="li-ico">${it.icon}</div><div class="li-b"><b>${title}</b><small>${desc}</small></div>
+          <button class="btn xs ${sold ? '' : 'gold'}" data-a="buy" data-v="${it.id}" ${R.Season.canBuy(it) ? '' : 'disabled'}>${sold ? '교환 완료' : `${se.token.icon} ${it.cost}`}</button></div>`;
+      }).join('')}</section><p class="muted">축제 재화와 교환 횟수는 시즌이 바뀌면 초기화됩니다. 획득한 칭호는 영구 보관돼요.</p>`;
+      bindActs(body, {
+        buy: (id) => { const it = R.SEASON_SHOP.find((x) => x.id === id); if (R.Season.buy(it) && it.id !== 'box') R.toast(`${it.icon} ${it.id === 'title' ? se.title.name + ' 칭호' : it.name} 교환 완료`, se.color); UI.refreshPanel(); },
+        claim: () => { R.Season.claimMission(); UI.refreshPanel(); },
+      });
+      void st;
+    });
+  };
+
   // ─── 지역 선택 (마을 남문) ───────────────────────────
   let selDiff = 0;
   UI.regionSelect = function () {
@@ -862,7 +895,7 @@
   UI.showTitle = function () {
     $('title').classList.remove('hidden');
     $('select').classList.add('hidden');
-    $('btn-continue').disabled = !R.hasSave();
+    $('btn-continue').disabled = !(R.hasSave && R.hasSave());
     const cv = $('title-art');
     const ids = Object.keys(R.CLASSES);
     if (R.SPR.sheet.ready) {

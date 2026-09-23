@@ -205,7 +205,10 @@
       else if (id === 'charge') { P.torso.rot = 0.38; P.torso.ox = 1.5; P.legs[0].ox = 2.5; P.legs[1].ox = -2.5; P.legs[1].oy = -1; P.sx = 1.08; }
       else if (id === 'shadowstep') { const s = Math.sin(k * Math.PI); P.sx = 1 - s * 0.45; P.sy = 1 + s * 0.3; }
       else if (id === 'poisonblade') { const q = (k * 5) % 1; swing(P, q, 0.3, 0.8, q < 0.5 ? 'slash' : 'up'); }
-      else if (id === 'multishot' || id === 'pierce') shootPose(P, k, 0.35);
+      else if (id === 'multishot' || id === 'pierce' || id === 'deadeye') shootPose(P, k, id === 'deadeye' ? 0.7 : 0.35);
+      else if (id === 'bulwark') { const e = k < 0.3 ? easeOut(k / 0.3) : 1 - (k - 0.3) / 0.7; P.sy = 1 - 0.14 * e; P.sx = 1 + 0.1 * e; P.legs[0].ox = -2 * e; P.legs[1].ox = 2 * e; }
+      else if (id === 'bloodrage') { if (k < 0.6) { P.oy -= Math.sin((k / 0.6) * Math.PI) * 10; P.torso.rot -= 0.35; P.rot -= 0.1; } else swing(P, (k - 0.6) / 0.4, 0.2, 1.4, 'heavy'); }
+      else if (id === 'execute' || id === 'clones') { const q = id === 'clones' ? (k * 8) % 1 : k; swing(P, q, 0.25, 1, 'slash'); }
       else { // 시전: 몸을 젖혀 모았다가 내뻗기
         if (k < 0.35) { const e = easeOut(k / 0.35); P.torso.rot -= 0.25 * e; P.torso.sy *= 1 + 0.08 * e; P.oy -= 1.5 * e; }
         else { const s = (k - 0.35) / 0.65; P.torso.rot += 0.3 * spring(s); P.ox += 1.5 * Math.pow(1 - s, 2); }

@@ -2,7 +2,7 @@
 'use strict';
 (function () {
   const T = (R.T = {
-    FLOOR: 0, WALL: 1, GATE: 2, VINE: 3, PORTAL: 4, HAZARD: 5, ICE: 6, SWITCH: 7, BLOCK: 8, WATER: 9, PATH: 10, EXIT: 11,
+    FLOOR: 0, WALL: 1, GATE: 2, VINE: 3, PORTAL: 4, HAZARD: 5, ICE: 6, SWITCH: 7, BLOCK: 8, WATER: 9, PATH: 10, EXIT: 11, RAIL: 12,
   });
   const SOLID = new Uint8Array(16);
   [T.WALL, T.GATE, T.VINE, T.BLOCK, T.WATER].forEach((t) => (SOLID[t] = 1));
@@ -112,6 +112,7 @@
     NPC('inn', '여관 주인 하나', 5, 27.6, { skin: '#f1c29a', hair: '#8a4a1a', body: '#c8a060', bodyD: '#a07a40', legs: '#6a4a2a', boots: '#3a2a1a', hat: 'none' }, 'inn');
     NPC('guild', '길드장 레오', 21, 27.6, { skin: '#d8a070', hair: '#2a2a2a', body: '#8a2a2a', bodyD: '#5e1a1a', legs: '#3a3a44', boots: '#1a1a1a', hat: 'none', cape: '#3a3a44' }, 'guild');
     NPC('merchant', '수상한 상인 모르', 8.5, 18.6, { skin: '#c8a080', hair: '#2a1a3a', body: '#4a2a6a', bodyD: '#2e1a44', legs: '#2e1a44', boots: '#1a1020', hat: 'hood', hatC: '#5a2a7a', cape: '#2a1a3a' }, 'pets');
+    NPC('event', '축제 안내원 루루', 10, 14.6, { skin: '#f1c29a', hair: '#ff8a4a', body: '#ffd35a', bodyD: '#d0a030', legs: '#c84a6a', boots: '#6a2a3a', hat: 'wizard', hatC: '#ff6a9a' }, 'event');
     NPC('bard', '음유시인 노아', 16.5, 14.6, { skin: '#f1c29a', hair: '#e0b040', body: '#3a8a3a', bodyD: '#2a5e28', legs: '#5a4630', boots: '#3a2a20', hat: 'hood', hatC: '#c83a3a' }, 'bard');
     m.start = { x: 13 * TS, y: 23 * TS };
     m.exploreAll = true;
@@ -183,6 +184,17 @@
         m.vineHp.set(m.idx(x, ky + j), 2);
       }
     }
+    if (region.cart) {
+      // 광차 선로: 위쪽 방 → 열쇠방. 열쇠방 입구는 무너진 잔해(2겹)로 막혀 있다
+      const ex = sx > 0 ? keyRoom.x - 1 : keyRoom.x + keyRoom.w;
+      for (let k = 0; k < 2; k++) for (let j = -1; j <= 1; j++) m.set(ex - sx * k, ky + j, T.BLOCK);
+      const rs = cx(r2) - 3 * sx, re = sx > 0 ? keyRoom.x + keyRoom.w - 2 : keyRoom.x + 1;
+      for (let x = rs; x !== re + sx; x += sx) if (m.get(x, ky) === T.FLOOR || m.get(x, ky) === T.BLOCK) { if (m.get(x, ky) === T.FLOOR) m.set(x, ky, T.RAIL); }
+      m.rail = { y: ky, x0: rs, x1: re, rubble: ex, sx };
+      m.cart = { x: rs * TS + 8, y: ky * TS + 10, tx: rs, dir: sx, moving: false, hit: new Set(), v: 0 };
+      m.set(rs, ky + 2, T.FLOOR); m.set(rs - sx, ky + 2, T.FLOOR);
+      m.lever = { x: rs * TS + 8, y: (ky + 2) * TS + 12, on: false };
+    }
     if (region.gimmick === 'switch') {
       m.set(cx(keyRoom), cy(keyRoom), T.SWITCH);
       m.switchPos = { x: cx(keyRoom), y: cy(keyRoom) };
@@ -223,8 +235,8 @@
     m.start = { x: cx(start) * TS + 8, y: (cy(start) + 1.5) * TS };
 
     // 상자 (열쇠)
-    const chestPos = region.gimmick === 'switch'
-      ? { x: keyRoom.x + 1, y: keyRoom.y + 1 }
+    const chestPos = region.gimmick === 'switch' || region.cart
+      ? { x: keyRoom.x + 1 + (region.cart ? 2 : 0), y: keyRoom.y + 1 }
       : { x: cx(keyRoom), y: cy(keyRoom) };
     m.chests.push({ x: chestPos.x * TS + 8, y: chestPos.y * TS + 12, r: 7, open: false, key: region.gimmick !== 'switch' });
 

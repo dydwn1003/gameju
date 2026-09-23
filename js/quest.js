@@ -153,7 +153,9 @@
     R.UI.banner(`2차 전직 : ${R.ADVANCES[id].name}`, '#ffb0ff');
     R.sfx('levelup');
     R.saveGame();
-    say('촌장 엘든', [`이제 자네는 「${R.ADVANCES[id].name}」일세.\n${R.ADVANCES[id].desc}`]);
+    R.UI.setSkillButtons();
+    const u = R.SKILLS[R.ADV_SKILL[id]];
+    say('촌장 엘든', [`이제 자네는 「${R.ADVANCES[id].name}」일세.\n${R.ADVANCES[id].desc}`, `그리고 이것이 그 길의 비기일세.\n${u.icon} 궁극기 「${u.name}」 — ${u.desc}`]);
   }
 
   function finale() {
@@ -182,6 +184,16 @@
       { label: '⚗ 제작 (채집 재료)', fn: () => R.UI.shop('craft') },
       { label: '💰 장비 판매', fn: () => R.UI.shop('sell') },
       ...withGift('alchemist', [{ label: '그만두기' }]),
+    ]);
+  };
+  N.event = function () {
+    const s = G.save, name = '축제 안내원 루루', se = R.Season.current(), st = R.Season.state(), ms = st.mission;
+    const lines = [`${se.icon} ${se.name} 기간이에요! ${se.greet}`, `던전의 몬스터를 쓰러뜨리면 ${se.token.icon} ${se.token.name}을(를) 얻을 수 있어요. 모아 오면 멋진 선물로 바꿔 드릴게요.`];
+    if (!s.flags['met_' + st.key]) s.flags['met_' + st.key] = true; else lines.splice(1, 1);
+    say(name, lines, [
+      { label: `🎪 축제 교환소 (${se.token.icon} ${st.tokens})`, fn: () => R.UI.eventShop() },
+      ...(ms.kills >= R.SEASON_MISSION.kills && !ms.claimed ? [{ label: '🎁 오늘의 미션 보상 받기', fn: () => { R.Season.claimMission(); say(name, ['수고하셨어요! 내일도 기다릴게요~']); } }] : []),
+      { label: '그만두기' },
     ]);
   };
   N.merchant = function () {

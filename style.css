@@ -523,3 +523,25 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .tower-card { background: linear-gradient(160deg, rgba(110, 60, 170, 0.35), rgba(20, 12, 36, 0.6)); }
 .tower-card .pbar { margin: 2cqw 0 0.4cqw; }
 .tower-card.locked { opacity: 0.6; }
+
+/* ─── 전직 궁극기 ─────────────────── */
+.cbtn.s3 { --c: #a24bff; right: 43cqw; bottom: 25cqw; width: 13cqw; height: 13cqw; box-shadow: inset 0 -1cqw 0 rgba(0, 0, 0, 0.25), 0 0 3cqw rgba(170, 90, 255, 0.55), 0 0 0 0.8cqw rgba(0, 0, 0, 0.25); }
+.cbtn.s3 .lbl { font-size: 2cqw; }
+.sk-ico.ult { background: radial-gradient(circle at 50% 30%, #c86bff, #3a1266); box-shadow: 0 0 3cqw rgba(170, 90, 255, 0.5); }
+.adv-ult { color: #d8a8ff !important; }
+
+/* ─── 시즌 이벤트 ─────────────────── */
+.card.season { background: linear-gradient(150deg, color-mix(in srgb, var(--c) 28%, transparent), rgba(20, 12, 36, 0.55)); border-color: color-mix(in srgb, var(--c) 45%, transparent); }
+.ss-h { display: grid; grid-template-columns: auto 1fr auto; gap: 2.4cqw; align-items: center; margin-bottom: 1.6cqw; }
+.ss-ico { font-size: 7cqw; filter: drop-shadow(0 0 2cqw var(--c)); }
+.ss-h b { display: block; font-weight: normal; font-size: 3.4cqw; color: var(--c); font-family: var(--display); }
+.ss-h small { font-size: 2.2cqw; color: var(--dim); }
+.ss-h em { font-style: normal; font-size: 3.4cqw; padding: 0.8cqw 2.4cqw; border-radius: 99cqw; background: rgba(0, 0, 0, 0.35); }
+.card.season .pbar { margin: 1cqw 0 1.4cqw; }
+.card.season .pbar i { background: linear-gradient(90deg, var(--c), #fff); }
+.hero-title { display: inline-block; font-size: 2.3cqw; color: var(--c); padding: 0.4cqw 1.8cqw; border-radius: 99cqw; border: 1px solid var(--c); background: rgba(0, 0, 0, 0.3); margin-bottom: 0.8cqw; }
+.titles { display: grid; gap: 1.4cqw; }
+.ttl { text-align: left; padding: 1.8cqw 2.4cqw; border-radius: 2.4cqw; border: 1px solid var(--stroke); background: rgba(0, 0, 0, 0.28); color: inherit; font: inherit; }
+.ttl b { display: block; font-weight: normal; font-size: 3cqw; color: var(--c); }
+.ttl small { font-size: 2.2cqw; color: var(--dim); }
+.ttl.on { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset, 0 0 3cqw color-mix(in srgb, var(--c) 35%, transparent); }

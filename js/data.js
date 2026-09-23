@@ -107,7 +107,19 @@ R.SKILLS = {
   icelance:    { name: '빙결창',     mp: 18, cd: 4, rate: 1.8, elem: 'ICE',     icon: '❄', desc: '관통하는 얼음창 180% + 빙결(둔화)' },
   shadowstep:  { name: '그림자이동', mp: 18, cd: 5, rate: 2.5, elem: 'DARK',    icon: '👤', desc: '가까운 적 뒤로 순간이동 후 250% 확정 치명타' },
   poisonblade: { name: '독칼난무',   mp: 22, cd: 6, rate: 0.7, elem: 'NATURE',  icon: '🗡', desc: '전방을 5회 연속 베어 각 70% + 중독' },
+  // 전직 전용 궁극기 (GDD 12: 2차 전직 시 세 번째 스킬 슬롯 개방)
+  bulwark:     { name: '수호의 방벽', mp: 40, cd: 16, rate: 1.6, elem: 'NONE',    icon: '🛡', ult: true, desc: '충격파 160% + 주변 적 기절, 5초간 받는 피해 -60%' },
+  bloodrage:   { name: '피의 격노',   mp: 35, cd: 14, rate: 3.2, elem: 'FIRE',    icon: '🩸', ult: true, desc: '도약 내려찍기 320% — 잃은 체력 1%당 피해 +1.5%' },
+  deadeye:     { name: '데드아이',    mp: 40, cd: 15, rate: 6.0, elem: 'NONE',    icon: '🎯', ult: true, desc: '모든 적을 꿰뚫는 저격 600%, 확정 치명타' },
+  snare:       { name: '덫 지대',     mp: 35, cd: 14, rate: 2.2, elem: 'NATURE',  icon: '🪤', ult: true, desc: '덫 5개 설치 — 밟으면 폭발 220% + 기절·둔화 (10초 유지)' },
+  meteor:      { name: '메테오',      mp: 50, cd: 16, rate: 3.6, elem: 'FIRE',    icon: '☄', ult: true, desc: '조준 지점에 운석 3개 낙하, 각 360% 범위 피해 + 화상' },
+  hex:         { name: '파멸의 저주', mp: 40, cd: 14, rate: 2.0, elem: 'DARK',    icon: '🕯', ult: true, desc: '주변 적 전체 200% + 저주. 이미 저주받은 적은 2배, 적중마다 HP 회복' },
+  execute:     { name: '처형',        mp: 35, cd: 12, rate: 4.0, elem: 'DARK',    icon: '💀', ult: true, desc: '가장 약한 적에게 순간이동 400% 확정 치명타, 체력 30% 이하면 2배' },
+  clones:      { name: '분신술',      mp: 40, cd: 15, rate: 1.3, elem: 'NONE',    icon: '🥷', ult: true, desc: '무적 상태로 주변 적 사이를 8회 순간이동하며 각 130%' },
 };
+R.ADV_SKILL = { GUARDIAN: 'bulwark', BERSERKER: 'bloodrage', SNIPER: 'deadeye', TRAPPER: 'snare', ARCHMAGE: 'meteor', WARLOCK: 'hex', ASSASSIN2: 'execute', NINJA: 'clones' };
+// 현재 사용 가능한 스킬 목록 (전직 후 3개)
+R.skillIds = (save) => { const c = R.CLASSES[save.cls]; return save.adv ? [...c.skills, R.ADV_SKILL[save.adv]] : c.skills.slice(); };
 
 // ─── 장비 ───────────────────────────────────────────────
 R.SLOTS = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'necklace', 'earring'];
@@ -226,7 +238,7 @@ R.BOSSES = {
 R.REGIONS = [
   { id: 1, name: '잊혀진 숲',  lv: [1, 8],   theme: 'forest', gimmick: 'vine',   monsters: ['slime', 'goblin', 'mushroom', 'wolf', 'spider'], boss: 'forest_beast', bossLv: 9,  bgm: 0, gimmickText: '덩굴 장벽을 베어내고 열쇠를 찾아라' },
   { id: 2, name: '폐허 도시',  lv: [8, 15],  theme: 'ruins',  gimmick: 'switch', monsters: ['skeleton', 'ghost', 'bandit', 'gargoyle'], boss: 'fallen_knight', bossLv: 16, bgm: 1, gimmickText: '바닥 압력 스위치로 잠금을 해제하라' },
-  { id: 3, name: '용암 광산',  lv: [15, 25], theme: 'mine',   gimmick: 'rocks',  monsters: ['mine_goblin', 'golem', 'bat', 'lava_worm'], boss: 'iron_golem', bossLv: 26, bgm: 2, gimmickText: '떨어지는 낙석을 피하며 열쇠를 찾아라' },
+  { id: 3, name: '용암 광산',  lv: [15, 25], theme: 'mine',   gimmick: 'rocks',  monsters: ['mine_goblin', 'golem', 'bat', 'lava_worm'], boss: 'iron_golem', bossLv: 26, bgm: 2, cart: true, gimmickText: '낙석을 피하고, 레버로 광차를 보내 무너진 갱도를 뚫어라' },
   { id: 4, name: '얼어붙은 성', lv: [25, 35], theme: 'ice',   gimmick: 'ice',    monsters: ['ice_wolf', 'frost_mage', 'ice_knight'], boss: 'ice_king', bossLv: 36, bgm: 3, gimmickText: '미끄러운 빙판 위에서 관성을 제어하라' },
   { id: 5, name: '마계의 문',  lv: [35, 50], theme: 'hell',   gimmick: 'phase',  monsters: ['demon', 'fallen_angel', 'hellhound', 'demon_knight'], boss: 'void_king', bossLv: 50, bgm: 4, gimmickText: '공허의 왕은 차원을 넘나든다' },
 ];

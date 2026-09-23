@@ -19,7 +19,7 @@
       quests: [], mainIdx: 0, unlocked: 1, cleared: {}, codex: {}, flags: {}, favor: {}, honor: 0,
       hp: null, mp: null, playTime: 0,
       gems: 300, coins: 0, sp: 0, skillLv: {}, runes: {}, pity: 0, itemDex: {}, summons: 0,
-      pets: [], pet: null, buffs: {}, tower: { best: 0 }, diff: 0, clearedD: { 1: {}, 2: {} },
+      pets: [], pet: null, buffs: {}, titles: [], title: null, tower: { best: 0 }, diff: 0, clearedD: { 1: {}, 2: {} },
     };
     R.SLOTS.forEach((k) => (s.equip[k] = null));
     s.equip.weapon = R.makeItem('weapon', 1, 0, cls);
@@ -48,13 +48,13 @@
   R.deleteSave = () => { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 무시 */ } };
 
   // ─── 입력 ────────────────────────────────────────────
-  const inp = (G.input = { move: { x: 0, y: 0 }, moving: false, atkHeld: false, atkPressed: false, skillPressed: [false, false], dodgePressed: false, potionPressed: false });
-  const buf = { atk: 0, s0: 0, s1: 0, dodge: 0, pot: 0, act: 0 };
+  const inp = (G.input = { move: { x: 0, y: 0 }, moving: false, atkHeld: false, atkPressed: false, skillPressed: [false, false, false], dodgePressed: false, potionPressed: false });
+  const buf = { atk: 0, s0: 0, s1: 0, s2: 0, dodge: 0, pot: 0, act: 0 };
   const keys = new Set();
   const stick = { x: 0, y: 0, id: null };
 
   const KEYMAP = {
-    KeyJ: 'atk', KeyZ: 'atk', KeyK: 's0', KeyX: 's0', KeyL: 's1', KeyC: 's1', Space: 'dodge', ShiftLeft: 'dodge', KeyQ: 'pot', KeyE: 'act', Enter: 'act',
+    KeyJ: 'atk', KeyZ: 'atk', KeyK: 's0', KeyX: 's0', KeyL: 's1', KeyC: 's1', KeyU: 's2', KeyV: 's2', Space: 'dodge', ShiftLeft: 'dodge', KeyQ: 'pot', KeyE: 'act', Enter: 'act',
   };
   window.addEventListener('keydown', (e) => {
     R.Audio.unlock();
@@ -126,6 +126,7 @@
   bindBtn('btn-atk', () => { buf.atk = 0.25; atkBtnDown = true; }, () => { atkBtnDown = false; });
   bindBtn('btn-s1', () => { buf.s0 = 0.25; });
   bindBtn('btn-s2', () => { buf.s1 = 0.25; });
+  bindBtn('btn-s3', () => { buf.s2 = 0.25; });
   bindBtn('btn-dodge', () => { buf.dodge = 0.25; });
   bindBtn('btn-pot', () => { buf.pot = 0.25; });
   bindBtn('btn-act', () => { buf.act = 0.25; });
@@ -148,22 +149,24 @@
     inp.atkPressed = buf.atk > 0;
     inp.skillPressed[0] = buf.s0 > 0;
     inp.skillPressed[1] = buf.s1 > 0;
+    inp.skillPressed[2] = buf.s2 > 0;
     inp.dodgePressed = buf.dodge > 0;
     inp.potionPressed = buf.pot > 0;
   }
   function consumeInput() {
     const p = G.player;
     if (p.state === 'attack' && p.stateT === 0) buf.atk = 0;
-    if (p.state === 'skill' && p.stateT === 0) { buf.s0 = 0; buf.s1 = 0; }
+    if (p.state === 'skill' && p.stateT === 0) { buf.s0 = 0; buf.s1 = 0; buf.s2 = 0; }
     if (p.state === 'dodge' && p.stateT === 0) buf.dodge = 0;
     if (p.potionCd > 0.9) buf.pot = 0;
     if (p.skillCd[0] > 0) buf.s0 = 0;
     if (p.skillCd[1] > 0) buf.s1 = 0;
+    if (p.skillCd[2] > 0) buf.s2 = 0;
   }
 
   // ─── 맵 전환 ─────────────────────────────────────────
   function clearWorld() {
-    G.pet = null;
+    G.pet = null; G.jobs = [];
     G.mobs = []; G.shots = []; G.drops = []; G.nums = []; G.teles = [];
     G.fx.length = 0;
     G.combo.count = 0; G.combo.t = 0;
@@ -185,6 +188,7 @@
     else placePlayer(m.start.x, m.start.y);
     G.exitArmed = false;
     R.UI.setArea('루멘 마을');
+    R.Season.clearFx();
     R.Audio.playBgm(0);
     spawnPet();
     R.saveGame();
@@ -338,6 +342,7 @@
       }
     }
     G.mobs = G.mobs.filter((m) => !m.dead || m.deathT < 0.5);
+    if (G.map.cart) updateCart(dt);
     if (d.region.gimmick === 'rocks' && !p.dead) {
       const inStart = G.map.tileAt(p.x, p.y) !== undefined && G.map.rooms[0] && pointInRoom(p, G.map.rooms[0]);
       d.rockT -= dt;
@@ -348,6 +353,39 @@
           R.tele({ x: p.x + (Math.random() - 0.5) * 24 + p.vx * 0.5, y: p.y + (Math.random() - 0.5) * 16 + p.vy * 0.5, r: 14, t: 1.1, dmg: 14 + lv * 6, elem: 'NONE', fx: 'rock' });
         }
       }
+    }
+  }
+  // ─── 광차: 레버를 당기면 선로 끝까지 질주 (잔해 파괴, 경로상 적·플레이어 타격) ───
+  function updateCart(dt) {
+    const m = G.map, c = m.cart, rl = m.rail, p = G.player;
+    if (!c.moving) return;
+    c.v = Math.min(200, c.v + 260 * dt);
+    c.x += c.dir * c.v * dt;
+    const front = Math.floor((c.x + c.dir * 9) / TS);
+    if (m.get(front, rl.y) === R.T.BLOCK) {
+      for (let j = -1; j <= 1; j++) m.set(front, rl.y + j, j === 0 ? R.T.RAIL : R.T.FLOOR);
+      c.v *= 0.55;
+      G.shake = 7; R.sfx('boom');
+      for (let i = 0; i < 16; i++) { const a = Math.random() * Math.PI * 2, v = 40 + Math.random() * 90; R.fx.push({ type: 'dust', x: front * TS + 8, y: rl.y * TS + 4, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, life: 0.6, max: 0.6, color: i % 2 ? '#7a6a5e' : '#c8b8a0', size: 2 }); }
+      if (m.get(rl.rubble, rl.y) !== R.T.BLOCK && m.get(rl.rubble - rl.sx, rl.y) !== R.T.BLOCK) R.toast('쾅! 무너진 갱도가 뚫렸다', '#ffe070');
+    }
+    for (const mob of G.mobs) {
+      if (mob.dead || mob.hidden || mob.boss || c.hit.has(mob)) continue;
+      if (Math.abs(mob.x - c.x) < mob.r + 9 && Math.abs(mob.y - c.y) < 12) {
+        c.hit.add(mob);
+        mob.hp = Math.max(1, mob.hp - mob.maxHp * 0.35); // 광차는 몬스터 최대 HP의 35% + 강타
+        R.hitMob(mob, { rate: 5, elem: 'NONE', down: true, stun: 1.5 }, c.x - c.dir * 12, c.y);
+      }
+    }
+    if (!p.dead && !c.hitP && Math.abs(p.x - c.x) < 10 && Math.abs(p.y - c.y) < 9) {
+      c.hitP = true;
+      const lv = G.dungeon.region.lv[0];
+      R.hurtPlayer(40 + lv * 10, 'NONE', { knock: p.y < c.y ? -Math.PI / 2 : Math.PI / 2 });
+    }
+    const end = c.dir === rl.sx ? rl.x1 : rl.x0;
+    if ((c.x - (end * TS + 8)) * c.dir >= 0) {
+      c.x = end * TS + 8; c.moving = false; c.v = 0; c.dir = -c.dir;
+      G.shake = Math.max(G.shake, 2); R.sfx('gate');
     }
   }
   const pointInRoom = (p, r) => p.x / TS >= r.x && p.x / TS < r.x + r.w && p.y / TS >= r.y && p.y / TS < r.y + r.h;
@@ -368,6 +406,10 @@
       if (c.open) continue;
       const d = Math.hypot(c.x - p.x, c.y - p.y);
       if (d < best) { best = d; G.interact = { kind: 'chest', chest: c, x: c.x, y: c.y, label: '📦 열기', h: 16 }; }
+    }
+    if (m.lever && !m.cart.moving) {
+      const d = Math.hypot(m.lever.x - p.x, m.lever.y - p.y);
+      if (d < 20 && d < best) { best = d; G.interact = { kind: 'lever', x: m.lever.x, y: m.lever.y, label: '⚙ 레버 당기기', h: 16 }; }
     }
     for (const n of m.nodes || []) {
       if (n.done) continue;
@@ -406,6 +448,15 @@
     else if (it.kind === 'chest') openChest(it.chest);
     else if (it.kind === 'portal') R.enterTown();
     else if (it.kind === 'gather') gather(it.node);
+    else if (it.kind === 'lever') {
+      const m = G.map, c = m.cart;
+      if (Math.abs(c.x - m.lever.x) > 20) {
+        // 광차가 반대편 끝에 있으면 선로를 전환해 되돌려 보낸다
+        R.toast('선로 전환! 광차가 되돌아온다', '#ffd35a');
+      } else R.toast('덜컹! 광차가 달리기 시작했다 — 선로에서 비켜서라', '#ffd35a');
+      m.lever.on = !m.lever.on; c.moving = true; c.v = 40; c.hit = new Set(); c.hitP = false;
+      R.sfx('gate');
+    }
     else if (it.kind === 'nextfloor') {
       if (G.dungeon.floor >= R.TOWER_FLOORS) R.toast('심연의 탑 정상. 더 오를 곳이 없다', '#c9a2ff');
       else R.enterTower(G.dungeon.floor + 1);
