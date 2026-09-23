@@ -105,7 +105,7 @@
     [[6, 5], [19, 5], [8, 17], [17, 18], [6, 30], [19, 31], [9, 29], [16, 29], [3, 16], [22, 16]].forEach(([x, y]) => m.set(x, y, T.WALL));
     m.props.push({ kind: 'sign', x: 14 * TS + 2, y: (H - 3) * TS - 4, bottom: (H - 2) * TS - 2, label: '남문 — 모험의 길' });
     // NPC
-    const NPC = (id, name, tx, ty, look, role) => m.npcs.push({ id, name, x: tx * TS, y: ty * TS, r: 5, look, role, dir: 'down', bob: rnd() * 6 });
+    const NPC = (id, name, tx, ty, look, role) => m.npcs.push({ id, name, x: Math.floor(tx) * TS + 8, y: Math.floor(ty) * TS + 12, r: 5, look, role, dir: 'down', bob: rnd() * 6 });
     NPC('elder', '촌장 엘든', 13, 6.4, { skin: '#f1c29a', hair: '#e8e8e8', body: '#6a4a8a', bodyD: '#4a2e5e', legs: '#4a2e5e', boots: '#2a1a1a', hat: 'none' }, 'quest');
     NPC('smith', '대장장이 브론', 5, 12.6, { skin: '#d8a070', hair: '#5a2a10', body: '#5a4a3a', bodyD: '#3a2e24', legs: '#3a3a44', boots: '#1a1a1a', hat: 'bandana', hatC: '#8a3a1a' }, 'forge');
     NPC('alchemist', '연금술사 미라', 21, 12.6, { skin: '#f1c29a', hair: '#d04a8a', body: '#3a8a8a', bodyD: '#246060', legs: '#246060', boots: '#1a2a2a', hat: 'wizard', hatC: '#3a8a8a' }, 'shop');
@@ -121,9 +121,10 @@
 
   // ─── 지역 던전 생성 (지역별 시드 고정 = 매번 같은 수작업 느낌의 맵) ─────
   R.buildDungeon = function (region) {
-    const W = 46, H = 64;
+    const N = region.rooms || 4;                 // 본 경로의 방 개수 (던전마다 3~6)
+    const W = 46, H = 28 + N * 9;
     const m = new GameMap(W, H, region.theme, 'dungeon');
-    const rnd = seeded(region.id * 7919 + 13);
+    const rnd = seeded(region.seed || region.id * 7919 + 13);
     randomizeVariants(m, rnd);
     const ri = (a, b) => a + Math.floor(rnd() * (b - a + 1));
 
@@ -135,17 +136,18 @@
     // 시작방 (하단) + 지그재그 방 4개
     const start = { x: 18, y: H - 10, w: 10, h: 7, start: true };
     const chain = [start];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < N; i++) {
       const h = ri(6, 7), w = ri(10, 14);
       const y = start.y - (i + 1) * 9;
       let x;
-      if (i === 3) x = ri(15, W - 16 - w + 1);
+      if (i === N - 1) x = ri(15, W - 16 - w + 1);
       else if (i % 2 === 0) x = ri(3, 8);
       else x = W - 3 - w - ri(0, 5);
       chain.push({ x, y, w, h });
     }
     // 열쇠방: 맨 위 방의 오른쪽 빈 공간 (본 경로와 겹치지 않음)
-    const r2 = chain[4];
+    const r2 = chain[N];
+    m.nChain = N;
     const kw = 9, kh = 6;
     const keyRoom = { x: W - 3 - kw, y: r2.y, w: kw, h: kh, key: true };
     const rooms = [...chain, keyRoom];

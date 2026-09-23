@@ -170,6 +170,14 @@
     setText('hud-gold', fmt(s.gold));
     setText('hud-gems', fmt(s.gems || 0));
     setText('pot-cnt', String(s.bag.hpPotion || 0));
+    const pcd = p.potionCd > 0 ? ((p.potionCd / R.POTION.cd) * 100).toFixed(0) + '%' : '0%';
+    if (hudCache.pcd !== pcd) { hudCache.pcd = pcd; $('pot-cd').style.setProperty('--p', pcd); }
+    // 스킬 연계 대기 표시
+    const L = G.link, nextChain = L && L.t > 0 ? Math.min(R.LINK.max, L.n + 1) : 0;
+    const ln = p.finT > 0 ? Math.max(1, nextChain) : nextChain;
+    const lt = ln ? `${p.finT > 0 && ln === 1 ? '콤보 연계' : `연계 ×${ln + 1}`} <b>피해 +${Math.round((ln * R.LINK.dmg + (p.finT > 0 ? R.LINK.finisherBonus : 0)) * 100)}% · MP -${ln * 15}%</b>` : '';
+    if (hudCache.link !== lt) { hudCache.link = lt; $('link').innerHTML = lt; $('link').classList.toggle('hidden', !lt); if (lt) { $('link').style.animation = 'none'; void $('link').offsetWidth; $('link').style.animation = ''; } }
+    hudCache.chain = ln;
     $('hud').classList.toggle('low-hp', p.hp < p.st.maxHp * 0.3 && !p.dead);
     const st = [];
     if (p.status.poison > 0) st.push('<i style="--c:#9ad84a">중독</i>');
@@ -188,7 +196,7 @@
       const v = (p.skillCd[i] > 0 ? (p.skillCd[i] / cdMax) * 100 : 0).toFixed(0) + '%';
       const k = 'cd' + i;
       if (hudCache[k] !== v) { hudCache[k] = v; $(`s${i + 1}-cd`).style.setProperty('--p', v); }
-      const nomp = p.mp < sk.mp;
+      const nomp = p.mp < R.skillCost(sk, s.level, hudCache.chain || 0);
       if (hudCache['nm' + i] !== nomp) { hudCache['nm' + i] = nomp; $(`btn-s${i + 1}`).classList.toggle('nomp', nomp); }
     });
     const dcdMax = R.DODGE_CD * (1 - (p.st.adv.dodgeCdr || 0));
@@ -520,11 +528,14 @@
                 <div class="pips">${Array.from({ length: R.SKILL_MAX }, (_, j) => `<i class="${j < lv ? 'on' : ''}"></i>`).join('')}<em>Lv.${lv}</em></div>
                 <div class="muted">${k.desc}</div></div>
               <button class="btn xs gold" data-a="up" data-v="${id}" ${lv < R.SKILL_MAX && (s.sp || 0) >= cost ? '' : 'disabled'}>${lv >= R.SKILL_MAX ? 'MAX' : `강화<br><small>SP ${cost}</small>`}</button></div>
-            <div class="sk-stats"><span>피해 <b>${Math.round(k.rate * md.dmg * 100)}%</b></span><span>MP <b>${k.mp}</b></span><span>쿨타임 <b>${(k.cd * md.cdMul).toFixed(1)}s</b></span>${md.aoe > 1 ? `<span>범위 <b>+${Math.round((md.aoe - 1) * 100)}%</b></span>` : ''}</div>
+            <div class="sk-stats"><span>피해 <b>${Math.round(k.rate * md.dmg * 100)}%</b></span><span>MP <b>${R.skillCost(k, s.level)}</b></span><span>쿨타임 <b>${(k.cd * md.cdMul).toFixed(1)}s</b></span>${md.aoe > 1 ? `<span>범위 <b>+${Math.round((md.aoe - 1) * 100)}%</b></span>` : ''}</div>
             ${k.ult ? '<div class="muted">2차 전직 전용 궁극기 · [U] 키 / 보라색 버튼</div>' : ''}<div class="runes">${(R.RUNES[id] || []).map((r, j) => `<button class="rune ${rs.eq === j ? 'eq' : ''} ${rs.owned[j] ? 'own' : 'lock'}" data-a="rune" data-v="${id}:${j}">
               <b>${'ABC'[j]}</b><span>${r.name}</span><small>${r.desc}</small><em>${rs.eq === j ? '장착 중' : rs.owned[j] ? '장착' : `🪙 ${R.RUNE_COST}`}</em></button>`).join('')}</div>
           </section>`;
         }).join('')}
+        <section class="card link-card"><div class="card-h">스킬 연계</div>
+          <div class="link-flow"><span>공격</span><i>›</i><span>3타 마무리</span><i>›</i><span class="l1">스킬 A</span><i>›</i><span class="l2">스킬 B</span><i>›</i><span class="l3">스킬 C</span></div>
+          <div class="muted">· 기본 공격이 맞으면 MP ${Math.round(R.REGEN.mpOnHit * 100)}% 회복 → 스킬로 이어가세요<br>· 공격이 적중한 뒤엔 스킬로 후딜을 끊을 수 있고, 스킬 후반엔 <b>다른 스킬</b>로 바로 이어집니다<br>· 스킬이 끝나고 ${R.LINK.window}초 안에 다른 스킬 → 연계 단계 +1 (최대 ${R.LINK.max}): 단계마다 피해 +${R.LINK.dmg * 100}%, MP -15%<br>· 3타 마무리 직후 스킬은 "콤보 연계"로 1단계부터 시작 (+${R.LINK.finisherBonus * 100}%)<br>· 같은 스킬을 반복하면 연계가 끊깁니다</div></section>
         <section class="card"><div class="card-h">기본 공격 · 3단 콤보</div><div class="combo-row">${combo}</div>
           <div class="muted">2초 안에 연속 적중 시 COMBO ×2 +5% · ×3 +10% · ×4 +20% · ×5 +30%</div></section>
         <section class="card"><div class="card-h">회피</div><div class="muted">쿨타임 ${(R.DODGE_CD * (1 - (st.adv.dodgeCdr || 0))).toFixed(1)}초 · 발동 즉시 0.25초 무적</div>
@@ -620,9 +631,10 @@
       sec.innerHTML = `<div class="card-h">${rg.hidden ? '숨겨진 던전' : rg.id + '지역'} · ${rg.name}</div>`;
       const grid = document.createElement('div');
       grid.className = 'codex';
-      [...rg.monsters, rg.boss].forEach((id) => {
-        const boss = id === rg.boss;
+      [...rg.monsters, ...(rg.hidden ? [] : R.dungeonsOf(rg.id).filter((d) => !d.final).map((d) => d.boss)), rg.boss].forEach((id) => {
+        const boss = !!R.BOSSES[id];
         const def = boss ? R.BOSSES[id] : R.MONSTERS[id];
+        const sk = def.sprite || id;
         const known = (s.codex[id] || 0) > 0;
         const cellEl = document.createElement('button');
         cellEl.className = 'codex-cell' + (known ? '' : ' unknown') + (boss ? ' boss' : '');
@@ -630,8 +642,8 @@
         cv.width = 96; cv.height = 80;
         const g = cv.getContext('2d');
         if (!known) g.filter = 'brightness(0) invert(0.2)';
-        const fb = def.arch === 'human' ? R.SPR.human(id, def.look, 'down', 0, false) : R.SPR.monster(id, def, 0, false);
-        fitSprite(g, id, fb, 96, 80, 3);
+        const fb = R.SPR.frame(sk) ? null : def.arch === 'human' ? R.SPR.human(id, def.look, 'down', 0, false) : R.SPR.monster(id, def, 0, false);
+        fitSprite(g, sk, fb, 96, 80, 3);
         cellEl.appendChild(cv);
         cellEl.insertAdjacentHTML('beforeend', `<span>${known ? def.name : '???'}</span>${boss ? '<i>BOSS</i>' : ''}`);
         if (known) {
@@ -642,7 +654,7 @@
             <div class="kv"><span>위험도</span><b class="stars">${'★'.repeat(d)}${'☆'.repeat(5 - d)}</b></div>
             <div class="kv"><span>속성</span><b>${R.ELEM[def.elem].icon} ${R.ELEM[def.elem].name}</b></div>
             <div class="kv"><span>약점</span><b>${w ? R.ELEM[w].icon + ' ' + R.ELEM[w].name : '없음'}</b></div>
-            <p class="muted">${def.desc}</p></div><div class="row-btns"><button class="btn ghost" data-a="x">닫기</button></div>`, (r) => { $('dex-art').appendChild(spriteCanvas(id, 200, 160, 'dex-cv', fb)); bindActs(r, { x: closePopup }); }, false, 'sheet-pop'); };
+            <p class="muted">${def.desc}</p></div><div class="row-btns"><button class="btn ghost" data-a="x">닫기</button></div>`, (r) => { $('dex-art').appendChild(spriteCanvas(sk, 200, 160, 'dex-cv', fb)); bindActs(r, { x: closePopup }); }, false, 'sheet-pop'); };
         }
         grid.appendChild(cellEl);
       });
@@ -768,7 +780,7 @@
       }
       const table = kind === 'mats' ? R.MATERIALS : R.CONSUMABLES;
       const disc = kind === 'potions' ? R.Prog.discount('alchemist') : 1;
-      const price = (k) => Math.round(table[k].price * disc);
+      const price = (k) => Math.round((kind === 'potions' && k !== 'reviveStone' ? R.potionPrice(k, s.level) : table[k].price) * disc);
       body.innerHTML = (disc < 1 ? '<section class="card"><div class="safe">💗 미라의 호감도 보너스 · 모든 물건 20% 할인</div></section>' : '') + `<section class="card shop">` + Object.keys(table).map((k) => {
         const t = Object.assign({}, table[k], { price: price(k) });
         return `<div class="li"><div class="li-ico">${t.icon}</div><div class="li-b"><b>${t.name}</b><small>${t.desc || '장비 강화 재료'} · 보유 ${s.bag[k] || 0}</small></div>
@@ -811,9 +823,10 @@
   };
 
   // ─── 지역 선택 (마을 남문) ───────────────────────────
-  let selDiff = 0;
+  let selDiff = 0, selRg = 0;
   UI.regionSelect = function () {
     selDiff = G.save.diff || 0;
+    if (!selRg) selRg = Math.min(R.REGIONS.length, G.save.unlocked || 1);
     UI.openPanel('어디로 떠날까?', null, (body) => {
       const s = G.save;
       const cd = s.clearedD || {};
@@ -831,7 +844,21 @@
       let html = `<div class="seg diff">${R.DIFFICULTY.map((d, i) => `<button class="${selDiff === i ? 'on' : ''}" style="--c:${d.color}" data-a="diff" data-v="${i}" ${dOpen[i] ? '' : 'disabled'}>${dOpen[i] ? '' : '🔒 '}${d.name}</button>`).join('')}</div>`;
       if (selDiff) html += `<section class="card"><div class="safe" style="--c:${D.color}">${D.name} · 몬스터 Lv.+${D.lv} · HP ×${D.hp} · 공격 ×${D.atk} · 경험치 ×${D.exp} · 장비 드랍 ↑</div></section>`;
       else if (!hardOpen) html += '<div class="muted center">5지역 보스를 쓰러뜨리면 [어려움]이, 어려움 5지역을 모두 클리어하면 [악몽]이 열립니다.</div>';
-      html += '<section class="card">' + R.REGIONS.map((rg) => row(rg, rg.id, regOpen(rg.id), lockTxt)).join('');
+      // 지역(펼치기) → 던전 5개
+      const dc = s.dclear || {};
+      const dOpenFn = (d) => regOpen(d.id) && (selDiff > 0 || d.idx === 0 || s.cleared[d.id] || dc[R.dungeonsOf(d.id)[d.idx - 1].did]);
+      const dClear = (d) => (d.final ? regClear(d.id) : selDiff === 0 && dc[d.did]);
+      html += '<section class="card">' + R.REGIONS.map((rg) => {
+        const open = regOpen(rg.id), ds = R.dungeonsOf(rg.id), nClr = ds.filter(dClear).length;
+        let out = `<button class="region big rg-head ${open ? '' : 'locked'} ${regClear(rg.id) ? 'clear' : ''} t-${rg.theme} ${selRg === rg.id ? 'open' : ''}" data-a="rg" data-v="${rg.id}" ${open ? '' : 'disabled'}>
+          <div class="rg-no">${rg.id}</div><div class="rg-body"><b>${rg.name}</b><small>${lvT(rg)} · 던전 ${nClr}/${ds.length}</small><div class="muted">${open ? R.BOSSES[rg.boss].name + '이(가) 기다린다' : lockTxt}</div></div><div class="rg-st">${open ? (selRg === rg.id ? '▾' : '▸') : '🔒'}</div></button>`;
+        if (open && selRg === rg.id) out += '<div class="dg-list">' + ds.map((d, i) => {
+          const o = dOpenFn(d), c = dClear(d), bs = R.BOSSES[d.boss];
+          return `<button class="dg ${o ? '' : 'locked'} ${c ? 'clear' : ''} ${d.final ? 'final' : ''}" data-a="dg" data-v="${d.did}" ${o ? '' : 'disabled'}>
+            <span class="dg-i">${d.final ? '👑' : i + 1}</span><span class="dg-b"><b>${d.name}</b><small>Lv.${d.lv[0] + D.lv}~${d.lv[1] + D.lv} · ${o ? bs.name : '이전 던전을 클리어하세요'}${d.cart ? ' · 광차' : ''}</small></span><span class="dg-s">${c ? '🏆' : o ? '▶' : '🔒'}</span></button>`;
+        }).join('') + '</div>';
+        return out;
+      }).join('');
       if (s.flags.blackMine) html += row(R.HIDDEN_REGION, '?', selDiff === 0 || regOpen(6), lockTxt);
       html += '</section>';
       if (s.cleared[2]) {
@@ -847,6 +874,8 @@
       bindActs(body, {
         diff: (i) => { selDiff = +i; s.diff = selDiff; UI.refreshPanel(); },
         go: (id) => { UI.closePanel(); R.enterRegion(+id, selDiff); },
+        rg: (id) => { selRg = selRg === +id ? -1 : +id; UI.refreshPanel(); },
+        dg: (did) => { UI.closePanel(); R.enterDungeon(+did, selDiff); },
         tower: (f) => { UI.closePanel(); R.enterTower(+f); },
       });
     });

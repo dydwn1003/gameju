@@ -172,8 +172,8 @@ R.MATERIALS = {
   hstone: { name: '고급 강화석', icon: '🔷', price: 900 },
 };
 R.CONSUMABLES = {
-  hpPotion: { name: '빨간 물약', icon: '🧪', price: 35, desc: '최대 HP의 35% 회복' },
-  mpPotion: { name: '파란 물약', icon: '💧', price: 35, desc: '최대 MP의 40% 회복' },
+  hpPotion: { name: '빨간 물약', icon: '🧪', price: 30, desc: '최대 HP의 30% + 30 회복 (재사용 2.5초)' },
+  mpPotion: { name: '파란 물약', icon: '💧', price: 30, desc: '최대 MP의 35% + 15 회복 (재사용 2.5초)' },
   reviveStone: { name: '부활석', icon: '🪨', price: 400, desc: '쓰러진 자리에서 즉시 부활' },
 };
 
@@ -276,6 +276,22 @@ R.ENDINGS = {
 // ─── 스킬 성장 (GDD 39·40) ───────────────────────────────
 // 스킬 레벨 1~5: 레벨당 피해 +12%, Lv4 범위 +10%, Lv5 쿨타임 -20%. 레벨업 비용 = 현재 레벨 SP
 R.SKILL_MAX = 5;
+// ─── 자원 밸런스 ─────────────────────────────────────────
+// 스킬 MP: 레벨에 따라 오른다 (Lv.30에서 약 2배). 연계 단계마다 -15%
+R.skillCost = (sk, lv, chain = 0) => Math.max(1, Math.round(sk.mp * (1 + (lv - 1) * 0.035) * (1 - 0.15 * chain)));
+R.REGEN = {
+  townHp: 0.1, townMp: 0.1,          // 마을: 초당 최대치의 10%
+  hp: 0.003, hpRest: 0.015,          // 던전: 전투 중 0.3%/s, 5초간 교전이 없으면 1.5%/s
+  mp: 0.01, mpRest: 0.025,           // MP도 같은 방식
+  restDelay: 5,
+  mpOnHit: 0.05,                     // 기본 공격 적중 시 최대 MP의 4% (공격 → 스킬 순환)
+};
+R.BOSS_HP_MUL = 1.5;             // 스킬 연계 도입으로 보스 체력 상향
+R.POTION = { hp: 0.3, hpFlat: 30, mp: 0.35, mpFlat: 15, cd: 2.5 };
+R.potionPrice = (k, lv) => Math.round(R.CONSUMABLES[k].price * (1 + (lv - 1) * 0.08));
+// 스킬 연계: 스킬이 끝난 뒤 1.6초 안에 "다른" 스킬을 쓰면 연계 단계 +1 (최대 3)
+//  단계마다 피해 +20%, MP -15%. 3타 콤보 마무리 직후 스킬은 "콤보 연계"로 1단계부터 시작
+R.LINK = { window: 1.6, max: 3, dmg: 0.2, finisher: 0.9, finisherBonus: 0.1, cancelAt: 0.55 };
 R.skillLevelMod = (lv) => ({ dmg: 1 + 0.12 * (lv - 1), aoe: lv >= 4 ? 1.1 : 1, cdMul: lv >= 5 ? 0.8 : 1 });
 // 룬: 스킬당 3종 중 1개 장착. 던전 코인으로 해금
 R.RUNE_COST = 30;
@@ -384,3 +400,73 @@ R.TOWER_MODS = [
   { id: 'elite', name: '정예의 층', desc: '모든 몬스터가 정예' },
 ];
 R.towerMod = (f) => (f % 10 === 0 || f < 3 ? null : R.TOWER_MODS[(f * 7 + 3) % R.TOWER_MODS.length]);
+
+// ─── 던전 (지역마다 5개, 마지막 던전에 지역 보스) ─────────────────
+// 앞의 4개 던전은 그 지역 몬스터 중 하나가 "우두머리"로 등장한다.
+// 새 몬스터가 추가되면 monsters / chief 만 바꾸면 된다.
+const CHIEF_MOVES = {
+  melee: [['slam'], ['slam', 'charge'], ['slam', 'charge', 'quake']],
+  charger: [['charge'], ['charge', 'slam'], ['charge', 'slam', 'quake']],
+  ranged: [['wave'], ['wave', 'ring'], ['wave', 'ring', 'quake']],
+  hover: [['ring'], ['ring', 'charge'], ['ring', 'charge', 'wave']],
+};
+R.chiefId = (mon) => 'chief_' + mon;
+function makeChief(mon, title, hp) {
+  const m = R.MONSTERS[mon], mv = CHIEF_MOVES[m.ai] || CHIEF_MOVES.melee;
+  R.BOSSES[R.chiefId(mon)] = {
+    name: title, arch: m.arch || 'human', sprite: mon, spriteScale: 1.7, elem: m.elem, pal: m.pal || ['#8a6a4a', '#5a4030', '#e0c090'],
+    hp, atk: 1.12 + hp * 0.005, def: 1.2 * (m.def || 1), spd: Math.round(m.spd * 0.8), r: Math.round(m.r * 1.6), scale: 2, chief: true,
+    phases: [{ at: 1, moves: mv[0] }, { at: 0.65, moves: mv[1] }, { at: 0.3, moves: mv[2], enrage: true }],
+    desc: `${m.name} 무리를 이끄는 우두머리. ${m.desc}`,
+  };
+}
+// [이름, 레벨 범위, 우두머리 몬스터, 우두머리 이름, 몬스터 목록(앞쪽일수록 초반 방), 방 개수, 특수]
+const DUNGEON_TABLE = {
+  1: [
+    ['숲 입구 오솔길', [1, 3], 'slime', '왕 슬라임', ['slime', 'goblin'], 3],
+    ['거미 굴', [2, 5], 'spider', '독거미 여왕', ['spider', 'slime', 'goblin'], 4],
+    ['버섯 늪지', [3, 6], 'mushroom', '거대 독버섯', ['mushroom', 'goblin', 'spider'], 4],
+    ['늑대 언덕', [5, 8], 'wolf', '은빛 늑대왕', ['wolf', 'goblin', 'mushroom', 'spider'], 5],
+  ],
+  2: [
+    ['무너진 성문', [8, 10], 'bandit', '도적 두목', ['bandit', 'skeleton'], 3],
+    ['지하 납골당', [9, 12], 'skeleton', '해골 대장', ['skeleton', 'ghost', 'bandit'], 4],
+    ['망령의 광장', [11, 14], 'ghost', '원혼의 군주', ['ghost', 'skeleton', 'gargoyle'], 5],
+    ['가고일 첨탑', [12, 15], 'gargoyle', '가고일 수장', ['gargoyle', 'bandit', 'ghost', 'skeleton'], 5],
+  ],
+  3: [
+    ['버려진 갱도', [15, 18], 'mine_goblin', '고블린 십장', ['mine_goblin', 'bat'], 3, { cart: true }],
+    ['박쥐 동굴', [17, 20], 'bat', '흡혈 박쥐왕', ['bat', 'mine_goblin', 'golem'], 4],
+    ['용암 수로', [19, 22], 'lava_worm', '거대 용암벌레', ['lava_worm', 'bat', 'mine_goblin'], 5],
+    ['광맥 심층', [21, 24], 'golem', '원시 골렘', ['golem', 'lava_worm', 'mine_goblin', 'bat'], 5, { cart: true }],
+  ],
+  4: [
+    ['서리 정원', [25, 28], 'ice_wolf', '서리 늑대 우두머리', ['ice_wolf', 'frost_mage'], 3],
+    ['얼음 회랑', [27, 30], 'frost_mage', '서리 대마법사', ['frost_mage', 'ice_wolf', 'ice_knight'], 4],
+    ['기사단 막사', [29, 32], 'ice_knight', '얼음 기사단장', ['ice_knight', 'frost_mage', 'ice_wolf'], 5],
+    ['눈보라 고원', [31, 34], 'ice_wolf', '눈보라 늑대왕', ['ice_wolf', 'ice_knight', 'frost_mage'], 6],
+  ],
+  5: [
+    ['불타는 협곡', [35, 39], 'demon', '악마 군주', ['demon', 'hellhound'], 4],
+    ['타락의 성소', [38, 42], 'fallen_angel', '타락천사장', ['fallen_angel', 'demon', 'demon_knight'], 5],
+    ['지옥견 사육장', [41, 45], 'hellhound', '케르베로스', ['hellhound', 'demon', 'fallen_angel'], 5],
+    ['흑철 요새', [44, 48], 'demon_knight', '흑기사단장', ['demon_knight', 'hellhound', 'fallen_angel', 'demon'], 6],
+  ],
+};
+const FINAL_NAME = { 1: '숲의 심장', 2: '몰락한 왕궁', 3: '거인의 대장간', 4: '빙결 옥좌', 5: '공허의 문' };
+R.DUNGEONS = [];
+for (const rg of R.REGIONS) {
+  (DUNGEON_TABLE[rg.id] || []).forEach(([name, lv, chief, title, monsters, rooms, extra], i) => {
+    const id = rg.id * 10 + i + 1;
+    // 우두머리 체력: 지역 보스(14~22)보다 약하게, 지역·순서에 따라 증가
+    makeChief(chief, title, 7 + rg.id * 1.5 + i * 0.8);
+    const bid = 'd' + id;
+    R.BOSSES[bid] = R.BOSSES[R.chiefId(chief)];
+    delete R.BOSSES[R.chiefId(chief)];
+    R.DUNGEONS.push(Object.assign({}, rg, { did: id, idx: i, name, regionName: rg.name, lv, monsters, boss: bid, bossLv: lv[1] + 1, rooms, seed: id * 7919 + 131, final: false, gimmickText: `${title}이(가) 기다린다 · ${rg.gimmickText}` }, extra || {}));
+  });
+  R.DUNGEONS.push(Object.assign({}, rg, { did: rg.id * 10 + 5, idx: 4, name: FINAL_NAME[rg.id], regionName: rg.name, lv: [Math.max(rg.lv[0], rg.lv[1] - 3), rg.lv[1]], rooms: 4, seed: rg.id * 7919 + 13, final: true }));
+}
+R.dungeonById = (did) => R.DUNGEONS.find((d) => d.did === did);
+R.dungeonsOf = (rid) => R.DUNGEONS.filter((d) => d.id === rid);
+R.finalDungeon = (rid) => R.DUNGEONS.find((d) => d.id === rid && d.final);

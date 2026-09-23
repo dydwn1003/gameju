@@ -274,6 +274,21 @@
   R.onBossKilled = function (m) {
     const s = G.save, d = G.dungeon, rg = d.region;
     if (d.tower) { R.UI.bossBar(null); R.UI.banner(`수호자 ${m.def.name} 격파!`, '#c9a2ff'); R.saveGame(); return; }
+    if (!rg.final && !rg.hidden) {
+      // 우두머리 던전: 다음 던전 개방
+      s.dclear = s.dclear || {};
+      const firstD = !s.dclear[rg.did];
+      s.dclear[rg.did] = true;
+      R.UI.bossBar(null);
+      R.UI.banner(`${m.def.name} 토벌!`, '#ffb070', firstD ? '다음 던전이 열렸다' : '');
+      if (firstD && !d.diffIdx) R.Prog.addGems(100, `${rg.name} 첫 클리어`);
+      const next = R.dungeonsOf(rg.id)[rg.idx + 1];
+      if (firstD && next) setTimeout(() => R.toast(`새 던전 개방: ${next.name}`, '#ffe070'), 1800);
+      R.Audio.playBgm(1 + rg.bgm);
+      if (!d.gateOpen) R.openGate();
+      R.saveGame();
+      return;
+    }
     if (d.diffIdx) {
       const cd = (s.clearedD[d.diffIdx] = s.clearedD[d.diffIdx] || {});
       if (!cd[rg.id]) { cd[rg.id] = true; R.Prog.addGems(150 * d.diffIdx, `${R.DIFFICULTY[d.diffIdx].name} ${m.def.name} 첫 토벌`); }

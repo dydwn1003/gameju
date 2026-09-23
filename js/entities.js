@@ -6,7 +6,7 @@
     shake: 0, hitstop: 0, time: 0, dungeon: null, save: null, paused: false, cam: { x: 0, y: 0 },
     combo: { count: 0, t: 0 }, input: null,
   });
-  const TS = R.TILE;
+  const TS = R.TILE, Gd = R.Grid;
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const angDiff = (a, b) => { let d = a - b; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return Math.abs(d); };
@@ -57,7 +57,7 @@
       crit: Math.min(0.9, 0.05 + st.luk * 0.0005 + crit / 100 + (cls.critBonus || 0) + (adv.crit || 0)),
       critDmg: 1.5 + (adv.critDmg || 0),
       maxHp: Math.round((100 + st.vit * 20 + s.level * 20 + hp) * (1 + (adv.hpPct || 0))),
-      maxMp: Math.round(50 + st.int * 10 + s.level * 10 + mp),
+      maxMp: Math.round(40 + st.int * 5 + s.level * 8 + mp),
       atkSpd: cls.atkSpeed * (1 + st.dex * 0.002),
       moveSpd: cls.moveSpeed * (1 + moveSpd / 100 + (adv.movePct || 0)),
       elem, elemDmg: elemDmg / 100 + (adv.elemDmg || 0), adv,
@@ -155,12 +155,21 @@
   }
   R.nearestMob = nearestMob;
 
+  // 조준 보조 (칸 기준): 방향키를 누르지 않았으면 같은 행·열의 가장 가까운 적 쪽으로 돌아선다
   function autoAim(p, range) {
-    const cx = p.x, cy = p.y - 6;
-    let t = nearestMob(cx, cy, range, p.aim, 1.2);
-    if (!t && !G.input.moving) t = nearestMob(cx, cy, range * 0.8, 0, null);
-    if (t) p.aim = Math.atan2(t.y - t.hh / 2 - cy, t.x - cx);
-    p.dir = dirFromAngle(p.aim);
+    if (!G.input.moving) {
+      let best = null, bd = range + 8;
+      for (const m of G.mobs) {
+        if (m.dead || m.hidden) continue;
+        const dx = m.x - p.x, dy = m.y - p.y;
+        const lat = Math.min(Math.abs(dx), Math.abs(dy)), d = Math.abs(dx) + Math.abs(dy);
+        if (lat > Math.max(6, m.r * 0.8) || d - m.r > bd) continue;
+        if (!G.map.lineClear(p.x, p.y - 4, m.x, m.y - 4)) continue;
+        bd = d - m.r; best = m;
+      }
+      if (best) p.dir = Gd.dirOf(best.x - p.x, best.y - p.y);
+    }
+    p.aim = Gd.ANG[p.dir] != null ? Gd.ANG[p.dir] : p.aim;
   }
 
   function comboAction() {
@@ -191,12 +200,18 @@
     if (p.comboWindow <= 0 && p.state !== 'attack') p.comboStep = 0;
     if (G.combo.t > 0) { G.combo.t -= dt; if (G.combo.t <= 0) G.combo.count = 0; }
     // 자연 회복 (마을에선 빠르게)
-    const regen = G.map.kind === 'town' ? 0.08 : 0.004;
+    // 자연 회복: 마을은 빠르게, 던전은 교전 중 느리게 / 5초간 교전이 없으면 빠르게
+    const RG = R.REGEN, town = G.map.kind === 'town';
+    p.calmT = (p.calmT || 0) + dt;
+    const rest = p.calmT > RG.restDelay;
+    const regen = town ? RG.townHp : rest ? RG.hpRest : RG.hp;
     p.hp = Math.min(p.st.maxHp, p.hp + p.st.maxHp * (regen + (R.Prog.petMod().regenPct || 0)) * dt);
+    if (G.link && G.link.t > 0) { G.link.t -= dt; if (G.link.t <= 0) G.link.n = 0; }
+    p.finT = Math.max(0, (p.finT || 0) - dt);
     // 음식 버프 만료 시 능력치 재계산
     const bt = G.save.buffs;
     if (bt) for (const k in bt) if (bt[k] && bt[k] <= G.save.playTime) { delete bt[k]; R.refreshStats(); R.toast(`${R.FOODS[k].name} 효과가 끝났다`, '#c8c0d8'); }
-    p.mp = Math.min(p.st.maxMp, p.mp + p.st.maxMp * (G.map.kind === 'town' ? 0.08 : 0.015) * dt);
+    p.mp = Math.min(p.st.maxMp, p.mp + p.st.maxMp * (town ? RG.townMp : rest ? RG.mpRest : RG.mp) * dt);
     tickStatus(p, dt, true);
     if (p.dead) return;
 
@@ -214,18 +229,23 @@
     const onIce = tile === R.T.ICE;
 
     if (p.state === 'dodge') {
+      // 회피: 최대 2칸 빠르게 미끄러지기
       p.stateT += dt;
-      const sp = 210 * (1 - p.stateT / 0.24);
-      R.moveBody(G.map, p, Math.cos(p.dodgeAng) * sp * dt, Math.sin(p.dodgeAng) * sp * dt);
+      const ox = p.x, oy = p.y;
+      if (!p.step || Gd.update(p, dt)) {
+        if (p.dodgeN < 2 && Gd.tryStep(p, p.dodgeDir, 0.09)) { p.dodgeN++; Gd.update(p, 0); }
+        else if (p.stateT >= 0.2) { p.state = 'idle'; }
+      }
+      p.vx = (p.x - ox) / Math.max(dt, 1e-3); p.vy = (p.y - oy) / Math.max(dt, 1e-3);
       if (Math.random() < 0.6) R.fxAfterimage(p);
-      if (p.stateT >= 0.24) { p.state = 'idle'; if (onIce) { p.vx = Math.cos(p.dodgeAng) * 80; p.vy = Math.sin(p.dodgeAng) * 80; } }
       return;
     }
     if (p.state === 'attack') {
       p.stateT += dt;
       if (!p.hitDone && p.stateT >= p.hitAt) { p.hitDone = true; doBasicHit(p, cls); }
-      // 공격 중 살짝 전진
-      if (cls.melee && p.stateT < p.hitAt) R.moveBody(G.map, p, Math.cos(p.aim) * 30 * dt, Math.sin(p.aim) * 30 * dt);
+      if (p.step) Gd.update(p, dt);
+      // 연계: 타격 이후에는 스킬로 후딜을 끊을 수 있다
+      if (p.hitDone) { const si = skillInput(inp); if (si >= 0 && castSkill(p, si)) return; }
       if (p.stateT >= p.dur) {
         p.state = 'idle';
         p.comboWindow = 0.4;
@@ -237,37 +257,63 @@
     if (p.state === 'skill') {
       p.stateT += dt;
       if (p.act && p.act.update) p.act.update(p, dt);
-      if (p.stateT >= p.act.dur) { p.state = 'idle'; p.act = null; }
+      if (p.step) Gd.update(p, dt);
+      const cur = p.act && p.act.id;
+      if (p.stateT >= p.act.dur) { p.state = 'idle'; p.act = null; if (G.link) { G.link.t = R.LINK.window; } }
+      else if (p.stateT >= p.act.dur * R.LINK.cancelAt) {
+        // 연계: 스킬 후반에 "다른" 스킬을 누르면 즉시 이어서 발동
+        const si = skillInput(inp);
+        if (si >= 0 && R.skillIds(G.save)[si] !== cur) { const keep = p.act; p.act = null; if (G.link) G.link.t = R.LINK.window; if (!castSkill(p, si)) p.act = keep; else return; }
+        if (inp.dodgePressed && p.dodgeCd <= 0) { p.act = null; p.state = 'idle'; return startDodge(p); }
+      }
       return;
     }
-    if (stunned) return;
+    if (stunned) { if (p.step) Gd.update(p, dt); return; }
 
-    // 이동
+    // ─── 칸 이동 (상하좌우 4방향) ───
     const mv = inp.move;
-    let tvx = mv.x * p.st.moveSpd * speedMul, tvy = mv.y * p.st.moveSpd * speedMul;
-    if (onIce) {
-      const k = 1 - Math.pow(0.12, dt);
-      p.vx += (tvx - p.vx) * k * 0.35; p.vy += (tvy - p.vy) * k * 0.35;
-    } else { p.vx = tvx; p.vy = tvy; }
-    if (Math.abs(p.vx) + Math.abs(p.vy) > 2) {
-      const okx = R.moveBody(G.map, p, p.vx * dt, 0);
-      const oky = R.moveBody(G.map, p, 0, p.vy * dt);
-      if (onIce) { if (!okx) p.vx *= -0.3; if (!oky) p.vy *= -0.3; }
-      if (inp.moving) { p.aim = Math.atan2(mv.y, mv.x); p.dir = dirFromAngle(p.aim); }
-      p.state = 'walk';
-    } else p.state = 'idle';
+    const want = Math.hypot(mv.x, mv.y) > 0.3 ? Gd.dirOf(mv.x, mv.y) : null;
+    const stepDur = TS / (p.st.moveSpd * speedMul);
+    const ox = p.x, oy = p.y;
+    // 스킬·넉백 등으로 칸 중심에서 벗어났으면 가장 가까운 빈 칸으로 정렬
+    if (!p.step && (Math.abs(p.x - Gd.cx(p.gx)) > 0.5 || Math.abs(p.y - Gd.cy(p.gy)) > 0.5)) Gd.snap(p);
+    if (p.step) {
+      // 이동 중 입력은 도착 후 실행 (선입력)
+      if (inp.dodgePressed && p.dodgeCd <= 0) p.queued = 'dodge';
+      else if (inp.skillPressed[0]) p.queued = 's0';
+      else if (inp.skillPressed[1]) p.queued = 's1';
+      else if (inp.skillPressed[2]) p.queued = 's2';
+      else if (inp.atkPressed && !p.queued) p.queued = 'atk';
+      const arrived = Gd.update(p, dt);
+      p.vx = (p.x - ox) / Math.max(dt, 1e-3); p.vy = (p.y - oy) / Math.max(dt, 1e-3);
+      if (!arrived) { p.state = 'walk'; return; }
+      // 빙판: 멈추지 못하고 같은 방향으로 계속 미끄러진다
+      if (G.map.tileAt(p.x, p.y) === R.T.ICE && p.stepDir && Gd.tryStep(p, p.stepDir, stepDur * 0.7)) { p.state = 'walk'; return; }
+    }
+    const q = p.queued; p.queued = null;
+    if (want) { p.dir = want; p.aim = Gd.ANG[want]; }
 
     // 행동
-    if (inp.dodgePressed && p.dodgeCd <= 0) return startDodge(p);
-    if (inp.skillPressed[0]) castSkill(p, 0);
-    else if (inp.skillPressed[1]) castSkill(p, 1);
-    else if (inp.skillPressed[2] && G.save.adv) castSkill(p, 2);
-    else if ((inp.atkPressed || inp.atkHeld) && !G.interact) startAttack(p, cls);
+    if ((inp.dodgePressed || q === 'dodge') && p.dodgeCd <= 0) return startDodge(p);
+    if (inp.skillPressed[0] || q === 's0') { castSkill(p, 0); if (p.state === 'skill') return; }
+    else if (inp.skillPressed[1] || q === 's1') { castSkill(p, 1); if (p.state === 'skill') return; }
+    else if ((inp.skillPressed[2] || q === 's2') && G.save.adv) { castSkill(p, 2); if (p.state === 'skill') return; }
+    else if ((inp.atkPressed || inp.atkHeld || q === 'atk') && !G.interact) { startAttack(p, cls); return; }
+
+    if (want && Gd.tryStep(p, want, stepDur)) {
+      p.stepDir = want;
+      p.state = 'walk';
+      Gd.update(p, 0);
+    } else { p.state = 'idle'; p.vx = 0; p.vy = 0; }
   };
 
   function startDodge(p) {
     p.state = 'dodge'; p.stateT = 0;
-    p.dodgeAng = G.input.moving ? Math.atan2(G.input.move.y, G.input.move.x) : p.aim + Math.PI;
+    const mv = G.input.move;
+    p.dodgeDir = Math.hypot(mv.x, mv.y) > 0.3 ? Gd.dirOf(mv.x, mv.y) : Gd.dirFromAng(p.aim + Math.PI);
+    p.dodgeAng = Gd.ANG[p.dodgeDir];
+    p.dodgeN = 0;
+    if (p.step) Gd.update(p, 1);
     p.iframes = R.DODGE_IFRAME;
     const adv = p.st.adv;
     p.dodgeCd = R.DODGE_CD * (1 - (adv.dodgeCdr || 0));
@@ -289,7 +335,8 @@
   function doBasicHit(p, cls) {
     const step = R.COMBO_STEPS[p.comboStep];
     const ca = comboAction();
-    const opt = { rate: step.rate, elem: p.st.elem, stun: step.stun, down: step.down, launch: step.launch, ca };
+    const opt = { rate: step.rate, elem: p.st.elem, stun: step.stun, down: step.down, launch: step.launch, ca, basic: true };
+    if (p.comboStep === 2) p.finT = R.LINK.finisher; // 3타 마무리 → 콤보 연계 가능
     if (cls.melee) {
       const range = cls.range * (p.comboStep === 2 ? 1.3 : 1);
       const arc = cls.arc * (p.comboStep === 2 ? 1.25 : 1);
@@ -306,21 +353,22 @@
     }
   }
 
+  // 근접 판정: 바라보는 방향의 칸 (range = 앞으로 닿는 거리, arc가 넓으면 좌우 칸까지)
   function meleeArc(p, range, arc, opt) {
-    const cx = p.x, cy = p.y - 6;
+    const cx = Math.cos(p.aim), cy = Math.sin(p.aim);
+    const half = arc >= 1.05 ? 13 : 7;
     let hit = 0;
     for (const m of G.mobs) {
       if (m.dead || m.hidden) continue;
-      const dx = m.x - cx, dy = m.y - m.hh / 2 - cy;
-      const d = Math.hypot(dx, dy);
-      if (d > range + m.r) continue;
-      if (d > m.r + 4 && angDiff(Math.atan2(dy, dx), p.aim) > arc) continue;
-      if (hitMob(m, opt, cx, cy)) hit++;
+      const dx = m.x - p.x, dy = m.y - p.y;
+      const along = dx * cx + dy * cy, lat = Math.abs(-dx * cy + dy * cx);
+      if (along < -3 || along - m.r * 0.6 > range || lat > half + m.r * 0.6) continue;
+      if (hitMob(m, opt, p.x, p.y - 6)) hit++;
     }
-    // 덩굴
-    for (let a = -arc; a <= arc; a += arc / 2) {
-      const hx = cx + Math.cos(p.aim + a) * range * 0.8, hy = p.y + Math.sin(p.aim + a) * range * 0.8;
-      R.hitVine(hx, hy);
+    // 덩굴 (앞 칸들)
+    for (let d = TS; d <= Math.max(TS, range); d += TS) {
+      R.hitVine(p.x + cx * d, p.y - 4 + cy * d);
+      if (half > 10) { R.hitVine(p.x + cx * d - cy * TS, p.y - 4 + cy * d + cx * TS); R.hitVine(p.x + cx * d + cy * TS, p.y - 4 + cy * d - cx * TS); }
     }
     return hit;
   }
@@ -329,18 +377,30 @@
   function castSkill(p, i) {
     const cls = R.CLASSES[G.save.cls];
     const id = R.skillIds(G.save)[i], sk = R.SKILLS[id];
-    if (!sk || p.skillCd[i] > 0) return;
-    if (p.mp < sk.mp) { R.toast('MP가 부족합니다', '#6fb6ff'); p.skillCd[i] = 0.3; return; }
+    if (!sk || p.skillCd[i] > 0) return false;
+    // 연계 단계 계산
+    const L = G.link || (G.link = { n: 0, t: 0, last: null });
+    const fin = p.finT > 0;
+    let chain = L.t > 0 && L.last !== id ? Math.min(R.LINK.max, L.n + 1) : 0;
+    if (fin) chain = Math.max(chain, 1);
+    const cost = R.skillCost(sk, G.save.level, chain);
+    if (p.mp < cost) { R.toast('MP가 부족합니다', '#6fb6ff'); p.skillCd[i] = 0.3; return false; }
+    L.n = chain; L.last = id; L.t = 0; p.finT = 0;
+    if (chain) {
+      R.addNum(p.x, p.y - 34, fin && chain === 1 ? 'COMBO LINK' : 'LINK x' + (chain + 1), chain >= 3 ? '#ffb040' : '#c9a2ff', 1);
+      R.sfx('crit');
+    }
     const adv = p.st.adv;
     const md = R.Prog.skillMod(id); // 스킬 레벨 + 룬
     const aoe = (1 + (adv.aoePct || 0)) * md.aoe;
     const st = (base) => Object.assign({}, base || {}, md.status || {});
     autoAim(p, cls.melee ? 70 : 130);
-    p.mp -= sk.mp;
+    p.mp -= cost;
     p.skillCd[i] = sk.cd * md.cdMul;
+    p.calmT = 0;
     p.state = 'skill'; p.stateT = 0;
     R.sfx(sk.elem === 'FIRE' ? 'fire' : sk.elem === 'ICE' ? 'ice' : sk.elem === 'THUNDER' ? 'thunder' : 'skill');
-    const opt = { rate: sk.rate * md.dmg, elem: sk.elem, skill: true, ca: comboAction() };
+    const opt = { rate: sk.rate * md.dmg * (1 + chain * R.LINK.dmg + (fin ? R.LINK.finisherBonus : 0)), elem: sk.elem, skill: true, ca: comboAction(), link: chain };
     if (md.status) opt.status = st();
     switch (id) {
       case 'charge': {
@@ -396,15 +456,11 @@
         const t = nearestMob(p.x, p.y - 6, 110, 0, null);
         R.fxSmoke(p.x, p.y - 6);
         if (t) {
-          const a = Math.atan2(t.y - p.y, t.x - p.x);
-          const nx = t.x + Math.cos(a) * (t.r + 9), ny = t.y + Math.sin(a) * (t.r + 9);
-          if (!G.map.boxHits(nx, ny, p.r)) { p.x = nx; p.y = ny; }
-          else { p.x = t.x - Math.cos(a) * (t.r + 9); p.y = t.y - Math.sin(a) * (t.r + 9); if (G.map.boxHits(p.x, p.y, p.r)) { p.x -= Math.cos(a) * 4; } }
-          p.aim = Math.atan2(t.y - p.y, t.x - p.x); p.dir = dirFromAngle(p.aim);
+          blinkTo(p, t);
           hitMob(t, Object.assign(opt, { forceCrit: true, stun: 0.8 }), p.x, p.y);
           R.fx.push({ type: 'slash', x: p.x, y: p.y - 6, ang: p.aim, arc: 0.9, r: 22, life: 0.2, max: 0.2, dir: 1, color: '#c890ff' });
         } else {
-          for (let k = 0; k < 10; k++) R.moveBody(G.map, p, Math.cos(p.aim) * 6, Math.sin(p.aim) * 6);
+          for (let k = 0; k < 3; k++) if (!Gd.tryStep(p, p.dir, 0.01)) break; else Gd.place(p, p.gx, p.gy);
         }
         R.fxSmoke(p.x, p.y - 6);
         p.iframes = 0.35;
@@ -429,7 +485,10 @@
     }
     if (p.act) p.act.id = id;
     if (sk.ult) { G.shake = Math.max(G.shake, 4); R.fx.push({ type: 'ring', x: p.x, y: p.y - 6, r0: 4, r1: 22, life: 0.35, max: 0.35, color: '#ffe9a8', w: 2 }); }
+    if (chain) R.fx.push({ type: 'ring', x: p.x, y: p.y - 8, r0: 6, r1: 18 + chain * 6, life: 0.3, max: 0.3, color: chain >= 3 ? '#ffb040' : '#c9a2ff', w: 2 });
+    return true;
   }
+  const skillInput = (inp) => (inp.skillPressed[0] ? 0 : inp.skillPressed[1] ? 1 : inp.skillPressed[2] && G.save.adv ? 2 : -1);
 
   // ─── 예약 작업 (궁극기 지연 피해·덫) ─────────────────
   // job.update(dt) 가 false 를 반환하면 제거
@@ -454,13 +513,17 @@
       R.fx.push({ type: 'dust', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.5, max: 0.5, color: colors[i % colors.length], size: 2, nograv: true });
     }
   }
+  // 대상의 상하좌우 빈 칸으로 순간이동 (뒤쪽 우선)
   function blinkTo(p, t) {
-    const a = Math.random() * Math.PI * 2;
-    for (let k = 0; k < 4; k++) {
-      const nx = t.x + Math.cos(a + k * 1.57) * (t.r + 9), ny = t.y + Math.sin(a + k * 1.57) * (t.r + 9) * 0.7;
-      if (!G.map.boxHits(nx, ny, p.r)) { p.x = nx; p.y = ny; break; }
+    const tx = t.boss ? Gd.tx(t.x) : t.gx, ty = t.boss ? Gd.ty(t.y) : t.gy, rr = t.boss ? Math.max(1, Math.round(t.r / TS)) : 1;
+    const back = Gd.dirOf(t.x - p.x, t.y - p.y);
+    const order = [back, 'left', 'right', 'up', 'down'].filter((d, i, a) => a.indexOf(d) === i);
+    for (const d of order) {
+      const [dx, dy] = Gd.DIRS[d];
+      const nx = tx + dx * rr, ny = ty + dy * rr;
+      if (!Gd.blocked(nx, ny, p)) { Gd.place(p, nx, ny); break; }
     }
-    p.aim = Math.atan2(t.y - p.y, t.x - p.x); p.dir = dirFromAngle(p.aim);
+    p.dir = Gd.dirOf(t.x - p.x, t.y - p.y); p.aim = Gd.ANG[p.dir];
   }
 
   function ultimate(p, id, opt, md, aoe, st) {
@@ -645,12 +708,15 @@
     if (m.shield) { dmg = 0; }
     m.hp -= dmg;
     m.flash = 0.12;
+    p.calmT = 0;
+    // 기본 공격 적중 → MP 회복 (한 번 휘두를 때 한 번)
+    if (opt.basic && !opt.mpGot) { opt.mpGot = true; p.mp = Math.min(st.maxMp, p.mp + st.maxMp * R.REGEN.mpOnHit); }
     m.aggro = true;
     if (m.ai === 'PATROL' || m.ai === 'RETURN') m.ai = 'CHASE';
     // 경직 / 다운 / 띄움 (보스는 무시)
     const a = Math.atan2(m.y - fy, m.x - fx);
-    const kb = m.boss ? 0 : (opt.down ? 150 : 60) / (m.elite ? 2 : 1);
-    m.kx = Math.cos(a) * kb; m.ky = Math.sin(a) * kb;
+    // 넉백: 다운 공격이면 한 칸 밀려난다 (정예는 버팀)
+    if (!m.boss && opt.down && !m.elite && !m.step && m.hp > 0) { if (Gd.tryStep(m, Gd.dirOf(Math.cos(a), Math.sin(a)), 0.12)) m.movedAt = G.time; }
     if (!m.boss) {
       if (opt.stun) m.stunT = Math.max(m.stunT, opt.stun * (m.elite ? 0.5 : 1));
       if (opt.down && !m.elite) { m.downT = 1.0; m.act = null; m.ai = 'DOWNED'; }
@@ -717,13 +783,14 @@
     if (G.dungeon && G.dungeon.mod && G.dungeon.mod.id === 'fragile') dmg *= 1.3;
     dmg = Math.max(1, Math.round(dmg));
     p.hp -= dmg;
+    p.calmT = 0;
     p.flash = 0.15;
     if (!o.raw) p.iframes = 0.35;
     G.shake = Math.max(G.shake, 3);
     R.addNum(p.x, p.y - 24, String(dmg), '#ff4a4a', 1);
     R.sfx('hurt');
     if (o.status) applyStatus(p, o.status, dmg * 0.5);
-    if (o.knock) { R.moveBody(G.map, p, Math.cos(o.knock) * 8, Math.sin(o.knock) * 8); }
+    void o.knock; // 칸 이동: 피격 넉백 없음
     if (p.hp <= 0) killPlayer();
     return true;
   }
@@ -745,6 +812,7 @@
     const D = !o.summoned && G.dungeon && G.dungeon.diff;
     if (D) lv += D.lv;
     const st = R.monsterStats(def, lv);
+    if (o.boss) st.maxHp = Math.round(st.maxHp * R.BOSS_HP_MUL);
     if (D) { st.maxHp = Math.round(st.maxHp * D.hp); st.atk = Math.round(st.atk * D.atk); st.exp = Math.round(st.exp * D.exp); }
     const sk = def.sprite || id, ss = def.spriteScale || 1;
     const scale = o.boss ? Math.round(def.scale || 2) : o.elite ? 1 : 1;
@@ -758,24 +826,45 @@
       elite: !!o.elite, boss: !!o.boss, scale, spawn: o.spawn || null, summoned: !!o.summoned,
     };
     m.hp = m.maxHp;
+    if (!o.boss && G.map) {
+      Gd.place(m, Gd.tx(x), Gd.ty(y));
+      if (Gd.blocked(m.gx, m.gy, m)) { Gd.snap(m); Gd.update(m, 1); }
+      m.homeX = m.x; m.homeY = m.y; m.hgx = m.gx; m.hgy = m.gy;
+    }
     if (G.dungeon && G.dungeon.mod && G.dungeon.mod.id === 'haste') m.spd *= 1.3;
     if (o.boss) { m.phase = 0; m.moveCd = 1.5; m.aggro = false; m.ai = 'SLEEP'; }
     G.mobs.push(m);
     return m;
   };
 
-  function mobMove(m, dx, dy) {
+
+
+  // ─── 몬스터 칸 이동 ─────────────────────────────────
+  function mobStep(m, dir, mul = 1) {
     const slow = m.status.slow > 0 ? 0.5 : 1;
-    const ok = R.moveBody(G.map, m, dx * slow, dy * slow);
-    if (!ok) {
-      // 벽에 막히면 옆으로 미끄러지기
-      if (dx && !dy) R.moveBody(G.map, m, 0, (m.y > G.player.y ? -1 : 1) * Math.abs(dx) * slow);
-      if (dy && !dx) R.moveBody(G.map, m, (m.x > G.player.x ? -1 : 1) * Math.abs(dy) * slow, 0);
+    const ok = Gd.tryStep(m, dir, TS / Math.max(8, m.spd * slow * mul));
+    if (ok) {
+      m.dir = dir;
+      if (dir === 'left' || dir === 'right') m.face = dir === 'right' ? 1 : -1;
+      m.movedAt = G.time;
+      Gd.update(m, 0);
     }
-    if (Math.abs(dx) > 0.01) m.face = dx > 0 ? 1 : -1;
-    m.movedAt = G.time;
     return ok;
   }
+  // 목표 칸 쪽으로 한 칸 (막히면 다른 축, 그래도 막히면 가끔 옆걸음)
+  function stepToward(m, gx, gy, mul, away) {
+    let dx = gx - m.gx, dy = gy - m.gy;
+    if (away) { dx = -dx; dy = -dy; }
+    const h = dx ? (dx > 0 ? 'right' : 'left') : null, v = dy ? (dy > 0 ? 'down' : 'up') : null;
+    const first = Math.abs(dx) >= Math.abs(dy) ? [h, v] : [v, h];
+    for (const d of first) if (d && mobStep(m, d, mul)) return true;
+    if (Math.random() < 0.3) {
+      const side = (first[0] === 'left' || first[0] === 'right') ? ['up', 'down'] : ['left', 'right'];
+      return mobStep(m, side[(Math.random() * 2) | 0], mul);
+    }
+    return false;
+  }
+  const faceTo = (m, dir) => { m.dir = dir; if (dir === 'left' || dir === 'right') m.face = dir === 'right' ? 1 : -1; };
 
   R.updateMobs = function (dt) {
     const p = G.player;
@@ -787,32 +876,37 @@
       if (m.dead) continue;
       // 띄움
       if (m.z > 0 || m.vz) { m.vz -= 300 * dt; m.z = Math.max(0, m.z + m.vz * dt); if (m.z === 0) m.vz = 0; }
-      // 넉백
-      if (Math.abs(m.kx) + Math.abs(m.ky) > 1) {
-        R.moveBody(G.map, m, m.kx * dt, m.ky * dt);
-        m.kx *= Math.pow(0.002, dt); m.ky *= Math.pow(0.002, dt);
+      if (m.boss) {
+        if (m.downT > 0) { m.downT -= dt; continue; }
+        if (m.stunT > 0 || m.status.stun > 0) { m.stunT -= dt; continue; }
+        R.updateBoss(m, dt); continue;
       }
+      // 칸 이동 보간 (넉백 포함)
+      if (m.step) { if (!Gd.update(m, dt)) { if (m.act) runMobAct(m, dt); continue; } }
+      else if (!m.act && (Math.abs(m.x - Gd.cx(m.gx)) > 0.5 || Math.abs(m.y - Gd.cy(m.gy)) > 0.5)) { Gd.snap(m); continue; }
       if (m.downT > 0) { m.downT -= dt; if (m.downT <= 0) m.ai = 'CHASE'; continue; }
       if (m.stunT > 0 || m.status.stun > 0) { m.stunT -= dt; continue; }
-      if (m.boss) { R.updateBoss(m, dt); continue; }
       m.atkCd -= dt;
-      const dx = p.x - m.x, dy = p.y - m.y, dist = Math.hypot(dx, dy);
-      const ang = Math.atan2(dy, dx);
-      const sp = m.spd * dt;
-      if (m.act) { runMobAct(m, dt, dist, ang); continue; }
+      if (m.act) { runMobAct(m, dt); continue; }
+      const dist = Math.hypot(p.x - m.x, p.y - m.y);
+      const adx = Math.abs(p.gx - m.gx), ady = Math.abs(p.gy - m.gy), man = adx + ady;
+      const aligned = adx === 0 || ady === 0;
+      const toP = Gd.dirOf(p.gx - m.gx, p.gy - m.gy);
       switch (m.ai) {
         case 'PATROL': {
           m.aiT -= dt;
-          if (m.aiT <= 0) { m.aiT = rand(1.5, 3.5); m.wanderX = m.homeX + rand(-30, 30); m.wanderY = m.homeY + rand(-24, 24); }
-          const wx = m.wanderX - m.x, wy = m.wanderY - m.y, wd = Math.hypot(wx, wy);
-          if (wd > 3) mobMove(m, (wx / wd) * sp * 0.4, (wy / wd) * sp * 0.4);
+          if (m.aiT <= 0) {
+            m.aiT = rand(1.2, 3.2);
+            const far = Math.abs(m.gx - m.hgx) + Math.abs(m.gy - m.hgy) > 2;
+            if (far) stepToward(m, m.hgx, m.hgy, 0.5);
+            else if (Math.random() < 0.7) mobStep(m, ['up', 'down', 'left', 'right'][(Math.random() * 4) | 0], 0.5);
+          }
           if (!p.dead && (dist < (m.elite ? 100 : 80) || m.aggro) && G.map.lineClear(m.x, m.y - 4, p.x, p.y - 4)) { m.ai = 'CHASE'; R.addNum(m.x, m.y - m.hh - 6, '!', '#ff5a5a', 1); }
           break;
         }
         case 'RETURN': {
-          const hx = m.homeX - m.x, hy = m.homeY - m.y, hd = Math.hypot(hx, hy);
-          if (hd < 6) { m.ai = 'PATROL'; m.aggro = false; }
-          else mobMove(m, (hx / hd) * sp * 1.2, (hy / hd) * sp * 1.2);
+          if (m.gx === m.hgx && m.gy === m.hgy) { m.ai = 'PATROL'; m.aggro = false; break; }
+          if (!stepToward(m, m.hgx, m.hgy, 1.2) && Math.random() < 0.02) { m.hgx = m.gx; m.hgy = m.gy; }
           m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.3 * dt);
           break;
         }
@@ -820,48 +914,35 @@
           if (p.dead || Math.hypot(m.x - m.homeX, m.y - m.homeY) > 230) { m.ai = 'RETURN'; break; }
           const t = m.def.ai;
           if (t === 'ranged') {
-            if (dist < 50) mobMove(m, -Math.cos(ang) * sp, -Math.sin(ang) * sp);
-            else if (dist > 95) mobMove(m, Math.cos(ang) * sp, Math.sin(ang) * sp);
-            else mobMove(m, Math.cos(ang + Math.PI / 2) * sp * 0.4 * Math.sign(Math.sin(m.anim)), Math.sin(ang + Math.PI / 2) * sp * 0.4 * Math.sign(Math.sin(m.anim)));
-            if (m.atkCd <= 0 && dist < 130 && G.map.lineClear(m.x, m.y - 6, p.x, p.y - 6)) m.act = { type: 'shoot', t: 0, dur: 0.55, ang };
+            // 같은 행·열에 서서 쏜다. 붙으면 물러나고, 어긋나 있으면 줄을 맞춘다
+            if (aligned && man >= 2 && man <= 7 && Gd.lineClear(m.gx, m.gy, p.gx, p.gy)) {
+              faceTo(m, toP);
+              if (m.atkCd <= 0) m.act = { type: 'shoot', t: 0, dur: 0.55, ang: Gd.ANG[toP] };
+            } else if (man <= 1) stepToward(m, p.gx, p.gy, 1, true);
+            else if (!aligned) {
+              const alignX = adx <= ady; // 차이가 작은 축을 0으로
+              const d = alignX ? (p.gx > m.gx ? 'right' : 'left') : (p.gy > m.gy ? 'down' : 'up');
+              if (!mobStep(m, d)) stepToward(m, p.gx, p.gy, 1);
+            } else if (man > 7) stepToward(m, p.gx, p.gy, 1);
           } else if (t === 'charger') {
-            if (dist > 55 || m.atkCd > 0) mobMove(m, Math.cos(ang) * sp, Math.sin(ang) * sp);
-            if (dist < 70 && m.atkCd <= 0) m.act = { type: 'lunge', t: 0, dur: 0.5, ang, hit: false };
-          } else if (t === 'hover') {
-            const w = Math.sin(m.anim * 4) * 0.9;
-            mobMove(m, Math.cos(ang + w) * sp, Math.sin(ang + w) * sp);
-            if (dist < m.r + 14 && m.atkCd <= 0) m.act = { type: 'melee', t: 0, dur: 0.3, ang, range: 16 };
+            if (aligned && man >= 2 && man <= 4 && m.atkCd <= 0 && Gd.lineClear(m.gx, m.gy, p.gx, p.gy)) { faceTo(m, toP); m.act = { type: 'lunge', t: 0, dur: 0.5, dir: toP, ang: Gd.ANG[toP], hit: false, run: 0 }; }
+            else if (man === 1 && m.atkCd <= 0) { faceTo(m, toP); m.act = { type: 'melee', t: 0, dur: 0.4, dir: toP, ang: Gd.ANG[toP], range: 18 }; }
+            else if (man > 1) stepToward(m, p.gx, p.gy, 1);
           } else {
-            if (dist > m.r + 10) mobMove(m, Math.cos(ang) * sp, Math.sin(ang) * sp);
-            if (dist < m.r + 16 && m.atkCd <= 0) m.act = { type: 'melee', t: 0, dur: 0.45, ang, range: 18 + m.r * 0.5 };
+            const hover = t === 'hover';
+            if (man === 1) {
+              faceTo(m, toP);
+              if (m.atkCd <= 0) m.act = { type: 'melee', t: 0, dur: hover ? 0.3 : 0.45, dir: toP, ang: Gd.ANG[toP], range: 18 };
+            } else if (hover && Math.random() < 0.25) mobStep(m, ['up', 'down', 'left', 'right'][(Math.random() * 4) | 0], 1.3);
+            else stepToward(m, p.gx, p.gy, hover ? 1.3 : 1);
           }
           break;
         }
       }
     }
-    // 몬스터끼리 밀어내기
-    for (let i = 0; i < G.mobs.length; i++) {
-      const a = G.mobs[i];
-      if (a.dead) continue;
-      for (let j = i + 1; j < G.mobs.length; j++) {
-        const b = G.mobs[j];
-        if (b.dead) continue;
-        const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), md = a.r + b.r;
-        if (d < md && d > 0.01) {
-          const push = (md - d) * 0.5;
-          if (!a.boss) R.moveBody(G.map, a, (-dx / d) * push, (-dy / d) * push);
-          if (!b.boss) R.moveBody(G.map, b, (dx / d) * push, (dy / d) * push);
-        }
-      }
-      // 플레이어와 겹침 방지
-      if (!G.player.dead && G.player.state !== 'dodge') {
-        const dx = G.player.x - a.x, dy = G.player.y - a.y, d = Math.hypot(dx, dy), md = a.r + G.player.r;
-        if (d < md && d > 0.01) R.moveBody(G.map, G.player, (dx / d) * (md - d) * 0.6, (dy / d) * (md - d) * 0.6);
-      }
-    }
   };
 
-  function runMobAct(m, dt, dist, ang) {
+  function runMobAct(m, dt) {
     const a = m.act, p = G.player;
     a.t += dt;
     const def = m.def;
@@ -870,27 +951,31 @@
     if (def.burn) onStatus.burn = 3;
     if (def.slow) onStatus.slow = 2;
     if (a.type === 'melee') {
-      m.face = Math.cos(a.ang) >= 0 ? 1 : -1;
       if (!a.done && a.t >= a.dur) {
         a.done = true;
-        const d = Math.hypot(p.x - m.x, p.y - m.y);
-        if (d < a.range + p.r + m.r * 0.5 && angDiff(Math.atan2(p.y - m.y, p.x - m.x), a.ang) < 1.2) hurtPlayer(m.atk, m.elem, { status: onStatus, knock: a.ang });
+        // 바라보는 방향 앞 칸에 플레이어가 있으면 적중
+        const cx = Math.cos(a.ang), cy = Math.sin(a.ang), dx = p.x - m.x, dy = p.y - m.y;
+        const along = dx * cx + dy * cy, lat = Math.abs(-dx * cy + dy * cx);
+        if (along > 0 && along < TS + 8 && lat < 10) hurtPlayer(m.atk, m.elem, { status: onStatus, knock: a.ang });
         R.fx.push({ type: 'slash', x: m.x, y: m.y - m.hh / 2, ang: a.ang, arc: 1.0, r: a.range, life: 0.14, max: 0.14, dir: 1, color: '#ff8a8a' });
       }
       if (a.t >= a.dur + 0.3) { m.act = null; m.atkCd = rand(1.0, 1.8); }
     } else if (a.type === 'lunge') {
-      if (a.t < 0.4) { m.face = Math.cos(a.ang) >= 0 ? 1 : -1; if (a.t < 0.3) a.ang = Math.atan2(p.y - m.y, p.x - m.x); }
-      else if (a.t < 0.72) {
-        mobMove(m, Math.cos(a.ang) * 190 * dt, Math.sin(a.ang) * 190 * dt);
-        if (!a.hit && Math.hypot(p.x - m.x, p.y - m.y) < m.r + p.r + 4) { a.hit = true; hurtPlayer(m.atk * 1.15, m.elem, { status: onStatus, knock: a.ang }); }
-      } else { m.act = null; m.atkCd = rand(1.4, 2.4); }
+      // 예비동작 후 직선으로 최대 4칸 돌진 (벽이나 플레이어에 닿으면 멈춤)
+      if (a.t >= 0.4 && a.t < 0.8 && !a.stop) {
+        const v = 200 * dt;
+        const ok = R.moveBody(G.map, m, Math.cos(a.ang) * v, Math.sin(a.ang) * v);
+        a.run += v;
+        if (!a.hit && Math.hypot(p.x - m.x, p.y - m.y) < 12) { a.hit = true; a.stop = true; hurtPlayer(m.atk * 1.15, m.elem, { status: onStatus, knock: a.ang }); }
+        if (!ok || a.run > TS * 4) a.stop = true;
+      } else if (a.t >= 0.8 || a.stop) { m.act = null; m.atkCd = rand(1.4, 2.4); Gd.snap(m); }
     } else if (a.type === 'shoot') {
       if (!a.done && a.t >= a.dur) {
         a.done = true;
-        const aim = Math.atan2(p.y - m.y, p.x - m.x);
+        const aim = a.ang; // 행·열을 따라 직선으로
         const kind = def.shot || 'orb';
         const sp = kind === 'spore' ? 80 : kind === 'bomb' ? 95 : 130;
-        const shot = { x: m.x, y: m.y - m.hh / 2, ang: aim, speed: sp, kind, team: 'e', r: 4, life: 1.6, dmg: m.atk, elem: m.elem, status: onStatus };
+        const shot = { x: m.x, y: m.y - Math.min(10, m.hh / 2), ang: aim, speed: sp, kind, team: 'e', r: 4, life: 1.6, dmg: m.atk, elem: m.elem, status: onStatus };
         if (kind === 'spore') shot.status = { poison: 4 };
         if (kind === 'bomb') { shot.explodeE = 18; shot.status = { burn: 3 }; shot.life = 1.1; }
         if (kind === 'ice') shot.status = { slow: 2.5 };
@@ -939,9 +1024,11 @@
     b.moveCd -= dt * spdMul;
     // 추적
     if (dist > b.r + 18) {
+      // 보스도 상하좌우로만 걷는다 (차이가 큰 축 먼저)
       const sp = b.spd * spdMul * dt;
-      R.moveBody(G.map, b, Math.cos(ang) * sp, Math.sin(ang) * sp);
-      b.face = dx >= 0 ? 1 : -1;
+      if (Math.abs(dx) > Math.abs(dy) + 4 || Math.abs(dy) < 3) { if (!R.moveBody(G.map, b, Math.sign(dx) * sp, 0)) R.moveBody(G.map, b, 0, Math.sign(dy || 1) * sp); }
+      else if (!R.moveBody(G.map, b, 0, Math.sign(dy) * sp)) R.moveBody(G.map, b, Math.sign(dx || 1) * sp, 0);
+      if (Math.abs(dx) > 2) b.face = dx >= 0 ? 1 : -1;
       b.movedAt = G.time;
     }
     if (b.moveCd <= 0) {
@@ -965,7 +1052,7 @@
         break;
       }
       case 'charge':
-        b.act = { type: 'charge', t: 0, dur: wind(0.75), ang, hit: false, len: 150 };
+        b.act = { type: 'charge', t: 0, dur: wind(0.75), ang: R.Grid.ANG[R.Grid.dirFromAng(ang)], hit: false, len: 150 };
         break;
       case 'quake': {
         b.act = { type: 'cast', t: 0, dur: wind(1.1) };
@@ -1211,9 +1298,9 @@
     if (!s.bag[id]) { R.toast(`${R.CONSUMABLES[id].name}이 없습니다`, '#ff8a8a'); p.potionCd = 0.5; return; }
     if (id === 'hpPotion' && p.hp >= p.st.maxHp) return;
     s.bag[id]--;
-    p.potionCd = 1;
-    if (id === 'hpPotion') { const v = Math.round(p.st.maxHp * 0.35 * potM); p.hp = Math.min(p.st.maxHp, p.hp + v); R.addNum(p.x, p.y - 24, '+' + v, '#6aff6a', 1); }
-    if (id === 'mpPotion') { const v = Math.round(p.st.maxMp * 0.4 * potM); p.mp = Math.min(p.st.maxMp, p.mp + v); R.addNum(p.x, p.y - 24, '+' + v, '#6ab6ff', 1); }
+    p.potionCd = R.POTION.cd;
+    if (id === 'hpPotion') { const v = Math.round((p.st.maxHp * R.POTION.hp + R.POTION.hpFlat) * potM); p.hp = Math.min(p.st.maxHp, p.hp + v); R.addNum(p.x, p.y - 24, '+' + v, '#6aff6a', 1); }
+    if (id === 'mpPotion') { const v = Math.round((p.st.maxMp * R.POTION.mp + R.POTION.mpFlat) * potM); p.mp = Math.min(p.st.maxMp, p.mp + v); R.addNum(p.x, p.y - 24, '+' + v, '#6ab6ff', 1); }
     R.sfx('potion');
   };
 
@@ -1332,7 +1419,7 @@
   R.fxAfterimage = function (p) {
     const lp = p.lastPose;
     G.fx.push({ type: 'ghost', x: p.x, y: p.y, dir: p.dir, face: p.faceX || 1, anim: p.anim, life: 0.18, max: 0.18,
-      pose: lp && { rot: lp.rot, center: lp.center, sx: lp.sx, sy: lp.sy, oy: lp.oy, torso: { rot: lp.torso.rot } } });
+      pose: lp && { rot: lp.rot, center: lp.center, sx: lp.sx, sy: lp.sy, oy: lp.oy } });
   };
   R.updateFx = function (dt) {
     for (const f of G.fx) {

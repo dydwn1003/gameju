@@ -19,7 +19,7 @@
       quests: [], mainIdx: 0, unlocked: 1, cleared: {}, codex: {}, flags: {}, favor: {}, honor: 0,
       hp: null, mp: null, playTime: 0,
       gems: 300, coins: 0, sp: 0, skillLv: {}, runes: {}, pity: 0, itemDex: {}, summons: 0,
-      pets: [], pet: null, buffs: {}, titles: [], title: null, tower: { best: 0 }, diff: 0, clearedD: { 1: {}, 2: {} },
+      pets: [], pet: null, buffs: {}, titles: [], title: null, tower: { best: 0 }, diff: 0, dclear: {}, clearedD: { 1: {}, 2: {} },
     };
     R.SLOTS.forEach((k) => (s.equip[k] = null));
     s.equip.weapon = R.makeItem('weapon', 1, 0, cls);
@@ -134,14 +134,21 @@
   $('btn-quest').onclick = () => { R.sfx('ui'); if (!G.player.dead) R.UI.openMenu('퀘스트'); };
   document.addEventListener('contextmenu', (e) => e.preventDefault());
 
+  const DIR_KEYS = { KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0], KeyW: [0, -1], ArrowUp: [0, -1], KeyS: [0, 1], ArrowDown: [0, 1] };
+  const dirOrder = [];
+  addEventListener('keydown', (e) => { if (DIR_KEYS[e.code] && !e.repeat) { const i = dirOrder.indexOf(e.code); if (i >= 0) dirOrder.splice(i, 1); dirOrder.push(e.code); } });
   function readInput(dt) {
+    // 4방향: 가장 최근에 누른 방향키가 우선
     let x = 0, y = 0;
-    if (keys.has('KeyA') || keys.has('ArrowLeft')) x -= 1;
-    if (keys.has('KeyD') || keys.has('ArrowRight')) x += 1;
-    if (keys.has('KeyW') || keys.has('ArrowUp')) y -= 1;
-    if (keys.has('KeyS') || keys.has('ArrowDown')) y += 1;
-    if (x || y) { const d = Math.hypot(x, y); x /= d; y /= d; }
-    else { x = stick.x; y = stick.y; }
+    for (let i = dirOrder.length - 1; i >= 0; i--) {
+      if (!keys.has(dirOrder[i])) continue;
+      [x, y] = DIR_KEYS[dirOrder[i]];
+      break;
+    }
+    if (!x && !y) {
+      x = stick.x; y = stick.y;
+      if (Math.abs(x) >= Math.abs(y)) y = 0; else x = 0;
+    }
     inp.move.x = x; inp.move.y = y;
     inp.moving = Math.hypot(x, y) > 0.15;
     inp.atkHeld = atkBtnDown || keys.has('KeyJ') || keys.has('KeyZ');
@@ -175,8 +182,10 @@
   function placePlayer(x, y) {
     if (!G.player) G.player = R.createPlayer(G.save, x, y);
     const p = G.player;
-    p.x = x; p.y = y; p.state = 'idle'; p.act = null; p.vx = 0; p.vy = 0;
-    G.cam.x = x - R.VIEW_W / 2; G.cam.y = y - R.VIEW_H / 2;
+    p.state = 'idle'; p.act = null; p.vx = 0; p.vy = 0; p.queued = null;
+    R.Grid.place(p, R.Grid.tx(x), R.Grid.ty(y));
+    if (R.Grid.blocked(p.gx, p.gy, p)) { R.Grid.snap(p); R.Grid.update(p, 1); }
+    G.cam.x = p.x - R.VIEW_W / 2; G.cam.y = p.y - R.VIEW_H / 2;
   }
 
   R.enterTown = function (fromGate = true) {
@@ -194,24 +203,27 @@
     R.saveGame();
   };
 
-  R.enterRegion = function (id, diffIdx) {
-    const s = G.save, region = R.regionById(id);
+  // 지역 번호로 들어가면 그 지역의 보스 던전 (숨겨진 던전은 6)
+  R.enterRegion = function (id, diffIdx) { R.enterDungeon(id === 6 ? 6 : R.finalDungeon(id).did, diffIdx); };
+  R.enterDungeon = function (did, diffIdx) {
+    const s = G.save, region = did === 6 ? R.HIDDEN_REGION : R.dungeonById(did);
+    const id = region.id;
     const di = diffIdx == null ? s.diff || 0 : diffIdx;
     clearWorld();
     G.map = R.buildDungeon(region);
     const m = G.map;
     G.dungeon = { region, hasKey: false, gateOpen: false, switchOn: false, spawns: [], rockT: 6, diff: R.DIFFICULTY[di], diffIdx: di, mod: null };
-    if (s.cleared[id] && !di) R.openGate();
+    if (!di && (region.final || region.hidden ? s.cleared[id] : (s.dclear || {})[did])) R.openGate();
     const rnd = Math.random;
     const chain = m.rooms.filter((r) => !r.boss);
     for (const sp of m.spawns) {
-      const k = sp.room.key ? 4 : Math.max(1, chain.indexOf(sp.room));
+      const k = sp.room.key ? m.nChain : Math.max(1, chain.indexOf(sp.room));
       G.dungeon.spawns.push({ sp, k, mob: spawnAt(region, sp, k, rnd), t: 0 });
     }
     R.spawnMob(region.boss, region.bossLv, m.bossSpawn.x, m.bossSpawn.y, { boss: true });
     placePlayer(m.start.x, m.start.y);
     const dn = di ? ` · ${R.DIFFICULTY[di].name}` : '';
-    R.UI.setArea(region.hidden ? `숨겨진 던전 · ${region.name}${dn}` : `${region.id}지역 · ${region.name}${dn}`);
+    R.UI.setArea(region.hidden ? `숨겨진 던전 · ${region.name}${dn}` : `${region.regionName} · ${region.name}${dn}`);
     R.UI.banner(region.name + dn, di ? R.DIFFICULTY[di].color : '#ffe9a8', region.gimmickText);
     R.Audio.playBgm(1 + region.bgm);
     spawnPet();
@@ -288,25 +300,28 @@
     G.pet = { id, sk: id, ss: 0.5, def: R.MONSTERS[id] || {}, x: p.x - 14, y: p.y + 4, vx: 0, vy: 0, dir: 1, face: 1, state: 'idle', hh: fr ? (fr.h / 3) * 0.5 : 8, pet: true, t: 0, anim: 0, r: 4, z: 0, status: {}, stunT: 0, flash: 0, downT: 0, act: null, dead: false, elite: false };
   }
   R.spawnPet = spawnPet;
+  // 펫: 플레이어가 지나온 칸을 따라 상하좌우로 걷는다
   function updatePet(dt) {
     const pt = G.pet, p = G.player;
     if (!pt || !p) return;
     pt.t += dt; pt.anim += dt;
-    const tx = p.x - (p.face || 1) * 14, ty = p.y + 5;
-    const dx = tx - pt.x, dy = ty - pt.y, d = Math.hypot(dx, dy);
-    if (d > 160) { pt.x = tx; pt.y = ty; }
-    const sp = d > 6 ? Math.min(160, d * 4) : 0;
-    const k = 1 - Math.exp(-10 * dt);
-    pt.vx += ((d ? (dx / d) * sp : 0) - pt.vx) * k;
-    pt.vy += ((d ? (dy / d) * sp : 0) - pt.vy) * k;
-    pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+    if (p.step) pt.tgt = [R.Grid.cx(p.px), R.Grid.cy(p.py)];
+    if (!pt.tgt) pt.tgt = [p.x - 16, p.y];
+    let [tx, ty] = pt.tgt;
+    if (Math.hypot(tx - pt.x, ty - pt.y) > 90) { pt.x = tx; pt.y = ty; }
+    const sp = (p.st ? p.st.moveSpd : 60) * 1.15 * dt;
+    const ox = pt.x, oy = pt.y;
+    if (Math.abs(tx - pt.x) > 0.5) pt.x += Math.sign(tx - pt.x) * Math.min(sp, Math.abs(tx - pt.x));
+    else if (Math.abs(ty - pt.y) > 0.5) pt.y += Math.sign(ty - pt.y) * Math.min(sp, Math.abs(ty - pt.y));
+    pt.vx = (pt.x - ox) / Math.max(dt, 1e-3); pt.vy = (pt.y - oy) / Math.max(dt, 1e-3);
     if (Math.abs(pt.vx) > 4) pt.dir = pt.face = pt.vx > 0 ? 1 : -1;
-    pt.state = Math.hypot(pt.vx, pt.vy) > 8 ? 'walk' : 'idle';
+    pt.state = Math.abs(pt.vx) + Math.abs(pt.vy) > 8 ? 'walk' : 'idle';
   }
 
+
   function spawnAt(region, sp, k, rnd) {
-    const [lo, hi] = region.lv;
-    let lv = Math.round(lo + ((hi - lo) * (k - 1)) / 3) - (rnd() < 0.5 ? 1 : 0);
+    const [lo, hi] = region.lv, n = Math.max(2, (G.map.nChain || 4) - 1);
+    let lv = Math.round(lo + ((hi - lo) * (k - 1)) / n) - (rnd() < 0.5 ? 1 : 0);
     lv = Math.max(lo, Math.min(hi, lv));
     const pool = region.monsters;
     const id = pool[Math.floor(rnd() * Math.min(pool.length, 1 + k))];

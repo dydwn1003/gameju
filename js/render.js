@@ -97,7 +97,7 @@
       g.beginPath(); g.ellipse(p.x, p.y - 9, 13, 16, 0, 0, Math.PI * 2); g.stroke();
       g.fillStyle = `rgba(154,216,255,${a * 0.18})`; g.fill();
     }
-    if (SPR.frame(R.Anim.playerKey())) {
+    if (SPR.frame(R.Anim.playerKey()) || R.Anim.hasFrames(R.Anim.playerKey())) {
       shadow(g, p.x, p.y, p.state === 'dodge' ? 5 : 7);
       R.Anim.player(g, p, G.rdt || 1 / 60);
       drawStatusMarks(g, p);
