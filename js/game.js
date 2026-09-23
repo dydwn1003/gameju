@@ -187,6 +187,7 @@
     G.mobs = []; G.shots = []; G.drops = []; G.nums = []; G.teles = [];
     G.fx.length = 0;
     G.combo.count = 0; G.combo.t = 0;
+    if (G.streak) { G.streak.n = 0; G.streak.fever = 0; }
     R.UI.bossBar(null);
   }
   function placePlayer(x, y) {
@@ -232,6 +233,7 @@
     }
     R.spawnMob(region.boss, region.bossLv, m.bossSpawn.x, m.bossSpawn.y, { boss: true });
     placePlayer(m.start.x, m.start.y);
+    rollEvents(region);
     const dn = di ? ` · ${R.DIFFICULTY[di].name}` : '';
     R.UI.setArea(region.hidden ? `숨겨진 던전 · ${region.name}${dn}` : `${region.regionName} · ${region.name}${dn}`);
     R.UI.banner(region.name + dn, di ? R.DIFFICULTY[di].color : '#ffe9a8', region.gimmickText);
@@ -432,6 +434,11 @@
       const d = Math.hypot(c.x - p.x, c.y - p.y);
       if (d < best) { best = d; G.interact = { kind: 'chest', chest: c, x: c.x, y: c.y, label: '📦 열기', h: 16 }; }
     }
+    for (const sh of m.shrines || []) {
+      if (sh.used) continue;
+      const d = Math.hypot(sh.x - p.x, sh.y - p.y);
+      if (d < 22 && d < best) { best = d; G.interact = { kind: 'shrine', shrine: sh, x: sh.x, y: sh.y, label: `${sh.type.icon} ${sh.type.name}`, h: 24 }; }
+    }
     if (m.lever && !m.cart.moving) {
       const d = Math.hypot(m.lever.x - p.x, m.lever.y - p.y);
       if (d < 20 && d < best) { best = d; G.interact = { kind: 'lever', x: m.lever.x, y: m.lever.y, label: '⚙ 레버 당기기', h: 16 }; }
@@ -471,6 +478,7 @@
     R.sfx('ui');
     if (it.kind === 'npc') R.NPC_TALK[it.npc.id](it.npc);
     else if (it.kind === 'chest') openChest(it.chest);
+    else if (it.kind === 'shrine') useShrine(it.shrine);
     else if (it.kind === 'portal') R.enterTown();
     else if (it.kind === 'gather') gather(it.node);
     else if (it.kind === 'lever') {
@@ -502,8 +510,73 @@
     for (let i = 0; i < 8; i++) R.fx.push({ type: 'dust', x: n.x, y: n.y - 4, vx: (Math.random() - 0.5) * 50, vy: -30 - Math.random() * 40, life: 0.5, max: 0.5, color: n.type === 'ore' ? '#c8c0b0' : n.type === 'herb' ? '#7ad86a' : '#e89a7a', size: 2 });
   }
 
+  // ─── 던전 이벤트: 보너스 상자(미믹), 축복의 제단, 황금 고블린 ───
+  function freeTile(room) {
+    const m = G.map;
+    for (let i = 0; i < 40; i++) {
+      const tx = room.x + 1 + Math.floor(Math.random() * (room.w - 2)), ty = room.y + 1 + Math.floor(Math.random() * (room.h - 2));
+      if (m.get(tx, ty) !== R.T.FLOOR || R.Grid.blocked(tx, ty, null)) continue;
+      if ((m.shrines || []).some((o) => o.tx === tx && o.ty === ty)) continue;
+      if (m.portal && Math.abs(m.portal.x - tx) + Math.abs(m.portal.y - ty) < 3) continue;
+      return [tx, ty];
+    }
+    return null;
+  }
+  function rollEvents(region) {
+    const m = G.map, E = R.DUNGEON_EVENTS, TS = R.TILE;
+    const rooms = m.rooms.filter((r) => !r.boss).slice(1);   // 시작방 제외
+    if (!rooms.length) return;
+    const pick = () => rooms[Math.floor(Math.random() * rooms.length)];
+    m.shrines = [];
+    const n = E.bonusChests[0] + (Math.random() < 0.5 ? E.bonusChests[1] - E.bonusChests[0] : 0);
+    for (let i = 0; i < n; i++) {
+      const t = freeTile(pick());
+      if (t) m.chests.push({ x: t[0] * TS + 8, y: t[1] * TS + 12, r: 7, open: false, bonus: true, mimic: Math.random() < E.mimicChance, ph: Math.random() * 9 });
+    }
+    if (Math.random() < E.shrineChance) {
+      const t = freeTile(pick());
+      if (t) m.shrines.push({ tx: t[0], ty: t[1], x: t[0] * TS + 8, y: t[1] * TS + 12, type: R.SHRINES[Math.floor(Math.random() * R.SHRINES.length)], used: false });
+    }
+    if (Math.random() < E.goblinChance) {
+      const t = freeTile(rooms[rooms.length - 1 - Math.floor(Math.random() * Math.min(2, rooms.length))]);
+      if (t) {
+        R.spawnMob('gold_goblin', region.lv[1], t[0] * TS + 8, t[1] * TS + 12, {});
+        setTimeout(() => G.map === m && R.toast('💰 어디선가 짤랑거리는 소리가 들린다…', '#ffd35a'), 1800);
+      }
+    }
+  }
+  R.rollEvents = rollEvents;
+
+  function useShrine(sh) {
+    sh.used = true;
+    const b = sh.type;
+    R.addBuff(G.player, b.name, R.SHRINE_DUR, b.mods, b.color);
+    R.sfx('rare');
+    R.UI.banner(`${b.icon} ${b.name}`, b.color, `${R.SHRINE_DUR}초간 ${b.desc}`);
+    for (let i = 0; i < 16; i++) R.fx.push({ type: 'dust', x: sh.x, y: sh.y - 14, vx: (Math.random() - 0.5) * 50, vy: -20 - Math.random() * 50, life: 0.8, max: 0.8, color: b.color, size: 2, nograv: true });
+  }
+
   function openChest(c) {
+    if (c.mimic) {
+      // 미믹! 상자가 이빨을 드러낸다
+      G.map.chests.splice(G.map.chests.indexOf(c), 1);
+      const rg = G.dungeon.region;
+      const mm = R.spawnMob('mimic', rg.lv[1], c.x, c.y, { elite: true });
+      mm.ai = 'CHASE'; mm.aggro = true; mm.atkCd = 0.6;
+      R.sfx('roar'); G.shake = Math.max(G.shake, 5);
+      R.UI.banner('📦 미믹이다!', '#ff6a5a', '상자가 이빨을 드러냈다 — 쓰러뜨리면 진짜 보물이!');
+      return;
+    }
     c.open = true;
+    if (c.bonus) {
+      R.sfx('rare');
+      const rg = G.dungeon.region;
+      R.dropAt(c.x, c.y, { kind: 'gold', v: 12 * rg.id * rg.id + 20 });
+      R.dropAt(c.x, c.y, { kind: 'item', item: R.randomDrop(rg.lv[1], R.rollGrade(0.3, 0)) });
+      R.dropAt(c.x, c.y, { kind: 'potion', id: Math.random() < 0.5 ? 'hpPotion' : 'mpPotion', n: 1 });
+      if (Math.random() < 0.4) R.dropAt(c.x, c.y, { kind: 'mat', id: rg.lv[1] >= 20 ? 'stone' : 'iron', n: 1 + (Math.random() * 2 | 0) });
+      return;
+    }
     R.sfx('rare');
     const s = G.save, rg = G.dungeon.region;
     if (c.key) { G.dungeon.hasKey = true; R.toast('🔑 보스방 열쇠를 얻었다!', '#ffe070'); }
@@ -524,6 +597,7 @@
       R.updateShots(dt);
       R.updateTeles(dt);
       R.updateDrops(dt);
+      R.updateStreak(dt);
       updatePet(dt);
       updateDungeon(dt);
       updateInteract();

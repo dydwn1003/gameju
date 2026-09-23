@@ -474,7 +474,7 @@
     const fin = p.finT > 0;
     let chain = L.t > 0 && L.last !== id ? Math.min(R.LINK.max, L.n + 1) : 0;
     if (fin) chain = Math.max(chain, 1);
-    const cost = R.skillCost(sk, G.save.level, chain);
+    const cost = R.pbuf(p, 'mpFree') > 0 ? 0 : R.skillCost(sk, G.save.level, chain);
     if (p.mp < cost) { R.toast('MP가 부족합니다', '#6fb6ff'); p.skillCd[i] = 0.3; return false; }
     L.n = chain; L.last = id; L.t = 0; p.finT = 0;
     if (chain) {
@@ -582,6 +582,7 @@
   const skillInput = (inp) => { for (let i = 0; i < 5; i++) if (inp.skillPressed[i] && (i < 4 || G.save.adv)) return i; return -1; };
   // 스킬 버프 합산 (atk, dmgTaken, move, crit)
   R.pbuf = (p, k) => { let v = 0; if (p && p.buffs) for (const b of p.buffs) v += b.mods[k] || 0; return v; };
+  R.addBuff = (p, id, dur, mods, color) => addBuff(p, id, dur, mods, color);
   function addBuff(p, id, dur, mods, color) {
     p.buffs = (p.buffs || []).filter((b) => b.id !== id);
     p.buffs.push({ id, t: dur, max: dur, mods, color });
@@ -944,7 +945,10 @@
     if (m.shield) { dmg = 0; }
     // 전설 효과: 흡혈 · 업화 · 마나 순환 · 치유의 일격
     if (dmg > 0) {
-      if (LG.vamp) p.hp = Math.min(st.maxHp, p.hp + dmg * 0.03 * LG.vamp);
+      const vamp = (LG.vamp || 0) * 0.03 + R.pbuf(p, 'vamp');
+      if (vamp) p.hp = Math.min(st.maxHp, p.hp + dmg * vamp);
+      // 황금 고블린: 맞을 때마다 금화를 흘린다
+      if (m.def.treasure && Math.random() < 0.6) dropAt(m.x, m.y, { kind: 'gold', v: Math.max(1, Math.round(m.gold * 0.6)) });
       if (LG.ember && Math.random() < 0.15) applyStatus(m, { burn: 3 }, dmg);
       if (LG.mana) p.mp = Math.min(st.maxMp, p.mp + st.maxMp * 0.01 * LG.mana);
       if (LG.critheal && crit) p.hp = Math.min(st.maxHp, p.hp + st.maxHp * 0.015 * LG.critheal);
@@ -1052,7 +1056,7 @@
   }
 
   // ─── 몬스터 ──────────────────────────────────────────
-  const ARCH_H = { human: 21, blob: 12, mushroom: 16, quad: 13, spider: 11, ghost: 15, flyer: 13, golem: 23, worm: 13 };
+  const ARCH_H = { human: 21, mimic: 15, blob: 12, mushroom: 16, quad: 13, spider: 11, ghost: 15, flyer: 13, golem: 23, worm: 13 };
   R.spawnMob = function (id, lv, x, y, o = {}) {
     const def = o.boss ? R.BOSSES[id] : R.MONSTERS[id];
     const D = !o.summoned && G.dungeon && G.dungeon.diff;
@@ -1118,6 +1122,7 @@
       if (m.dead) { m.deathT += dt; continue; }
       m.anim += dt;
       m.flash = Math.max(0, m.flash - dt);
+      if (m.fleeT != null) m.fleeT += dt;   // 황금 고블린 도주 시간 (칸 이동 중에도 흐른다)
       tickStatus(m, dt, false);
       if (m.dead) continue;
       // 띄움
@@ -1138,6 +1143,7 @@
       const adx = Math.abs(p.gx - m.gx), ady = Math.abs(p.gy - m.gy), man = adx + ady;
       const aligned = adx === 0 || ady === 0;
       const toP = Gd.dirOf(p.gx - m.gx, p.gy - m.gy);
+      if (m.def.ai === 'flee') { fleeAI(m, dt, p, dist, man); continue; }
       switch (m.ai) {
         case 'PATROL': {
           m.aiT -= dt;
@@ -1187,6 +1193,28 @@
       }
     }
   };
+
+  // 황금 고블린: 들키면 도망치고, 제한 시간이 지나면 사라진다
+  function fleeAI(m, dt, p, dist, man) {
+    if (m.ai !== 'CHASE') {
+      m.aiT -= dt;
+      if (m.aiT <= 0) { m.aiT = rand(0.6, 1.4); mobStep(m, ['up', 'down', 'left', 'right'][(Math.random() * 4) | 0], 0.6); }
+      if (!p.dead && (dist < 90 || m.aggro)) {
+        m.ai = 'CHASE'; m.fleeT = 0;
+        R.addNum(m.x, m.y - m.hh - 6, '!', '#ffd35a', 1.2);
+        R.toast(`💰 황금 고블린이 도망친다! ${R.DUNGEON_EVENTS.goblinEscape}초 안에 잡아라`, '#ffd35a');
+      }
+      return;
+    }
+    if (m.fleeT > R.DUNGEON_EVENTS.goblinEscape) {
+      m.dead = true; m.deathT = 0.2; m.escaped = true;
+      R.fxSmoke(m.x, m.y - 6);
+      R.toast('황금 고블린이 차원문으로 도망쳤다…', '#c9b98a');
+      return;
+    }
+    if (man <= 8) { if (!stepToward(m, p.gx, p.gy, 1, true)) mobStep(m, ['up', 'down', 'left', 'right'][(Math.random() * 4) | 0], 1); }
+    else if (Math.random() < 0.02) mobStep(m, ['up', 'down', 'left', 'right'][(Math.random() * 4) | 0], 0.8);
+  }
 
   function runMobAct(m, dt) {
     const a = m.act, p = G.player;
@@ -1409,6 +1437,25 @@
   };
 
   // ─── 처치 & 보상 ─────────────────────────────────────
+  // 연속 처치 (4초 안에 다음 처치) → 경험치 보너스, 25킬마다 피버 타임
+  function addStreak(p) {
+    const K = G.streak || (G.streak = { n: 0, t: 0, best: 0 }), S = R.STREAK;
+    K.n++; K.t = S.window; K.best = Math.max(K.best, K.n);
+    if (K.n % S.fever === 0) {
+      addBuff(p, '피버 타임', S.feverDur, S.feverMods, '#ffd35a');
+      K.fever = S.feverDur;
+      R.UI.banner(`🔥 FEVER TIME! ${K.n}연속 처치`, '#ffd35a', `${S.feverDur}초간 공격력 +30% · 이동 +20% · 스킬 MP 0`);
+      R.sfx('levelup'); G.shake = Math.max(G.shake, 5);
+    } else if (K.n === 10 || K.n === 50 || K.n % 100 === 0) R.addNum(p.x, p.y - 40, `${K.n} KILL!`, '#ffd35a', 1.6);
+    return Math.min(S.expMax, (K.n - 1) * S.expPer);
+  }
+  R.updateStreak = (dt) => {
+    const K = G.streak;
+    if (!K) return;
+    if (K.fever > 0) K.fever -= dt;
+    else if (K.n && (K.t -= dt) <= 0) K.n = 0;   // 피버 중에는 끊기지 않는다
+  };
+
   function killMob(m) {
     if (m.dead) return;
     m.dead = true; m.deathT = 0; m.act = null;
@@ -1423,12 +1470,13 @@
     // 경험치 (레벨 차이 보정)
     const D = (G.dungeon && G.dungeon.diff) || R.DIFFICULTY[0];
     const petM = R.Prog.petMod();
-    const exp = Math.round(m.exp * R.expMod(m.lv - s.level));
+    const streakBonus = addStreak(p);
+    const exp = Math.round(m.exp * R.expMod(m.lv - s.level) * (1 + streakBonus + R.pbuf(p, 'exp')));
     R.gainExp(exp);
     if (exp > 0) R.log('✦ 경험치 +{n}', '#9ad8ff', 'exp', exp);
     // 골드
     const coins = m.boss ? 8 : m.elite ? 4 : 1 + (Math.random() < 0.5 ? 1 : 0);
-    const gold = Math.round(m.gold * rand(0.8, 1.2) * (m.boss ? 6 : 1));
+    const gold = Math.round(m.gold * rand(0.8, 1.2) * (m.boss ? 6 : 1) * (1 + R.pbuf(p, 'gold')));
     for (let i = 0; i < coins; i++) dropAt(m.x, m.y, { kind: 'gold', v: Math.max(1, Math.round(gold / coins)) });
     // 장비
     const luck = p.st.luk * 0.004 + D.drop;
@@ -1439,7 +1487,7 @@
       dropAt(m.x, m.y, { kind: 'mat', id: 'stone', n: 2 + tier });
       if (m.lv >= 26) dropAt(m.x, m.y, { kind: 'mat', id: 'hstone', n: 1 });
     } else {
-      const chance = m.elite ? 1 : 0.16 * (1 + (petM.dropPct || 0)) * (1 + D.drop * 0.5);
+      const chance = m.elite ? 1 : 0.16 * (1 + (petM.dropPct || 0)) * (1 + D.drop * 0.5) * (1 + R.pbuf(p, 'drop'));
       if (Math.random() < chance) dropAt(m.x, m.y, { kind: 'item', item: randomDrop(m.lv, R.rollGrade(luck + (m.elite ? 0.5 : 0), m.elite ? 1 : 0), m.elite ? 0.25 : 0.03) });
       if (m.elite) R.Prog.addCoins(3);
       else if (Math.random() < 0.05) R.Prog.addCoins(1, true);
@@ -1447,6 +1495,16 @@
       if (m.lv >= 10 && Math.random() < 0.06) dropAt(m.x, m.y, { kind: 'mat', id: 'stone', n: 1 });
       if (m.lv >= 28 && Math.random() < 0.015) dropAt(m.x, m.y, { kind: 'mat', id: 'hstone', n: 1 });
       if (Math.random() < 0.08) dropAt(m.x, m.y, { kind: 'potion', id: Math.random() < 0.6 ? 'hpPotion' : 'mpPotion', n: 1 });
+    }
+    // 특별한 몬스터: 황금 고블린 · 미믹
+    if (m.def.treasure || m.def.mimic) {
+      const big = m.def.treasure;
+      for (let i = 0; i < 12; i++) dropAt(m.x, m.y, { kind: 'gold', v: Math.round(m.gold * (big ? 2.5 : 1.2)) });
+      for (let i = 0; i < 2; i++) dropAt(m.x, m.y, { kind: 'item', item: randomDrop(m.lv + 2, R.rollGrade(0.9 + luck, 2), 0.3) });
+      dropAt(m.x, m.y, { kind: 'mat', id: m.lv >= 26 ? 'hstone' : 'stone', n: big ? 2 : 1 });
+      R.Prog.addGems(big ? 15 : 8, big ? '황금 고블린 처치' : '미믹 처치');
+      R.UI.banner(big ? '💰 대박! 황금 고블린을 잡았다' : '📦 미믹이 삼킨 보물을 토해냈다', '#ffd35a');
+      G.shake = Math.max(G.shake, 4);
     }
     // 도감 & 퀘스트
     if (!s.codex[m.id]) R.Prog.addGems(m.boss ? 50 : 10, `도감 등록: ${m.def.name}`);

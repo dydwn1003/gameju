@@ -226,6 +226,8 @@
     if (p.status.stun > 0) st.push('<i style="--c:#ffe070">기절</i>');
     const sh = st.join('');
     if (hudCache.st !== sh) { hudCache.st = sh; $('hud-status').innerHTML = sh; }
+    const bf = (p.buffs || []).map((b) => `<i style="--c:${b.color || '#ffe070'}">${b.id} ${Math.ceil(b.t)}s</i>`).join('');
+    if (hudCache.bf !== bf) { hudCache.bf = bf; $('hud-buffs').innerHTML = bf; }
     // 메뉴 알림 점 (스탯/스킬 포인트)
     const dot = (s.points > 0 || (s.sp || 0) > 0);
     if (hudCache.dot !== dot) {
@@ -260,6 +262,21 @@
       }
       $('combo').style.setProperty('--t', Math.max(0, G.combo.t / R.COMBO_TIMEOUT));
     } else if (hudCache.combo) { hudCache.combo = ''; $('combo').classList.add('hidden'); }
+    // 연속 처치 · 피버
+    const K = G.streak, fever = !!(K && K.fever > 0);
+    const skey = K && K.n >= 3 ? `${K.n}:${fever}` : '';
+    if (hudCache.streak !== skey) {
+      hudCache.streak = skey;
+      const el = $('streak');
+      el.classList.toggle('hidden', !skey);
+      if (skey) {
+        el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+        $('st-n').innerHTML = fever ? `<small>FEVER TIME</small>${K.n} KILL` : `<small>연속 처치</small>${K.n} KILL`;
+        $('st-b').textContent = `경험치 +${Math.round(Math.min(R.STREAK.expMax, (K.n - 1) * R.STREAK.expPer) * 100)}%`;
+      }
+      el.classList.toggle('fever', fever); $('hud').classList.toggle('fever', fever);
+    }
+    if (skey) $('st-g').style.width = (fever ? (K.fever / R.STREAK.feverDur) * 100 : ((K.n % R.STREAK.fever) / R.STREAK.fever) * 100) + '%';
     // 상호작용 버튼
     const it = G.interact;
     const lbl = it ? it.label : '';
@@ -323,6 +340,7 @@
     const dot = (x, y, c, r = 1.5) => { mg.fillStyle = c; mg.fillRect(ox + (x / R.TILE) * sc - r, oy + (y / R.TILE) * sc - r, r * 2, r * 2); };
     for (const n of m.npcs) dot(n.x, n.y, '#7fffa0');
     for (const c of m.chests) if (!c.open && m.explored[Math.floor(c.y / 16) * m.w + Math.floor(c.x / 16)]) dot(c.x, c.y, '#ffd35a');
+    for (const sh of m.shrines || []) if (!sh.used && m.explored[sh.ty * m.w + sh.tx]) dot(sh.x, sh.y, sh.type.color);
     if (m.bossRoom) {
       const br = m.bossRoom;
       if (m.explored[(br.y + br.h - 1) * m.w + br.x + Math.floor(br.w / 2)] || (G.dungeon && G.save.cleared[G.dungeon.region.id])) {
@@ -721,14 +739,14 @@
     const total = Object.keys(R.MONSTERS).length + Object.keys(R.BOSSES).length - (s.flags.blackMine ? 0 : 1);
     const found = Object.keys(s.codex).filter((k) => s.codex[k] > 0).length;
     body.insertAdjacentHTML('beforeend', `<div class="dex-prog"><span>수집률</span><div class="pbar"><i style="width:${(found / total) * 100}%"></i></div><b>${found}/${total}</b></div>`);
-    const rgs = s.flags.blackMine ? [...R.REGIONS, R.HIDDEN_REGION] : R.REGIONS;
+    const rgs = [...R.REGIONS, ...(s.flags.blackMine ? [R.HIDDEN_REGION] : []), { special: true, hidden: true, name: '던전 이벤트', monsters: Object.keys(R.MONSTERS).filter((k) => R.MONSTERS[k].special) }];
     rgs.forEach((rg) => {
       const sec = document.createElement('section');
       sec.className = 'card';
-      sec.innerHTML = `<div class="card-h">${rg.hidden ? '숨겨진 던전' : rg.id + '지역'} · ${rg.name}</div>`;
+      sec.innerHTML = `<div class="card-h">${rg.special ? '특별한 몬스터' : rg.hidden ? '숨겨진 던전' : rg.id + '지역'} · ${rg.name}</div>`;
       const grid = document.createElement('div');
       grid.className = 'codex';
-      [...rg.monsters, ...(rg.hidden ? [] : R.dungeonsOf(rg.id).filter((d) => !d.final).map((d) => d.boss)), rg.boss].forEach((id) => {
+      [...rg.monsters, ...(rg.hidden ? [] : R.dungeonsOf(rg.id).filter((d) => !d.final).map((d) => d.boss)), rg.boss].filter(Boolean).forEach((id) => {
         const boss = !!R.BOSSES[id];
         const def = boss ? R.BOSSES[id] : R.MONSTERS[id];
         const sk = def.sprite || id;
@@ -739,8 +757,10 @@
         cv.width = 96; cv.height = 80;
         const g = cv.getContext('2d');
         if (!known) g.filter = 'brightness(0) invert(0.2)';
-        const fb = R.SPR.frame(sk) ? null : def.arch === 'human' ? R.SPR.human(id, def.look, 'down', 0, false) : R.SPR.monster(id, def, 0, false);
-        fitSprite(g, sk, fb, 96, 80, 3);
+        const tinted = def.tint && R.Anim.tintFrame(sk, def.tint);
+        const fb = tinted || (R.SPR.frame(sk) ? null : def.arch === 'human' ? R.SPR.human(id, def.look, 'down', 0, false) : R.SPR.monster(id, def, 0, false));
+        const fk = tinted ? null : sk;
+        fitSprite(g, fk, fb, 96, 80, 3);
         cellEl.appendChild(cv);
         cellEl.insertAdjacentHTML('beforeend', `<span>${known ? def.name : '???'}</span>${boss ? '<i>BOSS</i>' : ''}`);
         if (known) {
@@ -751,7 +771,7 @@
             <div class="kv"><span>위험도</span><b class="stars">${'★'.repeat(d)}${'☆'.repeat(5 - d)}</b></div>
             <div class="kv"><span>속성</span><b>${R.ELEM[def.elem].icon} ${R.ELEM[def.elem].name}</b></div>
             <div class="kv"><span>약점</span><b>${w ? R.ELEM[w].icon + ' ' + R.ELEM[w].name : '없음'}</b></div>
-            <p class="muted">${def.desc}</p></div><div class="row-btns"><button class="btn ghost" data-a="x">닫기</button></div>`, (r) => { $('dex-art').appendChild(spriteCanvas(sk, 200, 160, 'dex-cv', fb)); bindActs(r, { x: closePopup }); }, false, 'sheet-pop'); };
+            <p class="muted">${def.desc}</p></div><div class="row-btns"><button class="btn ghost" data-a="x">닫기</button></div>`, (r) => { $('dex-art').appendChild(spriteCanvas(fk, 200, 160, 'dex-cv', fb)); bindActs(r, { x: closePopup }); }, false, 'sheet-pop'); };
         }
         grid.appendChild(cellEl);
       });

@@ -28,6 +28,7 @@
     if (opt.noUnits) return false;
     for (const n of m.npcs) if (Gd.tx(n.x) === tx && Gd.ty(n.y) === ty) return true;
     for (const c of m.chests) if (!c.open && Gd.tx(c.x) === tx && Gd.ty(c.y) === ty) return true;
+    if (m.shrines) for (const o of m.shrines) if (o.tx === tx && o.ty === ty) return true;
     const p = G.player;
     if (p && p !== self && !p.dead && ((p.gx === tx && p.gy === ty) || (p.step && p.px === tx && p.py === ty))) return true;
     for (const o of G.mobs) {

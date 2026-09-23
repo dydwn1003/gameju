@@ -241,6 +241,20 @@
     }
   }
 
+  function drawShrine(g, sh, time) {
+    shadow(g, sh.x, sh.y, 7);
+    const img = SPR.shrine(sh.used);
+    g.drawImage(img, Math.round(sh.x - img.width / 2), Math.round(sh.y - img.height + 1));
+    if (sh.used) return;
+    const c = sh.type.color, by = sh.y - 20 + Math.sin(time * 3) * 1.5;
+    g.globalAlpha = 0.25 + Math.sin(time * 4) * 0.1; g.fillStyle = c;
+    g.beginPath(); g.arc(sh.x, by, 7, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 1; g.fillStyle = c;
+    g.beginPath(); g.arc(sh.x, by, 3, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#ffffff'; g.fillRect(Math.round(sh.x - 1), Math.round(by - 2), 1, 1);
+    if (Math.random() < 0.15) R.fx.push({ type: 'dust', x: sh.x + (Math.random() - 0.5) * 10, y: by, vx: 0, vy: -20, life: 0.6, max: 0.6, color: c, size: 1, nograv: true });
+  }
+
   function drawMob(g, m) {
     if (m.dead && m.deathT > 0.45) return;
     if (!m.dead && G.tap && G.tap.mob === m) {
@@ -580,6 +594,7 @@
     // 맵 가장자리 바깥 벽 (빈 공간 방지)
     for (const pr of m.props) list.push({ y: pr.bottom, prop: pr });
     for (const c of m.chests) list.push({ y: c.y, chest: c });
+    for (const sh of m.shrines || []) list.push({ y: sh.y, shrine: sh });
     for (const n of m.npcs) list.push({ y: n.y, npc: n });
     for (const d of G.drops) list.push({ y: d.y, drop: d });
     for (const mob of G.mobs) list.push({ y: mob.y, mob });
@@ -599,7 +614,14 @@
       else if (o.lever) drawLever(ctx, o.lever);
       else if (o.rubble) drawRubble(ctx, o.rubble);
       else if (o.pet) drawPet(ctx, o.pet);
-      else if (o.chest) { const c = o.chest; shadow(ctx, c.x, c.y, 7); const img = SPR.chest(c.open); ctx.drawImage(img, Math.round(c.x - img.width / 2), Math.round(c.y - img.height)); }
+      else if (o.chest) {
+        const c = o.chest; shadow(ctx, c.x, c.y, 7); const img = SPR.chest(c.open);
+        // 미믹은 가끔 들썩인다 (눈치챌 수 있는 단서)
+        const tw = c.mimic && (time + c.ph) % 4 < 0.25 ? Math.round(Math.sin(time * 60)) : 0;
+        ctx.drawImage(img, Math.round(c.x - img.width / 2) + tw, Math.round(c.y - img.height) - Math.abs(tw));
+        if (c.bonus && !c.open && Math.floor(time * 3 + c.ph) % 5 === 0) { ctx.fillStyle = '#fff6c0'; ctx.fillRect(Math.round(c.x + 4), Math.round(c.y - 10), 1, 1); }
+      }
+      else if (o.shrine) drawShrine(ctx, o.shrine, time);
       else if (o.npc) {
         const n = o.npc;
         shadow(ctx, n.x, n.y, 6);

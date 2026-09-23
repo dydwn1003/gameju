@@ -102,6 +102,7 @@
     GLADIATOR: (h, s, v) => s < 0.22 && v > 0.3 && v < 0.97,
     RANGER: (h, s, v) => h > 60 && h < 170 && s > 0.2 && v > 0.12,
     MAGE: (h, s, v) => h > 195 && h < 262 && s > 0.28 && v > 0.12,
+    ALL: (h, s, v) => v > 0.16,                  // 몬스터 색 변형: 윤곽선만 빼고 전부
     ASSASSIN: (h, s, v) => (s < 0.28 && v > 0.1 && v < 0.55) || (h > 255 && h < 315 && s > 0.2),
   };
   function rgb2hsv(r, g, b) {
@@ -117,10 +118,10 @@
     return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
   }
   const lookCache = new Map();
-  function recolor(img, sx, sy, sw, sh, fam, tier) {
+  function recolor(img, sx, sy, sw, sh, fam, tier, tint) {
     const c = document.createElement('canvas'); c.width = sw; c.height = sh;
     const g = c.getContext('2d'); g.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
-    const T = LOOK_TINT[tier], mask = LOOK_MASK[fam];
+    const T = tint || LOOK_TINT[tier], mask = LOOK_MASK[fam];
     if (!T || !mask) return c;
     const d = g.getImageData(0, 0, sw, sh), a = d.data;
     for (let i = 0; i < a.length; i += 4) {
@@ -140,6 +141,15 @@
     if (!f || !tier || !SPR.sheet.img) return null;
     const k = `f:${key}:${tier}`;
     if (!lookCache.has(k)) lookCache.set(k, recolor(SPR.sheet.img, f.x, f.y, f.w, f.h, G.save.cls, tier));
+    return lookCache.get(k);
+  };
+  // 몬스터 색 변형 (황금 고블린 등)
+  const MOB_TINT = { gold: { h: 46, s: 0.8, v: 1.2 } };
+  A.tintFrame = (key, name) => {
+    const f = SPR.frame(key);
+    if (!f || !MOB_TINT[name] || !SPR.sheet.img) return null;
+    const k = `t:${key}:${name}`;
+    if (!lookCache.has(k)) lookCache.set(k, recolor(SPR.sheet.img, f.x, f.y, f.w, f.h, 'ALL', 0, MOB_TINT[name]));
     return lookCache.get(k);
   };
   function lookSheet(key, d, tier) {
@@ -338,6 +348,7 @@
     if (!P.lying && !mob.dead && !mob.boss) faceVertical(P, mob.dir);
     const o = { face: mob.face || 1, flash: mob.flash > 0, alpha: extra.alpha, scale: (mob.elite ? 1.2 : 1) * (mob.ss || 1) };
     const key = mob.sk || mob.id;
+    if (mob.def.tint && !FS[key]) o.look = A.tintFrame(key, mob.def.tint);
     if (FS[key]) drawFrames(g, key, mob, st, P, o);
     else drawSheet(g, f, P, mob.x, mob.y + 1 - mob.z, o);
     return P;

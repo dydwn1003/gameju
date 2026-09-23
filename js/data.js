@@ -316,7 +316,7 @@ R.OPTIONS = {
 R.ENHANCE_RATE = [1, 1, 1, 0.85, 0.75, 0.65, 0.55, 0.45, 0.35, 0.25]; // index = 현재 강화 단계
 R.enhanceMat = (enh) => (enh < 3 ? 'iron' : enh < 7 ? 'stone' : 'hstone');
 R.enhanceMatCount = (enh) => (enh < 3 ? enh + 1 : enh < 7 ? enh - 2 : enh - 6);
-R.enhanceGold = (item) => Math.round(40 * (item.enh + 1) * (1 + item.ilvl * 0.15));
+R.enhanceGold = (item) => Math.round(30 * (item.enh + 1) * (1 + item.ilvl * 0.1));
 R.MATERIALS = {
   iron:   { name: '철 조각',     icon: '🔩', price: 30 },
   stone:  { name: '강화석',      icon: '💎', price: 180 },
@@ -334,8 +334,8 @@ R.monsterStats = (m, lv) => ({
   maxHp: Math.round((70 + lv * 32) * (1 + lv * 0.03) * (m.hp || 1)),
   atk: Math.round((18 + lv * 9) * (1 + lv * 0.05) * (m.atk || 1)),
   def: Math.round(lv * 2.5 * (m.def || 1)),
-  exp: Math.round((12 + lv * 6) * (1 + lv * 0.03) * (m.exp || 1)),
-  gold: Math.round((3 + lv * 2) * (m.gold || 1)),
+  exp: Math.round((12 + lv * 6) * (1 + lv * 0.03) * (1 + lv * 0.02) * (m.exp || 1)),   // 후반 지역은 레벨 폭이 넓어 경험치를 더 준다
+  gold: Math.round((4 + lv * 2.5) * (m.gold || 1)),
 });
 const H = (o) => Object.assign({ arch: 'human' }, o);
 R.MONSTERS = {
@@ -364,6 +364,9 @@ R.MONSTERS = {
   fallen_angel: H({ name: '타락천사', elem: 'DARK', look: { skin: '#f0d0c0', hair: '#f0d860', body: '#6a4a7a', bodyD: '#4a2e5a', legs: '#4a2e5a', boots: '#2a1a30', hat: 'halo', wings: '#3a2a4a', eye: '#b27bff' }, hp: 1.1, atk: 1.3, spd: 34, ai: 'ranged', shot: 'dark', r: 6, danger: 4, desc: '검게 물든 날개의 천사. 암흑 구체를 날린다.' }),
   hellhound:{ name: '지옥견', arch: 'quad', elem: 'FIRE', pal: ['#8a3a2a', '#4a1a12', '#ffb030'], hp: 1.25, atk: 1.3, spd: 50, ai: 'charger', burn: true, r: 7, danger: 4, desc: '불꽃을 뿜으며 돌진하는 마계의 사냥개.' },
   demon_knight: H({ name: '마족기사', elem: 'DARK', look: { skin: '#4a3a4a', hair: '#1a1a1a', body: '#3a2a3a', bodyD: '#1e141e', legs: '#1e141e', boots: '#0e0a0e', hat: 'helm', hatC: '#4a3a4a', shield: true, eye: '#ff3a3a' }, hp: 1.8, atk: 1.3, def: 2.2, spd: 30, ai: 'melee', r: 7, danger: 4, desc: '공허의 왕을 지키는 흑철의 기사.' }),
+  // 특별한 몬스터 (던전 이벤트로 등장)
+  gold_goblin: H({ name: '황금 고블린', elem: 'NATURE', sprite: 'goblin', tint: 'gold', special: true, treasure: true, look: { skin: '#e8c040', hair: '#8a6a10', body: '#c8a030', bodyD: '#8a6a10', legs: '#6a5010', boots: '#3a2a08', hat: 'none', ears: true, eye: '#ffffff' }, hp: 1.6, atk: 0.01, def: 1, spd: 44, ai: 'flee', r: 6, danger: 1, desc: '보물 자루를 짊어지고 도망치는 고블린. 때릴 때마다 금화를 흘리고, 잡으면 대박. 14초 안에 못 잡으면 사라진다!' }),
+  mimic:    { name: '미믹', arch: 'mimic', elem: 'DARK', special: true, pal: ['#a8642a', '#6a3a18', '#ffd35a'], hp: 2.2, atk: 1.25, def: 1.2, spd: 36, ai: 'charger', r: 7, danger: 3, desc: '보물 상자인 척하는 괴물. 가끔 몸을 들썩인다. 쓰러뜨리면 삼킨 보물을 토해낸다.' },
 };
 
 // 보스 — phases: 체력 비율에 따라 사용하는 패턴이 늘어난다
@@ -440,8 +443,24 @@ R.REGEN = {
 // 몬스터 레벨 색 (바람의나라:연처럼 나보다 약하면 회색, 강할수록 노랑·빨강)
 R.levelColor = (gap) => (gap <= -5 ? '#9a9aa4' : gap <= 2 ? '#ffffff' : gap <= 5 ? '#ffe070' : '#ff6a5a');
 R.BOSS_HP_MUL = 2.0;             // 보스전 30~90초 목표 (밸런스 시뮬레이션 기준)
+
+// ─── 던전 이벤트 ────────────────────────────────────────
+// 입장할 때마다 새로 굴린다: 보너스 상자(일부는 미믹), 축복의 제단, 황금 고블린
+R.DUNGEON_EVENTS = { bonusChests: [1, 2], mimicChance: 0.22, shrineChance: 0.55, goblinChance: 0.18, goblinEscape: 14 };
+// 축복의 제단: 만지면 60초 버프 (mods 는 스킬 버프와 같은 키 + exp/gold/drop/vamp)
+R.SHRINES = [
+  { id: 'fury',    name: '분노의 제단', icon: '🔥', color: '#ff6a4a', mods: { atk: 0.3 },               desc: '공격력 +30%' },
+  { id: 'guard',   name: '수호의 제단', icon: '🛡', color: '#7ac8ff', mods: { dmgTaken: -0.3 },         desc: '받는 피해 -30%' },
+  { id: 'gale',    name: '질풍의 제단', icon: '🌪', color: '#7affc8', mods: { move: 0.35, crit: 0.1 },  desc: '이동속도 +35%, 치명타 +10%' },
+  { id: 'fortune', name: '행운의 제단', icon: '🍀', color: '#ffd35a', mods: { gold: 1, drop: 1 },       desc: '골드·장비 드랍 2배' },
+  { id: 'wisdom',  name: '지혜의 제단', icon: '📘', color: '#b79bff', mods: { exp: 0.5 },               desc: '경험치 +50%' },
+  { id: 'blood',   name: '피의 제단',   icon: '🩸', color: '#ff4a6a', mods: { vamp: 0.05 },             desc: '준 피해의 5% 흡혈' },
+];
+R.SHRINE_DUR = 60;
+// 연속 처치: 4초 안에 다음 적을 쓰러뜨리면 이어진다. 1킬마다 경험치 +1% (최대 +30%), 25킬마다 피버 타임
+R.STREAK = { window: 4, expPer: 0.01, expMax: 0.3, fever: 25, feverDur: 10, feverMods: { atk: 0.3, move: 0.2, crit: 0.1, mpFree: 1 } };
 R.POTION = { hp: 0.3, hpFlat: 30, mp: 0.35, mpFlat: 15, cd: 2.5 };
-R.potionPrice = (k, lv) => Math.round(R.CONSUMABLES[k].price * (1 + (lv - 1) * 0.08));
+R.potionPrice = (k, lv) => Math.round(R.CONSUMABLES[k].price * (1 + (lv - 1) * 0.06));
 // 스킬 연계: 스킬이 끝난 뒤 1.6초 안에 "다른" 스킬을 쓰면 연계 단계 +1 (최대 3)
 //  단계마다 피해 +20%, MP -15%. 3타 콤보 마무리 직후 스킬은 "콤보 연계"로 1단계부터 시작
 R.LINK = { window: 1.6, max: 3, dmg: 0.2, finisher: 0.9, finisherBonus: 0.1, cancelAt: 0.55 };
