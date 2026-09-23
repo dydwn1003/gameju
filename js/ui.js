@@ -282,7 +282,7 @@
     const lbl = it ? it.label : '';
     if (hudCache.act !== lbl) { hudCache.act = lbl; $('btn-act').textContent = lbl; $('btn-act').classList.toggle('show', !!it); }
     // 퀘스트 추적
-    const qs = s.quests.slice(0, 3).map((q) => `<div class="qt ${q.ready ? 'ready' : ''}"><b>${q.ready ? '✔' : q.id[0] === 'm' ? '★' : '◆'}</b><span>${esc(q.title)}</span><em>${q.ready ? '보고' : `${q.p}/${q.count}`}</em><i style="width:${Math.round((q.p / q.count) * 100)}%"></i></div>`).join('');
+    const qs = s.quests.slice(0, 3).map((q) => { const talk = q.type === 'talk' && !q.ready; return `<div class="qt ${q.ready || talk ? 'ready' : ''}"><b>${q.ready ? '✔' : q.id[0] === 'm' ? '★' : '◆'}</b><span>${esc(q.title)}</span><em>${q.ready ? '보고' : talk ? '대화' : `${q.p}/${q.count}`}</em><i style="width:${talk ? 100 : Math.round((q.p / q.count) * 100)}%"></i></div>`; }).join('');
     if (hudCache.q !== qs) { hudCache.q = qs; $('btn-quest').innerHTML = qs; }
     if (UI.boss) {
       if (UI.boss.dead) UI.bossBar(null);
@@ -303,7 +303,16 @@
     UI.drawFace();
   };
   UI.setArea = (t) => { $('hud-area').textContent = t; };
-  UI.bossIntro = function (b) { UI.banner(b.def.name, '#ff6a5a', b.def.desc); UI.bossBar(b); R.Audio.playBgm(6); };
+  UI.bossIntro = function (b) {
+    // 영화처럼 위아래 검은 띠 + 이름 카드
+    const c = $('cine');
+    c.querySelector('b').textContent = b.def.name;
+    c.querySelector('small').textContent = b.def.title || (b.def.desc || '').split(/[.。]/)[0];
+    c.classList.remove('hidden', 'out'); void c.offsetWidth; c.classList.add('on');
+    clearTimeout(UI._cineT);
+    UI._cineT = setTimeout(() => { c.classList.add('out'); setTimeout(() => c.classList.add('hidden'), 500); }, 2400);
+    UI.bossBar(b); R.Audio.playBgm(6);
+  };
   UI.bossBar = function (b) {
     UI.boss = b;
     $('boss-bar').classList.toggle('hidden', !b);
@@ -691,9 +700,13 @@
       bindActs(body, { pull: (n) => doSummon(+n) });
     } else if (tab === '퀘스트') {
       body.innerHTML = seasonCard(false) + `<section class="card"><div class="card-h">진행 중</div>
-        ${s.quests.length ? s.quests.map((q) => `<div class="quest ${q.ready ? 'ready' : ''}"><div class="q-ico">${q.ready ? '✔' : q.id[0] === 'm' ? '★' : q.id === 'guild' ? '⚔' : '🎵'}</div>
-          <div class="q-body"><div class="q-title">${esc(q.title)}</div><div class="muted">${esc(q.desc)}</div>
-          <div class="qbar"><i style="width:${(q.p / q.count) * 100}%"></i><span>${q.ready ? `완료 · ${esc(q.giverName || '')}에게 보고` : `${q.p} / ${q.count}`}</span></div></div></div>`).join('') : '<div class="muted">진행 중인 퀘스트가 없습니다. 촌장 엘든이나 길드장 레오를 찾아가 보세요.</div>'}</section>
+        ${s.quests.length ? s.quests.map((q) => { const talk = q.type === 'talk' && !q.ready; return `<div class="quest ${q.ready ? 'ready' : ''} ${q.id[0] === 'm' ? 'main' : ''}"><div class="q-ico">${q.ready ? '✔' : q.id[0] === 'm' ? '★' : q.id === 'guild' ? '⚔' : q.id.startsWith('s_') ? '📜' : '🎵'}</div>
+          <div class="q-body"><div class="q-title">${q.id[0] === 'm' ? `<small>메인 ${q.id.slice(1)}/${R.MAIN_QUESTS.length}</small> ` : q.id.startsWith('s_') ? '<small>서브</small> ' : ''}${esc(q.title)}</div><div class="muted">${esc(q.desc)}</div>
+          <div class="qbar"><i style="width:${talk ? 100 : (q.p / q.count) * 100}%"></i><span>${q.ready ? `완료 · ${esc(q.giverName || '')}에게 보고` : talk ? `${esc(q.giverName || '')}와(과) 대화하기` : `${q.p} / ${q.count}`}</span></div></div></div>`; }).join('') : '<div class="muted">진행 중인 퀘스트가 없습니다. 촌장 엘든이나 길드장 레오를 찾아가 보세요.</div>'}</section>
+        ${(() => { const av = Object.keys(R.NPC_NAMES).map((id) => [id, R.Quest.availableSubs(id)]).filter(([, l]) => l.length); return av.length ? `<section class="card"><div class="card-h">부탁을 기다리는 사람들 <small class="muted">(머리 위 ❗)</small></div>${av.map(([id, l]) => `<div class="kv"><span>${R.NPC_NAMES[id]}</span><b>${l.map((d) => esc(d.title)).join(' · ')}</b></div>`).join('')}<div class="muted">서브 퀘스트 완료 ${Object.keys(s.subDone || {}).length} / ${R.SUB_QUESTS.length}</div></section>` : ''; })()}
+        <section class="card"><div class="card-h">🏆 업적 <small class="muted">${R.ACHIEVEMENTS.filter((x) => (s.ach || {})[x.id]).length} / ${R.ACHIEVEMENTS.length}</small></div><div class="achs">
+        ${R.ACHIEVEMENTS.map((x) => { const d = (s.ach || {})[x.id], v = Math.min(x.n, x.v(s)); return `<div class="ach ${d ? 'on' : ''}"><b>${d ? '🏆' : '🔒'} ${x.name}</b><small>${x.desc}${x.title ? ` · 칭호 「${x.title.name}」` : ''}</small><div class="ach-bar"><i style="width:${(v / x.n) * 100}%"></i><span>${d ? '달성' : `${v.toLocaleString()} / ${x.n.toLocaleString()}`} · 💎${x.gems}</span></div></div>`; }).join('')}
+        </div><div class="muted">업적 칭호는 캐릭터 창의 칭호 칸에서 장착할 수 있어요.</div></section>
         <section class="card"><div class="card-h">세계 지도</div>
         ${R.REGIONS.map((rg) => { const open = rg.id <= s.unlocked; return `<div class="region ${s.cleared[rg.id] ? 'clear' : open ? '' : 'locked'} t-${rg.theme}"><div class="rg-no">${rg.id}</div><div class="rg-body"><b>${rg.name}</b><small>Lv.${rg.lv[0]}~${rg.lv[1]} · ${open ? R.BOSSES[rg.boss].name : '???'}</small><div class="muted">${open ? rg.gimmickText : '이전 지역의 보스를 쓰러뜨리면 해금'}</div></div><div class="rg-st">${s.cleared[rg.id] ? '🏆' : open ? '▶' : '🔒'}</div></div>`; }).join('')}
         ${s.flags.blackMine ? `<div class="region t-mine hidden-rg ${s.cleared[6] ? 'clear' : ''}"><div class="rg-no">?</div><div class="rg-body"><b>${R.HIDDEN_REGION.name}</b><small>Lv.${R.HIDDEN_REGION.lv[0]}~${R.HIDDEN_REGION.lv[1]} · ${R.BOSSES.obsidian_golem.name}</small><div class="muted">숨겨진 던전</div></div><div class="rg-st">${s.cleared[6] ? '🏆' : '▶'}</div></div>` : ''}

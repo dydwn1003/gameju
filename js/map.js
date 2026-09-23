@@ -115,6 +115,8 @@
     NPC('event', '축제 안내원 루루', 10, 14.6, { skin: '#f1c29a', hair: '#ff8a4a', body: '#ffd35a', bodyD: '#d0a030', legs: '#c84a6a', boots: '#6a2a3a', hat: 'wizard', hatC: '#ff6a9a' }, 'event');
     NPC('bard', '음유시인 노아', 16.5, 14.6, { skin: '#f1c29a', hair: '#e0b040', body: '#3a8a3a', bodyD: '#2a5e28', legs: '#5a4630', boots: '#3a2a20', hat: 'hood', hatC: '#c83a3a' }, 'bard');
     m.start = { x: 13 * TS, y: 23 * TS };
+    // 마을을 돌아다니는 동물 (닭·고양이) — 막지 않는 장식
+    m.critters = [[7, 21, 'chicken'], [9, 22, 'chicken'], [18, 9, 'chicken'], [15, 25, 'cat'], [11, 9, 'cat']].map(([tx, ty, kind]) => ({ kind, x: tx * TS + 8, y: ty * TS + 10, tx: tx * TS + 8, ty: ty * TS + 10, t: rnd() * 3, face: 1, peck: 0 }));
     m.exploreAll = true;
     return m;
   };

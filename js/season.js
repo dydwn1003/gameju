@@ -33,7 +33,7 @@
 
   const Se = (R.Season = {});
   const S = () => G.save;
-  Se.byId = (id) => R.SEASONS.find((x) => x.id === id);
+  Se.byId = (id) => (R.titleInfo ? R.titleInfo(id) : R.SEASONS.find((x) => x.id === id));
   // 현재 시즌 (실제 날짜 기준; 저장 데이터의 seasonOverride로 테스트 가능)
   Se.current = (date = new Date()) => {
     const s = G.save;

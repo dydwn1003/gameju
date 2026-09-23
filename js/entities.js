@@ -1049,7 +1049,7 @@
   function killPlayer() {
     const p = G.player;
     if (p.dead) return;
-    p.hp = 0; p.dead = true; p.deadT = 0; p.state = 'dead';
+    p.hp = 0; p.dead = true; p.deadT = 0; p.state = 'dead'; R.Ach.add('deaths');
     G.combo.count = 0;
     R.sfx('die');
     setTimeout(() => R.UI.death(), 1100);
@@ -1441,8 +1441,11 @@
   function addStreak(p) {
     const K = G.streak || (G.streak = { n: 0, t: 0, best: 0 }), S = R.STREAK;
     K.n++; K.t = S.window; K.best = Math.max(K.best, K.n);
+    R.Quest.onEvent('streak', K.n);
+    R.Ach.max('maxStreak', K.n);
     if (K.n % S.fever === 0) {
       addBuff(p, '피버 타임', S.feverDur, S.feverMods, '#ffd35a');
+      R.Ach.add('fevers');
       K.fever = S.feverDur;
       R.UI.banner(`🔥 FEVER TIME! ${K.n}연속 처치`, '#ffd35a', `${S.feverDur}초간 공격력 +30% · 이동 +20% · 스킬 MP 0`);
       R.sfx('levelup'); G.shake = Math.max(G.shake, 5);
@@ -1471,6 +1474,10 @@
     const D = (G.dungeon && G.dungeon.diff) || R.DIFFICULTY[0];
     const petM = R.Prog.petMod();
     const streakBonus = addStreak(p);
+    R.Ach.add('kills');
+    if (m.boss) R.Ach.add('bosses');
+    if (m.def.treasure) R.Ach.add('goblins');
+    if (m.def.mimic) R.Ach.add('mimics');
     const exp = Math.round(m.exp * R.expMod(m.lv - s.level) * (1 + streakBonus + R.pbuf(p, 'exp')));
     R.gainExp(exp);
     if (exp > 0) R.log('✦ 경험치 +{n}', '#9ad8ff', 'exp', exp);
@@ -1592,6 +1599,8 @@
       p.hp = p.st.maxHp; p.mp = p.st.maxMp;
       R.UI.banner(`LEVEL UP!  Lv.${s.level}`, '#ffe070');
       R.fx.push({ type: 'ring', x: p.x, y: p.y - 8, r0: 4, r1: 40, life: 0.6, max: 0.6, color: '#ffe070', w: 3 });
+      R.fx.push({ type: 'pillar', x: p.x, y: p.y + 2, w: 22, life: 1.1, max: 1.1, color: 'rgba(255,224,112,0.9)' });
+      R.fx.push({ type: 'ring', x: p.x, y: p.y, r0: 30, r1: 6, life: 0.5, max: 0.5, color: '#ffffff', w: 2, flat: true });
       for (let i = 0; i < 20; i++) R.fx.push({ type: 'dust', x: p.x + rand(-8, 8), y: p.y, vx: rand(-10, 10), vy: rand(-80, -30), life: 0.9, max: 0.9, color: i % 2 ? '#ffe070' : '#ffffff', size: 2, nograv: true });
       R.sfx('levelup');
       if (s.level === 30 && !s.adv) R.toast('Lv.30 달성! 촌장에게 2차 전직을 문의하세요', '#ffb0ff');

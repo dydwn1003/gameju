@@ -9,6 +9,9 @@
     const s = G.save;
     const q = Object.assign({ p: 0, ready: false }, JSON.parse(JSON.stringify(def)));
     if (q.type === 'boss' && s.cleared[q.region]) { q.p = q.count; q.ready = true; }
+    if (q.type === 'dclear' && (s.dclear || {})[q.did]) { q.p = q.count; q.ready = true; }
+    if (q.type === 'tower' && (s.tower.best || 0) >= q.count) { q.p = q.count; q.ready = true; }
+    delete q.intro; delete q.done;   // 대사는 데이터에서 다시 찾는다 (저장 용량 절약)
     s.quests.push(q);
     R.toast(`퀘스트 수락: ${q.title}`, '#9ad8ff');
     R.sfx('ui');
@@ -27,13 +30,27 @@
       if (q.type === 'kill' && q.region === rid && !m.boss) hit = true;
       if (q.type === 'killType' && q.target === m.id) hit = true;
       if (q.type === 'boss' && m.boss && regionOf(q.region).boss === m.id && rid === q.region && !G.dungeon.diffIdx) hit = true;
-      if (!hit) continue;
-      q.p = Math.min(q.count, q.p + 1);
-      if (q.p >= q.count) {
-        q.ready = true;
-        R.toast(`✔ ${q.title} 완료! ${q.giverName || '의뢰인'}에게 보고하세요`, '#7fffa0');
-        R.sfx('rare');
-      }
+      if (q.type === 'elite' && m.elite && !m.boss) hit = true;
+      if (hit) progressQ(q, 1);
+    }
+  };
+  function progressQ(q, n, setMax) {
+    if (q.ready) return;
+    q.p = Math.min(q.count, setMax ? Math.max(q.p, n) : q.p + n);
+    if (q.p >= q.count) {
+      q.ready = true;
+      R.toast(`✔ ${q.title} 완료! ${q.giverName || '의뢰인'}에게 보고하세요`, '#7fffa0');
+      R.sfx('rare');
+    }
+  }
+  // 처치 외 진행: gather(종류, 개수) · dclear(던전) · streak(연속 수) · shrine · tower(층)
+  Q.onEvent = function (kind, v, n = 1) {
+    for (const q of G.save.quests) {
+      if (q.ready || q.type !== kind) continue;
+      if (kind === 'gather' && q.item === v) progressQ(q, n);
+      else if (kind === 'dclear' && q.did === v) progressQ(q, 1);
+      else if (kind === 'shrine') progressQ(q, 1);
+      else if (kind === 'streak' || kind === 'tower') progressQ(q, v, true);
     }
   };
 
@@ -43,15 +60,19 @@
     if (rw.gold) { s.gold += rw.gold; parts.push(`${rw.gold} 골드`); }
     if (rw.mats) for (const k in rw.mats) if (rw.mats[k]) { s.bag[k] = (s.bag[k] || 0) + rw.mats[k]; parts.push(`${R.MATERIALS[k].name} x${rw.mats[k]}`); }
     if (rw.potions) { s.bag.hpPotion = (s.bag.hpPotion || 0) + rw.potions; parts.push(`빨간 물약 x${rw.potions}`); }
+    if (rw.mpPotions) { s.bag.mpPotion = (s.bag.mpPotion || 0) + rw.mpPotions; parts.push(`파란 물약 x${rw.mpPotions}`); }
+    if (rw.revive) { s.bag.reviveStone = (s.bag.reviveStone || 0) + rw.revive; parts.push(`부활석 x${rw.revive}`); }
+    if (rw.food) { s.bag[rw.food] = (s.bag[rw.food] || 0) + 1; parts.push(R.FOODS[rw.food].name); }
     if (q.id[0] === 'm' && !rw.gems) { s.gems = (s.gems || 0) + 50; parts.push('보석 50'); }
     if (rw.item) {
-      const it = R.makeItem(rw.item.slot, Math.max(rw.item.ilvl, s.level), rw.item.grade, s.cls);
+      const it = R.makeItem(rw.item.slot, Math.max(rw.item.ilvl || 1, s.level), rw.item.grade, s.cls);
       s.inv.push(it); parts.push(it.name);
     }
     if (rw.gems) { s.gems = (s.gems || 0) + rw.gems; parts.push(`보석 ${rw.gems}`); }
     if (rw.coins) { s.coins = (s.coins || 0) + rw.coins; parts.push(`던전 코인 ${rw.coins}`); }
     if (rw.exp) { parts.push(`경험치 ${rw.exp}`); R.gainExp(rw.exp); }
     Q.remove(q.id);
+    if (q.id.startsWith('s_')) { s.subDone = s.subDone || {}; s.subDone[q.id] = true; }
     s.questsDone = (s.questsDone || 0) + 1;
     R.toast(`보상: ${parts.join(', ')}`, '#ffe070');
     R.sfx('levelup');
@@ -63,10 +84,83 @@
   function giveMain() {
     const s = G.save;
     if (s.mainIdx >= R.MAIN_QUESTS.length) return;
-    const def = Object.assign({ giverName: '촌장 엘든' }, R.MAIN_QUESTS[s.mainIdx]);
+    const def = R.MAIN_QUESTS[s.mainIdx];
     s.mainIdx++;
     Q.give(def);
   }
+  const mainDef = (id) => R.MAIN_QUESTS.find((d) => d.id === id);
+  const subDef = (id) => R.SUB_QUESTS.find((d) => d.id === id);
+  const subOk = (d) => {
+    const s = G.save, n = d.need || {};
+    if ((s.subDone || {})[d.id] || Q.find(d.id)) return false;
+    return (!n.lv || s.level >= n.lv) && (!n.region || s.unlocked >= n.region) && (!n.flag || s.flags[n.flag]);
+  };
+  Q.availableSubs = (npc) => R.SUB_QUESTS.filter((d) => d.from === npc && subOk(d));
+  // 메인 퀘스트 보고 → 같은 NPC가 다음 이야기를 이어서 맡긴다
+  function completeMain(q, npc) {
+    const d = mainDef(q.id) || {};
+    const rw = Q.reward(q);
+    const name = R.NPC_NAMES[npc];
+    if (d.final) { finale(); return; }
+    const next = R.MAIN_QUESTS[G.save.mainIdx];
+    const lines = [...(d.done || []), `(보상: ${rw})`];
+    if (next) say(name, lines, null, () => say(name, next.intro || ['부탁할 일이 있네.'], [{ label: `📜 「${next.title}」 수락`, fn: giveMain }]));
+    else say(name, lines);
+  }
+  function completeSub(q, npc) {
+    const d = subDef(q.id) || {};
+    const rw = Q.reward(q);
+    say(R.NPC_NAMES[npc], [...(d.done || []), `(보상: ${rw})`]);
+  }
+  function offerSub(d, npc, then) {
+    say(R.NPC_NAMES[npc], d.intro, [
+      { label: `📜 「${d.title}」 수락`, fn: () => Q.give(d) },
+      { label: '다음에요', fn: () => { (G.declined || (G.declined = new Set())).add(d.id); then(); } },
+    ]);
+  }
+  // NPC 말 걸기 전에: 보고할 퀘스트 → 새 부탁 순서로 처리. 처리했으면 true
+  function npcHook(npc, orig) {
+    const s = G.save;
+    if (npc === 'elder' && !s.flags.metElder) return false;
+    const mq = mainActive();
+    if (mq && mq.to === npc && (mq.ready || mq.type === 'talk')) { completeMain(mq, npc); return true; }
+    if (npc === 'elder' && !mq && s.mainIdx < R.MAIN_QUESTS.length) return false;   // 다음 메인 퀘스트가 먼저
+    const sq = s.quests.find((q) => q.id.startsWith('s_') && q.to === npc && q.ready);
+    if (sq) { completeSub(sq, npc); return true; }
+    const offer = Q.availableSubs(npc).find((d) => !(G.declined && G.declined.has(d.id)));
+    if (offer) { offerSub(offer, npc, orig); return true; }
+    return false;
+  }
+  // NPC 머리 위 표시: '?' 보고 가능 · '!' 새 퀘스트
+  Q.marker = function (npc) {
+    const s = G.save;
+    if (!s) return null;
+    const mq = mainActive();
+    if (mq && mq.to === npc && (mq.ready || mq.type === 'talk')) return '?';
+    if (s.quests.some((q) => q.id.startsWith('s_') && q.to === npc && q.ready)) return '?';
+    if (npc === 'elder' && (!s.flags.metElder || (!mq && s.mainIdx < R.MAIN_QUESTS.length))) return '!';
+    if (Q.availableSubs(npc).length) return '!';
+    return null;
+  };
+  // 이전 버전 저장 데이터: 메인 퀘스트 10개 → 25개 체인으로 옮긴다
+  Q.migrate = function (s) {
+    if (s.mqv === 2) return;
+    s.mqv = 2;
+    const M = s.mainIdx || 0;
+    if (!M) return;
+    const old = (s.quests || []).find((q) => q.id[0] === 'm');
+    s.quests = (s.quests || []).filter((q) => q.id[0] !== 'm');
+    if (!old) { s.mainIdx = M >= 10 ? R.MAIN_QUESTS.length : 5 * Math.ceil(M / 2); return; }
+    const r = Math.floor((M - 1) / 2) + 1;
+    const ni = M % 2 ? 5 * (r - 1) : 5 * r - 1;
+    const def = R.MAIN_QUESTS[ni];
+    const q = Object.assign({ p: 0, ready: false }, JSON.parse(JSON.stringify(def)));
+    delete q.intro; delete q.done;
+    if (old.type === def.type) { q.p = Math.min(q.count, old.p); q.ready = old.ready; }
+    if (q.type === 'boss' && s.cleared[q.region]) { q.p = 1; q.ready = true; }
+    s.quests.unshift(q);
+    s.mainIdx = ni + 1;
+  };
 
   // ─── NPC 스크립트 ────────────────────────────────────
   const N = (R.NPC_TALK = {});
@@ -117,21 +211,13 @@
       return;
     }
     const q = mainActive();
-    if (q && q.ready) {
-      const isFinal = q.id === 'm10';
-      const rw = Q.reward(q);
-      if (isFinal) { finale(); return; }
-      const lines = [`수고했네! 약속한 보상일세.\n(${rw})`];
-      if (q.type === 'boss') lines.push(`${R.BOSSES[regionOf(q.region).boss].name}을(를) 쓰러뜨리다니… 자네는 대체 누구인가.`, '새로운 길이 열렸네. 다음 지역으로 가 보게.');
-      say(name, lines, null, giveMain);
-      return;
-    }
     if (q) {
       if (elderGift()) return;
-      say(name, [`「${q.title}」\n${q.desc}\n(진행: ${q.p}/${q.count})`, '서두르지 말게. 물약은 연금술사 미라에게 살 수 있다네.'], withGift('elder', [{ label: '알겠습니다' }]));
+      const where = q.to !== 'elder' ? `\n→ ${R.NPC_NAMES[q.to]}에게 가 보게.` : '';
+      say(name, [`「${q.title}」\n${q.desc}${q.type === 'talk' ? '' : `\n(진행: ${q.p}/${q.count})`}${where}`, '서두르지 말게. 물약은 연금술사 미라에게 살 수 있다네.'], withGift('elder', [{ label: '알겠습니다' }]));
       return;
     }
-    if (s.mainIdx < R.MAIN_QUESTS.length) { say(name, ['마침 잘 왔네. 부탁할 일이 있어.'], null, giveMain); return; }
+    if (s.mainIdx < R.MAIN_QUESTS.length) { const nx = R.MAIN_QUESTS[s.mainIdx]; say(name, s.mainIdx ? nx.intro : ['마침 잘 왔네. 부탁할 일이 있어.'], [{ label: `📜 「${nx.title}」 수락`, fn: giveMain }]); return; }
     if (elderGift()) return;
     say(name, s.ending ? ['자네 덕분에 루멘은 오늘도 평화롭다네.', '…고맙네, 이름 없는 영웅이여.'] : ['공허의 왕을 쓰러뜨린 자네에게 더 부탁할 것은 없네.'], withGift('elder', [{ label: '그만두기' }]));
   };
@@ -271,6 +357,38 @@
     say(name, [BARD_LORE[(s.flags.bardTalks - 1) % BARD_LORE.length]], withGift('bard', [{ label: '♪ 계속 듣기' }]));
   };
 
+  // 모든 NPC: 퀘스트 보고·부탁을 먼저 처리
+  for (const id of Object.keys(N)) {
+    const orig = N[id];
+    N[id] = function (npc) { if (!npcHook(id, () => orig(npc))) orig(npc); };
+  }
+
+  // ─── 업적 ───────────────────────────────────────────
+  const Ach = (R.Ach = {});
+  Ach.add = (k, n = 1) => { const s = G.save; if (!s) return; s.rec = s.rec || {}; s.rec[k] = (s.rec[k] || 0) + n; };
+  Ach.max = (k, v) => { const s = G.save; if (!s) return; s.rec = s.rec || {}; s.rec[k] = Math.max(s.rec[k] || 0, v); };
+  Ach.done = (id) => !!(G.save.ach || {})[id];
+  Ach.check = function () {
+    const s = G.save;
+    if (!s || G.state !== 'play') return;
+    s.ach = s.ach || {};
+    for (const a of R.ACHIEVEMENTS) {
+      if (s.ach[a.id] || a.v(s) < a.n) continue;
+      s.ach[a.id] = true;
+      R.Prog.addGems(a.gems, `업적: ${a.name}`);
+      if (a.title) { s.titles = s.titles || []; if (!s.titles.includes('ach_' + a.id)) s.titles.push('ach_' + a.id); }
+      R.UI.banner(`🏆 업적 달성: ${a.name}`, '#ffd35a', a.title ? `칭호 「${a.title.name}」 획득 — ${a.title.desc}` : a.desc);
+      R.sfx('rare');
+      R.saveGame();
+      break;   // 한 번에 하나씩 알린다
+    }
+  };
+  // 칭호 정보: 시즌 칭호 + 업적 칭호
+  R.titleInfo = (id) => {
+    if (id && id.startsWith('ach_')) { const a = R.ACHIEVEMENTS.find((x) => 'ach_' + x.id === id); return a && { id, icon: a.title.icon, color: a.title.color, title: a.title }; }
+    return R.SEASONS.find((x) => x.id === id);
+  };
+
   // ─── 보스 처치 ───────────────────────────────────────
   R.onBossKilled = function (m) {
     const s = G.save, d = G.dungeon, rg = d.region;
@@ -280,6 +398,7 @@
       s.dclear = s.dclear || {};
       const firstD = !s.dclear[rg.did];
       s.dclear[rg.did] = true;
+      if (!d.diffIdx) Q.onEvent('dclear', rg.did);
       R.UI.bossBar(null);
       R.UI.banner(`${m.def.name} 토벌!`, '#ffb070', firstD ? '다음 던전이 열렸다' : '');
       if (firstD && !d.diffIdx) R.Prog.addGems(100, `${rg.name} 첫 클리어`);

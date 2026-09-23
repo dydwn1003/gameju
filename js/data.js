@@ -399,19 +399,7 @@ R.REGIONS = [
 
 // ─── 퀘스트 ─────────────────────────────────────────────
 // type: kill (지역 내 몬스터 처치), boss (보스 처치), killType (특정 몬스터)
-R.MAIN_QUESTS = [];
-R.REGIONS.forEach((rg, i) => {
-  R.MAIN_QUESTS.push({
-    id: 'm' + (i * 2 + 1), title: `${rg.name}의 이변`, type: 'kill', region: rg.id, count: 8 + i * 2,
-    desc: `${rg.name}에서 몬스터 ${8 + i * 2}마리를 처치하라.`,
-    reward: { exp: 120 * (i + 1) * (i + 1), gold: 150 * (i + 1), mats: { iron: 3 + i, stone: i } },
-  });
-  R.MAIN_QUESTS.push({
-    id: 'm' + (i * 2 + 2), title: `${R.BOSSES[rg.boss].name} 토벌`, type: 'boss', region: rg.id, count: 1,
-    desc: `${rg.name} 깊은 곳의 ${R.BOSSES[rg.boss].name}을(를) 쓰러뜨려라.`,
-    reward: { exp: 400 * (i + 1) * (i + 1), gold: 500 * (i + 1), mats: { stone: 2 + i, hstone: i >= 2 ? i - 1 : 0 } },
-  });
-});
+// 메인 퀘스트·서브 퀘스트는 js/story.js
 
 // ─── 스토리 ─────────────────────────────────────────────
 R.PROLOGUE = [

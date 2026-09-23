@@ -16,7 +16,7 @@
     const s = {
       v: 1, cls, adv: null, level: 1, exp: 0, stats: Object.assign({}, c.base), points: 0, gold: 100,
       equip: {}, inv: [], bag: { hpPotion: 5, mpPotion: 3, reviveStone: 1, iron: 2 },
-      quests: [], mainIdx: 0, unlocked: 1, cleared: {}, codex: {}, flags: {}, favor: {}, honor: 0,
+      quests: [], mainIdx: 0, mqv: 2, subDone: {}, unlocked: 1, cleared: {}, codex: {}, flags: {}, favor: {}, honor: 0,
       hp: null, mp: null, playTime: 0,
       gems: 300, coins: 0, sp: 0, skillLv: {}, runes: {}, pity: 0, itemDex: {}, summons: 0,
       pets: [], pet: null, buffs: {}, titles: [], title: null, tower: { best: 0 }, diff: 0, dclear: {}, clearedD: { 1: {}, 2: {} },
@@ -39,6 +39,7 @@
     try {
       const s = JSON.parse(localStorage.getItem(SAVE_KEY));
       if (!s || !R.CLASSES[s.cls]) return null;
+      if (!s.mqv) { s.cleared = s.cleared || {}; s.quests = s.quests || []; R.Quest.migrate(s); }   // 옛 저장 데이터 → 새 메인 퀘스트
       const d = newSave(s.cls);
       for (const k in d) if (s[k] === undefined) s[k] = d[k];
       if (!s.spInit) { s.sp = (s.sp || 0) + (s.level - 1); s.spInit = true; } // 이전 버전 저장 데이터: 레벨만큼 SP 지급
@@ -186,6 +187,7 @@
     G.pet = null; G.jobs = []; G.tap = null; G.lastHit = null; G.tapInteract = false;
     G.mobs = []; G.shots = []; G.drops = []; G.nums = []; G.teles = [];
     G.fx.length = 0;
+    if (R.clearAmbient) R.clearAmbient();
     G.combo.count = 0; G.combo.t = 0;
     if (G.streak) { G.streak.n = 0; G.streak.fever = 0; }
     R.UI.bossBar(null);
@@ -203,6 +205,7 @@
     clearWorld();
     G.map = R.buildTown();
     G.dungeon = null;
+    G.declined = null;
     const m = G.map;
     if (fromGate && G.player) placePlayer(13 * TS, (m.h - 4) * TS);
     else placePlayer(m.start.x, m.start.y);
@@ -294,6 +297,7 @@
     const s = G.save, f = d.floor;
     const first = f > (s.tower.best || 0);
     if (first) s.tower.best = f;
+    R.Quest.onEvent('tower', f);
     const gems = first ? 10 + f + (f % 10 === 0 ? 100 : 0) : 0;
     const coins = 2 + Math.floor(f / 5);
     if (gems) R.Prog.addGems(gems);
@@ -505,6 +509,8 @@
     n.done = true;
     const k = 1 + ((Math.random() * 3) | 0), s = G.save, g = R.GATHER[n.type];
     s.bag[n.type] = (s.bag[n.type] || 0) + k;
+    R.Quest.onEvent('gather', n.type, k);
+    R.Ach.add('gathers');
     R.sfx('pickup');
     R.addNum(n.x, n.y - 14, `${g.name} +${k}`, '#b8f0a0', 0.9);
     for (let i = 0; i < 8; i++) R.fx.push({ type: 'dust', x: n.x, y: n.y - 4, vx: (Math.random() - 0.5) * 50, vy: -30 - Math.random() * 40, life: 0.5, max: 0.5, color: n.type === 'ore' ? '#c8c0b0' : n.type === 'herb' ? '#7ad86a' : '#e89a7a', size: 2 });
@@ -551,6 +557,8 @@
     sh.used = true;
     const b = sh.type;
     R.addBuff(G.player, b.name, R.SHRINE_DUR, b.mods, b.color);
+    R.Quest.onEvent('shrine');
+    R.Ach.add('shrines');
     R.sfx('rare');
     R.UI.banner(`${b.icon} ${b.name}`, b.color, `${R.SHRINE_DUR}초간 ${b.desc}`);
     for (let i = 0; i < 16; i++) R.fx.push({ type: 'dust', x: sh.x, y: sh.y - 14, vx: (Math.random() - 0.5) * 50, vy: -20 - Math.random() * 50, life: 0.8, max: 0.8, color: b.color, size: 2, nograv: true });
@@ -628,7 +636,7 @@
       R.render(ctx);
       R.UI.updateHUD();
       mmT -= dt;
-      if (mmT <= 0) { mmT = 0.2; R.UI.drawMinimap(); }
+      if (mmT <= 0) { mmT = 0.2; R.UI.drawMinimap(); if ((G.achT = (G.achT || 0) + 1) % 5 === 0) R.Ach.check(); }
     }
     requestAnimationFrame(frame);
   }

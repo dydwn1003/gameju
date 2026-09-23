@@ -241,6 +241,38 @@
     }
   }
 
+  // ─── 마을 동물 ───────────────────────────────────────
+  function updateCritter(c, m, dt) {
+    const p = G.player;
+    const flee = p && Math.hypot(p.x - c.x, p.y - c.y) < 18;
+    c.t -= dt;
+    if (flee) { const a = Math.atan2(c.y - p.y, c.x - p.x); c.tx = c.x + Math.cos(a) * 24; c.ty = c.y + Math.sin(a) * 24; c.t = 1; }
+    else if (c.t <= 0) { c.t = 1.5 + Math.random() * 3; c.tx = c.x + (Math.random() - 0.5) * 40; c.ty = c.y + (Math.random() - 0.5) * 30; c.peck = c.kind === 'chicken' && Math.random() < 0.5 ? 1.2 : 0; }
+    if (R.isSolidTile(m.get(Math.floor(c.tx / TS), Math.floor(c.ty / TS)))) { c.tx = c.x; c.ty = c.y; }
+    const dx = c.tx - c.x, dy = c.ty - c.y, d = Math.hypot(dx, dy), sp = (flee ? 60 : c.kind === 'cat' ? 16 : 20) * dt;
+    c.moving = d > 1;
+    if (c.moving) { c.x += (dx / d) * Math.min(sp, d); c.y += (dy / d) * Math.min(sp, d); if (Math.abs(dx) > 0.5) c.face = dx > 0 ? 1 : -1; }
+    else if (c.peck > 0) c.peck -= dt;
+  }
+  function drawCritter(g, c, time) {
+    const x = Math.round(c.x), y = Math.round(c.y), f = c.face, hop = c.moving ? Math.abs(Math.sin(time * 14)) : 0;
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x - 3, y, 7, 1);
+    const P = (px, py, w, h, col) => { g.fillStyle = col; g.fillRect(f > 0 ? x + px : x - px - w + 1, Math.round(y - hop + py), w, h); };
+    if (c.kind === 'chicken') {
+      const pk = c.peck > 0 && Math.floor(time * 6) % 2 ? 1 : 0;
+      P(-3, -5, 5, 4, '#f4f0e8'); P(-4, -5, 1, 2, '#d8d0c0');           // 몸통·꼬리
+      P(1, -8 + pk * 2, 3, 3, '#f4f0e8'); P(2, -9 + pk * 2, 1, 1, '#e03a3a'); // 머리·볏
+      P(4, -7 + pk * 2, 1, 1, '#f0a020'); P(2, -7 + pk * 2, 1, 1, '#1a1020');
+      P(-1, -1, 1, 1, '#f0a020'); P(1, -1, 1, 1, '#f0a020');
+    } else {
+      const tail = Math.sin(time * 4 + c.t) > 0 ? 0 : 1;
+      P(-4, -4, 7, 3, '#e89040'); P(-4, -4, 7, 1, '#f0a860'); P(-2, -3, 1, 2, '#c07030');
+      P(2, -7, 4, 4, '#e89040'); P(2, -8, 1, 1, '#e89040'); P(5, -8, 1, 1, '#e89040'); P(4, -6, 1, 1, '#1a1020');
+      P(-6, -6 + tail, 2, 1, '#e89040'); P(-5, -5 + tail, 1, 2, '#e89040');
+      P(-3, -1, 1, 1, '#c07030'); P(1, -1, 1, 1, '#c07030');
+    }
+  }
+
   function drawShrine(g, sh, time) {
     shadow(g, sh.x, sh.y, 7);
     const img = SPR.shrine(sh.used);
@@ -468,9 +500,67 @@
     }
   }
 
+  // ─── 지역 분위기 입자 (반딧불·먼지·불씨·눈·재) ─────────────
+  const AMB = {
+    forest: [{ k: 'fly', rate: 1.6, c: ['#d8ff7a', '#fff0a0'] }],
+    ruins: [{ k: 'dust', rate: 5, c: ['#d8d0e8', '#b8b0c8'] }],
+    mine: [{ k: 'ember', rate: 7, c: ['#ffb040', '#ff6a2a', '#ffe070'] }],
+    ice: [{ k: 'snow', rate: 12, c: ['#ffffff', '#dff2ff'] }],
+    hell: [{ k: 'ember', rate: 9, c: ['#ff4a2a', '#ff8a3a'] }, { k: 'ash', rate: 3, c: ['#6a6070', '#8a8090'] }],
+    town: [{ k: 'fly', rate: 0.5, c: ['#fff0a0'] }],
+  };
+  const amb = [];
+  const ambAcc = {};
+  function drawAmbient(g, m, camX, camY, dt) {
+    const list = AMB[m.kind === 'town' ? 'town' : m.theme] || [];
+    for (const a of list) {
+      ambAcc[a.k] = (ambAcc[a.k] || 0) + dt * a.rate;
+      while (ambAcc[a.k] > 1) {
+        ambAcc[a.k]--;
+        const up = a.k === 'ember', fall = a.k === 'snow' || a.k === 'ash';
+        const L = a.k === 'fly' ? 5 + Math.random() * 3 : 3 + Math.random() * 3;
+        amb.push({ k: a.k, x: camX + Math.random() * (VW + 40) - 20, y: up ? camY + VH * (0.4 + Math.random() * 0.7) : fall ? camY - 8 + Math.random() * VH * 0.6 : camY + Math.random() * VH,
+          vx: a.k === 'snow' ? -4 + Math.random() * 8 : (Math.random() - 0.5) * 10, vy: up ? -18 - Math.random() * 26 : a.k === 'snow' ? 14 + Math.random() * 12 : a.k === 'ash' ? 6 + Math.random() * 6 : (Math.random() - 0.5) * 6,
+          ph: Math.random() * 6, life: L, max: L, c: a.c[(Math.random() * a.c.length) | 0] });
+      }
+    }
+    g.save();
+    for (let i = amb.length - 1; i >= 0; i--) {
+      const q = amb[i];
+      q.life -= dt; q.ph += dt * (q.k === 'fly' ? 2 : 3);
+      q.x += (q.vx + Math.sin(q.ph) * (q.k === 'ember' ? 8 : 5)) * dt; q.y += q.vy * dt;
+      if (q.life <= 0) { amb.splice(i, 1); continue; }
+      const fade = Math.min(1, (q.max - q.life) * 2, q.life);
+      const x = Math.round(q.x), y = Math.round(q.y);
+      g.fillStyle = q.c;
+      if (q.k === 'fly' || q.k === 'ember') {
+        const tw = q.k === 'fly' ? 0.5 + 0.5 * Math.sin(q.ph * 2) : 0.6 + 0.4 * Math.sin(q.ph * 5);
+        g.globalCompositeOperation = 'lighter';
+        g.globalAlpha = fade * tw * 0.35; g.beginPath(); g.arc(q.x, q.y, q.k === 'fly' ? 3 : 2, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = fade * tw; g.fillRect(x, y, 1, 1);
+        g.globalCompositeOperation = 'source-over';
+      } else if (q.k === 'snow') { g.globalAlpha = fade * 0.9; g.fillRect(x, y, q.ph % 6 < 3 ? 2 : 1, q.ph % 6 < 3 ? 1 : 2); }
+      else { g.globalAlpha = fade * (q.k === 'dust' ? 0.45 : 0.7); g.fillRect(x, y, 1, 1); }
+    }
+    g.restore();
+    if (amb.length > 220) amb.splice(0, amb.length - 220);
+  }
+  R.clearAmbient = () => { amb.length = 0; };
+
   function drawFx(g, f) {
     const k = Math.max(0, f.life / f.max);
     switch (f.type) {
+      case 'pillar': {
+        // 레벨 업 빛기둥: 아래에서 솟아올라 가늘어진다
+        const w = f.w * (0.3 + k * 0.7), h = 120 * Math.min(1, (1 - k) * 4);
+        const grd = g.createLinearGradient(0, f.y - h, 0, f.y);
+        grd.addColorStop(0, 'rgba(255,240,160,0)'); grd.addColorStop(0.7, f.color); grd.addColorStop(1, '#ffffff');
+        g.globalCompositeOperation = 'lighter'; g.globalAlpha = k * 0.8; g.fillStyle = grd;
+        g.fillRect(f.x - w / 2, f.y - h, w, h);
+        g.globalAlpha = k * 0.5; g.fillRect(f.x - w / 5, f.y - h, w / 2.5, h);
+        g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+        break;
+      }
       case 'slash': {
         g.strokeStyle = f.color; g.globalAlpha = k; g.lineWidth = 3 * k + 1;
         const prog = 1 - k;
@@ -599,6 +689,7 @@
     for (const d of G.drops) list.push({ y: d.y, drop: d });
     for (const mob of G.mobs) list.push({ y: mob.y, mob });
     for (const nd of m.nodes || []) list.push({ y: nd.y, node: nd });
+    for (const c of m.critters || []) { updateCritter(c, m, G.rdt || 1 / 60); list.push({ y: c.y, critter: c }); }
     if (m.cart) list.push({ y: m.cart.y + 4, cart: m.cart });
     if (m.lever) list.push({ y: m.lever.y, lever: m.lever });
     if (G.pet) list.push({ y: G.pet.y, pet: G.pet });
@@ -622,6 +713,7 @@
         if (c.bonus && !c.open && Math.floor(time * 3 + c.ph) % 5 === 0) { ctx.fillStyle = '#fff6c0'; ctx.fillRect(Math.round(c.x + 4), Math.round(c.y - 10), 1, 1); }
       }
       else if (o.shrine) drawShrine(ctx, o.shrine, time);
+      else if (o.critter) drawCritter(ctx, o.critter, time);
       else if (o.npc) {
         const n = o.npc;
         shadow(ctx, n.x, n.y, 6);
@@ -663,6 +755,10 @@
     ctx.fillStyle = vg; ctx.fillRect(0, 0, VW * S, VH * S);
     const tint = { forest: 'rgba(255,230,160,0.05)', town: 'rgba(255,220,150,0.06)', ice: 'rgba(160,210,255,0.07)', hell: 'rgba(255,60,40,0.06)', mine: 'rgba(255,140,60,0.05)', ruins: 'rgba(150,140,200,0.05)' }[m.theme];
     if (tint) { ctx.fillStyle = tint; ctx.fillRect(0, 0, VW * S, VH * S); }
+    // 분위기 입자는 조명 위에 (어두운 광산에서도 불씨가 빛나게)
+    ctx.setTransform(S, 0, 0, S, -camX * S, -camY * S);
+    drawAmbient(ctx, m, camX, camY, G.rdt || 1 / 60);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     // 이름표 / 상호작용 표시 (고해상도 텍스트)
     ctx.textAlign = 'center';
     ctx.font = `${Math.round(5.5 * S)}px Galmuri11, "Noto Sans KR", sans-serif`;
@@ -672,6 +768,18 @@
       ctx.strokeText(text, X, Y); ctx.fillStyle = color; ctx.fillText(text, X, Y);
     };
     for (const n of m.npcs) label(n.name, n.x, n.y - 25, '#ffe9a8');
+    // 퀘스트 표시: ❗ 새 부탁 · ❓ 보고 가능
+    for (const n of m.npcs) {
+      const mk = R.Quest.marker(n.id);
+      if (!mk) continue;
+      const X = (n.x - camX) * S, Y = (n.y - 36 - camY + Math.sin(time * 5 + n.bob) * 1.5) * S, r = 4.2 * S;
+      ctx.fillStyle = mk === '?' ? '#7fffa0' : '#ffd35a';
+      ctx.beginPath(); ctx.arc(X, Y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = S; ctx.strokeStyle = 'rgba(10,8,14,0.9)'; ctx.stroke();
+      ctx.fillStyle = '#1a1020'; ctx.font = `bold ${Math.round(6 * S)}px Galmuri11, "Noto Sans KR", sans-serif`;
+      ctx.fillText(mk === '?' ? '?' : '!', X, Y + 2.2 * S);
+      ctx.font = `${Math.round(5.5 * S)}px Galmuri11, "Noto Sans KR", sans-serif`; ctx.lineWidth = S * 1.4;
+    }
     for (const pr of m.props) if (pr.label && pr.kind === 'house') label(pr.label, pr.x + 32, pr.y + 22, '#ffffff');
     // 몬스터 이름·레벨 (싸우는 중이거나 지정한 적, 정예) — 레벨 차이에 따라 색
     const tgt = G.tap && G.tap.kind === 'mob' ? G.tap.mob : null;
