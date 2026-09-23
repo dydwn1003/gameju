@@ -22,6 +22,18 @@
       else if (t === T.ICE) g.drawImage(SPR.iceFloor(), X, Y);
       else if (t === T.WALL && R.THEMES[theme].wall !== 'tree') { /* 벽 스프라이트가 덮음 */ g.drawImage(SPR.floor(theme, 0), X, Y); }
       else g.drawImage(SPR.floor(theme, tileVariantFloor(m, tx, ty)), X, Y);
+      if (t === T.FLOOR || t === T.PATH || t === T.ICE) {
+        decor(g, theme, t, tx, ty, X, Y, time);
+        // 벽 바로 아래 칸에 드리우는 그림자 (입체감)
+        const up = m.get(tx, ty - 1);
+        if (up === T.WALL || up === T.GATE || (up === T.BLOCK && m.kind === 'dungeon')) {
+          g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(X, Y, TS, 3);
+          g.fillStyle = 'rgba(0,0,0,0.13)'; g.fillRect(X, Y + 3, TS, 3);
+        }
+        const lf = m.get(tx - 1, ty), rt = m.get(tx + 1, ty);
+        if (lf === T.WALL) { g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(X, Y, 2, TS); }
+        if (rt === T.WALL) { g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(X + TS - 2, Y, 2, TS); }
+      }
       if (t === T.HAZARD) {
         const H = R.THEMES[theme].hazard;
         g.fillStyle = H[0]; g.fillRect(X, Y, TS, TS);
@@ -44,6 +56,30 @@
         const b = Math.floor(time * 4) % 2;
         g.fillRect(X + 7, Y + 5 + b, 2, 5); g.fillRect(X + 5, Y + 9 + b, 6, 1); g.fillRect(X + 6, Y + 10 + b, 4, 1);
       }
+    }
+  }
+
+  // 바닥 장식: 타일 좌표로 정해지는 풀·꽃·자갈·반짝임 (지역 테마별)
+  const hash = (x, y) => { let h = (x * 374761393 + y * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  function decor(g, theme, t, tx, ty, X, Y, time) {
+    const r = hash(tx, ty);
+    if (r > 0.2) return;
+    const ox = X + 2 + Math.floor(hash(ty, tx) * 10), oy = Y + 3 + Math.floor(hash(tx + 7, ty + 3) * 9);
+    const k = r / 0.2;
+    if ((theme === 'forest' || theme === 'town') && t !== T.PATH) {
+      if (k < 0.55) { g.fillStyle = theme === 'town' ? '#6fbf52' : '#5aa844'; g.fillRect(ox, oy, 1, 3); g.fillRect(ox + 2, oy + 1, 1, 2); g.fillRect(ox - 1, oy + 1, 1, 2); g.fillStyle = '#2f6a28'; g.fillRect(ox - 1, oy + 3, 5, 1); }
+      else { const c = ['#ffe070', '#ff8ab0', '#ffffff', '#a8c8ff'][Math.floor(k * 13) % 4]; g.fillStyle = '#3f8a34'; g.fillRect(ox + 1, oy + 2, 1, 2); g.fillStyle = c; g.fillRect(ox, oy + 1, 3, 1); g.fillRect(ox + 1, oy, 1, 3); g.fillStyle = '#ffd040'; g.fillRect(ox + 1, oy + 1, 1, 1); }
+    } else if (theme === 'mine' || theme === 'ruins' || (theme === 'town' && t === T.PATH)) {
+      g.fillStyle = theme === 'mine' ? '#4a3626' : theme === 'ruins' ? '#4e4e58' : '#8a7450'; g.fillRect(ox, oy + 1, 3, 2); g.fillRect(ox + 4, oy + 3, 2, 1);
+      g.fillStyle = theme === 'mine' ? '#8a6a4e' : theme === 'ruins' ? '#8a8a96' : '#c8b088'; g.fillRect(ox, oy, 2, 1);
+      if (theme === 'ruins' && k > 0.6) { g.fillStyle = 'rgba(20,20,26,0.5)'; g.fillRect(ox - 2, oy + 5, 5, 1); g.fillRect(ox + 2, oy + 6, 3, 1); }
+      if (theme === 'mine' && k > 0.8) { g.fillStyle = Math.floor(time * 2 + tx) % 3 ? '#ffd35a' : '#fff4c0'; g.fillRect(ox + 1, oy + 1, 1, 1); }
+    } else if (theme === 'ice') {
+      if (Math.floor(time * 1.5 + k * 9) % 4 === 0) { g.fillStyle = '#ffffff'; g.fillRect(ox, oy - 1, 1, 3); g.fillRect(ox - 1, oy, 3, 1); }
+      else { g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillRect(ox, oy, 1, 1); }
+    } else if (theme === 'hell') {
+      const a = 0.35 + 0.35 * Math.sin(time * 2 + k * 20);
+      g.fillStyle = `rgba(255,110,40,${a})`; g.fillRect(ox, oy, 4, 1); g.fillRect(ox + 3, oy + 1, 1, 2); g.fillRect(ox + 3, oy + 3, 3, 1);
     }
   }
 
@@ -551,12 +587,19 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (dark) {
       const px = (p.x - camX) * S, py = (p.y - 8 - camY) * S;
-      const grd = ctx.createRadialGradient(px, py, 40 * S, px, py, 150 * S);
+      const fl = m.theme === 'mine' || m.theme === 'hell' ? Math.sin(time * 9) * 2 + Math.sin(time * 23) : 0;   // 횃불처럼 일렁임
+      const grd = ctx.createRadialGradient(px, py, (40 + fl) * S, px, py, (150 + fl * 2) * S);
       grd.addColorStop(0, 'rgba(0,0,0,0)');
       grd.addColorStop(1, `rgba(0,0,0,${dark})`);
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, VW * S, VH * S);
     }
+    // 가장자리 비네트 + 지역별 색감
+    const vg = ctx.createRadialGradient(VW * S / 2, VH * S * 0.45, VW * S * 0.35, VW * S / 2, VH * S * 0.45, VH * S * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(6,4,14,0.42)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, VW * S, VH * S);
+    const tint = { forest: 'rgba(255,230,160,0.05)', town: 'rgba(255,220,150,0.06)', ice: 'rgba(160,210,255,0.07)', hell: 'rgba(255,60,40,0.06)', mine: 'rgba(255,140,60,0.05)', ruins: 'rgba(150,140,200,0.05)' }[m.theme];
+    if (tint) { ctx.fillStyle = tint; ctx.fillRect(0, 0, VW * S, VH * S); }
     // 이름표 / 상호작용 표시 (고해상도 텍스트)
     ctx.textAlign = 'center';
     ctx.font = `${Math.round(5.5 * S)}px Galmuri11, "Noto Sans KR", sans-serif`;

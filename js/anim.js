@@ -106,6 +106,7 @@
     }
   };
   A.hasFrames = (key) => !!FS[key];
+  A.framesOf = (key) => FS[key] || null;
   // 방향·상태에 맞는 프레임 한 칸을 그린다
   // 방향별 값: 배열/숫자면 공통, 객체면 { down, up, left, right, side }
   const perDir = (v, dir, side) => (v == null || Array.isArray(v) || typeof v !== 'object' ? v : v[dir] != null ? v[dir] : v[side] != null ? v[side] : v.side);

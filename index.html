@@ -85,37 +85,47 @@
 
   <!-- 타이틀 -->
   <div id="title" class="screen">
-    <div class="title-bg"></div>
+    <canvas class="scr-fx" id="title-fx"></canvas>
     <div class="title-inner">
-      <div class="logo">RELIC</div>
-      <div class="logo-sub">잊혀진 영웅</div>
-      <canvas id="title-art" width="216" height="80"></canvas>
+      <div class="logo" data-t="RELIC">RELIC</div>
+      <div class="logo-sub">잊 혀 진 &nbsp;영 웅</div>
+      <canvas id="title-art" width="648" height="260"></canvas>
       <div class="title-btns">
         <button class="big-btn" id="btn-new">새 모험</button>
-        <button class="big-btn" id="btn-continue">이어하기</button>
+        <button class="big-btn ghost" id="btn-continue">이어하기</button>
       </div>
       <div class="help">
-        <b>키보드</b> 이동 WASD/방향키 · 공격 J · 스킬 K / L · 회피 Space · 물약 Q · 대화 E · 메뉴 Esc<br />
-        <b>터치</b> 왼쪽 드래그로 이동 · 오른쪽 버튼으로 전투
+        <b>터치</b> 왼쪽 드래그 이동 · 화면을 누르면 그곳으로 이동 · 몬스터를 누르면 자동 공격<br />
+        <b>키보드</b> 이동 WASD · 공격 J · 스킬 K / L / U · 회피 Space · 물약 Q / R · 대화 E · 메뉴 Esc
       </div>
-      <div class="ver">GDD v1.0 · build 0.1</div>
+      <div class="ver">build 0.5</div>
     </div>
   </div>
 
   <!-- 직업 선택 -->
   <div id="select" class="screen hidden">
-    <div class="sel-title">직업을 선택하세요</div>
-    <div class="sel-list" id="sel-list"></div>
-    <div class="sel-detail" id="sel-detail"></div>
-    <button class="big-btn" id="btn-start">이 직업으로 시작</button>
-    <button class="link-btn" id="btn-back">← 돌아가기</button>
+    <canvas class="scr-fx" id="sel-fx"></canvas>
+    <div class="sel-top"><button class="sel-back" id="btn-back">‹</button><span>직업 선택</span><em id="sel-count">1 / 4</em></div>
+    <div class="sel-stage" id="sel-stage-wrap">
+      <div class="sel-en" id="sel-en">GLADIATOR</div>
+      <canvas id="sel-stage"></canvas>
+      <button class="sel-arrow l" id="sel-prev" aria-label="이전">‹</button>
+      <button class="sel-arrow r" id="sel-next" aria-label="다음">›</button>
+    </div>
+    <div class="sel-name"><b id="sel-name">검투사</b><div class="sel-tag" id="sel-tag"></div><div class="sel-chips" id="sel-chips"></div></div>
+    <div class="sel-info" id="sel-info"></div>
+    <div class="sel-tabs" id="sel-tabs"></div>
+    <button class="big-btn start" id="btn-start">이 직업으로 모험 시작</button>
   </div>
 
   <!-- 스토리 -->
   <div id="story" class="screen hidden">
+    <canvas class="scr-fx" id="story-fx"></canvas>
     <div class="story-text" id="story-text"></div>
+    <div class="story-dots" id="story-dots"></div>
     <div class="story-hint">화면을 누르면 계속</div>
   </div>
+  <div id="fade"></div>
 </div>
 
 <script src="js/data.js"></script>
@@ -132,6 +142,7 @@
 <script src="js/anim.js"></script>
 <script src="js/render.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/screens.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

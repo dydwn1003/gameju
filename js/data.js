@@ -85,6 +85,14 @@ R.CLASSES = {
   },
 };
 
+// 직업 선택 화면 연출용 정보
+R.CLASS_META = {
+  GLADIATOR: { en: 'GLADIATOR', color: '#ff9a3a', glow: '#ffcf6a', role: ['근접', '탱커'], diff: 1, tagline: '방패로 버티고, 한 칼에 쓸어버린다', fx: 'ember' },
+  RANGER: { en: 'RANGER', color: '#7ad85a', glow: '#c8ff9a', role: ['원거리', '딜러'], diff: 2, tagline: '거리를 벌리고 화살비를 쏟아낸다', fx: 'leaf' },
+  MAGE: { en: 'ELEMENTALIST', color: '#6ab6ff', glow: '#bfe6ff', role: ['원거리', '광역'], diff: 3, tagline: '불과 얼음으로 적진을 휩쓴다', fx: 'spark' },
+  ASSASSIN: { en: 'ASSASSIN', color: '#c890ff', glow: '#e8ccff', role: ['근접', '치명타'], diff: 3, tagline: '그림자에서 나타나 급소를 꿰뚫는다', fx: 'smoke' },
+};
+
 // 2차 전직 (Lv.30) — 패시브 보정
 R.ADVANCES = {
   GUARDIAN:  { name: '가디언',     desc: '방어력 +30%, 받는 피해 -15%', mod: { defPct: 0.3, dmgTaken: -0.15 } },

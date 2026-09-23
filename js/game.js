@@ -182,6 +182,7 @@
 
   // ─── 맵 전환 ─────────────────────────────────────────
   function clearWorld() {
+    if (R.UI.fade) R.UI.fade();
     G.pet = null; G.jobs = []; G.tap = null; G.lastHit = null; G.tapInteract = false;
     G.mobs = []; G.shots = []; G.drops = []; G.nums = []; G.teles = [];
     G.fx.length = 0;

@@ -71,6 +71,7 @@
       case 'levelup': [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, 0.14, 'square', 0.14, 0, i * 0.08)); break;
       case 'potion': tone(400, 0.2, 'sine', 0.2, 500); break;
       case 'ui': tone(880, 0.04, 'square', 0.08); break;
+      case 'tick': tone(1400 + Math.random() * 300, 0.015, 'square', 0.025); break;
       case 'talk': tone(700 + Math.random() * 200, 0.03, 'square', 0.04); break;
       case 'die': [392, 330, 262, 196].forEach((f, i) => tone(f, 0.25, 'triangle', 0.2, 0, i * 0.18)); break;
       case 'roar': noise(0.8, 0.4, 300); tone(70, 0.8, 'sawtooth', 0.25, -30); break;

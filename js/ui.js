@@ -26,11 +26,8 @@
     return c;
   }
   const playerKey = () => (G.save.adv && R.SPR.frame(G.save.adv) ? G.save.adv : G.save.cls);
-  R.SPR.onSheetReady = () => {
-    if (!$('title').classList.contains('hidden')) UI.showTitle();
-    if (!$('select').classList.contains('hidden')) UI.showSelect();
-    UI.drawFace();
-  };
+  // 타이틀·직업 선택은 screens.js 가 매 프레임 다시 그리므로 여기선 초상화만 갱신
+  R.SPR.onSheetReady = () => { if (G.save) UI.drawFace(); };
 
   // ─── 토스트 / 배너 ───────────────────────────────────
   R.toast = function (text, color = '#fff') {
@@ -933,71 +930,5 @@
     R.saveGame();
     UI.story([e.title, e.text, '— THE END —\n\n《RELIC : 잊혀진 영웅》\n플레이해 주셔서 감사합니다.', '모험은 계속된다.\n모든 지역을 자유롭게 다시 탐험할 수 있습니다.'], () => { G.state = 'play'; R.enterTown(false); });
   };
-  UI.story = function (lines, done) {
-    const el = $('story');
-    let i = 0;
-    G.state = 'story';
-    el.classList.remove('hidden');
-    const show = () => {
-      const t = $('story-text');
-      t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
-      t.textContent = lines[i];
-    };
-    show();
-    el.onclick = () => {
-      R.sfx('ui');
-      i++;
-      if (i >= lines.length) { el.classList.add('hidden'); el.onclick = null; done && done(); }
-      else show();
-    };
-  };
-
-  // ─── 타이틀 / 직업 선택 ──────────────────────────────
-  UI.showTitle = function () {
-    $('title').classList.remove('hidden');
-    $('select').classList.add('hidden');
-    $('btn-continue').disabled = !(R.hasSave && R.hasSave());
-    const cv = $('title-art');
-    const ids = Object.keys(R.CLASSES);
-    if (R.SPR.sheet.ready) {
-      cv.width = 648; cv.height = 240;
-      const g = cv.getContext('2d');
-      g.clearRect(0, 0, cv.width, cv.height);
-      ids.forEach((id, i) => { g.save(); g.translate(8 + i * 132, 30); fitSprite(g, id, null, 124, 210, 2); g.restore(); });
-      return;
-    }
-    const g = cv.getContext('2d');
-    g.imageSmoothingEnabled = false;
-    g.clearRect(0, 0, cv.width, cv.height);
-    ids.forEach((id, i) => {
-      const c = R.CLASSES[id];
-      const img = R.SPR.human('pl' + id, Object.assign({ shield: id === 'GLADIATOR' }, c.look), 'down', 0, false, 2);
-      g.drawImage(img, 18 + i * 46, 80 - img.height);
-    });
-  };
-
-  let selCls = 'GLADIATOR';
-  UI.showSelect = function () {
-    $('title').classList.add('hidden');
-    $('select').classList.remove('hidden');
-    const list = $('sel-list');
-    list.innerHTML = '';
-    Object.keys(R.CLASSES).forEach((id) => {
-      const c = R.CLASSES[id];
-      const card = document.createElement('button');
-      card.className = 'sel-card' + (id === selCls ? ' on' : '');
-      const img = R.SPR.human('pl' + id, Object.assign({ shield: id === 'GLADIATOR' }, c.look), 'down', 0, false, 2);
-      card.appendChild(spriteCanvas(id, 160, 200, '', img));
-      card.insertAdjacentHTML('beforeend', `<div class="nm">${c.name}</div><div class="ds">${c.desc}</div>`);
-      card.onclick = () => { selCls = id; R.sfx('ui'); UI.showSelect(); };
-      list.appendChild(card);
-    });
-    const c = R.CLASSES[selCls];
-    const bar = (v) => `<i style="width:${Math.min(100, v / 14 * 100)}%"></i>`;
-    $('sel-detail').innerHTML = `<div class="sd-h"><b>${c.name}</b><span>${c.desc}</span></div>
-      <div class="sd-stats">${['str', 'dex', 'int', 'vit', 'luk'].map((k) => `<div><small>${k.toUpperCase()}</small><div class="sbar">${bar(c.base[k])}</div><b>${c.base[k]}</b></div>`).join('')}</div>
-      <div class="sd-sk">${c.skills.map((k) => `<div><span>${R.SKILLS[k].icon}</span><b>${R.SKILLS[k].name}</b><small>${R.SKILLS[k].desc}</small></div>`).join('')}</div>
-      <div class="sd-adv">Lv.30 전직 · ${c.adv.map((a) => `<b>${R.ADVANCES[a].name}</b>`).join(' / ')}</div>`;
-  };
-  UI.selectedClass = () => selCls;
+  // 타이틀 · 직업 선택 · 스토리 화면은 js/screens.js
 })();

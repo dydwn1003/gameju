@@ -288,6 +288,9 @@
       const arrived = Gd.update(p, dt);
       p.vx = (p.x - ox) / Math.max(dt, 1e-3); p.vy = (p.y - oy) / Math.max(dt, 1e-3);
       if (!arrived) { p.state = 'walk'; return; }
+      // 발자국 먼지
+      const ft = G.map.tileAt(p.x, p.y);
+      if (ft !== R.T.ICE && ft !== R.T.HAZARD) for (let i = 0; i < 2; i++) R.fx.push({ type: 'dust', x: p.x + (i ? 3 : -3), y: p.y - 1, vx: (i ? 12 : -12) + rand(-6, 6), vy: rand(-14, -6), life: 0.3, max: 0.3, color: G.map.theme === 'ice' ? '#e8f4ff' : G.map.kind === 'town' ? '#d8c4a0' : '#b0a090', size: 1, nograv: true });
       // 빙판: 멈추지 못하고 같은 방향으로 계속 미끄러진다
       if (G.map.tileAt(p.x, p.y) === R.T.ICE && p.stepDir && Gd.tryStep(p, p.stepDir, stepDur * 0.7)) { p.state = 'walk'; return; }
     }
