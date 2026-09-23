@@ -51,7 +51,7 @@ R.CLASSES = {
     name: '검투사', weapon: 'sword', desc: '한손검 + 방패 / 안정적 근접',
     base: { str: 12, dex: 6, int: 3, vit: 10, luk: 4 },
     grow: { str: 1, vit: 1 }, atkStat: 'str', melee: true,
-    range: 20, arc: 1.1, moveSpeed: 62, atkSpeed: 1.0,
+    range: 20, arc: 1.1, moveSpeed: 62, atkSpeed: 1.1,
     look: { skin: '#f1c29a', hair: '#7a4a24', body: '#8e9bb0', bodyD: '#5d6a80', legs: '#4a4f5c', boots: '#3a2a20', hat: 'helm', hatC: '#c9d1dc', cape: '#b33a3a' },
     skills: ['charge', 'whirl', 'shieldbash', 'warcry'],
     adv: ['GUARDIAN', 'BERSERKER'],
@@ -112,11 +112,11 @@ R.CLASS_META = {
 
 // 2차 전직 (Lv.30) — 패시브 보정
 R.ADVANCES = {
-  GUARDIAN:  { name: '가디언',     desc: '방어력 +30%, 받는 피해 -15%', mod: { defPct: 0.3, dmgTaken: -0.15 } },
+  GUARDIAN:  { name: '가디언',     desc: '방어력 +30%, 받는 피해 -15%, 공격력 +10%', mod: { defPct: 0.3, dmgTaken: -0.15, atkPct: 0.1 } },
   BERSERKER: { name: '버서커',     desc: '공격력 +20%, 체력 50% 이하일 때 추가 +20%', mod: { atkPct: 0.2, berserk: 0.2 } },
-  SNIPER:    { name: '스나이퍼',   desc: '치명타 +15%, 치명타 피해 +30%', mod: { crit: 0.15, critDmg: 0.3 } },
+  SNIPER:    { name: '스나이퍼',   desc: '치명타 +15%, 치명타 피해 +20%', mod: { crit: 0.15, critDmg: 0.2 } },
   TRAPPER:   { name: '트래퍼',     desc: '스킬 피해 +20%, 적중 시 둔화', mod: { skillPct: 0.2, slowOnHit: true } },
-  ARCHMAGE:  { name: '아크메이지', desc: '스킬 범위 +30%, 마법 공격력 +15%', mod: { aoePct: 0.3, atkPct: 0.15 } },
+  ARCHMAGE:  { name: '아크메이지', desc: '스킬 범위 +30%, 마법 공격력 +10%', mod: { aoePct: 0.3, atkPct: 0.1 } },
   WARLOCK:   { name: '워록',       desc: '모든 적중에 저주(지속 피해) 중첩', mod: { dotOnHit: true, atkPct: 0.05 } },
   ASSASSIN2: { name: '어쌔신',     desc: '치명타 +10%, 치명타 피해 +40%', mod: { crit: 0.1, critDmg: 0.4 } },
   NINJA:     { name: '닌자',       desc: '회피 쿨타임 -40%, 이동속도 +15%', mod: { dodgeCdr: 0.4, movePct: 0.15 } },
@@ -124,20 +124,20 @@ R.ADVANCES = {
 
 // ─── 스킬 ───────────────────────────────────────────────
 R.SKILLS = {
-  charge:      { name: '돌진',       mp: 15, cd: 4, rate: 1.5, elem: 'NONE',    icon: '💨', desc: '전방으로 돌진하며 경로상의 적에게 150% 피해 + 기절' },
-  whirl:       { name: '회전베기',   mp: 25, cd: 6, rate: 2.0, elem: 'NONE',    icon: '🌀', desc: '주변 360도 적에게 200% 피해, 다운' },
-  multishot:   { name: '연사',       mp: 15, cd: 3, rate: 1.2, elem: 'NONE',    icon: '🏹', desc: '부채꼴로 화살 5발 발사, 각 120%' },
+  charge:      { name: '돌진',       mp: 15, cd: 4, rate: 2.0, elem: 'NONE',    icon: '💨', desc: '전방으로 돌진하며 경로상의 적에게 200% 피해 + 기절' },
+  whirl:       { name: '회전베기',   mp: 25, cd: 6, rate: 2.4, elem: 'NONE',    icon: '🌀', desc: '주변 360도 적에게 240% 피해, 다운' },
+  multishot:   { name: '연사',       mp: 15, cd: 3, rate: 1.0, elem: 'NONE',    icon: '🏹', desc: '부채꼴로 화살 5발 발사, 각 100%' },
   pierce:      { name: '뇌전화살',   mp: 25, cd: 6, rate: 2.6, elem: 'THUNDER', icon: '⚡', desc: '적을 관통하는 번개 화살 260%, 감전' },
-  fireball:    { name: '화염구',     mp: 20, cd: 3, rate: 2.2, elem: 'FIRE',    icon: '🔥', desc: '폭발하는 화염구 220% 범위 피해 + 화상' },
-  icelance:    { name: '빙결창',     mp: 18, cd: 4, rate: 1.8, elem: 'ICE',     icon: '❄', desc: '관통하는 얼음창 180% + 빙결(둔화)' },
+  fireball:    { name: '화염구',     mp: 20, cd: 3, rate: 2.5, elem: 'FIRE',    icon: '🔥', desc: '폭발하는 화염구 250% 범위 피해 + 화상' },
+  icelance:    { name: '빙결창',     mp: 18, cd: 4, rate: 2.2, elem: 'ICE',     icon: '❄', desc: '관통하는 얼음창 220% + 빙결(둔화)' },
   shadowstep:  { name: '그림자이동', mp: 18, cd: 5, rate: 2.5, elem: 'DARK',    icon: '👤', desc: '가까운 적 뒤로 순간이동 후 250% 확정 치명타' },
   poisonblade: { name: '독칼난무',   mp: 22, cd: 6, rate: 0.7, elem: 'NATURE',  icon: '🗡', desc: '전방을 5회 연속 베어 각 70% + 중독' },
   // 전직 전용 궁극기 (GDD 12: 2차 전직 시 세 번째 스킬 슬롯 개방)
-  bulwark:     { name: '수호의 방벽', mp: 40, cd: 16, rate: 1.6, elem: 'NONE',    icon: '🛡', ult: true, desc: '충격파 160% + 주변 적 기절, 5초간 받는 피해 -60%' },
+  bulwark:     { name: '수호의 방벽', mp: 40, cd: 16, rate: 2.4, elem: 'NONE',    icon: '🛡', ult: true, desc: '충격파 240% + 주변 적 기절, 5초간 받는 피해 -60%' },
   bloodrage:   { name: '피의 격노',   mp: 35, cd: 14, rate: 3.2, elem: 'FIRE',    icon: '🩸', ult: true, desc: '도약 내려찍기 320% — 잃은 체력 1%당 피해 +1.5%' },
-  deadeye:     { name: '데드아이',    mp: 40, cd: 15, rate: 6.0, elem: 'NONE',    icon: '🎯', ult: true, desc: '모든 적을 꿰뚫는 저격 600%, 확정 치명타' },
+  deadeye:     { name: '데드아이',    mp: 40, cd: 15, rate: 4.5, elem: 'NONE',    icon: '🎯', ult: true, desc: '모든 적을 꿰뚫는 저격 450%, 확정 치명타' },
   snare:       { name: '덫 지대',     mp: 35, cd: 14, rate: 2.2, elem: 'NATURE',  icon: '🪤', ult: true, desc: '덫 5개 설치 — 밟으면 폭발 220% + 기절·둔화 (10초 유지)' },
-  meteor:      { name: '메테오',      mp: 50, cd: 16, rate: 3.6, elem: 'FIRE',    icon: '☄', ult: true, desc: '조준 지점에 운석 3개 낙하, 각 360% 범위 피해 + 화상' },
+  meteor:      { name: '메테오',      mp: 50, cd: 16, rate: 3.0, elem: 'FIRE',    icon: '☄', ult: true, desc: '조준 지점에 운석 3개 낙하, 각 300% 범위 피해 + 화상' },
   hex:         { name: '파멸의 저주', mp: 40, cd: 14, rate: 2.0, elem: 'DARK',    icon: '🕯', ult: true, desc: '주변 적 전체 200% + 저주. 이미 저주받은 적은 2배, 적중마다 HP 회복' },
   execute:     { name: '처형',        mp: 35, cd: 12, rate: 4.0, elem: 'DARK',    icon: '💀', ult: true, desc: '가장 약한 적에게 순간이동 400% 확정 치명타, 체력 30% 이하면 2배' },
   clones:      { name: '분신술',      mp: 40, cd: 15, rate: 1.3, elem: 'NONE',    icon: '🥷', ult: true, desc: '무적 상태로 주변 적 사이를 8회 순간이동하며 각 130%' },
@@ -149,13 +149,13 @@ R.SKILLS = {
 //  leap: 뒤로 도약 + 버프   dash: 앞으로 돌진하며 베기(tiles)   blink: 가장 가까운 적 뒤로   drain: 흡수
 Object.assign(R.SKILLS, {
   // 검투사
-  shieldbash:  { name: '방패 강타',   mp: 16, cd: 5,  rate: 1.8, elem: 'NONE', icon: '🛡', type: 'cone', reach: 1, stun: 1.6, desc: '앞의 적을 방패로 후려쳐 180% 피해 + 기절 1.6초' },
+  shieldbash:  { name: '방패 강타',   mp: 16, cd: 5,  rate: 2.2, elem: 'NONE', icon: '🛡', type: 'cone', reach: 1, stun: 1.6, desc: '앞의 적을 방패로 후려쳐 220% 피해 + 기절 1.6초' },
   warcry:      { name: '전투의 함성', mp: 22, cd: 20, rate: 0,   elem: 'NONE', icon: '📣', type: 'buff', dur: 8, mods: { atk: 0.25, dmgTaken: -0.15 }, color: '#ffb040', desc: '8초간 공격력 +25%, 받는 피해 -15%' },
   // 레인저
   arrowrain:   { name: '화살비',     mp: 20, cd: 8,  rate: 0.9, elem: 'NONE', icon: '🌧', type: 'zone', at: 'target', r: 34, hits: 3, delay: 0.45, fx: 'arrows', desc: '지정 지점에 화살비 3회, 각 90% 범위 피해' },
   evade:       { name: '후방 도약',   mp: 14, cd: 7,  rate: 0,   elem: 'NONE', icon: '🦘', type: 'leap', tiles: 2, dur: 3, mods: { move: 0.3 }, color: '#7ad85a', desc: '뒤로 2칸 도약(무적) 후 3초간 이동속도 +30%' },
   // 원소술사
-  thunder:     { name: '낙뢰',       mp: 22, cd: 6,  rate: 2.6, elem: 'THUNDER', icon: '🌩', type: 'zone', at: 'target', r: 22, delay: 0.3, stun: 0.8, fx: 'thunder', desc: '가장 가까운 적에게 번개가 떨어져 260% + 기절' },
+  thunder:     { name: '낙뢰',       mp: 22, cd: 6,  rate: 3.0, elem: 'THUNDER', icon: '🌩', type: 'zone', at: 'target', r: 22, delay: 0.3, stun: 0.8, fx: 'thunder', desc: '가장 가까운 적에게 번개가 떨어져 300% + 기절' },
   frostnova:   { name: '서리 폭발',   mp: 26, cd: 9,  rate: 1.4, elem: 'ICE',  icon: '💠', type: 'nova', r: 40, status: { slow: 4 }, stun: 0.6, desc: '주변을 얼려 140% 피해 + 빙결 4초' },
   // 암살자
   kunai:       { name: '표창 투척',   mp: 12, cd: 4,  rate: 1.2, elem: 'NATURE', icon: '✴', type: 'line', count: 3, spread: 0.22, kind: 'knife', speed: 260, status: { poison: 3 }, desc: '독 묻은 표창 3개, 각 120% + 중독' },
@@ -163,35 +163,35 @@ Object.assign(R.SKILLS, {
 
   // 가디언
   fortress:    { name: '철벽',       mp: 26, cd: 16, rate: 0,   elem: 'NONE', icon: '🏰', type: 'buff', dur: 6, mods: { dmgTaken: -0.4 }, color: '#9ad8ff', desc: '6초간 받는 피해 -40%' },
-  shieldwave:  { name: '방패 파동',   mp: 28, cd: 7,  rate: 2.4, elem: 'NONE', icon: '🌊', type: 'line', count: 1, kind: 'wave', speed: 200, pierce: true, down: true, desc: '관통하는 방패 충격파 240% + 다운' },
-  holystrike:  { name: '심판의 일격', mp: 30, cd: 9,  rate: 3.0, elem: 'NONE', icon: '⚜', type: 'cone', reach: 2, wide: true, heal: 0.04, down: true, desc: '앞 2칸을 넓게 내리쳐 300% — 맞힌 적마다 HP 4% 회복' },
+  shieldwave:  { name: '방패 파동',   mp: 28, cd: 7,  rate: 2.8, elem: 'NONE', icon: '🌊', type: 'line', count: 1, kind: 'wave', speed: 200, pierce: true, down: true, desc: '관통하는 방패 충격파 280% + 다운' },
+  holystrike:  { name: '심판의 일격', mp: 30, cd: 9,  rate: 3.6, elem: 'NONE', icon: '⚜', type: 'cone', reach: 2, wide: true, heal: 0.04, down: true, desc: '앞 2칸을 넓게 내리쳐 360% — 맞힌 적마다 HP 4% 회복' },
   // 버서커
   frenzy:      { name: '광란',       mp: 20, cd: 18, rate: 0,   elem: 'NONE', icon: '😡', type: 'buff', dur: 8, mods: { atk: 0.4, dmgTaken: 0.15 }, color: '#ff4a3a', desc: '8초간 공격력 +40% (받는 피해 +15%)' },
   cleave:      { name: '대지 가르기', mp: 26, cd: 6,  rate: 2.8, elem: 'NONE', icon: '🪓', type: 'cone', reach: 3, down: true, desc: '앞 3칸을 일직선으로 갈라 280% + 다운' },
   bloodspin:   { name: '피의 회오리', mp: 30, cd: 9,  rate: 1.1, elem: 'FIRE', icon: '🌪', type: 'nova', r: 36, hits: 3, heal: 0.015, desc: '회전하며 주변 3연타 각 110% — 적중마다 HP 1.5% 회복' },
   // 스나이퍼
-  headshot:    { name: '헤드샷',     mp: 24, cd: 8,  rate: 4.0, elem: 'NONE', icon: '🎯', type: 'line', count: 1, kind: 'arrow', speed: 420, forceCrit: true, desc: '빠른 한 발 400%, 확정 치명타' },
+  headshot:    { name: '헤드샷',     mp: 24, cd: 8,  rate: 3.2, elem: 'NONE', icon: '🎯', type: 'line', count: 1, kind: 'arrow', speed: 420, forceCrit: true, desc: '빠른 한 발 320%, 확정 치명타' },
   focus:       { name: '집중',       mp: 20, cd: 18, rate: 0,   elem: 'NONE', icon: '👁', type: 'buff', dur: 8, mods: { crit: 0.25, atk: 0.15 }, color: '#ffe070', desc: '8초간 치명타 +25%, 공격력 +15%' },
-  burstshot:   { name: '연발 사격',   mp: 22, cd: 5,  rate: 1.6, elem: 'NONE', icon: '🏹', type: 'line', count: 3, seq: true, kind: 'arrow', speed: 320, desc: '같은 방향으로 3연발, 각 160%' },
+  burstshot:   { name: '연발 사격',   mp: 22, cd: 5,  rate: 1.3, elem: 'NONE', icon: '🏹', type: 'line', count: 3, seq: true, kind: 'arrow', speed: 320, desc: '같은 방향으로 3연발, 각 130%' },
   // 트래퍼
   netshot:     { name: '그물 화살',   mp: 18, cd: 6,  rate: 1.4, elem: 'NATURE', icon: '🕸', type: 'line', count: 1, kind: 'arrow', speed: 260, stun: 1.2, status: { slow: 4 }, desc: '그물 화살 140% + 기절 1.2초 + 둔화' },
   poisoncloud: { name: '독안개',     mp: 26, cd: 9,  rate: 0.7, elem: 'NATURE', icon: '☁', type: 'zone', at: 'target', r: 40, hits: 4, delay: 0.3, status: { poison: 6 }, fx: 'poison', desc: '지정 지점에 독안개 4회 각 70% + 강한 중독' },
   volley:      { name: '일제 사격',   mp: 28, cd: 8,  rate: 1.3, elem: 'NONE', icon: '✳', type: 'ring', count: 8, kind: 'arrow', speed: 240, desc: '8방향으로 화살 발사, 각 130%' },
   // 아크메이지
   flamepillar: { name: '화염 기둥',   mp: 28, cd: 8,  rate: 2.2, elem: 'FIRE', icon: '🔥', type: 'zone', at: 'front', count: 3, r: 18, delay: 0.25, status: { burn: 4 }, fx: 'fire', desc: '앞으로 불기둥 3개가 차례로 솟아 각 220% + 화상' },
-  blizzard:    { name: '눈보라',     mp: 34, cd: 12, rate: 1.0, elem: 'ICE',  icon: '🌨', type: 'zone', at: 'target', r: 48, hits: 4, delay: 0.35, status: { slow: 3 }, fx: 'ice', desc: '넓은 눈보라 4회 각 100% + 빙결' },
-  arcanemissile: { name: '마력 탄환', mp: 20, cd: 4,  rate: 1.0, elem: 'NONE', icon: '✨', type: 'line', count: 5, spread: 0.18, kind: 'bolt', speed: 230, desc: '마력 탄환 5발, 각 100%' },
+  blizzard:    { name: '눈보라',     mp: 34, cd: 12, rate: 0.85, elem: 'ICE',  icon: '🌨', type: 'zone', at: 'target', r: 48, hits: 4, delay: 0.35, status: { slow: 3 }, fx: 'ice', desc: '넓은 눈보라 4회 각 85% + 빙결' },
+  arcanemissile: { name: '마력 탄환', mp: 20, cd: 4,  rate: 0.8, elem: 'NONE', icon: '✨', type: 'line', count: 5, spread: 0.18, kind: 'bolt', speed: 230, desc: '마력 탄환 5발, 각 80%' },
   // 워록
-  curseorb:    { name: '저주 구체',   mp: 24, cd: 6,  rate: 2.4, elem: 'DARK', icon: '🔮', type: 'line', count: 1, kind: 'orb', speed: 120, pierce: true, status: { curse: 6 }, desc: '느리게 관통하는 저주 구체 240% + 저주' },
-  drain:       { name: '생명 흡수',   mp: 22, cd: 7,  rate: 2.0, elem: 'DARK', icon: '🩸', type: 'drain', heal: 0.08, desc: '가까운 적 하나에서 생명을 빼앗아 200% + HP 8% 회복' },
+  curseorb:    { name: '저주 구체',   mp: 24, cd: 6,  rate: 2.6, elem: 'DARK', icon: '🔮', type: 'line', count: 1, kind: 'orb', speed: 120, pierce: true, status: { curse: 6 }, desc: '느리게 관통하는 저주 구체 260% + 저주' },
+  drain:       { name: '생명 흡수',   mp: 22, cd: 7,  rate: 2.6, elem: 'DARK', icon: '🩸', type: 'drain', heal: 0.08, desc: '가까운 적 하나에서 생명을 빼앗아 260% + HP 8% 회복' },
   darkpact:    { name: '어둠의 계약', mp: 10, cd: 20, rate: 0,   elem: 'DARK', icon: '📜', type: 'buff', dur: 8, hpCost: 0.1, mods: { atk: 0.35 }, color: '#b27bff', desc: 'HP 10%를 바쳐 8초간 공격력 +35%' },
   // 어쌔신
   backstab:    { name: '암습',       mp: 22, cd: 8,  rate: 3.0, elem: 'DARK', icon: '🗡', type: 'blink', forceCrit: true, desc: '가까운 적의 뒤로 이동해 300% 확정 치명타' },
   bladedance:  { name: '칼날 폭풍',   mp: 28, cd: 9,  rate: 0.8, elem: 'NONE', icon: '🌀', type: 'nova', r: 34, hits: 4, desc: '주변을 4연타 각 80%' },
   deathmark:   { name: '죽음의 표식', mp: 20, cd: 18, rate: 0,   elem: 'DARK', icon: '☠', type: 'buff', dur: 6, mods: { crit: 0.3, atk: 0.1 }, color: '#ff3a5a', desc: '6초간 치명타 +30%, 공격력 +10%' },
   // 닌자
-  shuriken:    { name: '풍마 수리검', mp: 20, cd: 5,  rate: 2.2, elem: 'NONE', icon: '✴', type: 'line', count: 1, kind: 'knife', speed: 280, pierce: true, desc: '모든 적을 꿰뚫는 거대 수리검 220%' },
-  flashstep:   { name: '섬광보',     mp: 18, cd: 6,  rate: 1.8, elem: 'NONE', icon: '⚡', type: 'dash', tiles: 4, desc: '무적 상태로 앞으로 4칸 질주하며 경로의 적 180%' },
+  shuriken:    { name: '풍마 수리검', mp: 20, cd: 5,  rate: 2.6, elem: 'NONE', icon: '✴', type: 'line', count: 1, kind: 'knife', speed: 280, pierce: true, desc: '모든 적을 꿰뚫는 거대 수리검 260%' },
+  flashstep:   { name: '섬광보',     mp: 18, cd: 6,  rate: 2.2, elem: 'NONE', icon: '⚡', type: 'dash', tiles: 4, desc: '무적 상태로 앞으로 4칸 질주하며 경로의 적 220%' },
   kage:        { name: '그림자 분신', mp: 22, cd: 16, rate: 0,   elem: 'DARK', icon: '👥', type: 'buff', dur: 6, mods: { move: 0.35, dmgTaken: -0.2 }, color: '#8a8aff', desc: '6초간 이동속도 +35%, 받는 피해 -20%' },
 });
 // 기본 스킬 습득 레벨 (직업 스킬 순서대로)
@@ -237,9 +237,9 @@ R.ADV_SKILL = { GUARDIAN: 'bulwark', BERSERKER: 'bloodrage', SNIPER: 'deadeye', 
 R.skillIds = (save) => [...R.ensureSlots(save), save.adv ? R.ADV_SKILL[save.adv] : null];
 
 // ─── 장비 ───────────────────────────────────────────────
-R.SLOTS = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'necklace', 'earring'];
-R.SLOT_NAME = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', ring: '반지', necklace: '목걸이', earring: '귀걸이' };
-R.SLOT_ICON = { weapon: '⚔️', helmet: '⛑️', armor: '🛡️', gloves: '🧤', boots: '👢', ring: '💍', necklace: '📿', earring: '✨' };
+R.SLOTS = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'cape', 'ring', 'necklace', 'earring', 'belt'];
+R.SLOT_NAME = { weapon: '무기', helmet: '머리', armor: '갑옷', gloves: '장갑', boots: '신발', ring: '반지', necklace: '목걸이', earring: '귀걸이', cape: '망토', belt: '허리띠' };
+R.SLOT_ICON = { weapon: '⚔️', helmet: '⛑️', armor: '🛡️', gloves: '🧤', boots: '👢', ring: '💍', necklace: '📿', earring: '✨', cape: '🧣', belt: '🎗️' };
 R.WEAPON_ICON = { sword: '⚔️', bow: '🏹', staff: '🪄', dagger: '🗡️' };
 R.GRADES = [
   { name: '일반', color: '#e6e6e6', rate: 0.55 },
@@ -261,6 +261,41 @@ R.ITEM_NAMES = {
   necklace: ['나무 목걸이', '성직자의 목걸이', '용암석 목걸이', '빙정 목걸이', '공허의 목걸이'],
   earring:  ['돌 귀걸이', '은 귀걸이', '화염 귀걸이', '서리 귀걸이', '심연 귀걸이'],
 };
+// ─── 장비 종류 (부위마다 3가지) ─────────────────────────────
+// atk/def: 기본 수치 배율, innate: 고유 옵션 [키, 기본값, 레벨당] (퍼센트 옵션은 레벨 무관)
+// 첫 번째가 기본형 (이름은 ITEM_NAMES), 나머지는 "티어 접두어 + 이름"
+R.TIER_WORD = ['낡은', '기사의', '용암', '서리', '공허의'];
+R.ITEM_VARIANTS = {
+  sword: [{ id: 'sword', name: '한손검' }, { id: 'greatsword', name: '대검', atk: 1.28, innate: [['atkSpd', -12]] }, { id: 'axe', name: '전투도끼', atk: 1.12, innate: [['crit', 4]] }],
+  bow: [{ id: 'bow', name: '장궁' }, { id: 'crossbow', name: '석궁', atk: 1.28, innate: [['atkSpd', -12]] }, { id: 'shortbow', name: '단궁', atk: 0.9, innate: [['atkSpd', 14]] }],
+  staff: [{ id: 'staff', name: '지팡이' }, { id: 'orb', name: '마력 오브', atk: 0.92, innate: [['elemDmg', 12]] }, { id: 'rod', name: '원소봉', atk: 1.05, innate: [['mp', 20, 3]] }],
+  dagger: [{ id: 'dagger', name: '쌍단검' }, { id: 'katar', name: '카타르', atk: 1.15, innate: [['crit', 3]] }, { id: 'claw', name: '클로', atk: 0.9, innate: [['atkSpd', 15]] }],
+  helmet: [{ id: 'helmet', name: '투구', def: 1.3, innate: [['hp', 20, 4]] }, { id: 'hood', name: '두건', def: 0.85, innate: [['luk', 1, 0.2]] }, { id: 'circlet', name: '서클릿', def: 0.75, innate: [['int', 1, 0.25]] }],
+  armor: [{ id: 'armor', name: '판금 갑옷', def: 1.3, innate: [['hp', 40, 8]] }, { id: 'leather', name: '가죽 갑옷', def: 1, innate: [['moveSpd', 3]] }, { id: 'robe', name: '로브', def: 0.75, innate: [['mp', 20, 3]] }],
+  gloves: [{ id: 'gloves', name: '건틀릿', def: 1.2, innate: [['str', 1, 0.25]] }, { id: 'lgloves', name: '가죽 장갑', def: 0.9, innate: [['atkSpd', 4]] }, { id: 'mgloves', name: '마법 장갑', def: 0.8, innate: [['int', 1, 0.25]] }],
+  boots: [{ id: 'boots', name: '철장화', def: 1.25, innate: [['vit', 1, 0.25]] }, { id: 'lboots', name: '가죽 장화', def: 0.9, innate: [['moveSpd', 4]] }, { id: 'mboots', name: '마법 신발', def: 0.8, innate: [['mp', 10, 2]] }],
+  cape: [{ id: 'cape', name: '망토', def: 1, innate: [['luk', 1, 0.2]] }, { id: 'coat', name: '외투', def: 1.3, innate: [['hp', 20, 5]] }, { id: 'wingcape', name: '날개 망토', def: 0.8, innate: [['moveSpd', 5]] }],
+  belt: [{ id: 'belt', name: '허리띠', def: 1, innate: [['hp', 20, 5]] }, { id: 'sash', name: '복대', def: 0.9, innate: [['vit', 1, 0.25]] }, { id: 'warbelt', name: '전사의 허리띠', def: 1.1, innate: [['atkPct', 3]] }],
+  ring: [{ id: 'ring', name: '반지', innate: [['atkPct', 3]] }, { id: 'signet', name: '인장 반지', innate: [['crit', 3]] }, { id: 'band', name: '밴드', innate: [['hp', 30, 6]] }],
+  necklace: [{ id: 'necklace', name: '목걸이', innate: [['hp', 30, 6]] }, { id: 'pendant', name: '펜던트', innate: [['mp', 20, 3]] }, { id: 'amulet', name: '부적', innate: [['elemDmg', 8]] }],
+  earring: [{ id: 'earring', name: '귀걸이', innate: [['luk', 1, 0.25]] }, { id: 'piercing', name: '피어싱', innate: [['dex', 1, 0.25]] }, { id: 'cuff', name: '이어커프', innate: [['crit', 2]] }],
+};
+R.ITEM_NAMES.cape = ['해진 망토', '기사단 망토', '화염 망토', '서리 망토', '공허의 망토'];
+R.ITEM_NAMES.belt = ['가죽 허리띠', '기사의 허리띠', '용암 허리띠', '서리 허리띠', '공허의 허리띠'];
+R.variantOf = (id) => { for (const b in R.ITEM_VARIANTS) { const v = R.ITEM_VARIANTS[b].find((x) => x.id === id); if (v) return Object.assign({ base: b }, v); } return null; };
+// 전설 효과 (전설 등급 장비의 60%에 붙는다)
+R.LEGENDS = {
+  vamp: { name: '흡혈', desc: '준 피해의 3%만큼 HP 회복' },
+  ember: { name: '업화', desc: '적중 시 15% 확률로 화상' },
+  mana: { name: '마나 순환', desc: '적중 시 최대 MP의 1% 회복' },
+  critheal: { name: '치유의 일격', desc: '치명타 시 최대 HP의 1.5% 회복' },
+  laststand: { name: '불굴', desc: 'HP 30% 이하일 때 받는 피해 -30%' },
+  swift: { name: '질풍', desc: '이동속도 +8%, 회피 쿨타임 -20%' },
+  slayer: { name: '보스 사냥꾼', desc: '보스에게 주는 피해 +15%' },
+  chain: { name: '연쇄', desc: '스킬 연계 단계마다 피해 +8% 추가' },
+  fortune: { name: '황금손', desc: '골드 획득 +30%' },
+  regen: { name: '재생', desc: '초당 최대 HP의 0.6% 회복' },
+};
 R.ELEM_PREFIX = { FIRE: '불꽃의', ICE: '서리의', THUNDER: '뇌전의', NATURE: '맹독의', DARK: '심연의' };
 // 장비 옵션: key → 이름, 기본값 계산(ilvl), 퍼센트 여부
 R.OPTIONS = {
@@ -275,6 +310,7 @@ R.OPTIONS = {
   atkPct: { name: '공격력',    roll: () => 2 + Math.random() * 6, pct: true },
   elemDmg:{ name: '속성 피해', roll: () => 5 + Math.random() * 10, pct: true },
   moveSpd:{ name: '이동속도',  roll: () => 2 + Math.random() * 4, pct: true },
+  atkSpd: { name: '공격속도',  roll: () => 2 + Math.random() * 4, pct: true },
 };
 // 대장간 안전 강화 (실패해도 단계 하락/파괴 없음)
 R.ENHANCE_RATE = [1, 1, 1, 0.85, 0.75, 0.65, 0.55, 0.45, 0.35, 0.25]; // index = 현재 강화 단계
@@ -295,8 +331,8 @@ R.CONSUMABLES = {
 // ─── 몬스터 ─────────────────────────────────────────────
 // 실제 스탯 = 레벨 기반 공식 × 배율. ai: melee / charger / ranged / hover
 R.monsterStats = (m, lv) => ({
-  maxHp: Math.round((60 + lv * 28) * (1 + lv * 0.03) * (m.hp || 1)),
-  atk: Math.round((12 + lv * 6) * (1 + lv * 0.04) * (m.atk || 1)),
+  maxHp: Math.round((70 + lv * 32) * (1 + lv * 0.03) * (m.hp || 1)),
+  atk: Math.round((18 + lv * 9) * (1 + lv * 0.05) * (m.atk || 1)),
   def: Math.round(lv * 2.5 * (m.def || 1)),
   exp: Math.round((12 + lv * 6) * (1 + lv * 0.03) * (m.exp || 1)),
   gold: Math.round((3 + lv * 2) * (m.gold || 1)),
@@ -403,7 +439,7 @@ R.REGEN = {
 };
 // 몬스터 레벨 색 (바람의나라:연처럼 나보다 약하면 회색, 강할수록 노랑·빨강)
 R.levelColor = (gap) => (gap <= -5 ? '#9a9aa4' : gap <= 2 ? '#ffffff' : gap <= 5 ? '#ffe070' : '#ff6a5a');
-R.BOSS_HP_MUL = 1.5;             // 스킬 연계 도입으로 보스 체력 상향
+R.BOSS_HP_MUL = 2.0;             // 보스전 30~90초 목표 (밸런스 시뮬레이션 기준)
 R.POTION = { hp: 0.3, hpFlat: 30, mp: 0.35, mpFlat: 15, cd: 2.5 };
 R.potionPrice = (k, lv) => Math.round(R.CONSUMABLES[k].price * (1 + (lv - 1) * 0.08));
 // 스킬 연계: 스킬이 끝난 뒤 1.6초 안에 "다른" 스킬을 쓰면 연계 단계 +1 (최대 3)
@@ -453,7 +489,7 @@ R.MOD_TEXT = {
 
 // ─── 장비 도감 (GDD 34) ──────────────────────────────────
 // 5종 수집마다 공격력 +1%, 최대 HP +1%
-R.DEX_STEP = 5;
+R.DEX_STEP = 8;   // 장비 종류가 늘어서 (약 150종) 8종마다 +1%
 
 // ─── 펫 (GDD 49) — 디자인 시트 몬스터의 꼬마 버전. 전투력보다 보조 기능 ─────
 R.PETS = [

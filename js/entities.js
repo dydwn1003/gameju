@@ -29,7 +29,11 @@
     if (tm) for (const k in tm) adv[k] = (adv[k] || 0) + tm[k];
     if (s.buffs) for (const k in s.buffs) if (s.buffs[k] > (s.playTime || 0) && R.FOODS[k]) for (const mk in R.FOODS[k].mod) adv[mk] = (adv[mk] || 0) + R.FOODS[k].mod[mk];
     const st = Object.assign({}, s.stats);
-    let wAtk = 0, aDef = 0, hp = 0, mp = 0, crit = 0, atkPct = 0, elemDmg = 0, moveSpd = 0, elem = 'NONE';
+    let wAtk = 0, aDef = 0, hp = 0, mp = 0, crit = 0, atkPct = 0, elemDmg = 0, moveSpd = 0, atkSpdP = 0, elem = 'NONE';
+    // 전설 효과 집계
+    const legend = {};
+    for (const sl of R.SLOTS) { const it = s.equip[sl]; if (it && it.legend) legend[it.legend] = (legend[it.legend] || 0) + 1; }
+    if (legend.swift) { adv.movePct = (adv.movePct || 0) + 0.08; adv.dodgeCdr = (adv.dodgeCdr || 0) + 0.2; }
     for (const slot of R.SLOTS) {
       const it = s.equip[slot];
       if (!it) continue;
@@ -47,6 +51,7 @@
         else if (o.k === 'atkPct') atkPct += v;
         else if (o.k === 'elemDmg') elemDmg += v;
         else if (o.k === 'moveSpd') moveSpd += v;
+        else if (o.k === 'atkSpd') atkSpdP += v;
       }
     }
     for (const k of ['str', 'dex', 'int', 'vit', 'luk']) st[k] = Math.round(st[k]);
@@ -59,7 +64,8 @@
       critDmg: 1.5 + st.luk * R.STAT_FX.lukCritDmg * (cls.lukMul || 1) + (adv.critDmg || 0),
       maxHp: Math.round((100 + st.vit * 20 + (cls.atkStat === 'str' ? 0 : st.str * R.STAT_FX.strHp) + s.level * 20 + hp) * (1 + (adv.hpPct || 0))),
       maxMp: Math.round(40 + st.int * 5 + s.level * 8 + mp),
-      atkSpd: cls.atkSpeed * Math.min(1.8, 1 + st.dex * R.STAT_FX.dexSpd),
+      atkSpd: cls.atkSpeed * Math.min(1.8, Math.max(0.6, 1 + st.dex * R.STAT_FX.dexSpd + atkSpdP / 100)),
+      legend,
       moveSpd: cls.moveSpeed * (1 + moveSpd / 100 + (adv.movePct || 0)),
       elem, elemDmg: elemDmg / 100 + (adv.elemDmg || 0), adv,
     });
@@ -72,20 +78,37 @@
     let g = r < 0.005 ? 4 : r < 0.03 ? 3 : r < 0.15 ? 2 : r < 0.45 ? 1 : 0;
     return Math.max(g, min);
   };
-  R.makeItem = function (slot, ilvl, grade, cls, setChance = 0) {
+  // 장비 종류 고르기: 무기는 직업 무기의 3종, 방어구는 직업 성향에 따라 약간 치우치게
+  function pickVariant(base, cls) {
+    const vs = R.ITEM_VARIANTS[base];
+    if (!vs) return null;
+    const lean = { MAGE: 2, RANGER: 1, ASSASSIN: 1 }[cls];
+    if (lean != null && ['helmet', 'armor', 'gloves', 'boots'].includes(base) && Math.random() < 0.35) return vs[lean];
+    return vs[(Math.random() * vs.length) | 0];
+  }
+  R.makeItem = function (slot, ilvl, grade, cls, setChance = 0, varId) {
     const tier = clamp(Math.floor((ilvl - 1) / 10), 0, 4);
     const wtype = slot === 'weapon' ? R.CLASSES[cls].weapon : null;
+    const base = wtype || slot;
+    const v = (varId && R.variantOf(varId)) || pickVariant(base, cls) || { id: base };
     const gm = 1 + grade * 0.15;
-    const it = { uid: ++uidSeq, slot, wtype, name: R.ITEM_NAMES[wtype || slot][tier], grade, ilvl, enh: 0, opts: [] };
-    if (slot === 'weapon') it.atk = Math.round((10 + ilvl * 4) * gm * rand(0.93, 1.07));
-    const df = { helmet: 0.5, armor: 1, gloves: 0.35, boots: 0.4 }[slot];
-    if (df) it.def = Math.max(1, Math.round((3 + ilvl * 1.6) * df * gm * rand(0.93, 1.07)));
+    const isDefault = v.id === base;
+    const it = { uid: ++uidSeq, slot, wtype, var: v.id, name: isDefault ? R.ITEM_NAMES[base][tier] : `${R.TIER_WORD[tier]} ${v.name}`, grade, ilvl, enh: 0, opts: [] };
+    if (slot === 'weapon') it.atk = Math.round((10 + ilvl * 4) * gm * (v.atk || 1) * rand(0.93, 1.07));
+    const df = { helmet: 0.5, armor: 1, gloves: 0.35, boots: 0.4, cape: 0.3, belt: 0.25 }[slot];
+    if (df) it.def = Math.max(1, Math.round((3 + ilvl * 1.6) * df * (v.def || 1) * gm * rand(0.93, 1.07)));
+    // 고유 옵션 (종류마다 고정)
+    for (const [k, v0, per] of v.innate || []) {
+      const O = R.OPTIONS[k];
+      const val = O.pct ? v0 : Math.max(1, Math.round((v0 + (per || 0) * ilvl) * (1 + grade * 0.1)));
+      it.opts.push({ k, v: val, innate: true });
+    }
     const acc = !it.atk && !it.def;
-    const n = Math.min(4, grade + (acc ? 1 : 0));
+    const n = Math.min(4, grade + (acc ? 1 : 0)) + it.opts.length;
     const main = R.CLASSES[cls].atkStat;
     const pool = [main, main, 'vit', 'luk', 'str', 'dex', 'int', 'hp', 'mp', 'crit', 'atkPct', 'moveSpd'];
     if (slot === 'weapon') pool.push('elemDmg', 'atkPct', 'crit');
-    const used = new Set();
+    const used = new Set(it.opts.map((o) => o.k));
     for (let i = 0; i < n; i++) {
       let k, t = 0;
       do { k = pool[(Math.random() * pool.length) | 0]; t++; } while (used.has(k) && t < 30);
@@ -102,6 +125,8 @@
       it.name = R.ELEM_PREFIX[it.elem] + ' ' + it.name;
     }
     if (setChance > 0 && R.SET_SLOTS.includes(slot) && Math.random() < setChance) it.set = tier;
+    // 전설 등급: 60% 확률로 전설 효과
+    if (grade >= 4 && Math.random() < 0.6) { const ks = Object.keys(R.LEGENDS); it.legend = ks[(Math.random() * ks.length) | 0]; }
     return it;
   };
   R.sellPrice = (it) => Math.round((8 + it.ilvl * 3) * (1 + it.grade * it.grade * 0.8) * (1 + it.enh * 0.25));
@@ -206,7 +231,7 @@
     p.calmT = (p.calmT || 0) + dt;
     const rest = p.calmT > RG.restDelay;
     const regen = town ? RG.townHp : rest ? RG.hpRest : RG.hp;
-    p.hp = Math.min(p.st.maxHp, p.hp + p.st.maxHp * (regen + (R.Prog.petMod().regenPct || 0)) * dt);
+    p.hp = Math.min(p.st.maxHp, p.hp + p.st.maxHp * (regen + (R.Prog.petMod().regenPct || 0) + (p.st.legend && p.st.legend.regen ? 0.006 : 0)) * dt);
     if (G.link && G.link.t > 0) { G.link.t -= dt; if (G.link.t <= 0) G.link.n = 0; }
     p.finT = Math.max(0, (p.finT || 0) - dt);
     // 음식 버프 만료 시 능력치 재계산
@@ -466,7 +491,7 @@
     p.calmT = 0;
     p.state = 'skill'; p.stateT = 0;
     R.sfx(sk.elem === 'FIRE' ? 'fire' : sk.elem === 'ICE' ? 'ice' : sk.elem === 'THUNDER' ? 'thunder' : 'skill');
-    const opt = { rate: sk.rate * md.dmg * (1 + chain * R.LINK.dmg + (fin ? R.LINK.finisherBonus : 0)), elem: sk.elem, skill: true, ca: comboAction(), link: chain };
+    const opt = { rate: sk.rate * md.dmg * (1 + chain * (R.LINK.dmg + 0.08 * ((p.st.legend || {}).chain || 0)) + (fin ? R.LINK.finisherBonus : 0)), elem: sk.elem, skill: true, ca: comboAction(), link: chain };
     if (md.status) opt.status = st();
     switch (id) {
       case 'charge': {
@@ -913,8 +938,17 @@
     if (adv.berserk && p.hp < st.maxHp * 0.5) dmg *= 1 + adv.berserk;
     const crit = opt.forceCrit || Math.random() < st.crit + R.pbuf(p, 'crit');
     if (crit) dmg *= st.critDmg;
+    const LG = st.legend || {};
+    if (m.boss && LG.slayer) dmg *= 1.15;
     dmg = Math.max(1, Math.round(dmg));
     if (m.shield) { dmg = 0; }
+    // 전설 효과: 흡혈 · 업화 · 마나 순환 · 치유의 일격
+    if (dmg > 0) {
+      if (LG.vamp) p.hp = Math.min(st.maxHp, p.hp + dmg * 0.03 * LG.vamp);
+      if (LG.ember && Math.random() < 0.15) applyStatus(m, { burn: 3 }, dmg);
+      if (LG.mana) p.mp = Math.min(st.maxMp, p.mp + st.maxMp * 0.01 * LG.mana);
+      if (LG.critheal && crit) p.hp = Math.min(st.maxHp, p.hp + st.maxHp * 0.015 * LG.critheal);
+    }
     m.hp -= dmg;
     m.flash = 0.12;
     G.lastHit = { m, t: G.time };
@@ -991,6 +1025,7 @@
     dmg *= 1 + (adv.dmgTaken || 0);
     if (p.guardT > 0) dmg *= 0.4;
     dmg *= Math.max(0.2, 1 + R.pbuf(p, 'dmgTaken'));
+    if (p.st.legend && p.st.legend.laststand && p.hp < p.st.maxHp * 0.3) dmg *= 0.7;
     if (G.dungeon && G.dungeon.mod && G.dungeon.mod.id === 'fragile') dmg *= 1.3;
     dmg = Math.max(1, Math.round(dmg));
     p.hp -= dmg;
@@ -1456,7 +1491,7 @@
 
   R.pickup = function (d) {
     const s = G.save;
-    if (d.kind === 'gold') { const v = Math.round(d.v * (1 + (R.Prog.petMod().goldPct || 0))); s.gold += v; R.log('💰 골드 +{n}', '#ffd35a', 'gold', v); R.sfx('coin'); return true; }
+    if (d.kind === 'gold') { const v = Math.round(d.v * (1 + (R.Prog.petMod().goldPct || 0) + (G.player.st.legend && G.player.st.legend.fortune ? 0.3 : 0))); s.gold += v; R.log('💰 골드 +{n}', '#ffd35a', 'gold', v); R.sfx('coin'); return true; }
     if (d.kind === 'mat' || d.kind === 'potion') {
       s.bag[d.id] = (s.bag[d.id] || 0) + d.n;
       const info = R.Prog.itemInfo(d.id);

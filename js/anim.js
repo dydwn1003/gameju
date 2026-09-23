@@ -81,12 +81,72 @@
   }
   // 디자인 시트 프레임 (로컬 앞쪽 = +x 로 맞춰서)
   function drawSheet(g, f, P, x, y, o) {
+    if (o.look && !o.flash) {
+      const flip = f.face === -1 ? o.face > 0 : o.face < 0, fwd = f.face || 1;
+      const Q = Object.assign({}, P, { ox: P.ox * fwd, rot: P.rot * fwd, lying: P.lying * fwd });
+      return drawWhole(g, o.look, 0, 0, f.w, f.h, f.w / S, f.h / S, Q, x, y, { flip, alpha: o.alpha, scale: o.scale });
+    }
     const img = o.flash ? SPR.sheet.white : SPR.sheet.img;
     const flip = f.face === -1 ? o.face > 0 : o.face < 0;
     // 포즈의 ox/rot는 "앞쪽" 기준 → 뒤집은 뒤의 로컬 앞쪽(f.face)에 맞춰 부호 보정
     const fwd = f.face || 1;
     const Q = Object.assign({}, P, { ox: P.ox * fwd, rot: P.rot * fwd, lying: P.lying * fwd });
     drawWhole(g, img, f.x, f.y, f.w, f.h, f.w / S, f.h / S, Q, x, y, { flip, alpha: o.alpha, scale: o.scale });
+  }
+
+  // ─── 장비 외형: 입은 갑옷 티어에 따라 옷·갑옷 색을 바꾼다 (그림 없이 색 변환) ──────────
+  // 티어 0 철(원래 색) · 1 기사(은청) · 2 용암(적동) · 3 서리(빙청) · 4 공허(자수정)
+  const LOOK_TINT = [null, { h: 218, s: 0.13, v: 1.2 }, { h: 14, s: 0.78, v: 1.02 }, { h: 194, s: 0.6, v: 1.12 }, { h: 272, s: 0.62, v: 0.98 }];
+  // 직업별로 "갑옷·옷"으로 볼 픽셀 (HSV)
+  const LOOK_MASK = {
+    GLADIATOR: (h, s, v) => s < 0.22 && v > 0.3 && v < 0.97,
+    RANGER: (h, s, v) => h > 60 && h < 170 && s > 0.2 && v > 0.12,
+    MAGE: (h, s, v) => h > 195 && h < 262 && s > 0.28 && v > 0.12,
+    ASSASSIN: (h, s, v) => (s < 0.28 && v > 0.1 && v < 0.55) || (h > 255 && h < 315 && s > 0.2),
+  };
+  function rgb2hsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let h = 0;
+    if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [(h * 60 + 360) % 360, mx ? d / mx : 0, mx];
+  }
+  function hsv2rgb(h, s, v) {
+    const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+    return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+  }
+  const lookCache = new Map();
+  function recolor(img, sx, sy, sw, sh, fam, tier) {
+    const c = document.createElement('canvas'); c.width = sw; c.height = sh;
+    const g = c.getContext('2d'); g.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    const T = LOOK_TINT[tier], mask = LOOK_MASK[fam];
+    if (!T || !mask) return c;
+    const d = g.getImageData(0, 0, sw, sh), a = d.data;
+    for (let i = 0; i < a.length; i += 4) {
+      if (a[i + 3] < 8) continue;
+      const [h, s, v] = rgb2hsv(a[i], a[i + 1], a[i + 2]);
+      if (!mask(h, s, v)) continue;
+      const [r, gg, b] = hsv2rgb(T.h, Math.max(T.s, s * 0.9), Math.min(1, v * T.v));
+      a[i] = r; a[i + 1] = gg; a[i + 2] = b;
+    }
+    g.putImageData(d, 0, 0);
+    return c;
+  }
+  A.lookTier = () => { const ar = G.save && G.save.equip && G.save.equip.armor; return ar ? SPR.itemTier(ar) : 0; };
+  // 디자인 시트 프레임 한 장의 외형 (티어 0 이면 null → 원래 그림)
+  A.lookFrame = (key, tier = A.lookTier()) => {
+    const f = SPR.frame(key);
+    if (!f || !tier || !SPR.sheet.img) return null;
+    const k = `f:${key}:${tier}`;
+    if (!lookCache.has(k)) lookCache.set(k, recolor(SPR.sheet.img, f.x, f.y, f.w, f.h, G.save.cls, tier));
+    return lookCache.get(k);
+  };
+  function lookSheet(key, d, tier) {
+    if (!tier) return null;
+    const k = `s:${key}:${tier}`;
+    if (!lookCache.has(k)) lookCache.set(k, recolor(d.img, 0, 0, d.img.width, d.img.height, G.save.cls, tier));
+    return lookCache.get(k);
   }
 
   // ─── 프레임 시트 (사용자가 넣는 도트 애니메이션) ──────────────
@@ -129,7 +189,7 @@
     else if (st.kind === 'hurt' && d.hurt) { const h = perDir(d.hurt, rowKey, 'side'); if (h) { seq = h; i = 0; } }
     const col = seq[((i % seq.length) + seq.length) % seq.length];
     const flip = rowKey === 'side' && fx !== d.side;
-    const img = o.flash ? d.white : d.img;
+    const img = o.flash ? d.white : (o.tier && lookSheet(key, d, o.tier)) || d.img;
     // 로컬 앞쪽: 옆줄이면 바라보는 쪽, 위·아래 줄이면 포즈를 세로로 이미 바꿔 둠
     const fwd = rowKey === 'left' ? -1 : rowKey === 'right' ? 1 : rowKey === 'side' ? d.side : 1;
     const Q = Object.assign({}, P, { ox: P.ox * fwd, rot: P.rot * fwd, lying: P.lying * fwd });
@@ -199,7 +259,8 @@
     if (p.flash > 0 && !p.dead) { hurt(P, p.flash); if (st.kind !== 'attack') st.kind = 'hurt'; }
     if (p.status.stun > 0) P.rot += Math.sin(G.time * 30) * 0.06;
     const blink = p.iframes > 0 && p.state !== 'dodge' && !p.dead && Math.floor(G.time * 20) % 2 === 0;
-    const o = { face: p.faceX, flash: p.flash > 0, alpha: blink ? 0.4 : p.dead ? 0.85 : 1 };
+    const tier = A.lookTier();
+    const o = { face: p.faceX, flash: p.flash > 0, alpha: blink ? 0.4 : p.dead ? 0.85 : 1, tier, look: FS[key] ? null : A.lookFrame(key, tier) };
     if (!P.center && !p.dead) faceVertical(P, p.dir);
     const behind = atk && p.dir === 'up';
     if (behind) drawSwing(g, p, atk.k, atk.hk, cls);

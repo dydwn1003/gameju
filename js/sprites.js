@@ -403,6 +403,116 @@
       px(g, 3, 9, P.c); px(g, 11, 6, P.c);
     },
   };
+  const LEATHER = { a: '#a8743a', b: '#6a4420', c: '#d8a868' }, CLOTH = { a: '#6a58c8', b: '#3a2e7a', c: '#a898f0' };
+  Object.assign(ICON_DRAW, {
+    greatsword(g, P) {
+      line(g, 4, 9, 12, 1, 3, P.a); line(g, 6, 9, 13, 2, 1, P.b); line(g, 4, 8, 11, 1, 1, P.c);
+      line(g, 1, 7, 7, 13, 1, P.d); line(g, 1, 13, 3, 11, 2, P.e); px(g, 0, 13, P.d);
+    },
+    axe(g, P) {
+      line(g, 2, 13, 10, 3, 1, P.e); line(g, 3, 13, 11, 3, 1, P.e2);
+      rect(g, 8, 0, 5, 3, P.a); rect(g, 9, 3, 5, 3, P.a); rect(g, 11, 6, 3, 2, P.a); rect(g, 8, 0, 2, 2, P.c); rect(g, 12, 5, 1, 3, P.b);
+      rect(g, 9, 3, 2, 2, P.d);
+    },
+    crossbow(g, P) {
+      rect(g, 6, 2, 2, 11, P.e); rect(g, 7, 2, 1, 11, P.e2);
+      for (let x = 0; x < 14; x++) { const y = Math.round(4 - Math.sin((x / 13) * Math.PI) * 3); px(g, x, y, P.a); px(g, x, y + 1, P.b); }
+      line(g, 0, 5, 6, 8, 1, P.c); line(g, 13, 5, 8, 8, 1, P.c); rect(g, 6, 11, 2, 2, P.d); rect(g, 6, 0, 2, 2, P.c);
+    },
+    shortbow(g, P) {
+      for (let y = 2; y < 12; y++) { const x = Math.round(4 + Math.sin(((y - 2) / 9) * Math.PI) * 5); rect(g, x, y, 2, 1, y % 4 === 1 ? P.d : P.a); px(g, x + 1, y, P.b); }
+      line(g, 4, 2, 4, 11, 1, P.c); line(g, 1, 7, 12, 7, 1, P.e); px(g, 13, 7, P.c);
+    },
+    orb(g, P) {
+      ell(g, 7, 6, 5.2, 5.2, P.d); ell(g, 6.2, 5, 2.6, 2.6, P.c); px(g, 5, 4, '#ffffff');
+      rect(g, 4, 11, 7, 2, GOLD.a); rect(g, 5, 13, 5, 1, GOLD.b); px(g, 3, 11, GOLD.c);
+    },
+    rod(g, P) {
+      line(g, 2, 13, 10, 5, 2, P.a); line(g, 3, 13, 10, 6, 1, P.b);
+      rect(g, 9, 1, 4, 4, P.d); rect(g, 10, 0, 2, 6, P.d); rect(g, 8, 2, 6, 2, P.d); px(g, 10, 2, P.c); px(g, 11, 1, '#ffffff');
+      rect(g, 8, 5, 3, 1, GOLD.a);
+    },
+    katar(g, P) {
+      rect(g, 3, 9, 8, 2, P.e); rect(g, 3, 9, 1, 5, P.e); rect(g, 10, 9, 1, 5, P.e); rect(g, 4, 12, 6, 1, P.d);
+      rect(g, 5, 2, 4, 7, P.a); rect(g, 6, 0, 2, 2, P.a); rect(g, 5, 2, 1, 7, P.c); rect(g, 8, 3, 1, 6, P.b);
+    },
+    claw(g, P) {
+      rect(g, 3, 8, 8, 4, P.e); rect(g, 3, 8, 8, 1, P.d);
+      for (let i = 0; i < 3; i++) { line(g, 4 + i * 3, 7, 6 + i * 3, 0, 1, P.a); px(g, 4 + i * 3, 6, P.c); }
+    },
+    hood(g, P) {
+      const C = { a: LEATHER.a, b: LEATHER.b, c: LEATHER.c };
+      ell(g, 7, 6, 5.5, 6, C.a); rect(g, 2, 9, 11, 4, C.a); ell(g, 7, 8, 3, 3.5, '#1a1622'); rect(g, 5, 9, 5, 2, '#1a1622');
+      rect(g, 3, 2, 2, 6, C.c); rect(g, 2, 12, 11, 1, C.b); px(g, 6, 8, P.d); px(g, 8, 8, P.d);
+    },
+    circlet(g, P) {
+      ell(g, 7, 7, 6, 4, GOLD.a); ell(g, 7, 7.6, 4.6, 2.8, 'rgba(0,0,0,0)');
+      g.globalCompositeOperation = 'destination-out'; ell(g, 7, 7.8, 4.6, 2.8, '#000'); g.globalCompositeOperation = 'source-over';
+      rect(g, 5, 2, 5, 3, GOLD.a); ell(g, 7.5, 3.5, 1.8, 1.8, P.d); px(g, 7, 3, '#ffffff'); rect(g, 2, 7, 1, 2, GOLD.c);
+    },
+    leather(g, P) {
+      const C = LEATHER;
+      rect(g, 1, 2, 3, 3, C.b); rect(g, 10, 2, 3, 3, C.b); rect(g, 3, 1, 8, 11, C.a); rect(g, 4, 2, 2, 8, C.c);
+      for (let y = 3; y < 9; y += 2) rect(g, 6, y, 2, 1, P.e2);
+      rect(g, 3, 9, 8, 2, P.a); rect(g, 6, 9, 2, 2, P.d); rect(g, 3, 11, 3, 2, C.b); rect(g, 8, 11, 3, 2, C.b);
+    },
+    robe(g, P) {
+      const C = { a: P.e, b: P.e2, c: P.a };
+      rect(g, 4, 0, 6, 3, C.a); rect(g, 3, 3, 8, 5, C.a); rect(g, 2, 8, 10, 6, C.a); rect(g, 6, 1, 2, 13, C.c);
+      rect(g, 2, 8, 10, 1, P.d); rect(g, 1, 12, 12, 2, C.b); rect(g, 3, 3, 1, 5, C.b); rect(g, 10, 3, 1, 5, C.b); px(g, 7, 4, P.d);
+    },
+    cape(g, P) {
+      rect(g, 4, 0, 6, 2, P.d); rect(g, 3, 2, 8, 3, P.e); rect(g, 2, 5, 10, 5, P.e); rect(g, 1, 10, 12, 3, P.e);
+      rect(g, 4, 2, 2, 10, P.a); rect(g, 1, 12, 12, 1, P.e2); rect(g, 10, 3, 1, 9, P.e2); rect(g, 6, 0, 2, 2, P.c);
+    },
+    coat(g, P) {
+      rect(g, 3, 0, 8, 3, P.b); rect(g, 2, 3, 10, 10, P.e); rect(g, 6, 3, 2, 10, P.e2); rect(g, 3, 3, 2, 9, P.a);
+      for (let y = 5; y < 12; y += 3) { px(g, 5, y, P.d); px(g, 8, y, P.d); } rect(g, 2, 12, 10, 1, P.e2); rect(g, 4, 0, 6, 1, P.c);
+    },
+    wingcape(g, P) {
+      for (let i = 0; i < 6; i++) { rect(g, 1 + i, 2 + i, 3, 8 - i, P.a); rect(g, 10 - i, 2 + i, 3, 8 - i, P.a); }
+      rect(g, 5, 1, 4, 11, P.e); rect(g, 6, 0, 2, 2, P.d); line(g, 1, 3, 5, 9, 1, P.c); line(g, 12, 3, 8, 9, 1, P.c); rect(g, 5, 11, 4, 2, P.e2);
+    },
+    belt(g, P) {
+      rect(g, 0, 5, 14, 4, LEATHER.a); rect(g, 0, 5, 14, 1, LEATHER.c); rect(g, 0, 8, 14, 1, LEATHER.b);
+      rect(g, 5, 3, 5, 8, GOLD.a); rect(g, 6, 4, 3, 6, '#1a1622'); rect(g, 7, 5, 1, 4, GOLD.c); px(g, 2, 7, P.d); px(g, 12, 7, P.d);
+    },
+    sash(g, P) {
+      rect(g, 0, 4, 14, 5, P.e); rect(g, 0, 4, 14, 1, P.a); rect(g, 0, 8, 14, 1, P.e2);
+      rect(g, 8, 8, 2, 5, P.e); rect(g, 10, 8, 2, 4, P.e2); rect(g, 7, 5, 3, 3, P.d);
+    },
+    warbelt(g, P) {
+      rect(g, 0, 5, 14, 4, P.b); rect(g, 0, 5, 14, 1, P.a); for (let x = 1; x < 14; x += 3) px(g, x, 7, P.c);
+      ell(g, 7, 7, 3.4, 3.4, GOLD.a); ell(g, 7, 7, 1.8, 1.8, P.d); px(g, 6, 6, '#ffffff');
+    },
+    signet(g, P) {
+      ICON_DRAW.ring(g, P); rect(g, 4, 1, 7, 4, GOLD.a); rect(g, 5, 2, 5, 2, P.d); px(g, 6, 2, '#ffffff');
+    },
+    band(g, P) {
+      ell(g, 7, 7, 5.5, 5.5, P.a);
+      g.globalCompositeOperation = 'destination-out'; ell(g, 7, 7.3, 3.4, 3.4, '#000'); g.globalCompositeOperation = 'source-over';
+      rect(g, 3, 5, 1, 4, P.c); rect(g, 11, 6, 1, 4, P.b); for (let i = 0; i < 4; i++) px(g, 5 + i * 1.5 | 0, 2, P.d);
+    },
+    pendant(g, P) {
+      for (let i = 0; i <= 12; i++) { const a = Math.PI * (i / 12); px(g, Math.round(7 + Math.cos(a) * 6), Math.round(Math.sin(a) * 5), i % 2 ? GOLD.a : GOLD.b); }
+      ell(g, 7, 9.5, 3.4, 3.4, GOLD.a); ell(g, 7, 9.5, 2.2, 2.2, P.d); px(g, 6, 8, '#ffffff');
+    },
+    amulet(g, P) {
+      for (let i = 0; i <= 12; i++) { const a = Math.PI * (i / 12); px(g, Math.round(7 + Math.cos(a) * 6), Math.round(Math.sin(a) * 4), i % 2 ? P.e : P.e2); }
+      rect(g, 4, 5, 7, 2, GOLD.a); rect(g, 5, 7, 5, 2, GOLD.a); rect(g, 6, 9, 3, 2, GOLD.a); px(g, 7, 11, GOLD.a); rect(g, 6, 6, 3, 3, P.d);
+    },
+    piercing(g, P) {
+      ell(g, 7, 7, 3, 3, P.d); px(g, 6, 6, '#ffffff'); rect(g, 6, 10, 2, 3, P.a); px(g, 3, 3, P.c); px(g, 11, 4, P.c); px(g, 10, 11, P.c);
+    },
+    cuff(g, P) {
+      for (let i = 0; i < 16; i++) { const a = -0.6 + (i / 15) * 4.2; px(g, Math.round(7 + Math.cos(a) * 5), Math.round(7 + Math.sin(a) * 5), P.a); px(g, Math.round(7 + Math.cos(a) * 4), Math.round(7 + Math.sin(a) * 4), P.b); }
+      ell(g, 11.5, 4, 1.6, 1.6, P.d);
+    },
+    lgloves(g, P) { ICON_DRAW.gloves(g, Object.assign({}, P, LEATHER)); },
+    mgloves(g, P) { ICON_DRAW.gloves(g, Object.assign({}, P, CLOTH, { e: P.a })); },
+    lboots(g, P) { ICON_DRAW.boots(g, Object.assign({}, P, LEATHER)); },
+    mboots(g, P) { ICON_DRAW.boots(g, Object.assign({}, P, CLOTH, { e: P.a })); },
+  });
   // base: 무기 종류(sword/bow/staff/dagger) 또는 부위(helmet…)
   S.itemIcon = function (base, tier = 0, elem = null) {
     return get(`ic:${base}:${tier}:${elem || ''}`, () => {
@@ -418,7 +528,7 @@
     return iconURL.get(k);
   };
   S.itemTier = (it) => Math.max(0, Math.min(4, Math.floor((it.ilvl - 1) / 10)));
-  S.itemBase = (it) => (it.slot === 'weapon' ? it.wtype : it.slot);
+  S.itemBase = (it) => it.var || (it.slot === 'weapon' ? it.wtype : it.slot);
 
   // ─── 타일 ─────────────────────────────────────────────
   R.THEMES = {

@@ -26,6 +26,17 @@
     return c;
   }
   const playerKey = () => (G.save.adv && R.SPR.frame(G.save.adv) ? G.save.adv : G.save.cls);
+  // 캐릭터 그림 (갑옷 티어 색이 반영된 외형)
+  function playerArt(W, H, cls) {
+    const key = playerKey(), look = R.Anim.lookFrame(key);
+    if (!look) return spriteCanvas(key, W, H, cls);
+    const c = document.createElement('canvas'); c.width = W; c.height = H; if (cls) c.className = cls;
+    const g = c.getContext('2d'), k = Math.min((W - 4) / look.width, (H - 4) / look.height);
+    const f = R.SPR.frame(key);
+    g.translate(W / 2, 0); if (f && f.face === -1) g.scale(-1, 1);
+    g.drawImage(look, -look.width * k / 2, H - 2 - look.height * k, look.width * k, look.height * k);
+    return c;
+  }
   // 타이틀·직업 선택은 screens.js 가 매 프레임 다시 그리므로 여기선 초상화만 갱신
   R.SPR.onSheetReady = () => { if (G.save) UI.drawFace(); };
 
@@ -410,9 +421,10 @@
     }
     return `<div class="icard g${it.grade}" style="--g:${g.color}">
       <div class="ic-head"><div class="ic-icon">${itemIcon(it)}</div><div><div class="ic-name">${it.enh ? `+${it.enh} ` : ''}${esc(it.name)}</div>
-      <div class="ic-meta"><span class="gtag">${g.name}</span> ${R.SLOT_NAME[it.slot]} · Lv.${it.ilvl}${it.elem ? ` · ${R.ELEM[it.elem].icon} ${R.ELEM[it.elem].name}` : ''}</div></div></div>
+      <div class="ic-meta"><span class="gtag">${g.name}</span> ${(R.variantOf(it.var) || {}).name || R.SLOT_NAME[it.slot]} · Lv.${it.ilvl}${it.elem ? ` · ${R.ELEM[it.elem].icon} ${R.ELEM[it.elem].name}` : ''}</div></div></div>
       <div class="ic-main">${R.itemMainText(it)} ${diff}</div>
-      ${it.opts.length ? `<div class="ic-opts">${it.opts.map((o) => `<div>◆ ${R.optText(o, it)}</div>`).join('')}</div>` : ''}
+      ${it.opts.length ? `<div class="ic-opts">${it.opts.map((o) => `<div class="${o.innate ? 'inn' : ''}">${o.innate ? '◇' : '◆'} ${R.optText(o, it)}${o.innate ? ' <em>고유</em>' : ''}</div>`).join('')}</div>` : ''}
+      ${it.legend ? `<div class="ic-legend"><b>★ 전설 효과 · ${R.LEGENDS[it.legend].name}</b><div>${R.LEGENDS[it.legend].desc}</div></div>` : ''}
       ${setHtml}
       ${cmp && cmp !== it ? `<div class="ic-cmp">장착 중 · ${esc(cmp.name)}${cmp.enh ? ' +' + cmp.enh : ''}</div>` : ''}
     </div>`;
@@ -453,7 +465,7 @@
     // 장비 목록 (장비·가방 탭 공용)
     const invSection = () => {
       const filters = { all: '전체', weapon: '무기', armor: '방어구', acc: '장신구' };
-      const pass = (it) => invFilter === 'all' || (invFilter === 'weapon' && it.slot === 'weapon') || (invFilter === 'armor' && ['helmet', 'armor', 'gloves', 'boots'].includes(it.slot)) || (invFilter === 'acc' && ['ring', 'necklace', 'earring'].includes(it.slot));
+      const pass = (it) => invFilter === 'all' || (invFilter === 'weapon' && it.slot === 'weapon') || (invFilter === 'armor' && ['helmet', 'armor', 'gloves', 'boots', 'cape', 'belt'].includes(it.slot)) || (invFilter === 'acc' && ['ring', 'necklace', 'earring'].includes(it.slot));
       const list = s.inv.map((it, i) => ({ it, i })).filter((o) => pass(o.it));
       return `<section class="card">
           <div class="card-h">가방 <span class="pill">${s.inv.length}/40</span><button class="btn xs ghost" data-a="sort">정렬</button></div>
@@ -538,7 +550,7 @@
           ${(s.pets || []).length ? `<div class="pets">${R.PETS.filter((d) => s.pets.includes(d.id)).map((d) => `<button class="pet ${s.pet === d.id ? 'on' : ''}" data-a="pet" data-v="${d.id}"><span class="pet-art" data-k="${d.id}"></span><b>${d.name}</b><small>${d.desc}</small>${s.pet === d.id ? '<i>동행 중</i>' : ''}</button>`).join('')}</div>` : '<div class="muted">마을 광장의 수상한 상인 모르에게서 펫을 데려올 수 있습니다.</div>'}
         </section>
         <section class="card"><button class="btn wide ghost" data-a="bag">🎒 가방 · 재료 · 소비 아이템 보기</button></section>`;
-      $('hero-art').appendChild(spriteCanvas(playerKey(), 240, 270, 'hero-cv'));
+      $('hero-art').appendChild(playerArt(240, 270, 'hero-cv'));
       body.querySelectorAll('.pet-art').forEach((el) => el.appendChild(spriteCanvas(el.dataset.k, 84, 66, 'pet-cv')));
       bindActs(body, {
         stat: (k) => { if (s.points <= 0) return; s.points--; s.stats[k]++; R.refreshStats(); UI.refreshPanel(); },
@@ -551,7 +563,7 @@
       });
     } else if (tab === '장비') {
       const slotCell = (sl) => { const it = s.equip[sl]; return it ? `<div class="doll-slot">${cell(it, `data-a="eq" data-v="${sl}"`)}<small>${R.SLOT_NAME[sl]}</small></div>` : `<div class="doll-slot"><div class="cell empty">${R.SLOT_ICON[sl]}</div><small>${R.SLOT_NAME[sl]}</small></div>`; };
-      const L = ['weapon', 'helmet', 'armor', 'gloves'], Rr = ['boots', 'ring', 'necklace', 'earring'];
+      const L = ['weapon', 'helmet', 'armor', 'gloves', 'boots'], Rr = ['cape', 'belt', 'ring', 'necklace', 'earring'];
       body.innerHTML = `
         <section class="doll">
           <div class="doll-col">${L.map(slotCell).join('')}</div>
@@ -559,7 +571,7 @@
           <div class="doll-col">${Rr.map(slotCell).join('')}</div>
         </section>
         ${invSection()}`;
-      $('doll-art').appendChild(spriteCanvas(playerKey(), 200, 240, 'doll-cv'));
+      $('doll-art').appendChild(playerArt(200, 240, 'doll-cv'));
       bindActs(body, {
         eq: (sl) => { const it = s.equip[sl]; popup(itemCard(it) + `<div class="row-btns"><button class="btn ghost" data-a="un">해제</button><button class="btn" data-a="x">닫기</button></div>`, (r) => bindActs(r, { un: () => { unequip(sl); closePopup(); UI.refreshPanel(); }, x: closePopup }), false, 'sheet-pop'); },
         ...invActs(),
@@ -755,7 +767,8 @@
       <section class="card"><div class="card-h">장비 목록</div><div class="dex-grid"><div></div>${TIER.map((t) => `<small>${t}</small>`).join('')}
       ${[...new Set(ent.map((e) => e.base))].map((b) => {
         const row = ent.filter((e) => e.base === b);
-        return `<small class="rowh">${R.SLOT_NAME[row[0].slot]}</small>` + row.map((e) => { const g = (s.itemDex || {})[e.key]; return g ? `<div class="dexi" style="--g:${gcol(g - 1)}" title="${e.name}"><img class="px-ic" alt="" src="${R.SPR.itemIconURL(b, e.tier)}"><span>${e.name}</span></div>` : '<div class="dexi none">?</div>'; }).join('');
+        const vv = R.variantOf(b);
+        return `<small class="rowh">${vv ? vv.name : R.SLOT_NAME[row[0].slot]}</small>` + row.map((e) => { const g = (s.itemDex || {})[e.key]; return g ? `<div class="dexi" style="--g:${gcol(g - 1)}" title="${e.name}"><img class="px-ic" alt="" src="${R.SPR.itemIconURL(b, e.tier)}"><span>${e.name}</span></div>` : '<div class="dexi none">?</div>'; }).join('');
       }).join('')}</div></section>`);
   }
 

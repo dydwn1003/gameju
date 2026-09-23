@@ -678,3 +678,7 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .cell .ic .px-ic { width: 78%; }
 .ic-icon .px-ic { width: 100%; }
 .dexi .px-ic { width: 60%; }
+.ic-opts .inn { color: #bfe6ff; }
+.ic-opts em { font-style: normal; font-size: 1.9cqw; padding: 0 1cqw; border-radius: 99cqw; background: rgba(120, 180, 255, 0.2); color: #bfe6ff; margin-left: 0.6cqw; }
+.ic-legend { margin-top: 1.6cqw; padding: 1.4cqw 2cqw; border-radius: 2cqw; background: linear-gradient(90deg, rgba(255, 154, 46, 0.22), rgba(255, 154, 46, 0.05)); border: 1px solid rgba(255, 154, 46, 0.5); font-size: 2.5cqw; }
+.ic-legend b { color: #ffb45a; font-weight: normal; display: block; }

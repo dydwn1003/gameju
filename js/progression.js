@@ -62,7 +62,7 @@
 
   // ─── 장비 도감 ─────────────────────────────────────────
   const tierOf = (it) => Math.max(0, Math.min(4, Math.floor((it.ilvl - 1) / 10)));
-  P.dexKey = (it) => `${it.wtype || it.slot}:${tierOf(it)}`;
+  P.dexKey = (it) => `${it.var || it.wtype || it.slot}:${tierOf(it)}`;
   P.dexAdd = (it) => {
     const s = S();
     s.itemDex = s.itemDex || {};
@@ -76,9 +76,12 @@
   P.dexCount = () => Object.keys(S().itemDex || {}).length;
   P.dexEntries = () => {
     const cls = R.CLASSES[S().cls];
+    // 종류마다 5티어 (무기는 내 직업 무기 3종)
     const bases = [cls.weapon, ...R.SLOTS.slice(1)];
     const out = [];
-    for (const b of bases) for (let t = 0; t < 5; t++) out.push({ base: b, tier: t, key: `${b}:${t}`, name: R.ITEM_NAMES[b][t], slot: b === cls.weapon ? 'weapon' : b });
+    for (const b of bases) for (const v of R.ITEM_VARIANTS[b] || [{ id: b }]) for (let t = 0; t < 5; t++) {
+      out.push({ base: v.id, group: b, tier: t, key: `${v.id}:${t}`, name: v.id === b ? R.ITEM_NAMES[b][t] : `${R.TIER_WORD[t]} ${v.name}`, slot: b === cls.weapon ? 'weapon' : b });
+    }
     return out;
   };
   P.dexBonus = () => Math.floor(P.dexCount() / R.DEX_STEP) / 100;
