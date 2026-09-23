@@ -497,3 +497,29 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .story-text { width: 84%; font-size: 4cqw; line-height: 1.9; text-align: center; white-space: pre-line; min-height: 40cqw; display: flex; align-items: center; justify-content: center; animation: fadeIn 1s; }
 .story-hint { position: absolute; bottom: 10cqw; font-size: 2.8cqw; color: var(--mute); animation: bob 0.8s infinite alternate; }
 @keyframes fadeIn { from { opacity: 0; } }
+
+/* ─── 펫 · 호감도 · 난이도 · 심연의 탑 ─────────────────── */
+.pets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6cqw; }
+.pet { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.4cqw; padding: 1.6cqw 1cqw; border-radius: 2.8cqw; border: 1px solid var(--stroke); background: rgba(0, 0, 0, 0.28); color: inherit; font: inherit; }
+.pet.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset, 0 0 3cqw rgba(255, 200, 80, 0.25); }
+.pet b { font-weight: normal; font-size: 2.8cqw; }
+.pet small { font-size: 2cqw; color: var(--dim); text-align: center; line-height: 1.4; }
+.pet i { position: absolute; top: 1cqw; right: 1cqw; font-style: normal; font-size: 1.9cqw; padding: 0.2cqw 1cqw; border-radius: 99cqw; background: var(--gold); color: #2a1600; }
+.pet-cv { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.pet-art { display: block; width: 100%; }
+.li-ico.pet-art { overflow: hidden; padding: 0.6cqw; }
+.pet-li.on { background: linear-gradient(90deg, rgba(255, 200, 80, 0.12), transparent); }
+.li-b small .bad, .bad { color: var(--bad, #ff7a7a); }
+.favor { display: grid; grid-template-columns: 1fr auto; gap: 0.4cqw 2cqw; padding: 1.4cqw 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); font-size: 2.8cqw; }
+.favor small { grid-column: 1 / -1; font-size: 2.2cqw; color: var(--dim); }
+.favor small.on { color: var(--good); }
+.hearts { font-weight: normal; color: #ff7aa8; letter-spacing: 0.3cqw; }
+.seg.diff { grid-template-columns: repeat(3, 1fr); margin-bottom: 2cqw; }
+.seg.diff button:disabled { opacity: 0.45; }
+.seg.diff button.on { background: var(--c); color: #1a0e00; }
+.center { text-align: center; margin: 0 0 2cqw; }
+.region.t-tower { --tc: rgba(110, 60, 170, 0.55); }
+.region.hidden-rg { --tc: rgba(70, 40, 100, 0.6); border-style: dashed; }
+.tower-card { background: linear-gradient(160deg, rgba(110, 60, 170, 0.35), rgba(20, 12, 36, 0.6)); }
+.tower-card .pbar { margin: 2cqw 0 0.4cqw; }
+.tower-card.locked { opacity: 0.6; }

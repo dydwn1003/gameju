@@ -446,20 +446,33 @@
           ${Object.keys(setC).length ? Object.entries(setC).map(([si, n]) => `<div class="kv"><span style="color:${R.SETS[si].color}">${R.SETS[si].name} 세트 (${n}/6)</span><b>${[2, 4, 6].filter((x) => n >= x).map((x) => Object.entries(R.SETS[si].bonus[x]).map(([k, v]) => R.MOD_TEXT[k](v)).join(', ')).join(' · ') || '-'}</b></div>`).join('') : '<div class="muted">장착한 세트 장비가 없습니다</div>'}
           <div class="kv"><span>📖 장비 도감 보너스</span><b>공격력·HP +${Math.round(R.Prog.dexBonus() * 100)}%</b></div>
           ${s.adv ? `<div class="kv"><span>전직 · ${R.ADVANCES[s.adv].name}</span><b>${R.ADVANCES[s.adv].desc}</b></div>` : ''}
+          ${Object.keys(R.FOODS).filter((k) => R.Prog.buffLeft(k) > 0).map((k) => `<div class="kv"><span>${R.FOODS[k].icon} ${R.FOODS[k].name}</span><b>${R.FOODS[k].desc.replace(/^\S+ /, '')} · ${Math.ceil(R.Prog.buffLeft(k) / 60)}분 남음</b></div>`).join('')}
+        </section>
+        <section class="card">
+          <div class="card-h">동행 펫 <span class="pill">${(s.pets || []).length}/${R.PETS.length}</span></div>
+          ${(s.pets || []).length ? `<div class="pets">${R.PETS.filter((d) => s.pets.includes(d.id)).map((d) => `<button class="pet ${s.pet === d.id ? 'on' : ''}" data-a="pet" data-v="${d.id}"><span class="pet-art" data-k="${d.id}"></span><b>${d.name}</b><small>${d.desc}</small>${s.pet === d.id ? '<i>동행 중</i>' : ''}</button>`).join('')}</div>` : '<div class="muted">마을 광장의 수상한 상인 모르에게서 펫을 데려올 수 있습니다.</div>'}
         </section>
         <section class="card">
           <div class="card-h">가방 · 재료</div>
           <div class="mats">
             ${Object.keys(R.MATERIALS).map((k) => `<div class="mat"><span>${R.MATERIALS[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.MATERIALS[k].name}</small></div>`).join('')}
             ${Object.keys(R.CONSUMABLES).map((k) => `<div class="mat"><span>${R.CONSUMABLES[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.CONSUMABLES[k].name}</small></div>`).join('')}
+            ${Object.keys(R.GATHER).map((k) => `<div class="mat"><span>${R.GATHER[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.GATHER[k].name}</small></div>`).join('')}
+            ${Object.keys(R.FOODS).map((k) => `<div class="mat"><span>${R.FOODS[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.FOODS[k].name}</small></div>`).join('')}
             <div class="mat"><span>🏅</span><b>${s.honor || 0}</b><small>명예 메달</small></div>
           </div>
-          ${s.bag.mpPotion ? '<button class="btn wide ghost" data-a="mp">💧 파란 물약 사용</button>' : ''}
+          <div class="row-btns">
+          ${s.bag.mpPotion ? '<button class="btn ghost" data-a="mp">💧 파란 물약 사용</button>' : ''}
+          ${Object.keys(R.FOODS).filter((k) => s.bag[k]).map((k) => `<button class="btn gold" data-a="eat" data-v="${k}">${R.FOODS[k].icon} ${R.FOODS[k].name} 먹기</button>`).join('')}
+          </div>
         </section>`;
       $('hero-art').appendChild(spriteCanvas(playerKey(), 240, 270, 'hero-cv'));
+      body.querySelectorAll('.pet-art').forEach((el) => el.appendChild(spriteCanvas(el.dataset.k, 84, 66, 'pet-cv')));
       bindActs(body, {
         stat: (k) => { if (s.points <= 0) return; s.points--; s.stats[k]++; R.refreshStats(); UI.refreshPanel(); },
         mp: () => { R.usePotion('mpPotion'); UI.refreshPanel(); },
+        eat: (k) => { R.Prog.eat(k); UI.refreshPanel(); },
+        pet: (id) => { R.Prog.setPet(id); R.spawnPet(); UI.refreshPanel(); },
       });
     } else if (tab === '장비') {
       const slotCell = (sl) => { const it = s.equip[sl]; return it ? `<div class="doll-slot">${cell(it, `data-a="eq" data-v="${sl}"`)}<small>${R.SLOT_NAME[sl]}</small></div>` : `<div class="doll-slot"><div class="cell empty">${R.SLOT_ICON[sl]}</div><small>${R.SLOT_NAME[sl]}</small></div>`; };
@@ -553,7 +566,12 @@
           <div class="q-body"><div class="q-title">${esc(q.title)}</div><div class="muted">${esc(q.desc)}</div>
           <div class="qbar"><i style="width:${(q.p / q.count) * 100}%"></i><span>${q.ready ? `완료 · ${esc(q.giverName || '')}에게 보고` : `${q.p} / ${q.count}`}</span></div></div></div>`).join('') : '<div class="muted">진행 중인 퀘스트가 없습니다. 촌장 엘든이나 길드장 레오를 찾아가 보세요.</div>'}</section>
         <section class="card"><div class="card-h">세계 지도</div>
-        ${R.REGIONS.map((rg) => { const open = rg.id <= s.unlocked; return `<div class="region ${s.cleared[rg.id] ? 'clear' : open ? '' : 'locked'} t-${rg.theme}"><div class="rg-no">${rg.id}</div><div class="rg-body"><b>${rg.name}</b><small>Lv.${rg.lv[0]}~${rg.lv[1]} · ${open ? R.BOSSES[rg.boss].name : '???'}</small><div class="muted">${open ? rg.gimmickText : '이전 지역의 보스를 쓰러뜨리면 해금'}</div></div><div class="rg-st">${s.cleared[rg.id] ? '🏆' : open ? '▶' : '🔒'}</div></div>`; }).join('')}</section>`;
+        ${R.REGIONS.map((rg) => { const open = rg.id <= s.unlocked; return `<div class="region ${s.cleared[rg.id] ? 'clear' : open ? '' : 'locked'} t-${rg.theme}"><div class="rg-no">${rg.id}</div><div class="rg-body"><b>${rg.name}</b><small>Lv.${rg.lv[0]}~${rg.lv[1]} · ${open ? R.BOSSES[rg.boss].name : '???'}</small><div class="muted">${open ? rg.gimmickText : '이전 지역의 보스를 쓰러뜨리면 해금'}</div></div><div class="rg-st">${s.cleared[rg.id] ? '🏆' : open ? '▶' : '🔒'}</div></div>`; }).join('')}
+        ${s.flags.blackMine ? `<div class="region t-mine hidden-rg ${s.cleared[6] ? 'clear' : ''}"><div class="rg-no">?</div><div class="rg-body"><b>${R.HIDDEN_REGION.name}</b><small>Lv.${R.HIDDEN_REGION.lv[0]}~${R.HIDDEN_REGION.lv[1]} · ${R.BOSSES.obsidian_golem.name}</small><div class="muted">숨겨진 던전</div></div><div class="rg-st">${s.cleared[6] ? '🏆' : '▶'}</div></div>` : ''}
+        ${s.cleared[2] ? `<div class="region t-tower"><div class="rg-no">塔</div><div class="rg-body"><b>심연의 탑</b><small>최고 기록 ${s.tower.best || 0} / ${R.TOWER_FLOORS}층</small></div><div class="rg-st">▶</div></div>` : ''}</section>
+        <section class="card"><div class="card-h">마을 사람들 · 호감도</div>
+        ${Object.keys(R.FAVOR_PERKS).map((id) => { const f = Math.max(0, R.Prog.favor(id)); return `<div class="favor"><span>${{ elder: '촌장 엘든', smith: '대장장이 브론', alchemist: '연금술사 미라', bard: '음유시인 노아' }[id]}</span><b class="hearts">${'♥'.repeat(Math.min(5, f))}${'♡'.repeat(Math.max(0, 5 - f))}</b><small class="${f >= 3 ? 'on' : ''}">${R.FAVOR_PERKS[id]}</small></div>`; }).join('')}
+        <div class="muted">약초 3개를 선물하면 호감도가 오릅니다. 약초는 던전의 채집 지점에서 모을 수 있어요.</div></section>`;
     } else if (tab === '도감') {
       body.innerHTML = `<div class="seg"><button class="${dexMode === 'mon' ? 'on' : ''}" data-a="mode" data-v="mon">몬스터</button><button class="${dexMode === 'item' ? 'on' : ''}" data-a="mode" data-v="item">장비</button></div>`;
       bindActs(body, { mode: (m) => { dexMode = m; UI.refreshPanel(false); } });
@@ -589,13 +607,14 @@
 
   function renderMonDex(body) {
     const s = G.save;
-    const total = Object.keys(R.MONSTERS).length + Object.keys(R.BOSSES).length;
+    const total = Object.keys(R.MONSTERS).length + Object.keys(R.BOSSES).length - (s.flags.blackMine ? 0 : 1);
     const found = Object.keys(s.codex).filter((k) => s.codex[k] > 0).length;
     body.insertAdjacentHTML('beforeend', `<div class="dex-prog"><span>수집률</span><div class="pbar"><i style="width:${(found / total) * 100}%"></i></div><b>${found}/${total}</b></div>`);
-    R.REGIONS.forEach((rg) => {
+    const rgs = s.flags.blackMine ? [...R.REGIONS, R.HIDDEN_REGION] : R.REGIONS;
+    rgs.forEach((rg) => {
       const sec = document.createElement('section');
       sec.className = 'card';
-      sec.innerHTML = `<div class="card-h">${rg.id}지역 · ${rg.name}</div>`;
+      sec.innerHTML = `<div class="card-h">${rg.hidden ? '숨겨진 던전' : rg.id + '지역'} · ${rg.name}</div>`;
       const grid = document.createElement('div');
       grid.className = 'codex';
       [...rg.monsters, rg.boss].forEach((id) => {
@@ -657,6 +676,7 @@
   // ─── 대장간 (안전 강화) ──────────────────────────────
   UI.forge = function () {
     let sel = null;
+    const fGold = (it) => Math.round(R.enhanceGold(it) * R.Prog.discount('smith'));
     UI.openPanel('대장간 · 안전 강화', null, (body) => {
       const s = G.save;
       const list = [...R.SLOTS.map((k) => s.equip[k]).filter(Boolean), ...s.inv];
@@ -667,7 +687,7 @@
         html += itemCard(sel);
         if (sel.enh >= 10) html += '<section class="card"><div class="muted">최대 강화 단계(+10)입니다.</div></section>';
         else {
-          const mat = R.enhanceMat(sel.enh), cnt = R.enhanceMatCount(sel.enh), gold = R.enhanceGold(sel);
+          const mat = R.enhanceMat(sel.enh), cnt = R.enhanceMatCount(sel.enh), gold = fGold(sel);
           const rate = R.ENHANCE_RATE[sel.enh];
           const have = s.bag[mat] || 0;
           const ok = have >= cnt && s.gold >= gold;
@@ -677,7 +697,7 @@
             ${nextVal ? `<div class="kv"><span>${sel.atk ? '공격력' : '방어력'}</span><b>${mainVal(sel)} ➜ <em class="up">${nextVal}</em></b></div>` : '<div class="kv"><span>옵션 수치</span><b>+6% 증가</b></div>'}
             <div class="rate-ring" style="--p:${rate * 100}%"><b>${Math.round(rate * 100)}%</b><small>성공 확률</small></div>
             <div class="kv"><span>${R.MATERIALS[mat].icon} ${R.MATERIALS[mat].name}</span><b class="${have >= cnt ? '' : 'bad'}">${have} / ${cnt}</b></div>
-            <div class="kv"><span>💰 비용</span><b class="${s.gold >= gold ? '' : 'bad'}">${fmt(gold)}</b></div>
+            <div class="kv"><span>💰 비용${R.Prog.discount('smith') < 1 ? ' <em class="up">호감도 -20%</em>' : ''}</span><b class="${s.gold >= gold ? '' : 'bad'}">${fmt(gold)}</b></div>
             <div class="safe">🛡 실패해도 단계 하락 · 파괴 없음</div>
             <button class="btn gold wide big" data-a="go" ${ok ? '' : 'disabled'}>⚒ 강화하기</button>
             <div id="forge-res"></div></section>`;
@@ -689,7 +709,7 @@
       bindActs(body, {
         pick: (i) => { sel = list[i]; UI.refreshPanel(); },
         go: () => {
-          const mat = R.enhanceMat(sel.enh), cnt = R.enhanceMatCount(sel.enh), gold = R.enhanceGold(sel);
+          const mat = R.enhanceMat(sel.enh), cnt = R.enhanceMatCount(sel.enh), gold = fGold(sel);
           if ((s.bag[mat] || 0) < cnt || s.gold < gold) return;
           s.bag[mat] -= cnt; s.gold -= gold;
           const okk = Math.random() < R.ENHANCE_RATE[sel.enh];
@@ -706,9 +726,29 @@
 
   // ─── 상점 ────────────────────────────────────────────
   UI.shop = function (kind) {
-    const titles = { potions: '연금술 상점', mats: '대장간 재료', sell: '장비 판매' };
+    const titles = { potions: '연금술 상점', mats: '대장간 재료', sell: '장비 판매', craft: '연금술 제작', pets: '수상한 상인 · 펫' };
     UI.openPanel(titles[kind], null, (body) => {
       const s = G.save;
+      const info = (k) => R.Prog.itemInfo(k);
+      if (kind === 'craft') {
+        body.innerHTML = `<section class="card"><div class="card-h">보유 채집 재료</div><div class="mats">${Object.keys(R.GATHER).map((k) => `<div class="mat"><span>${R.GATHER[k].icon}</span><b>${s.bag[k] || 0}</b><small>${R.GATHER[k].name}</small></div>`).join('')}</div>
+          <div class="muted">던전 곳곳의 약초·광석·버섯에서 [채집]할 수 있습니다. 입장할 때마다 다시 자라요.</div></section>
+          <section class="card shop">${R.RECIPES.map((rc, i) => { const o = info(rc.out), ok = R.Prog.canCraft(rc); return `<div class="li"><div class="li-ico">${o.icon}</div><div class="li-b"><b>${o.name} x${rc.n}</b><small>${Object.entries(rc.need).map(([k, v]) => `<span class="${(s.bag[k] || 0) >= v ? '' : 'bad'}">${info(k).icon}${info(k).name} ${s.bag[k] || 0}/${v}</span>`).join(' · ')}</small></div><button class="btn xs gold" data-a="craft" data-v="${i}" ${ok ? '' : 'disabled'}>제작</button></div>`; }).join('')}</section>`;
+        bindActs(body, { craft: (i) => { const rc = R.RECIPES[i]; if (R.Prog.craft(rc)) R.toast(`${info(rc.out).icon} ${info(rc.out).name} x${rc.n} 제작 완료`, '#7fffa0'); UI.refreshPanel(); } });
+        return;
+      }
+      if (kind === 'pets') {
+        s.pets = s.pets || [];
+        body.innerHTML = `<section class="card"><div class="muted">펫은 싸우지 않지만 곁에서 모험을 돕습니다. 한 번에 한 마리만 동행할 수 있어요.</div></section>
+          <section class="card shop">${R.PETS.map((d) => { const own = s.pets.includes(d.id); return `<div class="li pet-li ${s.pet === d.id ? 'on' : ''}"><div class="li-ico pet-art" data-k="${d.id}"></div><div class="li-b"><b>${d.name}</b><small>${d.desc}</small></div>
+            ${own ? `<button class="btn xs ${s.pet === d.id ? '' : 'gold'}" data-a="use" data-v="${d.id}">${s.pet === d.id ? '동행 해제' : '동행'}</button>` : `<button class="btn xs gold" data-a="buy" data-v="${d.id}" ${R.Prog.canPay(d.price) ? '' : 'disabled'}>${R.Prog.priceText(d.price)}</button>`}</div>`; }).join('')}</section>`;
+        body.querySelectorAll('.pet-art').forEach((el) => el.appendChild(spriteCanvas(el.dataset.k, 60, 48, 'pet-cv')));
+        bindActs(body, {
+          buy: (id) => { if (R.Prog.buyPet(id)) { R.spawnPet(); R.toast(`🐾 ${R.PETS.find((d) => d.id === id).name}이(가) 동료가 되었다!`, '#ffe070'); R.saveGame(); } UI.refreshPanel(); },
+          use: (id) => { R.Prog.setPet(id); R.spawnPet(); UI.refreshPanel(); },
+        });
+        return;
+      }
       if (kind === 'sell') {
         body.innerHTML = `<section class="card"><div class="card-h">판매할 장비 <button class="btn xs gold" data-a="bulk">일반·고급 일괄 판매</button></div>
           ${s.inv.length ? s.inv.map((it, i) => `<div class="li">${cell(it)}<div class="li-b"><b style="color:${gcol(it.grade)}">${it.enh ? '+' + it.enh + ' ' : ''}${esc(it.name)}</b><small>${R.GRADES[it.grade].name} · ${R.itemMainText(it)}</small></div><button class="btn xs gold" data-a="sell" data-v="${i}">💰 ${fmt(R.sellPrice(it))}</button></div>`).join('') : '<div class="muted">판매할 장비가 없습니다. (장착 중인 장비는 판매 불가)</div>'}</section>`;
@@ -724,27 +764,58 @@
         return;
       }
       const table = kind === 'mats' ? R.MATERIALS : R.CONSUMABLES;
-      body.innerHTML = `<section class="card shop">` + Object.keys(table).map((k) => {
-        const t = table[k];
+      const disc = kind === 'potions' ? R.Prog.discount('alchemist') : 1;
+      const price = (k) => Math.round(table[k].price * disc);
+      body.innerHTML = (disc < 1 ? '<section class="card"><div class="safe">💗 미라의 호감도 보너스 · 모든 물건 20% 할인</div></section>' : '') + `<section class="card shop">` + Object.keys(table).map((k) => {
+        const t = Object.assign({}, table[k], { price: price(k) });
         return `<div class="li"><div class="li-ico">${t.icon}</div><div class="li-b"><b>${t.name}</b><small>${t.desc || '장비 강화 재료'} · 보유 ${s.bag[k] || 0}</small></div>
           <div class="buy"><button class="btn xs gold" data-a="buy" data-v="${k}:1" ${s.gold >= t.price ? '' : 'disabled'}>x1 · ${fmt(t.price)}</button><button class="btn xs" data-a="buy" data-v="${k}:5" ${s.gold >= t.price * 5 ? '' : 'disabled'}>x5 · ${fmt(t.price * 5)}</button></div></div>`;
       }).join('') + '</section>';
       bindActs(body, {
-        buy: (v) => { const [k, n] = v.split(':'); const cost = table[k].price * +n; if (s.gold < cost) return; s.gold -= cost; s.bag[k] = (s.bag[k] || 0) + +n; R.sfx('coin'); UI.refreshPanel(); },
+        buy: (v) => { const [k, n] = v.split(':'); const cost = price(k) * +n; if (s.gold < cost) return; s.gold -= cost; s.bag[k] = (s.bag[k] || 0) + +n; R.sfx('coin'); UI.refreshPanel(); },
       });
     });
   };
 
   // ─── 지역 선택 (마을 남문) ───────────────────────────
+  let selDiff = 0;
   UI.regionSelect = function () {
+    selDiff = G.save.diff || 0;
     UI.openPanel('어디로 떠날까?', null, (body) => {
       const s = G.save;
-      body.innerHTML = '<section class="card">' + R.REGIONS.map((rg) => {
-        const open = rg.id <= s.unlocked;
-        return `<button class="region big ${open ? '' : 'locked'} ${s.cleared[rg.id] ? 'clear' : ''} t-${rg.theme}" data-a="go" data-v="${rg.id}" ${open ? '' : 'disabled'}>
-          <div class="rg-no">${rg.id}</div><div class="rg-body"><b>${rg.name}</b><small>권장 Lv.${rg.lv[0]} ~ ${rg.lv[1]}${open ? ' · ' + R.BOSSES[rg.boss].name : ''}</small><div class="muted">${open ? rg.gimmickText : '이전 지역 보스를 처치하면 열립니다'}</div></div><div class="rg-st">${s.cleared[rg.id] ? '🏆' : open ? '▶' : '🔒'}</div></button>`;
-      }).join('') + '<p class="muted">던전 안의 푸른 포털을 밟으면 언제든 마을로 돌아올 수 있습니다.</p></section>';
-      bindActs(body, { go: (id) => { UI.closePanel(); R.enterRegion(+id); } });
+      const cd = s.clearedD || {};
+      const hardOpen = !!s.cleared[5];
+      const nmOpen = R.REGIONS.every((rg) => cd[1] && cd[1][rg.id]);
+      const dOpen = [true, hardOpen, nmOpen];
+      if (!dOpen[selDiff]) selDiff = 0;
+      const D = R.DIFFICULTY[selDiff];
+      const regOpen = (id) => (selDiff === 0 ? id <= s.unlocked : selDiff === 1 ? !!s.cleared[id] : !!(cd[1] && cd[1][id]));
+      const regClear = (id) => (selDiff === 0 ? s.cleared[id] : cd[selDiff] && cd[selDiff][id]);
+      const lvT = (rg) => `권장 Lv.${rg.lv[0] + D.lv} ~ ${rg.lv[1] + D.lv}`;
+      const row = (rg, no, open, lockText) => `<button class="region big ${open ? '' : 'locked'} ${regClear(rg.id) ? 'clear' : ''} t-${rg.theme} ${rg.hidden ? 'hidden-rg' : ''}" data-a="go" data-v="${rg.id}" ${open ? '' : 'disabled'}>
+          <div class="rg-no">${no}</div><div class="rg-body"><b>${rg.name}</b><small>${lvT(rg)}${open ? ' · ' + R.BOSSES[rg.boss].name : ''}</small><div class="muted">${open ? rg.gimmickText : lockText}</div></div><div class="rg-st">${regClear(rg.id) ? '🏆' : open ? '▶' : '🔒'}</div></button>`;
+      const lockTxt = ['이전 지역 보스를 처치하면 열립니다', '일반 난이도에서 이 지역을 클리어하세요', '어려움 난이도에서 이 지역을 클리어하세요'][selDiff];
+      let html = `<div class="seg diff">${R.DIFFICULTY.map((d, i) => `<button class="${selDiff === i ? 'on' : ''}" style="--c:${d.color}" data-a="diff" data-v="${i}" ${dOpen[i] ? '' : 'disabled'}>${dOpen[i] ? '' : '🔒 '}${d.name}</button>`).join('')}</div>`;
+      if (selDiff) html += `<section class="card"><div class="safe" style="--c:${D.color}">${D.name} · 몬스터 Lv.+${D.lv} · HP ×${D.hp} · 공격 ×${D.atk} · 경험치 ×${D.exp} · 장비 드랍 ↑</div></section>`;
+      else if (!hardOpen) html += '<div class="muted center">5지역 보스를 쓰러뜨리면 [어려움]이, 어려움 5지역을 모두 클리어하면 [악몽]이 열립니다.</div>';
+      html += '<section class="card">' + R.REGIONS.map((rg) => row(rg, rg.id, regOpen(rg.id), lockTxt)).join('');
+      if (s.flags.blackMine) html += row(R.HIDDEN_REGION, '?', selDiff === 0 || regOpen(6), lockTxt);
+      html += '</section>';
+      if (s.cleared[2]) {
+        const best = (s.tower && s.tower.best) || 0, next = Math.min(R.TOWER_FLOORS, best + 1);
+        const cps = [1]; for (let f = 11; f <= next; f += 10) cps.push(f);
+        html += `<section class="card tower-card"><div class="card-h">🗼 심연의 탑 <span class="pill">최고 ${best} / ${R.TOWER_FLOORS}층</span></div>
+          <div class="muted">한 층의 적을 모두 쓰러뜨리면 다음 층으로. 층마다 제한 조건이 붙고 10층마다 수호자가 나타납니다. 첫 돌파 시 보석 보상.</div>
+          <div class="pbar"><i style="width:${(best / R.TOWER_FLOORS) * 100}%"></i></div>
+          <div class="row-btns">${cps.filter((f) => f !== next).map((f) => `<button class="btn ghost" data-a="tower" data-v="${f}">${f}층</button>`).join('')}<button class="btn gold" data-a="tower" data-v="${next}">${next}층 도전</button></div></section>`;
+      } else html += '<section class="card tower-card locked"><div class="card-h">🗼 심연의 탑 🔒</div><div class="muted">2지역 폐허 도시의 보스를 쓰러뜨리면 열립니다.</div></section>';
+      html += '<p class="muted">던전 안의 푸른 포털을 밟으면 언제든 마을로 돌아올 수 있습니다.</p>';
+      body.innerHTML = html;
+      bindActs(body, {
+        diff: (i) => { selDiff = +i; s.diff = selDiff; UI.refreshPanel(); },
+        go: (id) => { UI.closePanel(); R.enterRegion(+id, selDiff); },
+        tower: (f) => { UI.closePanel(); R.enterTower(+f); },
+      });
     });
   };
 

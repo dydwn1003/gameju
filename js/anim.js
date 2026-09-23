@@ -315,7 +315,7 @@
       if (mob.flash > 0 && !mob.boss) hurt(P, mob.flash, 0.12);
     }
     void fwdSign;
-    drawRig(g, f, P, rig, mob.x, mob.y + 1 - mob.z, { face: mob.face || 1, flash: mob.flash > 0, alpha: extra.alpha, scale: mob.elite ? 1.2 : 1 });
+    drawRig(g, f, P, rig, mob.x, mob.y + 1 - mob.z, { face: mob.face || 1, flash: mob.flash > 0, alpha: extra.alpha, scale: (mob.elite ? 1.2 : 1) * (mob.ss || 1) });
     return P;
   };
 })();

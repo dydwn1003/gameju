@@ -22,6 +22,10 @@
     const dexB = R.Prog ? R.Prog.dexBonus() : 0;
     adv.atkPct = (adv.atkPct || 0) + dexB;
     adv.hpPct = (adv.hpPct || 0) + dexB;
+    // 펫 · 음식 버프
+    const pet = R.PETS && R.PETS.find((x) => x.id === s.pet);
+    if (pet && pet.mod.movePct) adv.movePct = (adv.movePct || 0) + pet.mod.movePct;
+    if (s.buffs) for (const k in s.buffs) if (s.buffs[k] > (s.playTime || 0) && R.FOODS[k]) for (const mk in R.FOODS[k].mod) adv[mk] = (adv[mk] || 0) + R.FOODS[k].mod[mk];
     const st = Object.assign({}, s.stats);
     let wAtk = 0, aDef = 0, hp = 0, mp = 0, crit = 0, atkPct = 0, elemDmg = 0, moveSpd = 0, elem = 'NONE';
     for (const slot of R.SLOTS) {
@@ -183,7 +187,10 @@
     if (G.combo.t > 0) { G.combo.t -= dt; if (G.combo.t <= 0) G.combo.count = 0; }
     // 자연 회복 (마을에선 빠르게)
     const regen = G.map.kind === 'town' ? 0.08 : 0.004;
-    p.hp = Math.min(p.st.maxHp, p.hp + p.st.maxHp * regen * dt);
+    p.hp = Math.min(p.st.maxHp, p.hp + p.st.maxHp * (regen + (R.Prog.petMod().regenPct || 0)) * dt);
+    // 음식 버프 만료 시 능력치 재계산
+    const bt = G.save.buffs;
+    if (bt) for (const k in bt) if (bt[k] && bt[k] <= G.save.playTime) { delete bt[k]; R.refreshStats(); R.toast(`${R.FOODS[k].name} 효과가 끝났다`, '#c8c0d8'); }
     p.mp = Math.min(p.st.maxMp, p.mp + p.st.maxMp * (G.map.kind === 'town' ? 0.08 : 0.015) * dt);
     tickStatus(p, dt, true);
     if (p.dead) return;
@@ -424,7 +431,7 @@
     const bonus = opt.ca ? opt.ca.bonus : 0;
     const em = R.elemMod(opt.elem, m.elem);
     let dmg = st.atk * opt.rate * em * (100 / (100 + m.armor)) * (1 + bonus) * rand(0.92, 1.08);
-    if (opt.elem && opt.elem !== 'NONE') dmg *= 1 + st.elemDmg;
+    if (opt.elem && opt.elem !== 'NONE') dmg *= (1 + st.elemDmg) * (G.dungeon && G.dungeon.mod && G.dungeon.mod.id === 'resist' ? 0.5 : 1);
     if (opt.skill && adv.skillPct) dmg *= 1 + adv.skillPct;
     if (adv.berserk && p.hp < st.maxHp * 0.5) dmg *= 1 + adv.berserk;
     const crit = opt.forceCrit || Math.random() < st.crit;
@@ -501,6 +508,7 @@
     const adv = p.st.adv;
     let dmg = o.raw ? raw : raw * (100 / (100 + p.st.def)) * rand(0.9, 1.1);
     dmg *= 1 + (adv.dmgTaken || 0);
+    if (G.dungeon && G.dungeon.mod && G.dungeon.mod.id === 'fragile') dmg *= 1.3;
     dmg = Math.max(1, Math.round(dmg));
     p.hp -= dmg;
     p.flash = 0.15;
@@ -528,17 +536,23 @@
   const ARCH_H = { human: 21, blob: 12, mushroom: 16, quad: 13, spider: 11, ghost: 15, flyer: 13, golem: 23, worm: 13 };
   R.spawnMob = function (id, lv, x, y, o = {}) {
     const def = o.boss ? R.BOSSES[id] : R.MONSTERS[id];
+    const D = !o.summoned && G.dungeon && G.dungeon.diff;
+    if (D) lv += D.lv;
     const st = R.monsterStats(def, lv);
+    if (D) { st.maxHp = Math.round(st.maxHp * D.hp); st.atk = Math.round(st.atk * D.atk); st.exp = Math.round(st.exp * D.exp); }
+    const sk = def.sprite || id, ss = def.spriteScale || 1;
     const scale = o.boss ? Math.round(def.scale || 2) : o.elite ? 1 : 1;
     const m = {
       id, def, lv, x, y, homeX: x, homeY: y, r: (def.r || 6) * (o.elite ? 1.2 : 1),
-      hh: R.SHEET && R.SHEET.frames[id] ? Math.round(R.SHEET.frames[id].h / R.SCALE * (o.elite ? 1.2 : 1)) : (ARCH_H[def.arch] || 14) * scale,
+      sk, ss,
+      hh: R.SHEET && R.SHEET.frames[sk] ? Math.round(R.SHEET.frames[sk].h / R.SCALE * ss * (o.elite ? 1.2 : 1)) : (ARCH_H[def.arch] || 14) * scale,
       maxHp: st.maxHp * (o.elite ? 2.5 : 1), atk: st.atk * (o.elite ? 1.3 : 1), armor: st.def, exp: st.exp * (o.elite ? 3 : 1), gold: st.gold * (o.elite ? 3 : 1),
       elem: def.elem, spd: def.spd, ai: 'PATROL', aiT: 0, act: null, atkCd: rand(0.5, 1.5), flash: 0, stunT: 0, downT: 0,
       kx: 0, ky: 0, z: 0, vz: 0, dead: false, deathT: 0, status: {}, face: 1, anim: rand(0, 3), wanderX: x, wanderY: y,
       elite: !!o.elite, boss: !!o.boss, scale, spawn: o.spawn || null, summoned: !!o.summoned,
     };
     m.hp = m.maxHp;
+    if (G.dungeon && G.dungeon.mod && G.dungeon.mod.id === 'haste') m.spd *= 1.3;
     if (o.boss) { m.phase = 0; m.moveCd = 1.5; m.aggro = false; m.ai = 'SLEEP'; }
     G.mobs.push(m);
     return m;
@@ -867,6 +881,8 @@
     }
     if (m.summoned) return;
     // 경험치 (레벨 차이 보정)
+    const D = (G.dungeon && G.dungeon.diff) || R.DIFFICULTY[0];
+    const petM = R.Prog.petMod();
     const exp = Math.round(m.exp * R.expMod(m.lv - s.level));
     R.gainExp(exp);
     // 골드
@@ -874,14 +890,15 @@
     const gold = Math.round(m.gold * rand(0.8, 1.2) * (m.boss ? 6 : 1));
     for (let i = 0; i < coins; i++) dropAt(m.x, m.y, { kind: 'gold', v: Math.max(1, Math.round(gold / coins)) });
     // 장비
-    const luck = p.st.luk * 0.004;
+    const luck = p.st.luk * 0.004 + D.drop;
+    const tier = G.dungeon && G.dungeon.region.hidden ? 5 : Math.max(0, R.REGIONS.findIndex((r) => r.boss === m.id));
     if (m.boss) {
       for (let i = 0; i < 3; i++) dropAt(m.x, m.y, { kind: 'item', item: randomDrop(m.lv, R.rollGrade(0.6 + luck, i === 0 ? 2 : 1), 0.5) });
-      R.Prog.addCoins(10 + 5 * R.REGIONS.findIndex((r) => r.boss === m.id));
-      dropAt(m.x, m.y, { kind: 'mat', id: 'stone', n: 2 + R.REGIONS.findIndex((r) => r.boss === m.id) });
+      R.Prog.addCoins(10 + 5 * tier);
+      dropAt(m.x, m.y, { kind: 'mat', id: 'stone', n: 2 + tier });
       if (m.lv >= 26) dropAt(m.x, m.y, { kind: 'mat', id: 'hstone', n: 1 });
     } else {
-      const chance = m.elite ? 1 : 0.16;
+      const chance = m.elite ? 1 : 0.16 * (1 + (petM.dropPct || 0)) * (1 + D.drop * 0.5);
       if (Math.random() < chance) dropAt(m.x, m.y, { kind: 'item', item: randomDrop(m.lv, R.rollGrade(luck + (m.elite ? 0.5 : 0), m.elite ? 1 : 0), m.elite ? 0.25 : 0.03) });
       if (m.elite) R.Prog.addCoins(3);
       else if (Math.random() < 0.05) R.Prog.addCoins(1, true);
@@ -924,7 +941,8 @@
       }
       if (p.dead || d.t < 0.5) continue;
       const dist = Math.hypot(p.x - d.x, p.y - d.y);
-      if (dist < 42) { d.x += ((p.x - d.x) / dist) * 140 * dt; d.y += ((p.y - d.y) / dist) * 140 * dt; }
+      const mag = 42 * (R.Prog.petMod().pickMul || 1);
+      if (dist < mag) { d.x += ((p.x - d.x) / dist) * 140 * dt; d.y += ((p.y - d.y) / dist) * 140 * dt; }
       if (dist < 9) { if (R.pickup(d)) d.gone = true; else d.t = -1.5; }
     }
     G.drops = G.drops.filter((d) => !d.gone);
@@ -932,10 +950,10 @@
 
   R.pickup = function (d) {
     const s = G.save;
-    if (d.kind === 'gold') { s.gold += d.v; R.sfx('coin'); return true; }
+    if (d.kind === 'gold') { s.gold += Math.round(d.v * (1 + (R.Prog.petMod().goldPct || 0))); R.sfx('coin'); return true; }
     if (d.kind === 'mat' || d.kind === 'potion') {
       s.bag[d.id] = (s.bag[d.id] || 0) + d.n;
-      const info = R.MATERIALS[d.id] || R.CONSUMABLES[d.id];
+      const info = R.Prog.itemInfo(d.id);
       R.toast(`${info.icon} ${info.name} x${d.n}`, '#e8e8e8');
       R.sfx('pickup');
       return true;
@@ -981,12 +999,14 @@
   R.usePotion = function (id) {
     const p = G.player, s = G.save;
     if (p.dead || p.potionCd > 0) return;
+    if (G.dungeon && G.dungeon.mod && G.dungeon.mod.id === 'nopotion') { R.toast('이 층에서는 물약을 쓸 수 없다', '#ff8a8a'); p.potionCd = 1; return; }
+    const potM = 1 + (R.Prog.petMod().potPct || 0);
     if (!s.bag[id]) { R.toast(`${R.CONSUMABLES[id].name}이 없습니다`, '#ff8a8a'); p.potionCd = 0.5; return; }
     if (id === 'hpPotion' && p.hp >= p.st.maxHp) return;
     s.bag[id]--;
     p.potionCd = 1;
-    if (id === 'hpPotion') { const v = Math.round(p.st.maxHp * 0.35); p.hp = Math.min(p.st.maxHp, p.hp + v); R.addNum(p.x, p.y - 24, '+' + v, '#6aff6a', 1); }
-    if (id === 'mpPotion') { const v = Math.round(p.st.maxMp * 0.4); p.mp = Math.min(p.st.maxMp, p.mp + v); R.addNum(p.x, p.y - 24, '+' + v, '#6ab6ff', 1); }
+    if (id === 'hpPotion') { const v = Math.round(p.st.maxHp * 0.35 * potM); p.hp = Math.min(p.st.maxHp, p.hp + v); R.addNum(p.x, p.y - 24, '+' + v, '#6aff6a', 1); }
+    if (id === 'mpPotion') { const v = Math.round(p.st.maxMp * 0.4 * potM); p.mp = Math.min(p.st.maxMp, p.mp + v); R.addNum(p.x, p.y - 24, '+' + v, '#6ab6ff', 1); }
     R.sfx('potion');
   };
 

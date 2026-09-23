@@ -26,7 +26,7 @@
       let hit = false;
       if (q.type === 'kill' && q.region === rid && !m.boss) hit = true;
       if (q.type === 'killType' && q.target === m.id) hit = true;
-      if (q.type === 'boss' && m.boss && regionOf(q.region).boss === m.id) hit = true;
+      if (q.type === 'boss' && m.boss && regionOf(q.region).boss === m.id && rid === q.region && !G.dungeon.diffIdx) hit = true;
       if (!hit) continue;
       q.p = Math.min(q.count, q.p + 1);
       if (q.p >= q.count) {
@@ -71,6 +71,25 @@
   // ─── NPC 스크립트 ────────────────────────────────────
   const N = (R.NPC_TALK = {});
   const favor = (id, d) => { const s = G.save; s.favor[id] = (s.favor[id] || 0) + d; };
+  const NAMES = { elder: '촌장 엘든', smith: '대장장이 브론', alchemist: '연금술사 미라', bard: '음유시인 노아' };
+  const GIFT_THANKS = {
+    elder: '허허, 약초라니. 이 늙은이 무릎에 딱이구먼.',
+    smith: '약초? …화상에 바르면 좋지. 고맙네.',
+    alchemist: '와, 싱싱한 약초! 좋은 물약을 만들 수 있겠어요.',
+    bard: '향기가 좋네요. 새 노래가 떠오를 것 같아요.',
+  };
+  // 선물 선택지: 약초 3개 → 호감도 +1 (최대 5)
+  function giftChoice(id) {
+    const f = R.Prog.favor(id);
+    if (f >= 5) return null;
+    return { label: `🎁 선물하기 (🌿 약초 3 · 호감도 ${Math.max(0, f)}/5)`, fn: () => {
+      if (!R.Prog.gift(id)) { say(NAMES[id], [R.Prog.canGift() ? '마음만 받을게요.' : '(약초가 부족하다. 던전의 채집 지점에서 모을 수 있다.)']); return; }
+      const nf = R.Prog.favor(id);
+      say(NAMES[id], [`${GIFT_THANKS[id]}\n(호감도 ${nf}/5)`, ...(nf === 3 ? [`★ ${R.FAVOR_PERKS[id]}`] : [])], null, () => R.saveGame());
+    } };
+  }
+  const withGift = (id, list) => { const g = giftChoice(id); if (g) list.splice(list.length - 1, 0, g); return list; };
+  R.Quest.giftChoice = giftChoice;
 
   N.elder = function () {
     const s = G.save, name = '촌장 엘든';
@@ -108,12 +127,24 @@
       return;
     }
     if (q) {
-      say(name, [`「${q.title}」\n${q.desc}\n(진행: ${q.p}/${q.count})`, '서두르지 말게. 물약은 연금술사 미라에게 살 수 있다네.']);
+      if (elderGift()) return;
+      say(name, [`「${q.title}」\n${q.desc}\n(진행: ${q.p}/${q.count})`, '서두르지 말게. 물약은 연금술사 미라에게 살 수 있다네.'], withGift('elder', [{ label: '알겠습니다' }]));
       return;
     }
     if (s.mainIdx < R.MAIN_QUESTS.length) { say(name, ['마침 잘 왔네. 부탁할 일이 있어.'], null, giveMain); return; }
-    say(name, s.ending ? ['자네 덕분에 루멘은 오늘도 평화롭다네.', '…고맙네, 이름 없는 영웅이여.'] : ['공허의 왕을 쓰러뜨린 자네에게 더 부탁할 것은 없네.']);
+    if (elderGift()) return;
+    say(name, s.ending ? ['자네 덕분에 루멘은 오늘도 평화롭다네.', '…고맙네, 이름 없는 영웅이여.'] : ['공허의 왕을 쓰러뜨린 자네에게 더 부탁할 것은 없네.'], withGift('elder', [{ label: '그만두기' }]));
   };
+
+  function elderGift() {
+    const s = G.save;
+    if (R.Prog.favor('elder') < 3 || s.flags.elderGift) return false;
+    s.flags.elderGift = true;
+    s.bag.reviveStone = (s.bag.reviveStone || 0) + 2;
+    say('촌장 엘든', ['자네에게 줄 것이 있네. 내가 젊을 적 쓰던 부활석이야.', '(부활석 2개를 받았다)'], null, () => R.saveGame());
+    R.sfx('rare');
+    return true;
+  }
 
   function advance(id) {
     const s = G.save;
@@ -142,13 +173,23 @@
     say('대장장이 브론', ['어서 오게! 장비를 단단히 해 두면 목숨이 붙어 있지.\n내 강화는 실패해도 부서지거나 단계가 떨어지지 않아. 안심하라고!'], [
       { label: '⚒ 장비 강화', fn: () => R.UI.forge() },
       { label: '🔩 재료 구매', fn: () => R.UI.shop('mats') },
-      { label: '그만두기' },
+      ...withGift('smith', [{ label: '그만두기' }]),
     ]);
   };
   N.alchemist = function () {
     say('연금술사 미라', ['어머, 모험가님! 오늘은 무엇이 필요하세요?'], [
       { label: '🧪 물약 구매', fn: () => R.UI.shop('potions') },
+      { label: '⚗ 제작 (채집 재료)', fn: () => R.UI.shop('craft') },
       { label: '💰 장비 판매', fn: () => R.UI.shop('sell') },
+      ...withGift('alchemist', [{ label: '그만두기' }]),
+    ]);
+  };
+  N.merchant = function () {
+    const s = G.save, name = '수상한 상인 모르';
+    const lines = s.flags.metMerchant ? ['흐흐, 또 왔군. 녀석들이 새 주인을 기다리고 있어.'] : ['쉿… 균열 너머에서 데려온 꼬마들이야. 순하다고.', '데려가면 싸움은 못 해도 쓸모는 있을 거야. 흐흐.'];
+    s.flags.metMerchant = true;
+    say(name, lines, [
+      { label: '🐾 펫 보기', fn: () => R.UI.shop('pets') },
       { label: '그만두기' },
     ]);
   };
@@ -206,19 +247,39 @@
       ]);
       return;
     }
-    say(name, [BARD_LORE[(s.flags.bardTalks - 1) % BARD_LORE.length]]);
+    if (s.cleared[3] && R.Prog.favor('bard') >= 3 && !s.flags.blackMine) {
+      s.flags.blackMine = true;
+      say(name, ['…당신이라면 말해도 되겠죠.', '용암 광산 깊은 곳에 버려진 갱도가 있어요. 사람들은 「검은 광산」이라고 불러요.', '흑요석 골렘이 균열의 어둠을 삼키고 잠들어 있대요. 남문에서 갈 수 있을 거예요.'], null, () => {
+        R.UI.banner('숨겨진 던전 발견', '#b27bff', '검은 광산 (Lv.30~40)');
+        R.saveGame();
+      });
+      return;
+    }
+    say(name, [BARD_LORE[(s.flags.bardTalks - 1) % BARD_LORE.length]], withGift('bard', [{ label: '♪ 계속 듣기' }]));
   };
 
   // ─── 보스 처치 ───────────────────────────────────────
   R.onBossKilled = function (m) {
-    const s = G.save, rg = G.dungeon.region;
+    const s = G.save, d = G.dungeon, rg = d.region;
+    if (d.tower) { R.UI.bossBar(null); R.UI.banner(`수호자 ${m.def.name} 격파!`, '#c9a2ff'); R.saveGame(); return; }
+    if (d.diffIdx) {
+      const cd = (s.clearedD[d.diffIdx] = s.clearedD[d.diffIdx] || {});
+      if (!cd[rg.id]) { cd[rg.id] = true; R.Prog.addGems(150 * d.diffIdx, `${R.DIFFICULTY[d.diffIdx].name} ${m.def.name} 첫 토벌`); }
+      R.UI.bossBar(null);
+      R.UI.banner(`${m.def.name} 토벌!`, R.DIFFICULTY[d.diffIdx].color, R.DIFFICULTY[d.diffIdx].name);
+      R.Audio.playBgm(1 + rg.bgm);
+      if (!d.gateOpen) R.openGate();
+      R.saveGame();
+      return;
+    }
     const first = !s.cleared[rg.id];
     s.cleared[rg.id] = true;
     if (first) R.Prog.addGems(300, `${m.def.name} 첫 토벌`);
     R.UI.bossBar(null);
     R.UI.banner(`${m.def.name} 토벌!`, '#ff9a5a', first ? '대량의 경험치와 전리품을 획득했다' : '');
     R.Audio.playBgm(1 + rg.bgm);
-    if (first && rg.id < R.REGIONS.length && s.unlocked < rg.id + 1) {
+    if (first && rg.id === 3 && !s.flags.blackMine) setTimeout(() => R.toast('음유시인 노아가 광산에 얽힌 노래를 알고 있다던데…', '#c9a2ff'), 3200);
+    if (first && !rg.hidden && rg.id < R.REGIONS.length && s.unlocked < rg.id + 1) {
       s.unlocked = rg.id + 1;
       setTimeout(() => R.toast(`새 지역 해금: ${R.REGIONS[rg.id].name}`, '#ffe070'), 1800);
     }

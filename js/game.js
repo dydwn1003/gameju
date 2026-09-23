@@ -19,6 +19,7 @@
       quests: [], mainIdx: 0, unlocked: 1, cleared: {}, codex: {}, flags: {}, favor: {}, honor: 0,
       hp: null, mp: null, playTime: 0,
       gems: 300, coins: 0, sp: 0, skillLv: {}, runes: {}, pity: 0, itemDex: {}, summons: 0,
+      pets: [], pet: null, buffs: {}, tower: { best: 0 }, diff: 0, clearedD: { 1: {}, 2: {} },
     };
     R.SLOTS.forEach((k) => (s.equip[k] = null));
     s.equip.weapon = R.makeItem('weapon', 1, 0, cls);
@@ -162,6 +163,7 @@
 
   // ─── 맵 전환 ─────────────────────────────────────────
   function clearWorld() {
+    G.pet = null;
     G.mobs = []; G.shots = []; G.drops = []; G.nums = []; G.teles = [];
     G.fx.length = 0;
     G.combo.count = 0; G.combo.t = 0;
@@ -184,16 +186,18 @@
     G.exitArmed = false;
     R.UI.setArea('루멘 마을');
     R.Audio.playBgm(0);
+    spawnPet();
     R.saveGame();
   };
 
-  R.enterRegion = function (id) {
-    const s = G.save, region = R.REGIONS[id - 1];
+  R.enterRegion = function (id, diffIdx) {
+    const s = G.save, region = R.regionById(id);
+    const di = diffIdx == null ? s.diff || 0 : diffIdx;
     clearWorld();
     G.map = R.buildDungeon(region);
     const m = G.map;
-    G.dungeon = { region, hasKey: false, gateOpen: false, switchOn: false, spawns: [], rockT: 6 };
-    if (s.cleared[id]) R.openGate();
+    G.dungeon = { region, hasKey: false, gateOpen: false, switchOn: false, spawns: [], rockT: 6, diff: R.DIFFICULTY[di], diffIdx: di, mod: null };
+    if (s.cleared[id] && !di) R.openGate();
     const rnd = Math.random;
     const chain = m.rooms.filter((r) => !r.boss);
     for (const sp of m.spawns) {
@@ -202,15 +206,99 @@
     }
     R.spawnMob(region.boss, region.bossLv, m.bossSpawn.x, m.bossSpawn.y, { boss: true });
     placePlayer(m.start.x, m.start.y);
-    R.UI.setArea(`${region.id}지역 · ${region.name}`);
-    R.UI.banner(region.name, '#ffe9a8', region.gimmickText);
+    const dn = di ? ` · ${R.DIFFICULTY[di].name}` : '';
+    R.UI.setArea(region.hidden ? `숨겨진 던전 · ${region.name}${dn}` : `${region.id}지역 · ${region.name}${dn}`);
+    R.UI.banner(region.name + dn, di ? R.DIFFICULTY[di].color : '#ffe9a8', region.gimmickText);
     R.Audio.playBgm(1 + region.bgm);
+    spawnPet();
     if (!s.flags.firstDungeon) {
       s.flags.firstDungeon = true;
       setTimeout(() => R.toast('푸른 포털 위에서 [귀환]하면 마을로 돌아갑니다', '#9ad8ff'), 2400);
     }
     R.saveGame();
   };
+
+  // ─── 심연의 탑 ───────────────────────────────────────
+  const TOWER_THEMES = ['forest', 'ruins', 'mine', 'ice', 'hell'];
+  R.towerRegion = function (f) {
+    const band = Math.min(4, Math.floor((f - 1) / 10));
+    const src = R.REGIONS[band];
+    const lv = 6 + f;
+    return { id: 0, name: '심연의 탑', theme: TOWER_THEMES[band], lv: [lv, lv], gimmick: 'none', monsters: src.monsters, boss: src.boss, bossLv: lv + 2, bgm: src.bgm, tower: true };
+  };
+  R.enterTower = function (floor) {
+    const s = G.save, f = Math.max(1, Math.min(R.TOWER_FLOORS, floor));
+    const region = R.towerRegion(f);
+    clearWorld();
+    G.map = R.buildArena(f, region.theme);
+    const m = G.map;
+    const mod = R.towerMod(f);
+    G.dungeon = { region, tower: true, floor: f, mod, diff: R.DIFFICULTY[0], diffIdx: 0, spawns: [], rockT: 99, gateOpen: true, cleared: false, waveT: 1.2 };
+    placePlayer(m.start.x, m.start.y);
+    R.UI.setArea(`심연의 탑 ${f}층`);
+    R.UI.banner(`심연의 탑 ${f}층`, '#c9a2ff', f % 10 === 0 ? '수호자가 기다리고 있다' : mod ? `제한: ${mod.name} — ${mod.desc}` : '모든 적을 쓰러뜨려라');
+    R.Audio.playBgm(1 + region.bgm);
+    spawnPet();
+    R.saveGame();
+  };
+  function towerWave() {
+    const d = G.dungeon, m = G.map, f = d.floor, rg = d.region;
+    if (f % 10 === 0) {
+      R.spawnMob(rg.boss, rg.bossLv, m.bossSpawn.x, m.bossSpawn.y, { boss: true });
+      return;
+    }
+    const n = 5 + Math.floor(f / 5);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, rr = 50 + Math.random() * 30;
+      const x = m.center.x + Math.cos(a) * rr, y = m.center.y - 10 + Math.sin(a) * rr * 0.8;
+      const id = rg.monsters[(Math.random() * rg.monsters.length) | 0];
+      const elite = (d.mod && d.mod.id === 'elite') || (i === 0 && f % 5 === 0);
+      const bad = G.map.solidAt(x, y);
+      R.spawnMob(id, rg.lv[0], bad ? m.center.x : x, bad ? m.center.y - 30 : y, { elite });
+    }
+  }
+  function updateTower(dt) {
+    const d = G.dungeon;
+    if (d.waveT > 0) { d.waveT -= dt; if (d.waveT <= 0) { towerWave(); d.spawned = true; } return; }
+    if (d.cleared || !d.spawned) return;
+    if (G.mobs.some((m) => !m.dead && !m.summoned)) return;
+    d.cleared = true;
+    const s = G.save, f = d.floor;
+    const first = f > (s.tower.best || 0);
+    if (first) s.tower.best = f;
+    const gems = first ? 10 + f + (f % 10 === 0 ? 100 : 0) : 0;
+    const coins = 2 + Math.floor(f / 5);
+    if (gems) R.Prog.addGems(gems);
+    R.Prog.addCoins(coins, true);
+    s.gold += 40 * f;
+    R.UI.banner(`${f}층 돌파!`, '#c9a2ff', `${gems ? `💎 ${gems} · ` : ''}🪙 ${coins} · 골드 ${40 * f}${f >= R.TOWER_FLOORS ? ' · 탑 정복!' : ''}`);
+    R.sfx('levelup');
+    R.saveGame();
+  }
+
+  // ─── 펫 ──────────────────────────────────────────────
+  function spawnPet() {
+    const id = G.save.pet, p = G.player;
+    if (!id || !p) { G.pet = null; return; }
+    const fr = R.SHEET && R.SHEET.frames[id];
+    G.pet = { id, sk: id, ss: 0.5, def: R.MONSTERS[id] || {}, x: p.x - 14, y: p.y + 4, vx: 0, vy: 0, dir: 1, face: 1, state: 'idle', hh: fr ? (fr.h / 3) * 0.5 : 8, pet: true, t: 0, anim: 0, r: 4, z: 0, status: {}, stunT: 0, flash: 0, downT: 0, act: null, dead: false, elite: false };
+  }
+  R.spawnPet = spawnPet;
+  function updatePet(dt) {
+    const pt = G.pet, p = G.player;
+    if (!pt || !p) return;
+    pt.t += dt; pt.anim += dt;
+    const tx = p.x - (p.face || 1) * 14, ty = p.y + 5;
+    const dx = tx - pt.x, dy = ty - pt.y, d = Math.hypot(dx, dy);
+    if (d > 160) { pt.x = tx; pt.y = ty; }
+    const sp = d > 6 ? Math.min(160, d * 4) : 0;
+    const k = 1 - Math.exp(-10 * dt);
+    pt.vx += ((d ? (dx / d) * sp : 0) - pt.vx) * k;
+    pt.vy += ((d ? (dy / d) * sp : 0) - pt.vy) * k;
+    pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+    if (Math.abs(pt.vx) > 4) pt.dir = pt.face = pt.vx > 0 ? 1 : -1;
+    pt.state = Math.hypot(pt.vx, pt.vy) > 8 ? 'walk' : 'idle';
+  }
 
   function spawnAt(region, sp, k, rnd) {
     const [lo, hi] = region.lv;
@@ -239,6 +327,7 @@
   function updateDungeon(dt) {
     const d = G.dungeon;
     if (!d) return;
+    if (d.tower) { G.mobs = G.mobs.filter((m) => !m.dead || m.deathT < 0.5); updateTower(dt); return; }
     const p = G.player;
     for (const e of d.spawns) {
       if (!e.mob.dead) continue;
@@ -280,6 +369,16 @@
       const d = Math.hypot(c.x - p.x, c.y - p.y);
       if (d < best) { best = d; G.interact = { kind: 'chest', chest: c, x: c.x, y: c.y, label: '📦 열기', h: 16 }; }
     }
+    for (const n of m.nodes || []) {
+      if (n.done) continue;
+      const d = Math.hypot(n.x - p.x, n.y - p.y);
+      if (d < 20 && d < best) { best = d; G.interact = { kind: 'gather', node: n, x: n.x, y: n.y, label: `${R.GATHER[n.type].icon} 채집`, h: 12 }; }
+    }
+    const dg = G.dungeon;
+    if (dg && dg.tower && dg.cleared && m.center) {
+      const d = Math.hypot(m.center.x - p.x, m.center.y - p.y);
+      if (d < 26 && d < best) { best = d; G.interact = { kind: 'nextfloor', x: m.center.x, y: m.center.y, label: dg.floor >= R.TOWER_FLOORS ? '🏆 정상' : `⬆ ${dg.floor + 1}층`, h: 14 }; }
+    }
     if (m.portal) {
       const px = m.portal.x * TS + 8, py = m.portal.y * TS + 8;
       const d = Math.hypot(px - p.x, py - p.y);
@@ -306,11 +405,25 @@
     if (it.kind === 'npc') R.NPC_TALK[it.npc.id](it.npc);
     else if (it.kind === 'chest') openChest(it.chest);
     else if (it.kind === 'portal') R.enterTown();
+    else if (it.kind === 'gather') gather(it.node);
+    else if (it.kind === 'nextfloor') {
+      if (G.dungeon.floor >= R.TOWER_FLOORS) R.toast('심연의 탑 정상. 더 오를 곳이 없다', '#c9a2ff');
+      else R.enterTower(G.dungeon.floor + 1);
+    }
     else if (it.kind === 'exit') R.UI.regionSelect();
     else if (it.kind === 'gate') {
       if (G.dungeon.hasKey) { R.openGate(); R.sfx('gate'); R.toast('육중한 문이 열렸다. 강한 기운이 느껴진다…', '#ffb0a0'); }
       else R.toast(G.dungeon.region.gimmick === 'switch' ? '잠겨 있다. 어딘가의 압력 스위치를 찾아보자' : '굳게 잠긴 문이다. 열쇠가 필요하다', '#ff8a8a');
     }
+  }
+
+  function gather(n) {
+    n.done = true;
+    const k = 1 + ((Math.random() * 3) | 0), s = G.save, g = R.GATHER[n.type];
+    s.bag[n.type] = (s.bag[n.type] || 0) + k;
+    R.sfx('pickup');
+    R.addNum(n.x, n.y - 14, `${g.name} +${k}`, '#b8f0a0', 0.9);
+    for (let i = 0; i < 8; i++) R.fx.push({ type: 'dust', x: n.x, y: n.y - 4, vx: (Math.random() - 0.5) * 50, vy: -30 - Math.random() * 40, life: 0.5, max: 0.5, color: n.type === 'ore' ? '#c8c0b0' : n.type === 'herb' ? '#7ad86a' : '#e89a7a', size: 2 });
   }
 
   function openChest(c) {
@@ -335,6 +448,7 @@
       R.updateShots(dt);
       R.updateTeles(dt);
       R.updateDrops(dt);
+      updatePet(dt);
       updateDungeon(dt);
       updateInteract();
     }
@@ -421,5 +535,5 @@
   R.UI.showTitle();
   requestAnimationFrame(frame);
   // 디버그/테스트용 훅
-  window.RELIC = { G, R, newSave, tick: (dt) => tick(dt, false), startPlay, doInteract, openChest };
+  window.RELIC = { G, R, newSave, tick: (dt) => tick(dt, false), startPlay, doInteract, openChest, gather };
 })();

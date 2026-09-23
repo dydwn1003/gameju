@@ -99,6 +99,63 @@
     return mods;
   };
 
+  // ─── 펫 ────────────────────────────────────────────────
+  P.petDef = () => R.PETS.find((x) => x.id === S().pet) || null;
+  P.petMod = () => { const d = P.petDef(); return (d && d.mod) || {}; };
+  P.priceText = (pr) => Object.entries(pr).map(([k, v]) => `${R.CURRENCY[k].icon} ${v.toLocaleString('ko-KR')}`).join(' ');
+  P.canPay = (pr) => Object.entries(pr).every(([k, v]) => (S()[k] || 0) >= v);
+  P.pay = (pr) => { if (!P.canPay(pr)) return false; for (const k in pr) S()[k] -= pr[k]; return true; };
+  P.buyPet = (id) => {
+    const s = S(), d = R.PETS.find((x) => x.id === id);
+    s.pets = s.pets || [];
+    if (!d || s.pets.includes(id)) return false;
+    if (!P.pay(d.price)) return false;
+    s.pets.push(id);
+    s.pet = id;
+    if (G.player) R.refreshStats();
+    R.sfx('rare');
+    return true;
+  };
+  P.setPet = (id) => { S().pet = S().pet === id ? null : id; if (G.player) R.refreshStats(); R.sfx('ui'); };
+
+  // ─── 제작 ──────────────────────────────────────────────
+  P.itemInfo = (k) => R.CONSUMABLES[k] || R.MATERIALS[k] || R.GATHER[k] || R.FOODS[k];
+  P.canCraft = (rc) => Object.entries(rc.need).every(([k, v]) => (S().bag[k] || 0) >= v);
+  P.craft = (rc) => {
+    const s = S();
+    if (!P.canCraft(rc)) return false;
+    for (const k in rc.need) s.bag[k] -= rc.need[k];
+    s.bag[rc.out] = (s.bag[rc.out] || 0) + rc.n;
+    R.sfx('enhance_ok');
+    return true;
+  };
+  // 음식 버프 (플레이 시간 기준 만료)
+  P.eat = (id) => {
+    const s = S(), f = R.FOODS[id];
+    if (!f || !s.bag[id]) return false;
+    s.bag[id]--;
+    s.buffs = s.buffs || {};
+    s.buffs[id] = (s.playTime || 0) + f.dur;
+    if (G.player) R.refreshStats();
+    R.sfx('potion');
+    R.toast(`${f.icon} ${f.name}: ${f.desc}`, '#ffe070');
+    return true;
+  };
+  P.buffLeft = (id) => Math.max(0, ((S().buffs || {})[id] || 0) - (S().playTime || 0));
+
+  // ─── 호감도 선물 ───────────────────────────────────────
+  P.favor = (id) => (S().favor || {})[id] || 0;
+  P.canGift = () => Object.entries(R.GIFT_COST).every(([k, v]) => (S().bag[k] || 0) >= v);
+  P.gift = (id) => {
+    const s = S();
+    if (!P.canGift() || P.favor(id) >= 5) return false;
+    for (const k in R.GIFT_COST) s.bag[k] -= R.GIFT_COST[k];
+    s.favor[id] = P.favor(id) + 1;
+    R.sfx('pickup');
+    return true;
+  };
+  P.discount = (npc) => (P.favor(npc) >= 3 ? 0.8 : 1);
+
   // ─── 장비 소환 (천장 80회) ─────────────────────────────
   function rollSummonGrade() {
     const r = Math.random(), rt = R.SUMMON.rates;

@@ -309,3 +309,66 @@ R.MOD_TEXT = {
 // ─── 장비 도감 (GDD 34) ──────────────────────────────────
 // 5종 수집마다 공격력 +1%, 최대 HP +1%
 R.DEX_STEP = 5;
+
+// ─── 펫 (GDD 49) — 디자인 시트 몬스터의 꼬마 버전. 전투력보다 보조 기능 ─────
+R.PETS = [
+  { id: 'slime', name: '말랑이', desc: '초당 최대 HP 0.5% 재생', mod: { regenPct: 0.005 }, price: { gold: 1500 } },
+  { id: 'mushroom', name: '포자', desc: '물약 회복량 +30%', mod: { potPct: 0.3 }, price: { honor: 2 } },
+  { id: 'wolf', name: '아기 늑대', desc: '이동속도 +6%', mod: { movePct: 0.06 }, price: { gems: 300 } },
+  { id: 'bat', name: '비비', desc: '아이템을 멀리서도 끌어모음 (줍기 범위 ×2.2)', mod: { pickMul: 2.2 }, price: { gold: 4000 } },
+  { id: 'ghost', name: '꼬마 망령', desc: '장비 드랍률 +15%', mod: { dropPct: 0.15 }, price: { gems: 600 } },
+  { id: 'hellhound', name: '아기 지옥견', desc: '골드 획득 +20%', mod: { goldPct: 0.2 }, price: { honor: 5 } },
+];
+
+// ─── 채집 & 제작 (GDD 50) ─────────────────────────────────
+R.GATHER = {
+  herb: { name: '약초', icon: '🌿' },
+  ore: { name: '광석', icon: '🪨' },
+  shroom: { name: '야생 버섯', icon: '🍄' },
+};
+R.GATHER_BY_THEME = { forest: ['herb', 'shroom'], ruins: ['herb', 'ore'], mine: ['ore', 'ore', 'shroom'], ice: ['ore', 'herb'], hell: ['ore', 'shroom'] };
+R.FOODS = {
+  feast: { name: '모험가 도시락', icon: '🍱', desc: '5분간 공격력·방어력 +10%', dur: 300, mod: { atkPct: 0.1, defPct: 0.1 } },
+};
+R.RECIPES = [
+  { out: 'hpPotion', n: 2, need: { herb: 2 } },
+  { out: 'mpPotion', n: 2, need: { shroom: 2 } },
+  { out: 'feast', n: 1, need: { herb: 2, shroom: 2 } },
+  { out: 'stone', n: 1, need: { ore: 4, iron: 2 } },
+  { out: 'hstone', n: 1, need: { ore: 10, stone: 2 } },
+  { out: 'reviveStone', n: 1, need: { ore: 6, herb: 4, shroom: 4 } },
+];
+
+// ─── NPC 호감도 (GDD 66) — 선물(약초 3)로 오르고 3 이상이면 혜택 ──────
+R.GIFT_COST = { herb: 3 };
+R.FAVOR_PERKS = {
+  elder: '호감도 3: 부활석 2개 선물 (1회)',
+  smith: '호감도 3: 강화 비용 -20%',
+  alchemist: '호감도 3: 상점 가격 -20%',
+  bard: '호감도 3: 숨겨진 던전의 단서',
+};
+
+// ─── 숨겨진 던전 (GDD 68) — 용암 광산 클리어 + 음유시인 호감도 3 ──────
+R.BOSSES.obsidian_golem = { name: '흑요석 골렘', arch: 'golem', sprite: 'golem', spriteScale: 1.75, elem: 'DARK', pal: ['#3a2a44', '#1a1224', '#b27bff'], hp: 20, atk: 1.55, def: 2.4, spd: 26, r: 14, scale: 2,
+  phases: [{ at: 1, moves: ['slam', 'rocks'] }, { at: 0.6, moves: ['slam', 'rocks', 'quake', 'ring'] }, { at: 0.3, moves: ['slam', 'rocks', 'quake', 'ring'], enrage: true }],
+  desc: '검은 광산의 가장 깊은 곳, 균열의 어둠을 삼킨 바위 거인.' };
+R.HIDDEN_REGION = { id: 6, name: '검은 광산', lv: [30, 40], theme: 'mine', gimmick: 'rocks', monsters: ['golem', 'bat', 'lava_worm', 'mine_goblin', 'demon_knight'], boss: 'obsidian_golem', bossLv: 42, bgm: 2, hidden: true, gimmickText: '빛이 닿지 않는 폐광. 낙석과 어둠을 조심하라' };
+R.regionById = (id) => (id === 6 ? R.HIDDEN_REGION : R.REGIONS[id - 1]);
+
+// ─── 난이도 (GDD 71) ─────────────────────────────────────
+R.DIFFICULTY = [
+  { id: 'normal', name: '일반', lv: 0, hp: 1, atk: 1, exp: 1, drop: 0, color: '#a8e0a0' },
+  { id: 'hard', name: '어려움', lv: 12, hp: 1.5, atk: 1.35, exp: 1.5, drop: 0.5, color: '#ffb05a' },
+  { id: 'nightmare', name: '악몽', lv: 22, hp: 2.4, atk: 1.8, exp: 2, drop: 1, color: '#ff5a7a' },
+];
+
+// ─── 심연의 탑 (GDD 72) — 50층, 층마다 제한 조건, 10층마다 보스 ──────
+R.TOWER_FLOORS = 50;
+R.TOWER_MODS = [
+  { id: 'nopotion', name: '회복 금지', desc: '물약을 사용할 수 없다' },
+  { id: 'haste', name: '광란', desc: '몬스터 이동속도 +30%' },
+  { id: 'fragile', name: '유리 몸', desc: '받는 피해 +30%' },
+  { id: 'resist', name: '원소 저항', desc: '속성 피해 -50%' },
+  { id: 'elite', name: '정예의 층', desc: '모든 몬스터가 정예' },
+];
+R.towerMod = (f) => (f % 10 === 0 || f < 3 ? null : R.TOWER_MODS[(f * 7 + 3) % R.TOWER_MODS.length]);

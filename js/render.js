@@ -154,7 +154,7 @@
 
   function drawMob(g, m) {
     if (m.dead && m.deathT > 0.45) return;
-    const f = SPR.frame(m.id);
+    const f = SPR.frame(m.sk || m.id);
     if (f) return drawMobSheet(g, m, f);
     const img = mobImage(m);
     const alpha = m.dead ? 1 - m.deathT / 0.45 : m.shield ? 0.45 + Math.sin(G.time * 8) * 0.15 : m.def.arch === 'ghost' ? 0.85 : 1;
@@ -193,8 +193,36 @@
   }
 
 
+  // 채집 지점: 약초 싹 / 광석 바위 / 버섯
+  function drawNode(g, n) {
+    const x = Math.round(n.x), y = Math.round(n.y);
+    g.globalAlpha = n.done ? 0.35 : 1;
+    shadow(g, x, y, 6);
+    if (n.type === 'ore') {
+      g.fillStyle = '#4a4450'; g.fillRect(x - 6, y - 7, 12, 7); g.fillRect(x - 4, y - 9, 8, 2);
+      g.fillStyle = '#6a6474'; g.fillRect(x - 5, y - 8, 6, 3); g.fillRect(x - 3, y - 9, 4, 1);
+      if (!n.done) { const tw = Math.floor(G.time * 3 + n.x) % 3; g.fillStyle = tw ? '#ffd35a' : '#fff4c0'; g.fillRect(x - 2, y - 5, 2, 2); g.fillStyle = '#8ad8ff'; g.fillRect(x + 2, y - 4, 2, 1); }
+    } else if (n.type === 'herb') {
+      const sw = Math.round(Math.sin(G.time * 2 + n.x) * 1);
+      g.fillStyle = '#2e7a2a'; g.fillRect(x - 1, y - 6, 1, 6); g.fillRect(x + 2, y - 5, 1, 5); g.fillRect(x - 4, y - 4, 1, 4);
+      g.fillStyle = '#6ad84a'; g.fillRect(x - 3 + sw, y - 8, 3, 2); g.fillRect(x + 1 + sw, y - 7, 3, 2); g.fillRect(x - 6 + sw, y - 6, 3, 2);
+      if (!n.done) { g.fillStyle = '#ffffff'; g.fillRect(x + sw, y - 9, 1, 1); }
+    } else {
+      g.fillStyle = '#e8dcc8'; g.fillRect(x - 3, y - 4, 2, 4); g.fillRect(x + 2, y - 3, 2, 3);
+      g.fillStyle = '#c8402a'; g.fillRect(x - 5, y - 7, 6, 3); g.fillRect(x + 1, y - 5, 4, 2);
+      g.fillStyle = '#ffe0d0'; g.fillRect(x - 4, y - 7, 1, 1); g.fillRect(x - 1, y - 6, 1, 1); g.fillRect(x + 3, y - 5, 1, 1);
+    }
+    g.globalAlpha = 1;
+  }
+  function drawPet(g, pt) {
+    const f = SPR.frame(pt.sk);
+    if (!f) return;
+    shadow(g, pt.x, pt.y, 4);
+    R.Anim.mob(g, pt, f, G.rdt || 1 / 60, { alpha: 1 });
+  }
+
   function drawMobSheet(g, mob, f) {
-    const w = f.w / S, h = f.h / S * (mob.elite ? 1.2 : 1);
+    const w = f.w / S * (mob.ss || 1), h = f.h / S * (mob.ss || 1) * (mob.elite ? 1.2 : 1);
     const face = mob.face || 1;
     shadow(g, mob.x, mob.y, Math.max(mob.r * 1.1, w * 0.32));
     if (mob.elite && !mob.dead) {
@@ -403,6 +431,8 @@
     for (const n of m.npcs) list.push({ y: n.y, npc: n });
     for (const d of G.drops) list.push({ y: d.y, drop: d });
     for (const mob of G.mobs) list.push({ y: mob.y, mob });
+    for (const nd of m.nodes || []) list.push({ y: nd.y, node: nd });
+    if (G.pet) list.push({ y: G.pet.y, pet: G.pet });
     list.push({ y: p.y, player: true });
     list.sort((a, b) => a.y - b.y);
     for (const o of list) {
@@ -410,6 +440,8 @@
       else if (o.mob) drawMob(ctx, o.mob);
       else if (o.player) drawPlayer(ctx, p);
       else if (o.drop) drawDrop(ctx, o.drop);
+      else if (o.node) drawNode(ctx, o.node);
+      else if (o.pet) drawPet(ctx, o.pet);
       else if (o.chest) { const c = o.chest; shadow(ctx, c.x, c.y, 7); const img = SPR.chest(c.open); ctx.drawImage(img, Math.round(c.x - img.width / 2), Math.round(c.y - img.height)); }
       else if (o.npc) {
         const n = o.npc;
