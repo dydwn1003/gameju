@@ -268,6 +268,20 @@
     });
   }
 
+  // 디자인 시트 스프라이트를 캔버스 크기에 맞춰 그린다 (없으면 fallback 이미지)
+  function fitSprite(g, key, fallback, W, H, pad = 1) {
+    const img = R.SPR.frame(key) ? R.SPR.frameCanvas(key) : fallback;
+    if (!img) return;
+    const k = Math.min((W - pad * 2) / img.width, (H - pad * 2) / img.height);
+    g.imageSmoothingEnabled = !!R.SPR.frame(key);
+    g.drawImage(img, (W - img.width * k) / 2, H - pad - img.height * k, img.width * k, img.height * k);
+  }
+  UI.fitSprite = fitSprite;
+  R.SPR.onSheetReady = () => {
+    if (!$('title').classList.contains('hidden')) UI.showTitle();
+    if (!$('select').classList.contains('hidden')) UI.showSelect();
+  };
+
   // ─── 아이템 표시 ─────────────────────────────────────
   const itemIcon = (it) => (it.slot === 'weapon' ? R.WEAPON_ICON[it.wtype] : R.SLOT_ICON[it.slot]);
   function cellHtml(it, extra = '') {
@@ -399,12 +413,10 @@
           cell.className = 'codex-cell' + (known ? '' : ' unknown');
           const cv = document.createElement('canvas');
           const img = def.arch === 'human' ? R.SPR.human(id, def.look, 'down', 0, false) : R.SPR.monster(id, def, 0, false);
-          cv.width = 28; cv.height = 28;
+          cv.width = 96; cv.height = 72;
           const g = cv.getContext('2d');
-          g.imageSmoothingEnabled = false;
-          const k = Math.min(26 / img.width, 26 / img.height);
           if (!known) g.filter = 'brightness(0) invert(0.22)';
-          g.drawImage(img, (28 - img.width * k) / 2, (28 - img.height * k) / 2, img.width * k, img.height * k);
+          fitSprite(g, id, img, 96, 72, 3);
           cell.appendChild(cv);
           const nm = document.createElement('div');
           nm.textContent = known ? def.name + (boss ? ' 👑' : '') : '???';
@@ -597,6 +609,14 @@
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, cv.width, cv.height);
     const ids = Object.keys(R.CLASSES);
+    if (R.SPR.sheet.ready) {
+      cv.width = 648; cv.height = 240;
+      const g2 = cv.getContext('2d');
+      ids.forEach((id, i) => {
+        g2.save(); g2.translate(8 + i * 132, 30); fitSprite(g2, id, null, 124, 210, 2); g2.restore();
+      });
+      return;
+    }
     ids.forEach((id, i) => {
       const c = R.CLASSES[id];
       const img = R.SPR.human('pl' + id, Object.assign({ shield: id === 'GLADIATOR' }, c.look), 'down', 0, false, 2);
@@ -617,10 +637,10 @@
       const card = document.createElement('button');
       card.className = 'sel-card' + (id === selCls ? ' on' : '');
       const cv = document.createElement('canvas');
-      cv.width = 40; cv.height = 50;
-      const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+      cv.width = 160; cv.height = 200;
+      const g = cv.getContext('2d');
       const img = R.SPR.human('pl' + id, Object.assign({ shield: id === 'GLADIATOR' }, c.look), 'down', 0, false, 2);
-      g.drawImage(img, (40 - img.width) / 2, 50 - img.height);
+      fitSprite(g, id, img, 160, 200, 4);
       card.appendChild(cv);
       card.insertAdjacentHTML('beforeend', `<div class="nm">${c.name}</div><div class="ds">${c.desc}</div>`);
       card.onclick = () => { selCls = id; R.sfx('ui'); UI.showSelect(); };

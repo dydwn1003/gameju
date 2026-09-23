@@ -489,6 +489,32 @@
     }));
   };
 
+  // ─── 디자인 시트 아틀라스 (assets/sprites.png) ─────────
+  // tools/extract_sprites.py 가 디자인 시트에서 잘라 만든 캐릭터/몬스터. 로드 전에는 절차적 도트로 대체한다
+  const SH = R.SHEET;
+  S.sheet = { img: null, white: null, ready: false };
+  if (SH) {
+    const img = new Image();
+    img.onload = () => {
+      const w = mk(img.width, img.height), g = w.getContext('2d');
+      g.drawImage(img, 0, 0);
+      g.globalCompositeOperation = 'source-in';
+      g.fillStyle = '#ffffff';
+      g.fillRect(0, 0, w.width, w.height);
+      S.sheet.img = img; S.sheet.white = w; S.sheet.ready = true;
+      if (S.onSheetReady) S.onSheetReady();
+    };
+    img.src = SH.src;
+  }
+  S.frame = (key) => (S.sheet.ready && SH.frames[key]) || null;
+  // UI용: 한 프레임만 잘라낸 캔버스 (로드 후에만 호출)
+  S.frameCanvas = (key) => get('fc:' + key, () => {
+    const f = SH.frames[key];
+    const c = mk(f.w, f.h);
+    c.getContext('2d').drawImage(S.sheet.img, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+    return c;
+  });
+
   // ─── 3x5 픽셀 숫자 폰트 ────────────────────────────────
   const FONT = {
     0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001111001111', 4: '101101111001001',

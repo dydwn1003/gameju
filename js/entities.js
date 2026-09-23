@@ -395,6 +395,7 @@
         break;
       }
     }
+    if (p.act) p.act.id = id;
   }
 
   // ─── 데미지 (GDD: (ATK*SkillRate)*ElementMod*[100/(100+DEF)]) ──
@@ -512,7 +513,8 @@
     const st = R.monsterStats(def, lv);
     const scale = o.boss ? Math.round(def.scale || 2) : o.elite ? 1 : 1;
     const m = {
-      id, def, lv, x, y, homeX: x, homeY: y, r: (def.r || 6) * (o.elite ? 1.2 : 1), hh: (ARCH_H[def.arch] || 14) * scale,
+      id, def, lv, x, y, homeX: x, homeY: y, r: (def.r || 6) * (o.elite ? 1.2 : 1),
+      hh: R.SHEET && R.SHEET.frames[id] ? Math.round(R.SHEET.frames[id].h / R.SCALE * (o.elite ? 1.2 : 1)) : (ARCH_H[def.arch] || 14) * scale,
       maxHp: st.maxHp * (o.elite ? 2.5 : 1), atk: st.atk * (o.elite ? 1.3 : 1), armor: st.def, exp: st.exp * (o.elite ? 3 : 1), gold: st.gold * (o.elite ? 3 : 1),
       elem: def.elem, spd: def.spd, ai: 'PATROL', aiT: 0, act: null, atkCd: rand(0.5, 1.5), flash: 0, stunT: 0, downT: 0,
       kx: 0, ky: 0, z: 0, vz: 0, dead: false, deathT: 0, status: {}, face: 1, anim: rand(0, 3), wanderX: x, wanderY: y,
@@ -533,6 +535,7 @@
       if (dy && !dx) R.moveBody(G.map, m, (m.x > G.player.x ? -1 : 1) * Math.abs(dy) * slow, 0);
     }
     if (Math.abs(dx) > 0.01) m.face = dx > 0 ? 1 : -1;
+    m.movedAt = G.time;
     return ok;
   }
 
@@ -701,6 +704,7 @@
       const sp = b.spd * spdMul * dt;
       R.moveBody(G.map, b, Math.cos(ang) * sp, Math.sin(ang) * sp);
       b.face = dx >= 0 ? 1 : -1;
+      b.movedAt = G.time;
     }
     if (b.moveCd <= 0) {
       let moves = ph.moves.slice();
@@ -1074,7 +1078,7 @@
     for (let i = 0; i < 10; i++) G.fx.push({ type: 'dust', x: x + rand(-6, 6), y: y + rand(-6, 6), vx: rand(-20, 20), vy: rand(-30, 0), life: 0.5, max: 0.5, color: i % 2 ? '#3a2a4a' : '#6a5a7a', size: 3, nograv: true });
   };
   R.fxAfterimage = function (p) {
-    G.fx.push({ type: 'ghost', x: p.x, y: p.y, dir: p.dir, anim: p.anim, life: 0.18, max: 0.18 });
+    G.fx.push({ type: 'ghost', x: p.x, y: p.y, dir: p.dir, face: p.faceX || 1, rot: p.lastRot || 0, anim: p.anim, life: 0.18, max: 0.18 });
   };
   R.updateFx = function (dt) {
     for (const f of G.fx) {
