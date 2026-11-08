@@ -168,7 +168,7 @@ const ENEMIES = [
   { id: 'r_gumiho',  ch: 'fire',  n: '구미호여왕', arch: 'fox',     pal: ['#3a2a4a', '#8a6aa8', '#ff4a8a'], feat: ['ears_fox', 'tail_fox', 'foxfire'], tails: [9, 9, 9], raid: true },
 ];
 const ENEMY_MAP = Object.fromEntries(ENEMIES.map(e => [e.id, e]));
-const RACES = { human: '인간', fox: '구미호', goblin: '도깨비' };
+const RACES = { human: '인간', fox: '구미호', goblin: '도깨비' }; // 메인 캐릭터 종족 (직업 없음)
 
 // 성장 공식
 const FORM_MUL = [1, 1.7, 2.8];

@@ -234,57 +234,123 @@ Use exactly the same pixel art style, outline and pixel size as the attached ima
 9. RAID BOSS: a dark purple nine-tailed fox queen with pink foxfire
 ```
 
-## 메인 캐릭터 (3종족 × 2성별 × 4직업)
+## 메인 캐릭터 (인간·구미호·도깨비 × 남·여)
 
-> 격자 3장 · 위 줄 남자, 아래 줄 여자 · 왼쪽부터 무사·자객·도사·궁사 · assets/hero/
+> 직업 없음 · ① 6명 한 장으로 디자인 확정 → ② 1명씩 크게 → ③ 동작 4개 · assets/hero/
 
-### `grid_h_human.png` 인간 캐릭터 8명
-첨부: grid_m01 결과 이미지 첨부 (같은 화풍 유지)
-순서: 위 줄 남자 무사·자객·도사·궁사 / 아래 줄 여자 무사·자객·도사·궁사
-
-```
-Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. All 8 characters share the same body proportions (2.5 heads tall chibi), same face shape and same height; only race traits, clothes and weapons differ. Joseon-era hanbok fashion. Sprite sheet: exactly 8 different characters arranged in a 2x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
-Top row = young men, bottom row = young women; columns left to right = warrior, assassin, taoist mage, archer.
-1. a young man human, warrior: Joseon studded armor (dujeonggap) over hanbok, red jeollip hat, holding a hwando sword
-2. a young man human, assassin: black night outfit, black cloth mask over the mouth, holding a short dagger
-3. a young man human, taoist mage: white dopo robe with blue sash, black gat hat, holding a wooden staff with a talisman
-4. a young man human, archer: green hanbok jacket with arm guards, holding a Korean horn bow (gakgung), quiver on back
-5. a young woman human, warrior: Joseon studded armor (dujeonggap) over hanbok, red jeollip hat, holding a hwando sword
-6. a young woman human, assassin: black night outfit, black cloth mask over the mouth, holding a short dagger
-7. a young woman human, taoist mage: white dopo robe with blue sash, black gat hat, holding a wooden staff with a talisman
-8. a young woman human, archer: green hanbok jacket with arm guards, holding a Korean horn bow (gakgung), quiver on back
-```
-
-### `grid_h_fox.png` 구미호 캐릭터 8명
-첨부: grid_h_human 결과 이미지 첨부 (같은 얼굴형·비율 유지)
-순서: 위 줄 남자 무사·자객·도사·궁사 / 아래 줄 여자 무사·자객·도사·궁사
+### `grid_h_all.png` 6명 한 장 (디자인 확정용)
+첨부: grid_m01 결과 이미지 첨부 (몬스터와 같은 화풍)
+순서: 위 줄 남자 인간·구미호·도깨비 / 아래 줄 여자 인간·구미호·도깨비
 
 ```
-Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. All 8 characters share the same body proportions (2.5 heads tall chibi), same face shape and same height; only race traits, clothes and weapons differ. Joseon-era hanbok fashion. Sprite sheet: exactly 8 different characters arranged in a 2x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
-Top row = young men, bottom row = young women; columns left to right = warrior, assassin, taoist mage, archer.
-1. a young man gumiho fox-spirit person: human body with fluffy fox ears on the head and one big fluffy fox tail, slit fox-like eyes, warrior: Joseon studded armor (dujeonggap) over hanbok, red jeollip hat, holding a hwando sword
-2. a young man gumiho fox-spirit person: human body with fluffy fox ears on the head and one big fluffy fox tail, slit fox-like eyes, assassin: black night outfit, black cloth mask over the mouth, holding a short dagger
-3. a young man gumiho fox-spirit person: human body with fluffy fox ears on the head and one big fluffy fox tail, slit fox-like eyes, taoist mage: white dopo robe with blue sash, black gat hat, holding a wooden staff with a talisman
-4. a young man gumiho fox-spirit person: human body with fluffy fox ears on the head and one big fluffy fox tail, slit fox-like eyes, archer: green hanbok jacket with arm guards, holding a Korean horn bow (gakgung), quiver on back
-5. a young woman gumiho fox-spirit person: human body with fluffy fox ears on the head and one big fluffy fox tail, slit fox-like eyes, warrior: Joseon studded armor (dujeonggap) over hanbok, red jeollip hat, holding a hwando sword
-6. a young woman gumiho fox-spirit person: human body with fluffy fox ears on the head and one big fluffy fox tail, slit fox-like eyes, assassin: black night outfit, black cloth mask over the mouth, holding a short dagger
-7. a young woman gumiho fox-spirit person: human body with fluffy fox ears on the head and one big fluffy fox tail, slit fox-like eyes, taoist mage: white dopo robe with blue sash, black gat hat, holding a wooden staff with a talisman
-8. a young woman gumiho fox-spirit person: human body with fluffy fox ears on the head and one big fluffy fox tail, slit fox-like eyes, archer: green hanbok jacket with arm guards, holding a Korean horn bow (gakgung), quiver on back
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. All 6 are the same height and drawn at the same scale. Sprite sheet: exactly 6 different characters arranged in a 2x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+Top row = boys, bottom row = girls; columns left to right = human, gumiho, dokkaebi.
+1. a human boy hero: messy black hair tied in a small topknot with a red headband, blue hanbok jeogori jacket with white collar and gray baji pants, straw sandals, a wooden sword on his shoulder, big confident grin
+2. a REAL nine-tailed fox (gumiho), not a human: an anthropomorphic white fox boy standing on two legs, fox head with pointed ears and long snout, nine big fluffy tails fanned out behind him with golden tips, wearing a small purple hanbok vest, a blue foxfire flame floating above one paw, sly smirk
+3. a REAL dokkaebi goblin, not a human: blue-skinned stocky goblin boy with one big horn on his forehead, wild spiky hair, sharp fangs in a huge toothy grin, tiger-skin pants, holding a spiked wooden dokkaebi club (bangmangi)
+4. a human girl hero: long black hair in a single braid tied with a red daenggi ribbon, yellow jeogori jacket with red otgoreum bow and a pink chima skirt, holding a red-and-blue folding fan, cheerful wink
+5. a REAL nine-tailed fox (gumiho), not a human: an anthropomorphic white fox girl standing on two legs, fox head with big ears and long eyelashes, nine big fluffy tails with pink tips fanned out behind her, a flower hairpin and red silk ribbon, a pink foxfire orb in her paw, mischievous smile
+6. a REAL dokkaebi goblin, not a human: red-skinned goblin girl with one horn, curly hair in two buns, sharp little fangs in a big laugh, tiger-skin skirt, holding a small golden dokkaebi club with lucky coins
 ```
 
-### `grid_h_goblin.png` 도깨비 캐릭터 8명
-첨부: grid_h_human 결과 이미지 첨부 (같은 얼굴형·비율 유지)
-순서: 위 줄 남자 무사·자객·도사·궁사 / 아래 줄 여자 무사·자객·도사·궁사
+### `hero_human_m.png` 인간 남자 (1명 크게)
+첨부: grid_h_all 결과 이미지 첨부 (해당 캐릭터 디자인 그대로)
+
 
 ```
-Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. All 8 characters share the same body proportions (2.5 heads tall chibi), same face shape and same height; only race traits, clothes and weapons differ. Joseon-era hanbok fashion. Sprite sheet: exactly 8 different characters arranged in a 2x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
-Top row = young men, bottom row = young women; columns left to right = warrior, assassin, taoist mage, archer.
-1. a young man young dokkaebi person: human-like body with two small horns on the forehead, tiny fangs, slightly bluish skin, warrior: Joseon studded armor (dujeonggap) over hanbok, red jeollip hat, holding a hwando sword
-2. a young man young dokkaebi person: human-like body with two small horns on the forehead, tiny fangs, slightly bluish skin, assassin: black night outfit, black cloth mask over the mouth, holding a short dagger
-3. a young man young dokkaebi person: human-like body with two small horns on the forehead, tiny fangs, slightly bluish skin, taoist mage: white dopo robe with blue sash, black gat hat, holding a wooden staff with a talisman
-4. a young man young dokkaebi person: human-like body with two small horns on the forehead, tiny fangs, slightly bluish skin, archer: green hanbok jacket with arm guards, holding a Korean horn bow (gakgung), quiver on back
-5. a young woman young dokkaebi person: human-like body with two small horns on the forehead, tiny fangs, slightly bluish skin, warrior: Joseon studded armor (dujeonggap) over hanbok, red jeollip hat, holding a hwando sword
-6. a young woman young dokkaebi person: human-like body with two small horns on the forehead, tiny fangs, slightly bluish skin, assassin: black night outfit, black cloth mask over the mouth, holding a short dagger
-7. a young woman young dokkaebi person: human-like body with two small horns on the forehead, tiny fangs, slightly bluish skin, taoist mage: white dopo robe with blue sash, black gat hat, holding a wooden staff with a talisman
-8. a young woman young dokkaebi person: human-like body with two small horns on the forehead, tiny fangs, slightly bluish skin, archer: green hanbok jacket with arm guards, holding a Korean horn bow (gakgung), quiver on back
+Redraw only the top-left character from the attached image as a single large sprite with more detail, keeping exactly the same design, colors and pixel art style. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Single character, full body, centered, facing right, flat solid magenta #FF00FF background, no text, square 1:1.
+a human boy hero: messy black hair tied in a small topknot with a red headband, blue hanbok jeogori jacket with white collar and gray baji pants, straw sandals, a wooden sword on his shoulder, big confident grin
+```
+
+### `hero_fox_m.png` 구미호 남자 (1명 크게)
+첨부: grid_h_all 결과 이미지 첨부 (해당 캐릭터 디자인 그대로)
+
+
+```
+Redraw only the top-middle character from the attached image as a single large sprite with more detail, keeping exactly the same design, colors and pixel art style. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Single character, full body, centered, facing right, flat solid magenta #FF00FF background, no text, square 1:1.
+a REAL nine-tailed fox (gumiho), not a human: an anthropomorphic white fox boy standing on two legs, fox head with pointed ears and long snout, nine big fluffy tails fanned out behind him with golden tips, wearing a small purple hanbok vest, a blue foxfire flame floating above one paw, sly smirk
+```
+
+### `hero_goblin_m.png` 도깨비 남자 (1명 크게)
+첨부: grid_h_all 결과 이미지 첨부 (해당 캐릭터 디자인 그대로)
+
+
+```
+Redraw only the top-right character from the attached image as a single large sprite with more detail, keeping exactly the same design, colors and pixel art style. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Single character, full body, centered, facing right, flat solid magenta #FF00FF background, no text, square 1:1.
+a REAL dokkaebi goblin, not a human: blue-skinned stocky goblin boy with one big horn on his forehead, wild spiky hair, sharp fangs in a huge toothy grin, tiger-skin pants, holding a spiked wooden dokkaebi club (bangmangi)
+```
+
+### `hero_human_f.png` 인간 여자 (1명 크게)
+첨부: grid_h_all 결과 이미지 첨부 (해당 캐릭터 디자인 그대로)
+
+
+```
+Redraw only the bottom-left character from the attached image as a single large sprite with more detail, keeping exactly the same design, colors and pixel art style. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Single character, full body, centered, facing right, flat solid magenta #FF00FF background, no text, square 1:1.
+a human girl hero: long black hair in a single braid tied with a red daenggi ribbon, yellow jeogori jacket with red otgoreum bow and a pink chima skirt, holding a red-and-blue folding fan, cheerful wink
+```
+
+### `hero_fox_f.png` 구미호 여자 (1명 크게)
+첨부: grid_h_all 결과 이미지 첨부 (해당 캐릭터 디자인 그대로)
+
+
+```
+Redraw only the bottom-middle character from the attached image as a single large sprite with more detail, keeping exactly the same design, colors and pixel art style. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Single character, full body, centered, facing right, flat solid magenta #FF00FF background, no text, square 1:1.
+a REAL nine-tailed fox (gumiho), not a human: an anthropomorphic white fox girl standing on two legs, fox head with big ears and long eyelashes, nine big fluffy tails with pink tips fanned out behind her, a flower hairpin and red silk ribbon, a pink foxfire orb in her paw, mischievous smile
+```
+
+### `hero_goblin_f.png` 도깨비 여자 (1명 크게)
+첨부: grid_h_all 결과 이미지 첨부 (해당 캐릭터 디자인 그대로)
+
+
+```
+Redraw only the bottom-right character from the attached image as a single large sprite with more detail, keeping exactly the same design, colors and pixel art style. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Single character, full body, centered, facing right, flat solid magenta #FF00FF background, no text, square 1:1.
+a REAL dokkaebi goblin, not a human: red-skinned goblin girl with one horn, curly hair in two buns, sharp little fangs in a big laugh, tiger-skin skirt, holding a small golden dokkaebi club with lucky coins
+```
+
+### `hero_human_m_poses.png` 인간 남자 동작 4개
+첨부: hero_human_m 결과 이미지 첨부
+순서: 서있기 · 달리기 · 공격 · 맞았을 때
+
+```
+Character pose sheet of THIS SAME character from the attached image (keep exactly the same design, colors, outfit and proportions): 4 poses in one horizontal row, all facing right: 1) idle standing, 2) running, 3) attacking with a big dynamic action and motion lines, 4) hurt / knocked back with a funny comic expression. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_fox_m_poses.png` 구미호 남자 동작 4개
+첨부: hero_fox_m 결과 이미지 첨부
+순서: 서있기 · 달리기 · 공격 · 맞았을 때
+
+```
+Character pose sheet of THIS SAME character from the attached image (keep exactly the same design, colors, outfit and proportions): 4 poses in one horizontal row, all facing right: 1) idle standing, 2) running, 3) attacking with a big dynamic action and motion lines, 4) hurt / knocked back with a funny comic expression. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_goblin_m_poses.png` 도깨비 남자 동작 4개
+첨부: hero_goblin_m 결과 이미지 첨부
+순서: 서있기 · 달리기 · 공격 · 맞았을 때
+
+```
+Character pose sheet of THIS SAME character from the attached image (keep exactly the same design, colors, outfit and proportions): 4 poses in one horizontal row, all facing right: 1) idle standing, 2) running, 3) attacking with a big dynamic action and motion lines, 4) hurt / knocked back with a funny comic expression. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_human_f_poses.png` 인간 여자 동작 4개
+첨부: hero_human_f 결과 이미지 첨부
+순서: 서있기 · 달리기 · 공격 · 맞았을 때
+
+```
+Character pose sheet of THIS SAME character from the attached image (keep exactly the same design, colors, outfit and proportions): 4 poses in one horizontal row, all facing right: 1) idle standing, 2) running, 3) attacking with a big dynamic action and motion lines, 4) hurt / knocked back with a funny comic expression. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_fox_f_poses.png` 구미호 여자 동작 4개
+첨부: hero_fox_f 결과 이미지 첨부
+순서: 서있기 · 달리기 · 공격 · 맞았을 때
+
+```
+Character pose sheet of THIS SAME character from the attached image (keep exactly the same design, colors, outfit and proportions): 4 poses in one horizontal row, all facing right: 1) idle standing, 2) running, 3) attacking with a big dynamic action and motion lines, 4) hurt / knocked back with a funny comic expression. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_goblin_f_poses.png` 도깨비 여자 동작 4개
+첨부: hero_goblin_f 결과 이미지 첨부
+순서: 서있기 · 달리기 · 공격 · 맞았을 때
+
+```
+Character pose sheet of THIS SAME character from the attached image (keep exactly the same design, colors, outfit and proportions): 4 poses in one horizontal row, all facing right: 1) idle standing, 2) running, 3) attacking with a big dynamic action and motion lines, 4) hurt / knocked back with a funny comic expression. Cute chibi pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
 ```
