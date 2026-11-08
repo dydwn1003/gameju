@@ -1,6 +1,6 @@
 // 오프라인 캐시 (네트워크 우선, 실패 시 캐시)
-const CACHE = 'monster-idle-v2';
-const CORE = ['./', 'index.html', 'css/style.css', 'js/data.js', 'js/art.js', 'js/assets.js', 'js/audio.js',
+const CACHE = 'monster-idle-v3';
+const CORE = ['./', 'index.html', 'css/style.css', 'js/data.js', 'js/art.js', 'js/assets.js', 'js/hero.js', 'js/gear.js', 'js/audio.js',
   'js/monetize.js', 'js/battleview.js', 'js/game.js', 'js/ui.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

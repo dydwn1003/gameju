@@ -6,8 +6,8 @@ const Assets = (() => {
   const listeners = [];
   let pending = 0;
 
-  const UI_KEYS = ['gold', 'food', 'gems', 'stones', 'attend', 'quest', 'chest', 'boost', 'raid', 'arena', 'exped',
-    'nav_home', 'nav_mons', 'nav_summon', 'nav_adv', 'nav_shop', 'logo', 'banner'];
+  const UI_KEYS = ['gold', 'gems', 'stones', 'ench', 'hero', 'bag', 'attend', 'quest', 'chest', 'boost', 'raid', 'arena', 'exped',
+    'nav_home', 'nav_hero', 'nav_mons', 'nav_summon', 'nav_adv', 'nav_shop', 'logo', 'banner'];
 
   function probe(key, urls) {
     pending++;
@@ -33,6 +33,11 @@ const Assets = (() => {
     for (const L of LINES) for (let f = 0; f < 3; f++) probe(`m_${L.id}_${f}`, [`assets/monsters/${L.id}_${f}.png`, `assets/monsters/${L.id}_${f}.webp`]);
     for (const el of Object.keys(ELEMENTS)) probe(`bg_${el}`, [`assets/bg/${el}.jpg`, `assets/bg/${el}.png`, `assets/bg/${el}.webp`]);
     for (const k of UI_KEYS) probe(`ui_${k}`, [`assets/ui/${k}.png`, `assets/ui/${k}.webp`]);
+    for (const g of ['m', 'f']) for (const c of Object.keys(CLASSES)) probe(`hero_${g}_${c}`, [`assets/hero/${g}_${c}.png`]);
+    for (const sl of Object.keys(GEAR_SLOTS)) for (const r of RARITY_ORDER) {
+      if (sl === 'weapon') for (const c of Object.keys(CLASSES)) probe(`gear_weapon_${c}_${r}`, [`assets/gear/weapon_${c}_${r}.png`]);
+      else probe(`gear_${sl}_${r}`, [`assets/gear/${sl}_${r}.png`]);
+    }
   }
 
   function monster(id, form, opts = {}) {
@@ -43,15 +48,18 @@ const Assets = (() => {
   const bg = el => img[`bg_${el}`] || null;
   const icon = (k, emoji) => (img[`ui_${k}`] ? `<img class="ic" src="${img[`ui_${k}`]}" alt="">` : emoji);
   const has = k => !!img[k];
+  const raw = (k, cls = 'mimg') => (img[k] ? `<img class="${cls}" src="${img[k]}" draggable="false" alt="">` : '');
   function stats() {
     const keys = Object.keys(img);
     return {
       monsters: keys.filter(k => k.startsWith('m_')).length, monstersTotal: LINES.length * 3,
       bg: keys.filter(k => k.startsWith('bg_')).length, bgTotal: 5,
       ui: keys.filter(k => k.startsWith('ui_')).length, uiTotal: UI_KEYS.length,
+      hero: keys.filter(k => k.startsWith('hero_')).length, heroTotal: 8,
+      gear: keys.filter(k => k.startsWith('gear_')).length, gearTotal: 45,
     };
   }
   const onChange = f => listeners.push(f);
 
-  return { init, monster, bg, icon, has, stats, onChange };
+  return { init, monster, bg, icon, has, raw, stats, onChange };
 })();

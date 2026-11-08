@@ -359,7 +359,7 @@ img.ic { width: 1.25em; height: 1.25em; object-fit: contain; vertical-align: -0.
 .d-skill b { color: #c8b8ff; }
 .evo-line { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 10px 0; }
 .evo-line div { width: 72px; text-align: center; border-radius: 12px; padding: 2px; }
-.evo-line div.cur { background: rgba(255,255,255,.08); box-shadow: 0 0 0 2px var(--rc) inset; }
+.evo-line div.now { background: rgba(255,255,255,.08); box-shadow: 0 0 0 2px var(--rc) inset; }
 .evo-line div svg, .evo-line div img { width: 100%; display: block; }
 .evo-line small { font-size: 10px; color: var(--muted); }
 .evo-line span { color: var(--muted); }
@@ -482,3 +482,99 @@ img.ic { width: 1.25em; height: 1.25em; object-fit: contain; vertical-align: -0.
   .side-btn { width: 44px; height: 44px; } .side-btn small { display: none; }
   .tcard .tlv { font-size: 10px; }
 }
+
+/* ================= v0.3: 캐릭터 / 장비 ================= */
+svg.pix, .mimg { image-rendering: pixelated; }
+.unit.hero { width: 19%; max-width: 84px; }
+.unit.hero .sprite svg { filter: drop-shadow(0 0 4px rgba(255,230,120,.6)); }
+.cur span img.ic { width: 1.1em; height: 1.1em; }
+.gimg { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.rw.item { margin-top: 4px; border: 1px solid var(--rc); }
+.chip.item { border: 1px solid var(--rc); }
+
+.seg { display: flex; background: rgba(0,0,0,.3); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { flex: 1; border: none; background: none; border-radius: 9px; padding: 6px 4px; font-family: var(--font-title); font-size: 14px; color: var(--muted); }
+.seg button.on { background: var(--accent); color: #fff; box-shadow: 0 2px 0 #3a2ba8; }
+.sm-seg { margin-bottom: 6px; }
+.sm-seg button { padding: 3px 4px; font-size: 13px; }
+#panel .summon { height: calc(100% - 52px); min-height: 120px; }
+.sm-banner.gear { background: radial-gradient(circle at 50% 30%, #ffb84a, #6a3000 75%); border-color: #ffd27d; }
+.sm-gears { display: flex; justify-content: center; gap: 4px; font-size: 30px; position: relative; }
+.sm-gears span { width: 38px; height: 38px; display: grid; place-items: center; }
+
+/* 홈 팀 카드: 캐릭터 */
+.tcard.hero { background: radial-gradient(circle at 50% 35%, rgba(255,230,120,.25), transparent 65%), linear-gradient(160deg, #4a3a8a, #1d1748); }
+.tcard.hero::after { content: '나'; position: absolute; top: 2px; left: 4px; font-size: 10px; font-family: var(--font-title); color: #ffd23f; }
+
+/* 캐릭터 탭 */
+.hero-tab { display: grid; grid-template-columns: 30% 1fr 34%; gap: 8px; align-items: stretch; }
+.ht-art { border: 2px solid #ffd23f; border-radius: 14px; background: radial-gradient(circle at 50% 40%, rgba(255,230,120,.3), transparent 70%), #1d1748; padding: 2px; }
+.ht-art svg, .ht-art img { width: 100%; display: block; }
+.ht-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ht-name { font-family: var(--font-title); font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ht-pow { font-family: var(--font-title); color: #ffd27d; font-size: 15px; }
+.ht-st { display: flex; gap: 6px; font-size: 10.5px; color: var(--muted); flex-wrap: wrap; }
+.ht-info .btn { margin-top: auto; padding: 5px; font-size: 13px; }
+.ht-gear { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-content: start; }
+.ht-btns { margin-top: 8px; }
+.ht-btns .btn { font-size: 13px; padding: 7px 4px; }
+
+/* 장비 칸 */
+.gcell { position: relative; aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--rc, var(--line)); padding: 2px;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--rc, #888) 35%, transparent), transparent 70%), #1a1444;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; }
+.gcell .gi { font-size: 22px; line-height: 1; width: 70%; height: 60%; display: grid; place-items: center; }
+.gcell small { font-size: 9px; font-weight: 900; color: var(--rc, var(--muted)); }
+.gcell.empty { border-style: dashed; opacity: .7; }
+.gcell.empty .gi { filter: grayscale(1) opacity(.5); }
+.gcell .enh, .gd-ic .enh { position: absolute; top: 1px; right: 3px; font-size: 10px; color: #7dffb4; font-family: var(--font-title); font-weight: 400; text-shadow: 0 1px 1px #000; }
+.gcell .eqb { position: absolute; top: 1px; left: 3px; font-size: 9px; font-style: normal; background: #23a862; border-radius: 4px; padding: 0 3px; }
+.gcell.mini { width: 44px; flex-shrink: 0; }
+.mgear { display: flex; align-items: center; gap: 8px; margin: 8px 0; background: rgba(0,0,0,.2); border-radius: 12px; padding: 6px 10px; }
+.mgear .gcell { width: 52px; }
+.mgear > span:last-child { margin-left: auto; text-align: right; font-size: 10px; }
+
+/* 장비 상세 */
+.gd-top { display: flex; gap: 12px; align-items: center; }
+.gd-ic { width: 84px; height: 84px; flex-shrink: 0; position: relative; border-radius: 16px; border: 2px solid var(--rc); font-size: 44px; display: grid; place-items: center;
+  background: radial-gradient(circle, color-mix(in srgb, var(--rc) 45%, transparent), transparent 70%), #160f3d; }
+.gd-ic .enh { font-size: 15px; }
+.gd-ic.enh-ok { animation: enhOk .6s; } .gd-ic.enh-fail { animation: enhFail .5s; }
+@keyframes enhOk { 40% { transform: scale(1.15); box-shadow: 0 0 30px #ffe066; } }
+@keyframes enhFail { 20%, 60% { transform: translateX(-6px); filter: grayscale(1); } 40%, 80% { transform: translateX(6px); } }
+.gd-stat { background: rgba(0,0,0,.25); border-radius: 10px; padding: 8px 10px; margin: 10px 0 6px; font-size: 13px; }
+.enh-bar { display: flex; gap: 2px; margin-bottom: 10px; }
+.enh-bar i { flex: 1; height: 6px; border-radius: 2px; background: rgba(255,255,255,.12); }
+.enh-bar i.on { background: linear-gradient(#ffe066, #ff9f1a); }
+
+.plist { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 55vh; overflow-y: auto; }
+.prow { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,.25); border: 1px solid transparent; border-radius: 12px; padding: 5px 8px; text-align: left; }
+.prow.sel { border-color: #4be37a; }
+.pr-info { flex: 1; display: flex; flex-direction: column; min-width: 0; font-size: 12px; }
+.pr-info small { font-size: 10.5px; color: var(--muted); }
+.pr-info .owner { color: #ffd27d; }
+.pr-pow { font-family: var(--font-title); font-size: 13px; color: #ffd27d; }
+.empty-msg { padding: 24px 0; line-height: 1.7; grid-column: 1 / -1; }
+.bag .seg { margin: 8px 0; }
+.bag-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; max-height: 50vh; overflow-y: auto; }
+
+/* 캐릭터 만들기 */
+.create { display: flex; flex-direction: column; gap: 10px; }
+.cr-top { display: flex; gap: 12px; align-items: center; }
+.cr-prev { width: 120px; flex-shrink: 0; border-radius: 16px; border: 2px solid #ffd23f; background: radial-gradient(circle at 50% 40%, rgba(255,230,120,.3), transparent 70%), #160f3d; }
+.cr-prev svg, .cr-prev img { width: 100%; display: block; }
+.cr-side { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+#cr-name { background: rgba(0,0,0,.35); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; color: var(--text); font-size: 15px; font-family: inherit; width: 100%; user-select: text; -webkit-user-select: text; }
+#cr-name:focus { outline: 2px solid var(--accent2); }
+.cls-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cc { background: rgba(0,0,0,.3); border: 2px solid transparent; border-radius: 12px; padding: 4px 2px 6px; display: flex; flex-direction: column; align-items: center; }
+.cc.on { border-color: #ffd23f; background: rgba(255,210,63,.12); }
+.cc .cc-art { width: 100%; } .cc .cc-art svg, .cc .cc-art img { width: 100%; display: block; }
+.cc b { font-family: var(--font-title); font-weight: 400; font-size: 14px; }
+.cr-desc { background: rgba(0,0,0,.25); border-radius: 10px; padding: 8px 10px; line-height: 1.5; }
+.hero-info .hi-art { width: 140px; margin: 0 auto; }
+.hero-info .hi-art svg, .hero-info .hi-art img { width: 100%; display: block; }
+.gearcard .gi.big { font-size: 34px; height: 54px; display: grid; place-items: center; }
+.pull-stage .egg.chest { border-radius: 14px; background: linear-gradient(#c98a4b, #8a5a2b); box-shadow: 0 0 40px #ffb020; }
+.pull-stage.gold .egg.chest { background: linear-gradient(#ffe066, #f29a12); }
+#nav button { font-size: 10.5px; }

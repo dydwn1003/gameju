@@ -66,32 +66,32 @@ const DUP_SHARDS = 10;
 
 // 탐험
 const EXPEDITIONS = [
-  { min: 30,  label: '30분 탐험', gems: 10,  stones: 0, mul: 1.6 },
-  { min: 120, label: '2시간 탐험', gems: 40,  stones: 1, mul: 1.8 },
-  { min: 480, label: '8시간 탐험', gems: 150, stones: 4, mul: 2.0 },
+  { min: 30,  label: '30분 탐험', gems: 10,  stones: 0, ench: 3,  mul: 1.6 },
+  { min: 120, label: '2시간 탐험', gems: 40,  stones: 1, ench: 8,  mul: 1.8 },
+  { min: 480, label: '8시간 탐험', gems: 150, stones: 4, ench: 25, mul: 2.0 },
 ];
 
 // 상점 (실결제 상품은 테스트 결제 처리)
 const IAP = [
-  { id: 'gem_s',   name: '젬 300',          gems: 300,  price: '₩1,200' },
-  { id: 'gem_m',   name: '젬 1,500 +150',   gems: 1650, price: '₩5,900' },
-  { id: 'gem_l',   name: '젬 3,300 +500',   gems: 3800, price: '₩12,000' },
-  { id: 'gem_xl',  name: '젬 7,000 +1,500', gems: 8500, price: '₩29,000' },
+  { id: 'gem_s',   name: '다이아 300',          gems: 300,  price: '₩1,200' },
+  { id: 'gem_m',   name: '다이아 1,500 +150',   gems: 1650, price: '₩5,900' },
+  { id: 'gem_l',   name: '다이아 3,300 +500',   gems: 3800, price: '₩12,000' },
+  { id: 'gem_xl',  name: '다이아 7,000 +1,500', gems: 8500, price: '₩29,000' },
 ];
 
 // 일일 광고 제한
-const AD_LIMITS = { pull: 3, gem: 5, boost: 6, idle: 10, exped: 10, raidAd: 2, arenaAd: 3, attend: 1 };
+const AD_LIMITS = { pull: 3, gem: 5, boost: 6, idle: 10, exped: 10, raidAd: 2, arenaAd: 3, attend: 1, gearPull: 2 };
 const AD_GEM_REWARD = 30;
 const BOOST_MIN = 30;
 const IDLE_CAP_MIN = 720; // 12시간
 
-// 출석 (7일 주기) — goldMin/foodMin: 방치 보상 N분 어치
+// 출석 (7일 주기) — goldMin: 방치 보상 N분 어치
 const ATTENDANCE = [
   { gems: 100 },
   { goldMin: 120 },
   { stones: 3 },
   { gems: 150 },
-  { foodMin: 180 },
+  { ench: 20, goldMin: 60 },
   { stones: 5, goldMin: 180 },
   { gems: 500 },
 ];
@@ -102,11 +102,12 @@ const QUESTS = [
   { id: 'levelup', name: '몬스터 레벨업',    target: 10, reward: { goldMin: 60 } },
   { id: 'summon',  name: '몬스터 소환',      target: 5,  reward: { gems: 30 } },
   { id: 'ad',      name: '광고 시청',        target: 3,  reward: { gems: 40 } },
-  { id: 'idle',    name: '방치 보상 받기',   target: 2,  reward: { foodMin: 60 } },
+  { id: 'idle',    name: '방치 보상 받기',   target: 2,  reward: { ench: 5 } },
+  { id: 'enhance', name: '장비 강화',        target: 5,  reward: { gems: 30 } },
   { id: 'raid',    name: '보스 레이드 도전', target: 1,  reward: { stones: 2 } },
   { id: 'arena',   name: '아레나 전투',      target: 2,  reward: { gems: 20 } },
 ];
-const QUEST_ALL_REWARD = { gems: 100, stones: 3 };
+const QUEST_ALL_REWARD = { gems: 100, stones: 3, ench: 10 };
 
 // 보스 레이드 (요일별 보스)
 const RAID = { time: 45, tickets: 3 };
@@ -124,3 +125,42 @@ const ARENA_TIERS = [
 ];
 const NICK_A = ['용감한', '졸린', '빛나는', '무서운', '귀여운', '전설의', '배고픈', '수상한', '행복한', '어둠의', '번개', '말랑한'];
 const NICK_B = ['조련사', '모험가', '사냥꾼', '마법사', '기사', '소환사', '탐험가', '수호자', '도토리', '용사'];
+
+// ================= 메인 캐릭터 =================
+// 성능 차이는 크지 않게: 전투력 공식(atk*4 + hp*0.6 + def*3) 기준 비슷하게 맞춤
+const CLASSES = {
+  warrior: { name: '전사',   weapon: '검',     desc: '튼튼한 체력과 방어력', base: { atk: 20, hp: 210, def: 12 }, spd: 1.0,
+             skill: { name: '회오리 베기', type: 'blast', mult: 1.3, desc: '모든 적에게 공격력 130% 피해' } },
+  rogue:   { name: '도적',   weapon: '단검',   desc: '빠른 공격과 높은 치명타', base: { atk: 23, hp: 165, def: 9 }, spd: 1.2, crit: 0.25,
+             skill: { name: '급소 찌르기', type: 'nuke', mult: 3.4, desc: '적 1명에게 공격력 340% 피해' } },
+  mage:    { name: '마법사', weapon: '지팡이', desc: '강력한 광역 마법', base: { atk: 25, hp: 150, def: 8 }, spd: 0.95,
+             skill: { name: '메테오', type: 'blast', mult: 1.7, desc: '모든 적에게 공격력 170% 피해' } },
+  archer:  { name: '궁수',   weapon: '활',     desc: '여러 번 쏘는 연속 공격', base: { atk: 23, hp: 170, def: 9 }, spd: 1.1,
+             skill: { name: '연발 사격', type: 'multi', mult: 1.1, hits: 4, desc: '무작위 적에게 110% 피해 4발' } },
+};
+const GENDERS = { m: '남자', f: '여자' };
+const HERO_MAX_LV = 100;
+
+// ================= 장비 =================
+// owner: 'hero' 또는 'mon' (몬스터 장비는 모든 몬스터가 돌려 쓸 수 있음)
+const GEAR_SLOTS = {
+  weapon: { name: '무기',   owner: 'hero', icon: '⚔️', stat: { atk: 1 } },
+  armor:  { name: '갑옷',   owner: 'hero', icon: '🛡️', stat: { hp: 1 } },
+  helmet: { name: '투구',   owner: 'hero', icon: '⛑️', stat: { def: 1, hp: 0.4 } },
+  ring:   { name: '반지',   owner: 'hero', icon: '💍', stat: { atk: 0.5, def: 0.6 } },
+  collar: { name: '목걸이', owner: 'mon',  icon: '📿', stat: { atk: 1 } },
+  charm:  { name: '부적',   owner: 'mon',  icon: '🧿', stat: { hp: 1, def: 0.4 } },
+};
+const HERO_SLOTS = ['weapon', 'armor', 'helmet', 'ring'];
+const MON_SLOTS = ['collar', 'charm'];
+const GEAR_STAT_UNIT = { atk: 6, hp: 50, def: 4 };
+const GEAR_RARITY = {
+  N:   { prefix: '낡은',   mul: 1,   rate: 58,  dis: 1 },
+  R:   { prefix: '단단한', mul: 1.4, rate: 28,  dis: 3 },
+  SR:  { prefix: '정교한', mul: 2,   rate: 10,  dis: 8 },
+  SSR: { prefix: '영웅의', mul: 3,   rate: 3.5, dis: 20 },
+  UR:  { prefix: '전설의', mul: 4.5, rate: 0.5, dis: 50 },
+};
+const GEAR_MAX_ENH = 15;
+const ENH_RATE = [100, 100, 100, 100, 100, 90, 80, 70, 60, 50, 45, 40, 35, 30, 25]; // +n → +n+1 성공률
+const GEAR_BAG_MAX = 120;

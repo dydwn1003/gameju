@@ -3,7 +3,8 @@ const UI = (() => {
   const $ = (s, r = document) => r.querySelector(s);
   let tab = 'home';
   let monFilter = 'all';
-  const IC = { gold: '💰', food: '🍖', gems: '💎', stones: '🔮' };
+  const IC = { gold: '💰', gems: '💎', stones: '🔮', ench: '🔨' };
+  let summonMode = 'mon';
   const ic = k => Assets.icon(k, IC[k]);
   const mon = (id, f, o) => Assets.monster(id, f, o);
 
@@ -11,7 +12,9 @@ const UI = (() => {
   function toast(msg) {
     const t = document.createElement('div');
     t.className = 'toast'; t.innerHTML = msg;
-    $('#toasts').appendChild(t);
+    const box = $('#toasts');
+    while (box.children.length >= 3) box.firstChild.remove();
+    box.appendChild(t);
     setTimeout(() => t.classList.add('out'), 1800);
     setTimeout(() => t.remove(), 2200);
   }
@@ -49,7 +52,8 @@ const UI = (() => {
     return Object.entries(r).filter(([k, v]) => v > 0 && IC[k]).map(([k, v]) => `${ic(k)} ${fmt(v)}`).join('  ');
   }
   function rewardChips(r) {
-    return Object.entries(r).filter(([k, v]) => v > 0 && IC[k]).map(([k, v]) => `<span class="chip">${ic(k)} ${fmt(v)}</span>`).join('');
+    return Object.entries(r).filter(([k, v]) => v > 0 && IC[k]).map(([k, v]) => `<span class="chip">${ic(k)} ${fmt(v)}</span>`).join('')
+      + (r.item ? `<span class="chip item" style="--rc:${RARITY[r.item.r].color}">${Gear.icon(r.item)} ${r.item.auto ? '자동 분해' : Gear.name(r.item)}</span>` : '');
   }
 
   function adBtn(label, left, cls = '', extra = '') {
@@ -78,7 +82,7 @@ const UI = (() => {
   // ================= 상단 / HUD =================
   function refreshTop() {
     const s = G.state;
-    for (const k of ['gold', 'food', 'gems', 'stones']) $(`#c-${k}`).textContent = fmt(s[k]);
+    for (const k of ['gold', 'gems', 'stones', 'ench']) $(`#c-${k}`).textContent = fmt(s[k]);
   }
 
   function refreshStage() {
@@ -149,11 +153,13 @@ const UI = (() => {
     setDot('#nav [data-tab=mons] .dot', Game.monAlert());
     setDot('#nav [data-tab=adv] .dot', Game.expedAlert() || Game.raidTickets() > 0);
     setDot('#nav [data-tab=summon] .dot', adLeft('pull') > 0);
-    setDot('#nav [data-tab=home] .dot', G.state.team.some(id => Game.canLevel(id)));
+    setDot('#nav [data-tab=home] .dot', G.state.team.some(id => Game.canLevel(id)) || Game.heroCanLevel());
+    setDot('#nav [data-tab=hero] .dot', G.state.hero && HERO_SLOTS.some(sl => !Gear.inSlot('hero', sl) && G.state.gear.some(x => x.slot === sl && !x.eq)));
     updateModeTimer();
     if ($('.exped-modal')) updateExpedTimers();
     if (tab === 'home') {
       document.querySelectorAll('.team5 [data-q]').forEach(b => { b.disabled = !Game.canLevel(b.dataset.q); });
+      const hq = $('.team5 [data-hq]'); if (hq) hq.disabled = !Game.heroCanLevel();
     }
   }
 
@@ -166,7 +172,7 @@ const UI = (() => {
   }
   function renderTab() {
     const p = $('#panel');
-    ({ home: renderHome, mons: renderMons, summon: renderSummon, adv: renderAdv, shop: renderShop })[tab](p);
+    ({ home: renderHome, hero: renderHero, mons: renderMons, summon: renderSummon, adv: renderAdv, shop: renderShop })[tab](p);
   }
 
   // ================= 홈 =================
@@ -182,6 +188,11 @@ const UI = (() => {
         </button>
       </div>
       <div class="team5">
+        ${s.hero ? `<div class="tcard hero" data-hero style="--rc:#ffd23f">
+            <div class="art">${HeroArt.hero(s.hero.gender, s.hero.cls)}</div>
+            <div class="tlv">Lv.${s.hero.lvl}</div>
+            <button class="qlv" data-hq ${Game.heroCanLevel() ? '' : 'disabled'}>▲</button>
+          </div>` : ''}
         ${s.team.map(id => {
           const o = s.owned[id], L = LINE_MAP[id];
           return `<div class="tcard" data-id="${id}" style="--rc:${RARITY[L.r].color}">
@@ -190,7 +201,7 @@ const UI = (() => {
             <button class="qlv" data-q="${id}" ${Game.canLevel(id) ? '' : 'disabled'}>▲</button>
           </div>`;
         }).join('')}
-        ${'<div class="tcard empty" data-goto="mons">+</div>'.repeat(5 - s.team.length)}
+        ${'<div class="tcard empty" data-goto="mons">+</div>'.repeat(4 - s.team.length)}
       </div>`;
     $('#challenge', p).onclick = () => { Game.challenge(); renderTab(); };
     p.querySelectorAll('.tcard[data-id]').forEach(c => c.onclick = e => {
@@ -209,6 +220,19 @@ const UI = (() => {
       }
     });
     p.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => setTab(b.dataset.goto));
+    const hc = p.querySelector('[data-hero]');
+    if (hc) hc.onclick = e => { if (!e.target.closest('.qlv')) setTab('hero'); };
+    const hq = p.querySelector('[data-hq]');
+    if (hq) hq.onclick = () => {
+      if (Game.heroLevelUp(1)) {
+        Sound.play('levelup'); Game.save();
+        const c = hq.closest('.tcard');
+        c.querySelector('.tlv').textContent = 'Lv.' + G.state.hero.lvl;
+        c.classList.remove('lvup'); void c.offsetWidth; c.classList.add('lvup');
+        refreshTop();
+        p.querySelector('.home-top .stat:nth-child(2) b').textContent = '⚔️ ' + fmt(Game.teamPower());
+      }
+    };
   }
 
   // ================= 몬스터 =================
@@ -258,7 +282,11 @@ const UI = (() => {
     const st = Game.monStats(id), cap = FORM_CAP[o.form], cost = Game.levelCost(o.lvl);
     const maxed = o.lvl >= cap, inTeam = s.team.includes(id);
     const shards = s.shards[id] || 0, need = Game.starCost(o.star), evoC = EVO_COST[o.form];
-    const nextSt = !maxed ? Game.stats(id, o.lvl + 1, o.form, o.star) : null;
+    let nextSt = null;
+    if (!maxed) {
+      const a = Game.stats(id, o.lvl, o.form, o.star), b2 = Game.stats(id, o.lvl + 1, o.form, o.star);
+      nextSt = { atk: st.atk + b2.atk - a.atk, hp: st.hp + b2.hp - a.hp, def: st.def + b2.def - a.def };
+    }
     const m = modal(`
       <div class="detail" style="--rc:${RARITY[L.r].color}">
         <div class="d-top">
@@ -278,10 +306,11 @@ const UI = (() => {
           <div>방어<b>${fmt(st.def)}</b>${nextSt ? `<small>+${nextSt.def - st.def}</small>` : ''}</div>
         </div>
         <div class="d-skill"><b>✦ ${SKILLS[L.skill].name}</b> <span class="muted">${SKILLS[L.skill].desc}</span></div>
-        <div class="evo-line">${L.names.map((n, i) => `<div class="${i === o.form ? 'cur' : ''}">${mon(id, i, { silhouette: i > o.form })}<small>${i <= o.form ? n : '???'}</small></div>`).join('<span>›</span>')}</div>
+        <div class="mgear"><span class="muted small">장비</span>${MON_SLOTS.map(sl => gearCell(Gear.inSlot('m:' + id, sl), sl)).join('')}<span class="muted small">다른 몬스터와<br>돌려 쓸 수 있어요</span></div>
+        <div class="evo-line">${L.names.map((n, i) => `<div class="${i === o.form ? 'now' : ''}">${mon(id, i, { silhouette: i > o.form })}<small>${i <= o.form ? n : '???'}</small></div>`).join('<span>›</span>')}</div>
         <div class="d-actions">
           ${!maxed ? `
-            <button class="btn" data-lv="1">레벨업<small>${ic('gold')}${fmt(cost.gold)} ${ic('food')}${fmt(cost.food)}</small></button>
+            <button class="btn" data-lv="1">레벨업<small>${ic('gold')}${fmt(cost.gold)}</small></button>
             <button class="btn" data-lv="10">+10 레벨<small>가능한 만큼</small></button>`
           : o.form < 2 ? `
             <button class="btn purple wide" data-evo ${Game.canEvolve(id) ? '' : 'disabled'}>✨ 진화 → ${L.names[o.form + 1]}<small>${ic('stones')}${s.stones}/${evoC.stones} ${ic('gold')}${fmt(evoC.gold)}</small></button>`
@@ -292,7 +321,7 @@ const UI = (() => {
       </div>`, 'wide-modal');
     m.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => {
       const n = Game.levelUp(id, +b.dataset.lv);
-      if (!n) return toast('골드 또는 먹이가 부족해요');
+      if (!n) return toast('골드가 부족해요');
       Sound.play('levelup'); toast(`레벨 +${n}!`); Game.save(); after(id);
     });
     const ev = m.querySelector('[data-evo]');
@@ -300,10 +329,11 @@ const UI = (() => {
     m.querySelector('[data-star]').onclick = () => { if (Game.starUp(id)) { Sound.play('levelup'); toast('⭐ 성급 상승!'); Game.save(); after(id); } };
     m.querySelector('[data-team]').onclick = () => {
       const r = Game.toggleTeam(id);
-      if (r === 'full') return toast('팀은 최대 5마리예요');
+      if (r === 'full') return toast('파트너 몬스터는 최대 4마리예요');
       if (r === 'last') return toast('최소 1마리는 팀에 있어야 해요');
       Game.save(); after(id);
     };
+    bindGearCells(m, 'm:' + id, () => detail(id));
   }
   function after(id) { refresh(); detail(id); }
 
@@ -319,7 +349,9 @@ const UI = (() => {
   // ================= 소환 =================
   function renderSummon(p) {
     const s = G.state;
+    if (summonMode === 'gear') return renderGearSummon(p);
     p.innerHTML = `
+      ${summonTabs()}
       <div class="summon">
         <div class="sm-banner">
           ${Assets.has('ui_banner') ? `<div class="sm-img">${Assets.icon('banner', '')}</div>` :
@@ -336,11 +368,12 @@ const UI = (() => {
       <div class="rates">${RARITY_ORDER.slice().reverse().map(r => `<span style="color:${RARITY[r].color}">${r} ${RARITY[r].rate}%</span>`).join(' · ')} · 중복 시 조각 ${DUP_SHARDS}</div>`;
     p.querySelectorAll('[data-pull]').forEach(b => b.onclick = () => {
       const n = +b.dataset.pull, cost = n === 10 ? 900 : 100;
-      if (s.gems < cost) { toast('젬이 부족해요 — 상점에서 충전할 수 있어요'); return setTab('shop'); }
+      if (s.gems < cost) { toast('다이아가 부족해요 — 상점에서 충전할 수 있어요'); return setTab('shop'); }
       s.gems -= cost;
       showPull(Game.pull(n));
     });
     p.querySelector('.pull-ad').onclick = async () => { if (await watchAd('pull', 'free_pull')) showPull(Game.pull(1)); };
+    bindSummonTabs(p);
   }
 
   function showPull(res) {
@@ -443,7 +476,7 @@ const UI = (() => {
       if (Game.startArena(+b.dataset.fight)) refresh(); else toast('입장권이 없어요');
     });
     $('#opp-refresh', m).onclick = () => {
-      if (G.state.gems < ARENA.refreshCost) return toast('젬이 부족해요');
+      if (G.state.gems < ARENA.refreshCost) return toast('다이아가 부족해요');
       G.state.gems -= ARENA.refreshCost; Game.refreshOpps(); arenaModal(); refreshTop();
     };
     m.querySelector('.arena-ad').onclick = async () => { if (await watchAd('arenaAd', 'arena_ticket')) { Game.save(); toast('🎫 아레나 입장권 +1'); arenaModal(); } };
@@ -454,7 +487,7 @@ const UI = (() => {
       <div class="rp-title">${r.killed ? '🎉 레이드 보스 격파!' : '레이드 종료'}</div>
       <div class="pct-ring" style="--p:${Math.round(r.pct * 100)}"><b>${Math.round(r.pct * 100)}%</b></div>
       <div class="muted">총 피해량 ${fmt(r.dmg)}</div>
-      <div class="chips big">${rewardChips(r.reward)}</div>
+      <div class="chips big">${rewardChips(Object.assign({ item: r.reward.item }, r.reward))}</div>
       ${r.killed ? `<div class="small">다음 레이드 레벨: Lv.${r.lvl + 1}</div>` : ''}
       <button class="btn wide" data-close>확인</button></div>`, '', () => { cb(); refresh(); });
     refresh();
@@ -480,7 +513,7 @@ const UI = (() => {
         return `<div class="card exp" data-slot="${i}"><div class="exp-title">탐험대 ${i + 1} <span class="muted">· ${EXPEDITIONS[x.type].label}</span></div>
           <div class="exp-rw">${rewardText(x.reward)}</div><div class="pbar"><i></i></div><div class="exp-time"></div><div class="row exp-btns"></div></div>`;
       }).join('')}
-      <div class="small muted">광고 시청 시 30분 단축 (하루 ${AD_LIMITS.exped}회) · 젬으로 즉시 완료</div></div>`, 'wide-modal');
+      <div class="small muted">광고 시청 시 30분 단축 (하루 ${AD_LIMITS.exped}회) · 다이아로 즉시 완료</div></div>`, 'wide-modal');
     m.querySelectorAll('[data-start]').forEach(b => b.onclick = () => { Game.startExped(+b.dataset.start, +b.dataset.type); expedModal(); refresh(); });
     updateExpedTimers(true);
   }
@@ -511,7 +544,7 @@ const UI = (() => {
         };
         btns.querySelector('[data-skip]').onclick = () => {
           const c2 = Game.skipCost(i);
-          if (G.state.gems < c2) return toast('젬이 부족해요');
+          if (G.state.gems < c2) return toast('다이아가 부족해요');
           G.state.gems -= c2; x.end = Date.now(); Game.save(); expedModal();
         };
       }
@@ -520,22 +553,22 @@ const UI = (() => {
 
   // ================= 상점 =================
   function renderShop(p) {
-    const s = G.state, r = Game.idleRate(), goldAmt = Math.round(r.gold * 120), foodAmt = Math.round(r.food * 120);
+    const s = G.state, r = Game.idleRate(), goldAmt = Math.round(r.gold * 120);
     p.innerHTML = `
       <div class="shop-row">
-        <div class="si free"><div class="si-ic">${ic('gems')}</div><div class="si-nm">무료 젬 ${AD_GEM_REWARD}</div>${adBtn('받기', adLeft('gem'), 'gem-ad')}</div>
+        <div class="si free"><div class="si-ic">${ic('gems')}</div><div class="si-nm">무료 다이아 ${AD_GEM_REWARD}</div>${adBtn('받기', adLeft('gem'), 'gem-ad')}</div>
         ${IAP.map(it => `<button class="si" data-iap="${it.id}"><div class="si-ic">${ic('gems')}</div><div class="si-nm">${it.name}</div><div class="si-pr">${it.price}</div></button>`).join('')}
       </div>
-      <div class="pkg ${s.bought.starter ? 'sold' : ''}"><div><b>🎁 스타터 패키지</b> <span class="badge">1회</span><br><small class="muted">💎1,000 · 🔮10 · 💰20,000</small></div>
+      <div class="pkg ${s.bought.starter ? 'sold' : ''}"><div><b>🎁 스타터 패키지</b> <span class="badge">1회</span><br><small class="muted">💎1,000 · 🔮10 · 🔨50 · 💰20,000 · SSR 장비</small></div>
         <button class="btn gold" data-pkg="starter" ${s.bought.starter ? 'disabled' : ''}>${s.bought.starter ? '완료' : '₩3,300'}</button></div>
       <div class="pkg ${s.adFree ? 'sold' : ''}"><div><b>🚫 광고 제거 패스</b> <span class="badge">영구</span><br><small class="muted">광고 없이 광고 보상 즉시 획득</small></div>
         <button class="btn gold" data-pkg="adfree" ${s.adFree ? 'disabled' : ''}>${s.adFree ? '보유 중' : '₩5,500'}</button></div>
       <div class="pkg"><div><b>골드 주머니</b><br><small class="muted">💰${fmt(goldAmt)}</small></div><button class="btn" data-ex="gold">💎 100</button></div>
-      <div class="pkg"><div><b>먹이 상자</b><br><small class="muted">🍖${fmt(foodAmt)}</small></div><button class="btn" data-ex="food">💎 100</button></div>
+      <div class="pkg"><div><b>강화석 x30</b><br><small class="muted">🔨30</small></div><button class="btn" data-ex="ench">💎 100</button></div>
       <div class="pkg"><div><b>진화석 x5</b><br><small class="muted">🔮5</small></div><button class="btn" data-ex="stones">💎 150</button></div>
       <p class="small muted center">테스트 빌드: 결제는 실제로 청구되지 않습니다.</p>`;
     p.querySelector('.gem-ad').onclick = async () => {
-      if (await watchAd('gem', 'free_gems')) { s.gems += AD_GEM_REWARD; Game.save(); rewardPopup('무료 젬', { gems: AD_GEM_REWARD }); }
+      if (await watchAd('gem', 'free_gems')) { s.gems += AD_GEM_REWARD; Game.save(); rewardPopup('무료 다이아', { gems: AD_GEM_REWARD }); }
     };
     p.querySelectorAll('[data-iap]').forEach(b => b.onclick = async () => {
       const it = IAP.find(x => x.id === b.dataset.iap);
@@ -545,7 +578,9 @@ const UI = (() => {
       const k = b.dataset.pkg;
       if (k === 'starter' && await Monetize.purchase({ name: '스타터 패키지', price: '₩3,300' })) {
         s.bought.starter = true; Game.save();
-        return rewardPopup('스타터 패키지', Game.grant({ gems: 1000, stones: 10, gold: 20000 }));
+        const got = Game.grant({ gems: 1000, stones: 10, ench: 50, gold: 20000 });
+        got.item = Gear.drop(Math.max(5, s.best), 'SSR');
+        return rewardPopup('스타터 패키지', got);
       }
       if (k === 'adfree' && await Monetize.purchase({ name: '광고 제거 패스', price: '₩5,500' })) {
         s.adFree = true; Game.save(); toast('광고 제거 패스 적용!'); refresh();
@@ -553,11 +588,261 @@ const UI = (() => {
     });
     p.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => {
       const k = b.dataset.ex, cost = k === 'stones' ? 150 : 100;
-      if (s.gems < cost) return toast('젬이 부족해요');
+      if (s.gems < cost) return toast('다이아가 부족해요');
       s.gems -= cost;
-      const r2 = k === 'gold' ? { gold: goldAmt } : k === 'food' ? { food: foodAmt } : { stones: 5 };
+      const r2 = k === 'gold' ? { gold: goldAmt } : k === 'ench' ? { ench: 30 } : { stones: 5 };
       Game.grant(r2); Game.save(); rewardPopup('교환 완료!', r2);
     });
+  }
+
+  // ================= 영웅 (메인 캐릭터) =================
+  function gearCell(it, slot) {
+    if (!it) return `<button class="gcell empty" data-slot="${slot}"><span class="gi">${GEAR_SLOTS[slot].icon}</span><small>${GEAR_SLOTS[slot].name}</small></button>`;
+    return `<button class="gcell" data-gid="${it.id}" style="--rc:${RARITY[it.r].color}"><span class="gi">${Gear.icon(it)}</span>${it.enh ? `<b class="enh">+${it.enh}</b>` : ''}<small>${it.r}</small></button>`;
+  }
+  function bindGearCells(root, owner, back) {
+    root.querySelectorAll('.gcell[data-gid]').forEach(c => c.onclick = () => gearDetail(+c.dataset.gid, owner, back));
+    root.querySelectorAll('.gcell[data-slot]').forEach(c => c.onclick = () => gearPicker(owner, c.dataset.slot, back));
+  }
+
+  function renderHero(p) {
+    const h = G.state.hero;
+    if (!h) { p.innerHTML = '<div class="center muted">캐릭터를 먼저 만들어 주세요</div>'; return; }
+    const st = Game.heroStats(), C = CLASSES[h.cls], cost = Game.levelCost(h.lvl);
+    p.innerHTML = `
+      <div class="hero-tab">
+        <button class="ht-art" id="ht-art">${HeroArt.hero(h.gender, h.cls)}</button>
+        <div class="ht-info">
+          <div class="ht-name">${h.name}</div>
+          <div class="muted small">${GENDERS[h.gender]} · ${C.name} · Lv.${h.lvl}</div>
+          <div class="ht-pow">⚔️ ${fmt(Game.power(st))}</div>
+          <div class="ht-st"><span>공 ${fmt(st.atk)}</span><span>체 ${fmt(st.hp)}</span><span>방 ${fmt(st.def)}</span></div>
+          <button class="btn" id="ht-lv" ${Game.heroCanLevel() ? '' : 'disabled'}>레벨업<small>${ic('gold')}${fmt(cost.gold)}</small></button>
+        </div>
+        <div class="ht-gear">${HERO_SLOTS.map(sl => gearCell(Gear.inSlot('hero', sl), sl)).join('')}</div>
+      </div>
+      <div class="row ht-btns">
+        <button class="btn gray" id="ht-bag">🎒 가방 <small>${G.state.gear.length}/${GEAR_BAG_MAX}</small></button>
+        <button class="btn green" id="ht-auto">자동 장착</button>
+        <button class="btn gold" id="ht-pull">장비 소환</button>
+      </div>`;
+    $('#ht-art', p).onclick = heroInfo;
+    $('#ht-lv', p).onclick = () => {
+      const n = Game.heroLevelUp(1);
+      if (n) { Sound.play('levelup'); Game.save(); Game.restartStage(); renderTab(); refreshTop(); }
+    };
+    $('#ht-bag', p).onclick = () => bag();
+    $('#ht-auto', p).onclick = () => {
+      let n = Gear.autoEquip('hero');
+      G.state.team.forEach(id => { n += Gear.autoEquip('m:' + id); });
+      Game.save(); Game.restartStage();
+      toast(n ? `장비 ${n}개를 장착했어요` : '이미 가장 좋은 장비를 끼고 있어요'); renderTab();
+    };
+    $('#ht-pull', p).onclick = () => { summonMode = 'gear'; setTab('summon'); };
+    bindGearCells(p, 'hero', () => renderTab());
+  }
+
+  function heroInfo() {
+    const h = G.state.hero, C = CLASSES[h.cls], st = Game.heroStats();
+    const m = modal(`<div class="hero-info">
+      <div class="hi-art">${HeroArt.hero(h.gender, h.cls)}</div>
+      <div class="rp-title">${h.name} <small>Lv.${h.lvl}</small></div>
+      <div class="muted center small">${GENDERS[h.gender]} ${C.name} · ${C.desc}</div>
+      <div class="d-stats"><div>공격<b>${fmt(st.atk)}</b></div><div>체력<b>${fmt(st.hp)}</b></div><div>방어<b>${fmt(st.def)}</b></div></div>
+      <div class="d-skill"><b>✦ ${C.skill.name}</b> <span class="muted">${C.skill.desc}</span>${C.crit ? '<br><span class="muted">패시브: 치명타 확률 +25%</span>' : ''}</div>
+      <div class="row"><button class="btn gray" id="hi-change">외형·직업 변경<small>${ic('gems')} 200</small></button></div></div>`);
+    $('#hi-change', m).onclick = () => {
+      if (G.state.gems < 200) return toast('다이아가 부족해요');
+      createHero(false, true);
+    };
+  }
+
+  function createHero(first, change) {
+    const cur = G.state.hero || {};
+    let gender = cur.gender || 'm', cls = cur.cls || 'warrior';
+    const draw = m => {
+      const C = CLASSES[cls];
+      $('#cr-prev', m).innerHTML = HeroArt.hero(gender, cls);
+      m.querySelectorAll('[data-g]').forEach(b => b.classList.toggle('on', b.dataset.g === gender));
+      m.querySelectorAll('[data-c]').forEach(b => {
+        b.classList.toggle('on', b.dataset.c === cls);
+        b.querySelector('.cc-art').innerHTML = HeroArt.hero(gender, b.dataset.c);
+      });
+      $('#cr-desc', m).innerHTML = `<b>${C.name}</b> · ${C.desc}<br><span class="muted">스킬: ${C.skill.name} — ${C.skill.desc}</span>`;
+    };
+    const m = modal(`<div class="create">
+      <div class="rp-title">${change ? '외형·직업 변경' : '나의 캐릭터 만들기'}</div>
+      <div class="cr-top"><div class="cr-prev" id="cr-prev"></div>
+        <div class="cr-side">
+          <div class="seg"><button data-g="m">남자</button><button data-g="f">여자</button></div>
+          <input id="cr-name" maxlength="8" placeholder="이름 (최대 8자)" value="${cur.name || ''}" autocomplete="off">
+        </div></div>
+      <div class="cls-grid">${Object.entries(CLASSES).map(([k, C]) => `<button class="cc" data-c="${k}"><div class="cc-art"></div><b>${C.name}</b></button>`).join('')}</div>
+      <div class="cr-desc small" id="cr-desc"></div>
+      <div class="small muted center">직업마다 스타일만 다르고 성능 차이는 크지 않아요</div>
+      <button class="btn wide gold" id="cr-go">${change ? '변경하기 (💎200)' : '모험 시작!'}</button></div>`, 'wide-modal',
+      () => { if (!G.state.hero) setTimeout(() => createHero(first), 50); });
+    m.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { gender = b.dataset.g; draw(m); });
+    m.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { cls = b.dataset.c; draw(m); });
+    $('#cr-go', m).onclick = () => {
+      const name = $('#cr-name', m).value.trim().slice(0, 8);
+      if (change) {
+        if (G.state.gems < 200) return toast('다이아가 부족해요');
+        G.state.gems -= 200;
+        Object.assign(G.state.hero, { gender, cls, name: name || G.state.hero.name });
+        Game.save(); Game.restartStage(); close(true); refresh(); toast('변경 완료!');
+        return;
+      }
+      Game.createHero(gender, cls, name);
+      G.state.seenIntro = true; Game.save();
+      close(true); Sound.play('reward'); refresh();
+      toast(`${G.state.hero.name}의 모험이 시작됐어요!`);
+      if (first) setTimeout(attendance, 500);
+    };
+    draw(m);
+  }
+
+  // ================= 장비 =================
+  function statLine(st) {
+    return ['atk', 'hp', 'def'].filter(k => st[k]).map(k => `${{ atk: '공격', hp: '체력', def: '방어' }[k]} +${fmt(st[k])}`).join(' · ');
+  }
+
+  function gearDetail(id, ctxOwner, back) {
+    const it = Gear.find(id);
+    if (!it) return back && back();
+    const st = Gear.statsOf(it), nx = it.enh < GEAR_MAX_ENH ? Gear.statsOf(it, it.enh + 1) : null;
+    const c = Gear.enhCost(it), rate = ENH_RATE[it.enh];
+    const mine = it.eq && it.eq === ctxOwner;
+    const canWear = ctxOwner && Gear.canWear(it, ctxOwner) && !mine;
+    const m = modal(`<div class="gear-d" style="--rc:${RARITY[it.r].color}">
+      <div class="gd-top">
+        <div class="gd-ic">${Gear.icon(it)}${it.enh ? `<b class="enh">+${it.enh}</b>` : ''}</div>
+        <div>
+          <div><span class="rbadge">${it.r}</span> <span class="muted small">${GEAR_SLOTS[it.slot].name} · ${GEAR_SLOTS[it.slot].owner === 'hero' ? '캐릭터 전용' : '몬스터 공용'} · iLv.${it.ilvl}</span></div>
+          <div class="d-name">${Gear.fullName(it)}</div>
+          <div class="muted small">${it.eq ? `${Gear.ownerName(it.eq)} 착용 중` : '미착용'}</div>
+        </div>
+      </div>
+      <div class="gd-stat">${statLine(st)}${nx ? `<br><small class="up">강화 시 → ${statLine(nx)}</small>` : ''}</div>
+      <div class="enh-bar">${Array.from({ length: GEAR_MAX_ENH }, (_, i) => `<i class="${i < it.enh ? 'on' : ''}"></i>`).join('')}</div>
+      <div class="d-actions">
+        <button class="btn purple wide" id="gd-enh" ${nx ? '' : 'disabled'}>🔨 강화 ${nx ? `(성공률 ${rate}%)` : 'MAX'}<small>${ic('gold')}${fmt(c.gold)} ${ic('ench')}${c.ench} (보유 ${fmt(G.state.ench)})</small></button>
+        ${canWear ? `<button class="btn green" id="gd-wear">장착${it.eq ? ' (옮기기)' : ''}</button>` : ''}
+        ${it.eq ? `<button class="btn gray" id="gd-off">해제</button>` : ''}
+        <button class="btn red" id="gd-dis">분해<small>${ic('ench')} +${Gear.disValue(it)}</small></button>
+      </div></div>`, '', null);
+    $('#gd-enh', m).onclick = () => {
+      const r = Gear.enhance(id);
+      if (r === 'nores') return toast('골드 또는 강화석이 부족해요');
+      if (r === 'ok') { Sound.play('levelup'); toast(`✨ 강화 성공! +${it.enh}`); }
+      if (r === 'fail') { Sound.play('lose'); toast('💥 강화 실패... (장비는 그대로예요)'); }
+      Game.save(); Game.restartStage(); refreshTop(); gearDetail(id, ctxOwner, back);
+      const g = $('.gd-ic'); if (g) g.classList.add(r === 'ok' ? 'enh-ok' : 'enh-fail');
+    };
+    const w = $('#gd-wear', m);
+    if (w) w.onclick = () => { Gear.equip(id, ctxOwner); Game.save(); Game.restartStage(); Sound.play('shield'); close(true); back && back(); renderTab(); };
+    const o = $('#gd-off', m);
+    if (o) o.onclick = () => { Gear.unequip(id); Game.save(); Game.restartStage(); close(true); back && back(); renderTab(); };
+    $('#gd-dis', m).onclick = async () => {
+      if (RARITY_ORDER.indexOf(it.r) >= 2 || it.enh > 0) {
+        if (!(await confirm(`<b>${Gear.fullName(it)}</b>을(를) 분해할까요?<br>${ic('ench')} ${Gear.disValue(it)} 획득`, '분해'))) return;
+      }
+      const n = Gear.disassemble([id]); Game.save(); Game.restartStage();
+      toast(`분해 완료! ${ic('ench')} +${n}`); close(true); back && back(); renderTab(); refreshTop();
+    };
+  }
+
+  function gearPicker(owner, slot, back) {
+    const items = G.state.gear.filter(x => x.slot === slot).sort((a, b) => (a.eq === owner) - (b.eq === owner) || Gear.power(b) - Gear.power(a));
+    const cur = Gear.inSlot(owner, slot);
+    const m = modal(`<div class="picker"><div class="rp-title">${GEAR_SLOTS[slot].name} 선택</div>
+      <div class="muted center small">${Gear.ownerName(owner)}에게 장착${GEAR_SLOTS[slot].owner === 'mon' ? ' · 다른 몬스터 장비도 옮겨 낄 수 있어요' : ''}</div>
+      ${items.length ? `<div class="plist">${items.map(it => `<button class="prow ${it === cur ? 'sel' : ''}" data-pid="${it.id}" style="--rc:${RARITY[it.r].color}">
+        <span class="gcell mini"><span class="gi">${Gear.icon(it)}</span>${it.enh ? `<b class="enh">+${it.enh}</b>` : ''}</span>
+        <span class="pr-info"><b>${Gear.fullName(it)}</b><small>${statLine(Gear.statsOf(it))}</small>${it.eq ? `<small class="owner">${it === cur ? '착용 중' : Gear.ownerName(it.eq) + ' 착용 중'}</small>` : ''}</span>
+        <span class="pr-pow">⚔️${fmt(Gear.power(it))}</span></button>`).join('')}</div>`
+        : `<div class="center muted empty-msg">장비가 없어요<br>스테이지·레이드에서 얻거나 장비 소환을 해보세요</div>`}
+      </div>`, 'wide-modal');
+    m.querySelectorAll('[data-pid]').forEach(b => b.onclick = () => {
+      const it = Gear.find(+b.dataset.pid);
+      if (it === cur) return gearDetail(it.id, owner, back);
+      Gear.equip(it.id, owner); Game.save(); Game.restartStage(); Sound.play('shield');
+      toast(`${Gear.name(it)} 장착!`); close(true); back && back(); renderTab();
+    });
+  }
+
+  let bagTab = 'hero';
+  function bag() {
+    const list = G.state.gear.filter(x => GEAR_SLOTS[x.slot].owner === bagTab)
+      .sort((a, b) => RARITY_ORDER.indexOf(b.r) - RARITY_ORDER.indexOf(a.r) || Gear.power(b) - Gear.power(a));
+    const junk = G.state.gear.filter(x => !x.eq && x.enh === 0 && (x.r === 'N' || x.r === 'R'));
+    const m = modal(`<div class="bag"><div class="rp-title">🎒 가방 <small>${G.state.gear.length}/${GEAR_BAG_MAX}</small></div>
+      <div class="seg"><button data-bt="hero" class="${bagTab === 'hero' ? 'on' : ''}">캐릭터 장비</button><button data-bt="mon" class="${bagTab === 'mon' ? 'on' : ''}">몬스터 장비</button></div>
+      <div class="bag-grid">${list.map(it => `<button class="gcell" data-bid="${it.id}" style="--rc:${RARITY[it.r].color}"><span class="gi">${Gear.icon(it)}</span>${it.enh ? `<b class="enh">+${it.enh}</b>` : ''}<small>${it.r}</small>${it.eq ? '<i class="eqb">E</i>' : ''}</button>`).join('') || '<div class="muted empty-msg">비어 있어요</div>'}</div>
+      <div class="row"><button class="btn red" id="bag-dis" ${junk.length ? '' : 'disabled'}>N·R 일괄 분해 (${junk.length})</button></div></div>`, 'wide-modal');
+    m.querySelectorAll('[data-bt]').forEach(b => b.onclick = () => { bagTab = b.dataset.bt; bag(); });
+    m.querySelectorAll('[data-bid]').forEach(b => b.onclick = () => {
+      const it = Gear.find(+b.dataset.bid);
+      gearDetail(it.id, it.eq || (bagTab === 'hero' ? 'hero' : null), bag);
+    });
+    $('#bag-dis', m).onclick = async () => {
+      if (!(await confirm(`착용하지 않은 N·R 장비 ${junk.length}개를 분해할까요?`, '분해'))) return bag();
+      const n = Gear.disassemble(junk.map(x => x.id)); Game.save();
+      toast(`분해 완료! ${ic('ench')} +${n}`); refreshTop(); bag();
+    };
+  }
+
+  // ================= 장비 소환 =================
+  function summonTabs() {
+    return `<div class="seg sm-seg"><button data-sm="mon" class="${summonMode === 'mon' ? 'on' : ''}">🥚 몬스터 소환</button><button data-sm="gear" class="${summonMode === 'gear' ? 'on' : ''}">⚔️ 장비 소환</button></div>`;
+  }
+  function bindSummonTabs(p) { p.querySelectorAll('[data-sm]').forEach(b => b.onclick = () => { summonMode = b.dataset.sm; renderTab(); }); }
+
+  function renderGearSummon(p) {
+    const s = G.state;
+    p.innerHTML = `${summonTabs()}
+      <div class="summon">
+        <div class="sm-banner gear">
+          <div class="sm-gears">${['weapon', 'armor', 'ring', 'collar'].map((sl, i) => `<span>${Gear.icon({ slot: sl, r: RARITY_ORDER[4 - i] })}</span>`).join('')}</div>
+          <div class="sm-title">장비 소환</div>
+          <div class="sm-sub">캐릭터·몬스터 장비 · iLv.${Math.max(1, s.best)}</div>
+        </div>
+        <div class="sm-btns">
+          <button class="btn" data-gp="1">1회 소환<small>${ic('gems')} 100</small></button>
+          <button class="btn gold" data-gp="10">10회 소환<small>${ic('gems')} 900 · SR↑ 확정</small></button>
+          ${adBtn('무료 소환', adLeft('gearPull'), 'gp-ad')}
+        </div>
+      </div>
+      <div class="rates">${RARITY_ORDER.slice().reverse().map(r => `<span style="color:${RARITY[r].color}">${r} ${GEAR_RARITY[r].rate}%</span>`).join(' · ')}</div>`;
+    bindSummonTabs(p);
+    p.querySelectorAll('[data-gp]').forEach(b => b.onclick = () => {
+      const n = +b.dataset.gp, cost = n === 10 ? 900 : 100;
+      if (s.gems < cost) { toast('다이아가 부족해요 — 상점에서 충전할 수 있어요'); return setTab('shop'); }
+      if (s.gear.length + n > GEAR_BAG_MAX) return toast('가방이 가득 찼어요 — 분해 후 다시 시도하세요');
+      s.gems -= cost;
+      showGearPull(Gear.pull(n));
+    });
+    p.querySelector('.gp-ad').onclick = async () => {
+      if (s.gear.length + 1 > GEAR_BAG_MAX) return toast('가방이 가득 찼어요');
+      if (await watchAd('gearPull', 'free_gear_pull')) showGearPull(Gear.pull(1));
+    };
+  }
+
+  function showGearPull(res) {
+    const best = Math.max(...res.map(it => RARITY_ORDER.indexOf(it.r)));
+    Sound.play('gacha');
+    const html = res.map((it, i) => `<div class="pcard gearcard${RARITY_ORDER.indexOf(it.r) >= 3 ? ' hi' : ''}" style="--rc:${RARITY[it.r].color};animation-delay:${0.5 + i * 0.12}s">
+      <div class="rt">${it.r}</div><div class="gi big">${Gear.icon(it)}</div><div class="nm">${Gear.name(it)}</div><div class="tag">${GEAR_SLOTS[it.slot].owner === 'hero' ? '캐릭터' : '몬스터'}</div></div>`).join('');
+    modal(`<div class="pull-stage ${best >= 3 ? 'gold' : best >= 2 ? 'purple' : ''}"><div class="egg chest"></div></div>
+      <div class="pull-res ${res.length > 1 ? 'ten' : ''}">${html}</div>
+      <div class="row"><button class="btn gray" id="gp-auto">자동 장착</button><button class="btn" data-close>확인</button></div>`, 'pull-modal');
+    $('#gp-auto').onclick = () => {
+      let n = Gear.autoEquip('hero');
+      G.state.team.forEach(id => { n += Gear.autoEquip('m:' + id); });
+      Game.save(); Game.restartStage(); close(true); toast(n ? `장비 ${n}개 장착!` : '더 좋은 장비가 없어요'); refresh();
+    };
+    setTimeout(() => Sound.play(best >= 3 ? 'rare' : 'reward'), 500);
+    refresh();
   }
 
   // ================= 출석 / 퀘스트 / 방치 / 부스트 / 설정 =================
@@ -602,12 +887,12 @@ const UI = (() => {
   function idleModal() {
     const s = G.state, r = Game.idleRate();
     const m = modal(`<div class="center rpop"><div class="rp-title">🎁 방치 보상</div>
-      <div class="muted small">분당 ${ic('gold')}${fmt(r.gold)} ${ic('food')}${fmt(r.food)} · 최대 12시간 저장</div>
-      <div class="chips big">${rewardChips({ gold: s.idle.gold, food: s.idle.food })}</div>
+      <div class="muted small">분당 ${ic('gold')}${fmt(r.gold)} · 최대 12시간 저장</div>
+      <div class="chips big">${rewardChips({ gold: s.idle.gold })}</div>
       <div class="row"><button class="btn" id="idle-1">받기</button>${adBtn('2배 받기', adLeft('idle'), 'idle-ad')}</div></div>`);
     $('#idle-1', m).onclick = () => {
       const g = Game.claimIdle(1);
-      if (!g.gold && !g.food) return toast('아직 쌓인 보상이 없어요');
+      if (!g.gold) return toast('아직 쌓인 보상이 없어요');
       close(true); Sound.play('coin'); toast(`획득! ${rewardText(g)}`); refresh();
     };
     m.querySelector('.idle-ad').onclick = async () => {
@@ -635,10 +920,10 @@ const UI = (() => {
       <label class="tg"><span>배경음악</span><input type="checkbox" id="st-bgm" ${st.bgm ? 'checked' : ''}><i></i></label>
       <label class="tg"><span>효과음</span><input type="checkbox" id="st-sfx" ${st.sfx ? 'checked' : ''}><i></i></label>
       <div class="card small"><b>에셋 상태</b> <span class="muted">(assets 폴더)</span><br>
-        몬스터 이미지 ${a.monsters}/${a.monstersTotal} · 배경 ${a.bg}/${a.bgTotal} · UI ${a.ui}/${a.uiTotal}<br>
+        캐릭터 ${a.hero}/${a.heroTotal} · 몬스터 ${a.monsters}/${a.monstersTotal} · 장비 ${a.gear}/${a.gearTotal}<br>배경 ${a.bg}/${a.bgTotal} · UI ${a.ui}/${a.uiTotal}<br>
         <span class="muted">없는 파일은 기본 그림으로 표시돼요</span></div>
       <button class="btn gray wide" id="st-reset">데이터 초기화</button>
-      <div class="small muted center">몬스터 키우기 v0.2</div></div>`);
+      <div class="small muted center">몬스터 키우기 v0.3</div></div>`);
     $('#st-bgm', m).onchange = e => { st.bgm = e.target.checked; Sound.set('bgm', st.bgm); Game.save(); updSnd(); };
     $('#st-sfx', m).onchange = e => { st.sfx = e.target.checked; Sound.set('sfx', st.sfx); Game.save(); updSnd(); };
     $('#st-reset', m).onclick = async () => { if (await confirm('모든 진행 데이터를 삭제할까요?', '초기화')) Game.reset(); };
@@ -651,7 +936,7 @@ const UI = (() => {
     setTimeout(() => {
       const m = modal(`<div class="center rpop"><div class="rp-title">🌙 다녀오셨어요!</div>
         <p>${h ? h + '시간 ' : ''}${mi}분 동안 몬스터들이 사냥했어요</p>
-        <div class="chips big">${rewardChips({ gold: G.state.idle.gold, food: G.state.idle.food })}</div>
+        <div class="chips big">${rewardChips({ gold: G.state.idle.gold })}</div>
         <div class="row"><button class="btn" id="off-1">받기</button>${adBtn('2배 받기', adLeft('idle'), 'off-ad')}</div></div>`, '',
         () => { if (Game.canAttend()) setTimeout(attendance, 300); });
       $('#off-1', m).onclick = () => { const r = Game.claimIdle(1); close(); toast(`획득! ${rewardText(r)}`); refresh(); };
@@ -697,6 +982,6 @@ const UI = (() => {
     refresh();
   }
 
-  return { init, toast, modal, close, confirm, refresh, refreshStage, modeHud, raidBar, tickUI, offline, intro, setTab,
+  return { init, toast, modal, close, confirm, refresh, refreshStage, modeHud, raidBar, tickUI, offline, intro, setTab, createHero,
     attendance, raidResult, arenaResult };
 })();

@@ -5,6 +5,9 @@ const BattleView = (() => {
   const ENEMY_POS = [[67, 64], [67, 88], [86, 58], [86, 76], [86, 94]];
   let layer, field, lastCutin = 0;
 
+  const artOf = u => (u.hero ? HeroArt.hero(u.gender, u.cls) : Assets.monster(u.lineId, u.form));
+  const nameOf = u => (u.hero ? u.name : LINE_MAP[u.lineId].names[u.form]);
+
   function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
 
   function setScene(elName) {
@@ -26,11 +29,11 @@ const BattleView = (() => {
   }
 
   function place(u, pos) {
-    const cls = `unit ${u.side}${u.boss ? ' boss' : ''}${u.raid ? ' raid' : ''}${u.alive ? '' : ' dead'}`;
+    const cls = `unit ${u.side}${u.hero ? ' hero' : ''}${u.boss ? ' boss' : ''}${u.raid ? ' raid' : ''}${u.alive ? '' : ' dead'}`;
     const d = el(`<div class="${cls}" style="left:${pos[0]}%;top:${pos[1]}%;z-index:${Math.round(pos[1])}">
       ${u.raid ? '' : `<div class="ubar"><div class="hp"><i></i><b></b></div>${u.side === 'ally' ? '<div class="en"><i></i></div>' : ''}</div>`}
       <div class="shadow"></div>
-      <div class="sprite"><div class="bob" style="animation-delay:${(-Math.random() * 2).toFixed(2)}s">${Assets.monster(u.lineId, u.form)}</div></div>
+      <div class="sprite"><div class="bob" style="animation-delay:${(-Math.random() * 2).toFixed(2)}s">${artOf(u)}</div></div>
     </div>`);
     u.dom = d;
     layer.appendChild(d);
@@ -134,9 +137,9 @@ const BattleView = (() => {
   }
 
   function cutin(u, name) {
-    const c = el(`<div class="fx cutin" data-el="${u.el}">
-      <div class="ci-art">${Assets.monster(u.lineId, u.form)}</div>
-      <div class="ci-txt"><small>${LINE_MAP[u.lineId].names[u.form]}</small><b>${name}</b></div></div>`);
+    const c = el(`<div class="fx cutin" data-el="${u.el || 'light'}">
+      <div class="ci-art">${artOf(u)}</div>
+      <div class="ci-txt"><small>${nameOf(u)}</small><b>${name}</b></div></div>`);
     layer.appendChild(c);
     setTimeout(() => c.remove(), 1100);
   }
@@ -144,7 +147,7 @@ const BattleView = (() => {
   function beam(a, b) {
     if (!a.dom || !b.dom) return;
     const p = center(a), q = center(b);
-    const f = el(`<div class="fx beam" data-el="${a.el}"></div>`);
+    const f = el(`<div class="fx beam" data-el="${a.el || 'light'}"></div>`);
     const len = Math.hypot(q.x - p.x, q.y - p.y), ang = Math.atan2(q.y - p.y, q.x - p.x);
     Object.assign(f.style, { left: p.x + 'px', top: p.y + 'px', width: len + 'px', transform: `rotate(${ang}rad)` });
     layer.appendChild(f);
@@ -159,7 +162,8 @@ const BattleView = (() => {
   }
 
   function banner(text, r, bad) {
-    const rw = r ? `<div class="rw">${Assets.icon('gold', '💰')} ${fmt(r.gold)} &nbsp; ${Assets.icon('food', '🍖')} ${fmt(r.food)}${r.gems ? ` &nbsp; ${Assets.icon('gems', '💎')} ${r.gems}` : ''}${r.stones ? ` &nbsp; ${Assets.icon('stones', '🔮')} ${r.stones}` : ''}</div>` : '';
+    const rw = r ? `<div class="rw">${Assets.icon('gold', '💰')} ${fmt(r.gold)}${r.gems ? ` &nbsp; ${Assets.icon('gems', '💎')} ${r.gems}` : ''}${r.stones ? ` &nbsp; ${Assets.icon('stones', '🔮')} ${r.stones}` : ''}${r.ench ? ` &nbsp; ${Assets.icon('ench', '🔨')} ${r.ench}` : ''}</div>`
+      + (r.item ? `<div class="rw item" style="--rc:${RARITY[r.item.r].color}">${Gear.icon(r.item)} ${r.item.auto ? '가방 가득 → 분해' : Gear.name(r.item)} 획득!</div>` : '') : '';
     const b = el(`<div class="fx banner${bad ? ' bad' : ''}"><div class="bt">${text}</div>${rw}</div>`);
     layer.appendChild(b);
     setTimeout(() => b.remove(), 1500);

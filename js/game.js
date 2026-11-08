@@ -20,10 +20,11 @@ const Game = (() => {
   }
   function defaultState() {
     return {
-      gold: 800, food: 500, gems: 300, stones: 0,
+      gold: 1500, gems: 300, stones: 0, ench: 20,
+      hero: null, gear: [], gearSeq: 0,
       owned: {}, shards: {}, team: [],
       best: 0, cur: 1, autoChallenge: true,
-      idle: { gold: 0, food: 0 }, boostUntil: 0, adFree: false,
+      idle: { gold: 0 }, boostUntil: 0, adFree: false,
       pity: 0, totalPulls: 0,
       daily: freshDaily(),
       quests: { date: '', prog: {}, claimed: {}, all: false },
@@ -43,6 +44,10 @@ const Game = (() => {
         const s = Object.assign(defaultState(), JSON.parse(raw));
         s.daily = Object.assign(freshDaily(), s.daily);
         for (const k of ['quests', 'attend', 'raid', 'arena', 'settings']) s[k] = Object.assign(defaultState()[k], s[k]);
+        // 구버전 마이그레이션: 먹이 → 골드, 팀 4마리
+        if (s.food) { s.gold += s.food; delete s.food; }
+        if (s.idle && s.idle.food) { s.idle.gold += s.idle.food; delete s.idle.food; }
+        s.team = s.team.slice(0, 4);
         return s;
       }
     } catch (e) { console.warn(e); }
@@ -66,15 +71,15 @@ const Game = (() => {
   function resolveReward(r) {
     const rate = idleRate(), o = {};
     for (const [k, v] of Object.entries(r)) {
-      if (k === 'goldMin') o.gold = (o.gold || 0) + Math.round(rate.gold * v);
-      else if (k === 'foodMin') o.food = (o.food || 0) + Math.round(rate.food * v);
+      if (k === 'goldMin' || k === 'foodMin') o.gold = (o.gold || 0) + Math.round(rate.gold * v);
+      else if (k === 'food') o.gold = (o.gold || 0) + v;
       else o[k] = (o[k] || 0) + v;
     }
     return o;
   }
   function grant(r, mult = 1) {
     const s = G.state, o = {};
-    for (const k of ['gold', 'food', 'gems', 'stones']) if (r[k]) { o[k] = Math.round(r[k] * mult); s[k] += o[k]; }
+    for (const k of ['gold', 'gems', 'stones', 'ench']) if (r[k]) { o[k] = Math.round(r[k] * mult); s[k] += o[k]; }
     return o;
   }
 
@@ -120,17 +125,50 @@ const Game = (() => {
     const m = (1 + 0.12 * (lvl - 1)) * FORM_MUL[form] * (1 + 0.15 * star);
     return { atk: Math.round(b.atk * m), hp: Math.round(b.hp * m), def: Math.round(b.def * m), spd: L.spd };
   }
-  function monStats(id) { const o = G.state.owned[id]; return stats(id, o.lvl, o.form, o.star); }
+  function monStats(id) {
+    const o = G.state.owned[id], st = stats(id, o.lvl, o.form, o.star), b = Gear.bonus('m:' + id);
+    st.atk += b.atk; st.hp += b.hp; st.def += b.def;
+    return st;
+  }
+  // ----- 메인 캐릭터 -----
+  function heroStats(h = G.state.hero) {
+    const C = CLASSES[h.cls], m = 1 + 0.12 * (h.lvl - 1), b = Gear.bonus('hero');
+    return { atk: Math.round(C.base.atk * m) + b.atk, hp: Math.round(C.base.hp * m) + b.hp, def: Math.round(C.base.def * m) + b.def, spd: C.spd };
+  }
+  function createHero(gender, cls, name) {
+    const s = G.state;
+    s.hero = { gender, cls, name: name || (gender === 'f' ? '루미' : '레오'), lvl: 1 };
+    if (!s.gear.some(x => x.eq === 'hero')) {
+      Gear.equip(Gear.create('weapon', 'R', 1).id, 'hero');
+      Gear.equip(Gear.create('armor', 'N', 1).id, 'hero');
+      const c = Gear.create('collar', 'N', 1);
+      if (s.team[0]) Gear.equip(c.id, 'm:' + s.team[0]);
+    }
+    save();
+    restartStage();
+  }
+  function heroLevelUp(times = 1) {
+    const h = G.state.hero;
+    let n = 0;
+    while (n < times && h.lvl < HERO_MAX_LV) {
+      const c = levelCost(h.lvl);
+      if (G.state.gold < c.gold) break;
+      G.state.gold -= c.gold; h.lvl++; n++;
+    }
+    if (n) quest('levelup', n);
+    return n;
+  }
+  function heroCanLevel() { const h = G.state.hero; return h && h.lvl < HERO_MAX_LV && G.state.gold >= levelCost(h.lvl).gold; }
   function power(st) { return Math.round(st.atk * 4 + st.hp * 0.6 + st.def * 3); }
-  function teamPower() { return G.state.team.reduce((a, id) => a + power(monStats(id)), 0); }
+  function teamPower() { return G.state.team.reduce((a, id) => a + power(monStats(id)), G.state.hero ? power(heroStats()) : 0); }
   function levelCost(lvl) {
     const k = Math.pow(1.04, lvl);
-    return { gold: Math.round(18 * lvl * k), food: Math.round(10 * lvl * k) };
+    return { gold: Math.round(28 * lvl * k) };
   }
   function starCost(star) { return DUP_SHARDS * (star + 1); }
   function idleRate() {
     const s = Math.max(1, G.state.best);
-    return { gold: 8 + s * 3, food: 5 + s * 2 };
+    return { gold: 13 + s * 5 };
   }
   function boosted() { return Date.now() < G.state.boostUntil; }
 
@@ -139,7 +177,7 @@ const Game = (() => {
     const s = G.state;
     if (!s.owned[id]) {
       s.owned[id] = { lvl: 1, form: 0, star: 0 };
-      if (s.team.length < 5) { s.team.push(id); restartStage(); }
+      if (s.team.length < 4) { s.team.push(id); restartStage(); }
       return { id, isNew: true };
     }
     s.shards[id] = (s.shards[id] || 0) + DUP_SHARDS;
@@ -151,8 +189,8 @@ const Game = (() => {
     let n = 0;
     while (n < times && o.lvl < FORM_CAP[o.form]) {
       const c = levelCost(o.lvl);
-      if (G.state.gold < c.gold || G.state.food < c.food) break;
-      G.state.gold -= c.gold; G.state.food -= c.food; o.lvl++; n++;
+      if (G.state.gold < c.gold) break;
+      G.state.gold -= c.gold; o.lvl++; n++;
     }
     if (n) quest('levelup', n);
     return n;
@@ -161,7 +199,7 @@ const Game = (() => {
     const o = G.state.owned[id];
     if (o.lvl >= FORM_CAP[o.form]) return false;
     const c = levelCost(o.lvl);
-    return G.state.gold >= c.gold && G.state.food >= c.food;
+    return G.state.gold >= c.gold;
   }
   function canEvolve(id) {
     const o = G.state.owned[id];
@@ -190,7 +228,7 @@ const Game = (() => {
   function toggleTeam(id) {
     const t = G.state.team, i = t.indexOf(id);
     if (i >= 0) { if (t.length <= 1) return 'last'; t.splice(i, 1); }
-    else { if (t.length >= 5) return 'full'; t.push(id); }
+    else { if (t.length >= 4) return 'full'; t.push(id); }
     restartStage();
     return 'ok';
   }
@@ -226,14 +264,13 @@ const Game = (() => {
   function accrueIdle(sec) {
     const r = idleRate(), s = G.state, cap = IDLE_CAP_MIN, mul = boosted() ? 2 : 1;
     s.idle.gold = Math.min(r.gold * cap, s.idle.gold + r.gold * mul * sec / 60);
-    s.idle.food = Math.min(r.food * cap, s.idle.food + r.food * mul * sec / 60);
   }
   function claimIdle(mult = 1) {
-    const s = G.state, g = Math.floor(s.idle.gold * mult), f = Math.floor(s.idle.food * mult);
-    s.gold += g; s.food += f; s.idle.gold = 0; s.idle.food = 0;
-    if (g || f) quest('idle');
+    const s = G.state, g = Math.floor(s.idle.gold * mult);
+    s.gold += g; s.idle.gold = 0;
+    if (g) quest('idle');
     save();
-    return { gold: g, food: f };
+    return { gold: g };
   }
 
   // ================= 탐험 =================
@@ -241,7 +278,7 @@ const Game = (() => {
     const E = EXPEDITIONS[typeIdx], r = idleRate(), now = Date.now();
     G.state.exped[slot] = {
       type: typeIdx, start: now, end: now + E.min * 60000,
-      reward: { gold: Math.round(r.gold * E.min * E.mul), food: Math.round(r.food * E.min * E.mul), gems: E.gems, stones: E.stones },
+      reward: { gold: Math.round(r.gold * E.min * E.mul), gems: E.gems, stones: E.stones, ench: E.ench },
     };
     save();
   }
@@ -274,7 +311,7 @@ const Game = (() => {
 
   function genOpp(mult) {
     const target = Math.max(200, teamPower() * mult);
-    const n = Math.max(3, Math.min(5, G.state.team.length));
+    const n = Math.max(3, Math.min(5, G.state.team.length + 1));
     const pool = LINES.filter(l => l.r !== 'UR' || Math.random() < 0.3);
     const lines = [];
     while (lines.length < n) { const l = pick(pool).id; if (!lines.includes(l)) lines.push(l); }
@@ -336,8 +373,15 @@ const Game = (() => {
       cd: rand(0.3, 1.0), energy: side === 'ally' ? 0 : -34, shield: 0, alive: true, dom: null,
     };
   }
+  function heroUnit() {
+    const h = G.state.hero, st = heroStats(), C = CLASSES[h.cls];
+    return { side: 'ally', hero: true, gender: h.gender, cls: h.cls, name: h.name, lineId: null, form: 0, idx: 0, boss: false, el: null, skill: 'hero', r: 'SSR',
+      atk: st.atk, maxHp: st.hp, hp: st.hp, def: st.def, spd: st.spd, crit: C.crit || 0, cd: rand(0.2, 0.6), energy: 0, shield: 0, alive: true, dom: null };
+  }
   function teamUnits() {
-    return G.state.team.map((id, i) => { const o = G.state.owned[id]; return unit('ally', id, o.form, monStats(id), i); });
+    const list = G.state.hero ? [heroUnit()] : [];
+    G.state.team.forEach(id => { const o = G.state.owned[id]; list.push(unit('ally', id, o.form, monStats(id), list.length)); });
+    return list;
   }
 
   function startStage(s) {
@@ -440,7 +484,7 @@ const Game = (() => {
     let elem = 1;
     if (ADV[src.el] === tgt.el) elem = 1.5;
     else if (ADV[tgt.el] === src.el) elem = 0.75;
-    const crit = Math.random() < 0.12;
+    const crit = Math.random() < 0.12 + (src.crit || 0);
     let dmg = src.atk * mult * elem * (100 / (100 + tgt.def * 2)) * rand(0.9, 1.1) * (crit ? 1.6 : 1);
     dmg = Math.max(1, Math.round(dmg));
     const shown = dmg;
@@ -457,6 +501,14 @@ const Game = (() => {
   }
 
   function castSkill(u, foes, friends, B) {
+    if (u.hero) {
+      const C = CLASSES[u.cls].skill;
+      BattleView.skill(u, C.name);
+      if (C.type === 'blast') { BattleView.flash(u.cls === 'mage' ? 'fire' : 'light'); Sound.play('blast'); foes.forEach(t => hit(u, t, C.mult, B)); }
+      else if (C.type === 'nuke') { const t = foes.reduce((a, b) => (b.hp > a.hp ? b : a)); BattleView.beam(u, t); hit(u, t, C.mult, B); }
+      else for (let i = 0; i < C.hits; i++) { const al = foes.filter(f => f.alive); if (!al.length) break; const t = pick(al); BattleView.beam(u, t); hit(u, t, C.mult, B); }
+      return;
+    }
     BattleView.skill(u, u.raid ? '대지 진동' : SKILLS[u.skill].name);
     if (u.raid) {
       BattleView.flash(u.el); Sound.play('blast');
@@ -518,8 +570,8 @@ const Game = (() => {
 
   function stageReward(s, first) {
     const info = stageInfo(s);
-    const r = { gold: Math.round(60 + s * 20), food: Math.round(40 + s * 14), gems: 0, stones: 0 };
-    if (info.boss) { r.gold *= 3; r.food *= 3; r.stones = first ? 3 : 1; if (first) r.gems += 50; }
+    const r = { gold: Math.round(100 + s * 34), gems: 0, stones: 0, ench: 0 };
+    if (info.boss) { r.gold *= 3; r.stones = first ? 3 : 1; r.ench = first ? 10 : 3; if (first) r.gems += 50; }
     else if (first && s % 5 === 0) r.gems += 20;
     else if (first) r.gems += 5;
     return r;
@@ -531,6 +583,10 @@ const Game = (() => {
     grant(r);
     if (first) s.best = B.stage;
     quest('stage');
+    if (B.info.boss || Math.random() < 0.25) {
+      const it = Gear.drop(B.stage, B.info.boss && first ? 'R' : 'N');
+      r.item = it;
+    }
     BattleView.banner('CLEAR!', r);
     Sound.play('win');
     B.over = true; B.timer = 1.4;
@@ -556,12 +612,13 @@ const Game = (() => {
     const pct = Math.min(1, B.dmg / boss.maxHp);
     const rate = idleRate(), lv = 1 + 0.25 * (B.lvl - 1);
     const r = {
-      gold: Math.round(rate.gold * (20 + 100 * pct) * lv),
-      food: Math.round(rate.food * (20 + 100 * pct) * lv),
+      gold: Math.round(rate.gold * (40 + 200 * pct) * lv),
       stones: Math.floor(pct * 4) + (killed ? 3 : 0),
+      ench: Math.floor(pct * 10 * lv) + (killed ? 15 : 0),
       gems: killed ? 50 : 0,
     };
     grant(r);
+    if (killed || pct >= 0.5) r.item = Gear.drop(Math.max(G.state.best, 5 + B.lvl * 7), killed ? 'SR' : 'R');
     const R = G.state.raid;
     R.bestPct = Math.max(R.bestPct, pct);
     if (killed) { R.lvl++; R.bestPct = 0; BattleView.banner('격파!', null); }
@@ -578,7 +635,8 @@ const Game = (() => {
     const before = arenaTier();
     A.pts = Math.max(0, A.pts + delta);
     won ? A.wins++ : A.losses++;
-    const got = grant(resolveReward(won ? { gems: Math.round(10 + 10 * opp.mult), goldMin: 10 } : { goldMin: 3 }));
+    const got = grant(resolveReward(won ? { gems: Math.round(10 + 10 * opp.mult), goldMin: 10, ench: 3 } : { goldMin: 3 }));
+    if (won && Math.random() < 0.3) got.item = Gear.drop(G.state.best, 'R');
     const after = arenaTier();
     refreshOpps();
     Sound.play(won ? 'win' : 'lose');
@@ -612,12 +670,13 @@ const Game = (() => {
     requestAnimationFrame(loop);
     document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
     window.addEventListener('beforeunload', save);
-    if (!G.state.seenIntro) UI.intro();
+    if (!G.state.hero) UI.createHero(!G.state.seenIntro);
+    else if (!G.state.seenIntro) UI.intro();
     else if (canAttend()) setTimeout(() => UI.attendance(), 600);
   }
 
   return {
-    init, save, reset, checkDaily, stats, monStats, power, teamPower, levelCost, starCost, idleRate, boosted,
+    init, save, reset, checkDaily, stats, monStats, heroStats, createHero, heroLevelUp, heroCanLevel, power, teamPower, levelCost, starCost, idleRate, boosted,
     give, levelUp, canLevel, canEvolve, evolve, canStar, starUp, monAlert, toggleTeam, pull, claimIdle,
     startExped, claimExped, skipCost, expedAlert,
     quest, questDone, claimQuest, claimQuestAll, allQuestsClaimed, questAlert, canAttend, attend, resolveReward, grant,
