@@ -1,0 +1,168 @@
+<title>몬스터 키우기 프롬프트북</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* 레이아웃: 상단 진행 바 + 섹션 칩(스티키) → 섹션별 프롬프트 카드 목록. 픽셀 게임 문서처럼 계단형 그림자 */
+:root {
+  --bg: #f1eefb; --surface: #ffffff; --ink: #1d1838; --muted: #6a6390; --line: #d9d3f0;
+  --accent: #6a48ec; --accent-ink: #ffffff; --magenta: #ff00ff; --done: #1f9d5c; --chip: #ece8fb;
+  --code-bg: #f7f5ff; --shadow: #c9c0ef;
+  --f-display: 'Jua', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #120f29; --surface: #1d1842; --ink: #f1eeff; --muted: #a59ed4; --line: #352e6a;
+  --accent: #a28cff; --accent-ink: #120f29; --done: #5fe0a0; --chip: #2a2360; --code-bg: #161236; --shadow: #0a0820; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #120f29; --surface: #1d1842; --ink: #f1eeff; --muted: #a59ed4; --line: #352e6a;
+  --accent: #a28cff; --accent-ink: #120f29; --done: #5fe0a0; --chip: #2a2360; --code-bg: #161236; --shadow: #0a0820; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); }
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 860px; margin: 0 auto; }
+
+header.top { padding-block: 28px 8px; display: grid; gap: 10px; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 6vw, 44px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 .px { display: inline-block; width: .5em; height: .5em; background: var(--magenta); margin-left: 8px; vertical-align: .12em;
+  box-shadow: .12em .12em 0 var(--accent); }
+.lede { color: var(--muted); margin: 0; max-width: 62ch; }
+.how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
+.how div { background: var(--surface); border: 2px solid var(--line); padding: 10px 12px; font-size: 13.5px; }
+.how b { font-family: var(--f-display); font-weight: 400; font-size: 16px; display: block; color: var(--accent); }
+.how code { font-family: var(--f-mono); font-size: 12px; background: var(--chip); padding: 0 4px; }
+@media (max-width: 640px) { .how { grid-template-columns: 1fr; } }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 10px; margin-top: 10px; border-bottom: 2px solid var(--line); }
+.prog { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.prog .track { flex: 1; height: 10px; background: var(--chip); border: 2px solid var(--line); position: relative; }
+.prog .fill { position: absolute; inset: 0 auto 0 0; background: var(--done); width: 0; transition: width .3s; }
+.prog b { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+.chips { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; }
+.chips a { flex: 0 0 auto; text-decoration: none; color: var(--ink); background: var(--surface); border: 2px solid var(--line); padding: 4px 10px; font-size: 13px; font-family: var(--f-display); }
+.chips a span { color: var(--muted); font-family: var(--f-body); font-size: 12px; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.chips a:hover, .chips a:focus-visible { border-color: var(--accent); outline: none; }
+.chips label { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin-left: auto; padding-left: 8px; white-space: nowrap; }
+
+section.grp { padding-top: 26px; scroll-margin-top: 110px; }
+section.grp > h2 { font-family: var(--f-display); font-weight: 400; font-size: 26px; margin: 0; }
+section.grp > p { color: var(--muted); margin: 2px 0 12px; font-size: 13.5px; }
+.list { display: grid; gap: 12px; }
+
+.card { background: var(--surface); border: 2px solid var(--line); box-shadow: 4px 4px 0 var(--shadow); padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
+.card.done { opacity: .55; box-shadow: none; }
+.card.done .file::before { content: '✓ '; color: var(--done); }
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.file { font-family: var(--f-mono); font-size: 13.5px; font-weight: 500; background: var(--chip); padding: 1px 6px; }
+.name { font-family: var(--f-display); font-size: 18px; }
+.tag { font-size: 11.5px; border: 1.5px solid var(--line); padding: 0 6px; color: var(--muted); }
+.tag.hot { border-color: var(--magenta); color: var(--ink); }
+.attach { font-size: 13px; display: flex; gap: 6px; align-items: baseline; }
+.attach::before { content: '📎'; }
+.split { font-size: 12.5px; color: var(--muted); font-family: var(--f-mono); }
+pre { margin: 0; font-family: var(--f-mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+  background: var(--code-bg); border-left: 4px solid var(--accent); padding: 10px 12px; max-height: 9.6em; overflow: auto; user-select: all; -webkit-user-select: all; }
+.acts { display: flex; gap: 8px; align-items: center; }
+button.copy { font-family: var(--f-display); font-size: 15px; background: var(--accent); color: var(--accent-ink); border: none; padding: 6px 16px; cursor: pointer;
+  box-shadow: 3px 3px 0 var(--shadow); }
+button.copy:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow); }
+button.copy:focus-visible, input:focus-visible { outline: 3px solid var(--magenta); outline-offset: 2px; }
+button.copy.ok { background: var(--done); }
+.acts label { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+.acts input { width: 18px; height: 18px; accent-color: var(--done); }
+.line-sep { font-family: var(--f-display); font-size: 15px; color: var(--muted); margin: 10px 0 -2px; display: flex; gap: 8px; align-items: center; }
+.line-sep::after { content: ''; flex: 1; height: 2px; background: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 10px); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>몬스터 키우기 프롬프트북<span class="px" aria-hidden="true"></span></h1>
+    <p class="lede">제미나이에 그대로 붙여넣는 도트 그림 프롬프트 모음이에요. 위에서부터 순서대로 만들면 화풍이 맞춰져요.</p>
+    <div class="how">
+      <div><b>① 복사 → 붙여넣기</b>카드의 <code>복사</code>를 눌러 제미나이 입력창에 붙여넣어요.</div>
+      <div><b>② 📎 첨부 확인</b>첨부 표시가 있으면 그 그림도 같이 올려요. 진화 단계는 바로 전 단계 그림이에요.</div>
+      <div><b>③ 파일 이름으로 저장</b>카드 맨 위 이름 그대로 저장해서 대화창에 올려주세요. 마젠타 배경 그대로 OK.</div>
+    </div>
+  </header>
+
+  <div class="bar">
+    <div class="prog"><span>진행</span><div class="track"><div class="fill" id="fill"></div></div><b id="cnt">0 / __TOTAL__</b></div>
+    <nav class="chips" id="chips"></nav>
+  </div>
+
+  <main id="main"></main>
+</div>
+
+<script>
+const GROUPS = __DATA__;
+const KEY = 'promptbook-done-v1';
+let done = {};
+try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
+const saveDone = () => { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function render() {
+  const main = document.getElementById('main');
+  let html = '';
+  GROUPS.forEach(g => {
+    html += `<section class="grp" id="${g.id}"><h2>${esc(g.title)}</h2><p>${esc(g.note)}</p><div class="list">`;
+    let lastLine = null;
+    g.items.forEach(it => {
+      const key = g.id + '/' + it.file;
+      if (it.line && it.line !== lastLine) { lastLine = it.line; html += `<div class="line-sep">${esc(it.name)} 계열 · ${esc(it.line)}</div>`; }
+      html += `<article class="card${done[key] ? ' done' : ''}" data-key="${esc(key)}">
+        <div class="head"><span class="file">${esc(it.file)}</span><span class="name">${esc(it.name)}</span>
+          ${it.tags.map(t => `<span class="tag${t === '시작 몬스터' || t === '화풍 기준' ? ' hot' : ''}">${esc(t)}</span>`).join('')}</div>
+        ${it.attach ? `<div class="attach">첨부: ${esc(it.attach)}</div>` : ''}
+        ${it.note ? `<div class="split">파일 나누기 ${esc(it.note)}</div>` : ''}
+        <pre>${esc(it.prompt)}</pre>
+        <div class="acts"><button class="copy" type="button">복사</button>
+          <label><input type="checkbox" id="chk-${esc(key).replace(/[^a-z0-9_-]/gi, '_')}" ${done[key] ? 'checked' : ''}>완료</label></div>
+      </article>`;
+    });
+    html += '</div></section>';
+  });
+  main.innerHTML = html;
+  document.getElementById('chips').innerHTML = GROUPS.map(g => `<a href="#${g.id}">${esc(g.title)}<span id="c-${g.id}"></span></a>`).join('');
+  updateCounts();
+}
+
+function updateCounts() {
+  let all = 0, fin = 0;
+  GROUPS.forEach(g => {
+    const n = g.items.length, d = g.items.filter(it => done[g.id + '/' + it.file]).length;
+    all += n; fin += d;
+    const el = document.getElementById('c-' + g.id);
+    if (el) el.textContent = `${d}/${n}`;
+  });
+  document.getElementById('cnt').textContent = `${fin} / ${all}`;
+  document.getElementById('fill').style.width = (all ? fin / all * 100 : 0) + '%';
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button.copy');
+  if (!b) return;
+  const pre = b.closest('.card').querySelector('pre');
+  const ok = () => { b.textContent = '복사됨'; b.classList.add('ok'); setTimeout(() => { b.textContent = '복사'; b.classList.remove('ok'); }, 1400); };
+  const fallback = () => {
+    const r = document.createRange(); r.selectNodeContents(pre);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    b.textContent = '선택됨 · 길게 눌러 복사';
+    setTimeout(() => { b.textContent = '복사'; }, 2200);
+  };
+  try { navigator.clipboard.writeText(pre.textContent).then(ok, fallback); } catch (err) { fallback(); }
+});
+document.addEventListener('change', e => {
+  if (e.target.type !== 'checkbox') return;
+  const card = e.target.closest('.card'), key = card.dataset.key;
+  if (e.target.checked) done[key] = 1; else delete done[key];
+  card.classList.toggle('done', e.target.checked);
+  saveDone(); updateCounts();
+});
+render();
+</script>
