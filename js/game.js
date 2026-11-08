@@ -3,7 +3,7 @@ const G = { state: null, battle: null, speed: 1 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 
 function fmt(n) {
   n = Math.floor(n);
@@ -14,7 +14,10 @@ function fmt(n) {
 }
 
 const Game = (() => {
-  // ---------- 저장 ----------
+  // ================= 저장 =================
+  function freshDaily() {
+    return { date: today(), pull: 0, gem: 0, boost: 0, idle: 0, exped: 0, raidAd: 0, arenaAd: 0, attend: 0, raidUsed: 0, arenaUsed: 0 };
+  }
   function defaultState() {
     return {
       gold: 800, food: 500, gems: 300, stones: 0,
@@ -22,8 +25,13 @@ const Game = (() => {
       best: 0, cur: 1, autoChallenge: true,
       idle: { gold: 0, food: 0 }, boostUntil: 0, adFree: false,
       pity: 0, totalPulls: 0,
-      daily: { date: '', pull: 0, gem: 0, boost: 0, idle: 0, exped: 0 },
+      daily: freshDaily(),
+      quests: { date: '', prog: {}, claimed: {}, all: false },
+      attend: { idx: 0, last: '' },
+      raid: { lvl: 1, bestPct: 0 },
+      arena: { pts: ARENA.start, wins: 0, losses: 0, opps: null },
       exped: [null, null, null], bought: {},
+      settings: { bgm: true, sfx: true },
       lastSave: Date.now(), seenIntro: false,
     };
   }
@@ -33,7 +41,8 @@ const Game = (() => {
       const raw = localStorage.getItem(SAVE_KEY);
       if (raw) {
         const s = Object.assign(defaultState(), JSON.parse(raw));
-        s.daily = Object.assign(defaultState().daily, s.daily);
+        s.daily = Object.assign(freshDaily(), s.daily);
+        for (const k of ['quests', 'attend', 'raid', 'arena', 'settings']) s[k] = Object.assign(defaultState()[k], s[k]);
         return s;
       }
     } catch (e) { console.warn(e); }
@@ -45,17 +54,67 @@ const Game = (() => {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(G.state)); } catch (e) {}
   }
 
-  function reset() {
-    localStorage.removeItem(SAVE_KEY);
-    location.reload();
-  }
+  function reset() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} location.reload(); }
 
   function checkDaily() {
-    const d = today();
-    if (G.state.daily.date !== d) G.state.daily = { date: d, pull: 0, gem: 0, boost: 0, idle: 0, exped: 0 };
+    const d = today(), s = G.state;
+    if (s.daily.date !== d) s.daily = freshDaily();
+    if (s.quests.date !== d) s.quests = { date: d, prog: {}, claimed: {}, all: false };
   }
 
-  // ---------- 성장 공식 ----------
+  // ================= 보상 공통 =================
+  function resolveReward(r) {
+    const rate = idleRate(), o = {};
+    for (const [k, v] of Object.entries(r)) {
+      if (k === 'goldMin') o.gold = (o.gold || 0) + Math.round(rate.gold * v);
+      else if (k === 'foodMin') o.food = (o.food || 0) + Math.round(rate.food * v);
+      else o[k] = (o[k] || 0) + v;
+    }
+    return o;
+  }
+  function grant(r, mult = 1) {
+    const s = G.state, o = {};
+    for (const k of ['gold', 'food', 'gems', 'stones']) if (r[k]) { o[k] = Math.round(r[k] * mult); s[k] += o[k]; }
+    return o;
+  }
+
+  // ================= 퀘스트 / 출석 =================
+  function quest(id, n = 1) {
+    checkDaily();
+    const q = G.state.quests;
+    q.prog[id] = (q.prog[id] || 0) + n;
+  }
+  function questDone(Q) { return (G.state.quests.prog[Q.id] || 0) >= Q.target; }
+  function claimQuest(id) {
+    const Q = QUESTS.find(x => x.id === id), q = G.state.quests;
+    if (!Q || q.claimed[id] || !questDone(Q)) return null;
+    q.claimed[id] = true; save();
+    return grant(resolveReward(Q.reward));
+  }
+  function allQuestsClaimed() { return QUESTS.every(Q => G.state.quests.claimed[Q.id]); }
+  function claimQuestAll() {
+    const q = G.state.quests;
+    if (q.all || !allQuestsClaimed()) return null;
+    q.all = true; save();
+    return grant(QUEST_ALL_REWARD);
+  }
+  function questAlert() {
+    checkDaily();
+    const q = G.state.quests;
+    return QUESTS.some(Q => questDone(Q) && !q.claimed[Q.id]) || (allQuestsClaimed() && !q.all);
+  }
+
+  function canAttend() { return G.state.attend.last !== today(); }
+  function attend(mult = 1) {
+    const a = G.state.attend;
+    if (!canAttend()) return null;
+    const r = grant(resolveReward(ATTENDANCE[a.idx]), mult);
+    a.idx = (a.idx + 1) % ATTENDANCE.length; a.last = today();
+    save();
+    return r;
+  }
+
+  // ================= 성장 공식 =================
   function stats(lineId, lvl, form, star) {
     const L = LINE_MAP[lineId], b = RARITY[L.r].base;
     const m = (1 + 0.12 * (lvl - 1)) * FORM_MUL[form] * (1 + 0.15 * star);
@@ -69,13 +128,13 @@ const Game = (() => {
     return { gold: Math.round(18 * lvl * k), food: Math.round(10 * lvl * k) };
   }
   function starCost(star) { return DUP_SHARDS * (star + 1); }
-  function idleRate() { // 분당
+  function idleRate() {
     const s = Math.max(1, G.state.best);
     return { gold: 8 + s * 3, food: 5 + s * 2 };
   }
   function boosted() { return Date.now() < G.state.boostUntil; }
 
-  // ---------- 몬스터 획득 / 강화 ----------
+  // ================= 몬스터 =================
   function give(id) {
     const s = G.state;
     if (!s.owned[id]) {
@@ -95,9 +154,15 @@ const Game = (() => {
       if (G.state.gold < c.gold || G.state.food < c.food) break;
       G.state.gold -= c.gold; G.state.food -= c.food; o.lvl++; n++;
     }
+    if (n) quest('levelup', n);
     return n;
   }
-
+  function canLevel(id) {
+    const o = G.state.owned[id];
+    if (o.lvl >= FORM_CAP[o.form]) return false;
+    const c = levelCost(o.lvl);
+    return G.state.gold >= c.gold && G.state.food >= c.food;
+  }
   function canEvolve(id) {
     const o = G.state.owned[id];
     if (o.form >= 2 || o.lvl < FORM_CAP[o.form]) return false;
@@ -110,13 +175,17 @@ const Game = (() => {
     G.state.stones -= c.stones; G.state.gold -= c.gold; o.form++;
     return true;
   }
-
+  function canStar(id) {
+    const o = G.state.owned[id];
+    return o.star < MAX_STAR && (G.state.shards[id] || 0) >= starCost(o.star);
+  }
   function starUp(id) {
-    const o = G.state.owned[id], need = starCost(o.star);
-    if (o.star >= MAX_STAR || (G.state.shards[id] || 0) < need) return false;
-    G.state.shards[id] -= need; o.star++;
+    if (!canStar(id)) return false;
+    const o = G.state.owned[id];
+    G.state.shards[id] -= starCost(o.star); o.star++;
     return true;
   }
+  function monAlert() { return Object.keys(G.state.owned).some(id => canEvolve(id) || canStar(id)); }
 
   function toggleTeam(id) {
     const t = G.state.team, i = t.indexOf(id);
@@ -126,7 +195,7 @@ const Game = (() => {
     return 'ok';
   }
 
-  // ---------- 뽑기 ----------
+  // ================= 뽑기 =================
   function rollRarity(guaranteeSR) {
     const s = G.state;
     s.pity++;
@@ -145,29 +214,29 @@ const Game = (() => {
     const res = [];
     for (let i = 0; i < n; i++) {
       const r = rollRarity(n >= 10 && i === n - 1);
-      const line = pick(LINES.filter(l => l.r === r));
-      res.push(give(line.id));
+      res.push(give(pick(LINES.filter(l => l.r === r)).id));
     }
     G.state.totalPulls += n;
+    quest('summon', n);
     save();
     return res;
   }
 
-  // ---------- 방치 보상 ----------
+  // ================= 방치 =================
   function accrueIdle(sec) {
-    const r = idleRate(), s = G.state, cap = IDLE_CAP_MIN;
-    const mul = boosted() ? 2 : 1;
+    const r = idleRate(), s = G.state, cap = IDLE_CAP_MIN, mul = boosted() ? 2 : 1;
     s.idle.gold = Math.min(r.gold * cap, s.idle.gold + r.gold * mul * sec / 60);
     s.idle.food = Math.min(r.food * cap, s.idle.food + r.food * mul * sec / 60);
   }
   function claimIdle(mult = 1) {
     const s = G.state, g = Math.floor(s.idle.gold * mult), f = Math.floor(s.idle.food * mult);
     s.gold += g; s.food += f; s.idle.gold = 0; s.idle.food = 0;
+    if (g || f) quest('idle');
     save();
     return { gold: g, food: f };
   }
 
-  // ---------- 탐험 ----------
+  // ================= 탐험 =================
   function startExped(slot, typeIdx) {
     const E = EXPEDITIONS[typeIdx], r = idleRate(), now = Date.now();
     G.state.exped[slot] = {
@@ -179,14 +248,47 @@ const Game = (() => {
   function claimExped(slot) {
     const x = G.state.exped[slot];
     if (!x || Date.now() < x.end) return null;
-    const s = G.state;
-    s.gold += x.reward.gold; s.food += x.reward.food; s.gems += x.reward.gems; s.stones += x.reward.stones;
-    s.exped[slot] = null; save();
-    return x.reward;
+    G.state.exped[slot] = null;
+    const r = grant(x.reward); save();
+    return r;
   }
   function skipCost(slot) {
     const x = G.state.exped[slot];
     return Math.max(1, Math.ceil((x.end - Date.now()) / 600000)) * 5;
+  }
+  const expedAlert = () => G.state.exped.some(x => x && Date.now() >= x.end);
+
+  // ================= 레이드 / 아레나 =================
+  const raidTickets = () => RAID.tickets + G.state.daily.raidAd - G.state.daily.raidUsed;
+  const arenaTickets = () => ARENA.tickets + G.state.daily.arenaAd - G.state.daily.arenaUsed;
+  const raidBossId = () => RAID_BOSSES[new Date().getDay()];
+  function raidBossStats(lvl) {
+    const e = enemyStats(4 + lvl * 7, false);
+    return { atk: Math.round(e.atk * 1.3), hp: Math.round(15000 * Math.pow(1.7, lvl - 1)), def: Math.round(e.def), spd: 0.75 };
+  }
+  function arenaTier(pts = G.state.arena.pts) {
+    let t = ARENA_TIERS[0];
+    for (const x of ARENA_TIERS) if (pts >= x.min) t = x;
+    return t;
+  }
+
+  function genOpp(mult) {
+    const target = Math.max(200, teamPower() * mult);
+    const n = Math.max(3, Math.min(5, G.state.team.length));
+    const pool = LINES.filter(l => l.r !== 'UR' || Math.random() < 0.3);
+    const lines = [];
+    while (lines.length < n) { const l = pick(pool).id; if (!lines.includes(l)) lines.push(l); }
+    const formOf = lv => (lv > 40 ? 2 : lv > 20 ? 1 : 0);
+    const pw = lv => lines.reduce((a, id) => a + power(stats(id, lv, formOf(lv), 0)), 0);
+    let lvl = 1;
+    while (lvl < 60 && pw(lvl) < target) lvl++;
+    return { name: pick(NICK_A) + ' ' + pick(NICK_B), lines, lvl, form: formOf(lvl), power: pw(lvl),
+      pts: Math.max(900, Math.round(G.state.arena.pts + (mult - 1) * 300 + rand(-40, 40))), mult };
+  }
+  function refreshOpps() {
+    G.state.arena.opps = [0.8, 1.0, 1.2].map(genOpp);
+    save();
+    return G.state.arena.opps;
   }
 
   // ================= 전투 =================
@@ -222,38 +324,74 @@ const Game = (() => {
     }
     return list.map((e, i) => {
       const st = enemyStats(s, e.boss);
-      const L = LINE_MAP[e.line];
-      return unit('enemy', e.line, e.form, { atk: Math.round(st.atk), hp: Math.round(st.hp), def: Math.round(st.def), spd: L.spd * 0.95 }, i, !!e.boss);
+      return unit('enemy', e.line, e.form, { atk: Math.round(st.atk), hp: Math.round(st.hp), def: Math.round(st.def), spd: LINE_MAP[e.line].spd * 0.95 }, i, !!e.boss);
     });
   }
 
   function unit(side, lineId, form, st, idx, boss = false) {
     const L = LINE_MAP[lineId];
     return {
-      side, lineId, form, idx, boss, el: L.el, skill: L.skill,
+      side, lineId, form, idx, boss, el: L.el, skill: L.skill, r: L.r,
       atk: st.atk, maxHp: st.hp, hp: st.hp, def: st.def, spd: st.spd,
       cd: rand(0.3, 1.0), energy: side === 'ally' ? 0 : -34, shield: 0, alive: true, dom: null,
     };
+  }
+  function teamUnits() {
+    return G.state.team.map((id, i) => { const o = G.state.owned[id]; return unit('ally', id, o.form, monStats(id), i); });
   }
 
   function startStage(s) {
     G.state.cur = s;
     const info = stageInfo(s);
-    const allies = G.state.team.map((id, i) => {
-      const o = G.state.owned[id];
-      return unit('ally', id, o.form, monStats(id), i);
-    });
-    const waves = 2;
-    G.battle = { stage: s, info, wave: 0, waves, allies, enemies: makeWave(s, 0, waves), over: false, timer: 0, next: null };
+    G.battle = { mode: 'stage', stage: s, info, wave: 0, waves: 2, allies: teamUnits(), enemies: makeWave(s, 0, 2), over: false, timer: 0, next: null, time: 0, dmg: 0 };
     BattleView.render(G.battle);
+    Sound.bgm(info.boss ? 'boss' : 'stage');
     UI.refreshStage();
   }
+  function restartStage() { if (G.battle && G.battle.mode === 'stage') startStage(G.state.cur); }
+  function resumeStage() { startStage(G.state.autoChallenge ? G.state.best + 1 : Math.max(1, G.state.best)); }
+  function challenge() { G.state.autoChallenge = true; startStage(G.state.best + 1); }
 
-  function restartStage() { if (G.battle) startStage(G.state.cur); }
+  function startRaid() {
+    checkDaily();
+    if (raidTickets() <= 0) return false;
+    G.state.daily.raidUsed++;
+    quest('raid');
+    const id = raidBossId(), lvl = G.state.raid.lvl;
+    const boss = unit('enemy', id, 2, raidBossStats(lvl), 0, true);
+    boss.raid = true; boss.energy = 0;
+    G.battle = { mode: 'raid', info: { el: LINE_MAP[id].el, label: `보스 레이드 Lv.${lvl}` }, wave: 0, waves: 1,
+      allies: teamUnits(), enemies: [boss], over: false, timer: 0, next: null, time: 0, limit: RAID.time, dmg: 0, lvl };
+    BattleView.render(G.battle);
+    BattleView.warning();
+    Sound.bgm('raid');
+    save();
+    UI.refreshStage();
+    return true;
+  }
 
-  function challenge() {
-    G.state.autoChallenge = true;
-    startStage(G.state.best + 1);
+  function startArena(i) {
+    checkDaily();
+    const opp = G.state.arena.opps && G.state.arena.opps[i];
+    if (!opp || arenaTickets() <= 0) return false;
+    G.state.daily.arenaUsed++;
+    quest('arena');
+    const enemies = opp.lines.map((id, k) => unit('enemy', id, opp.form, stats(id, opp.lvl, opp.form, 0), k));
+    enemies.forEach(e => { e.energy = 0; });
+    G.battle = { mode: 'arena', info: { el: 'dark', label: `아레나 vs ${opp.name}` }, wave: 0, waves: 1, opp,
+      allies: teamUnits(), enemies, over: false, timer: 0, next: null, time: 0, limit: ARENA.time, dmg: 0 };
+    BattleView.render(G.battle);
+    BattleView.versus(opp.name);
+    Sound.bgm('arena');
+    save();
+    UI.refreshStage();
+    return true;
+  }
+
+  function giveUp() {
+    const B = G.battle;
+    if (!B || B.over || B.mode === 'stage') return;
+    if (B.mode === 'raid') raidEnd(B, false); else arenaEnd(B, false);
   }
 
   function tick(dt) {
@@ -264,6 +402,11 @@ const Game = (() => {
       if (B.timer <= 0 && B.next) { const f = B.next; B.next = null; f(); }
       return;
     }
+    B.time += dt;
+    if (B.limit && B.time >= B.limit) {
+      if (B.mode === 'raid') raidEnd(B, false); else arenaEnd(B, false);
+      return;
+    }
     for (const u of B.allies.concat(B.enemies)) {
       if (!u.alive) continue;
       u.cd -= dt;
@@ -271,8 +414,7 @@ const Game = (() => {
     }
   }
 
-  function alive(arr) { return arr.filter(u => u.alive); }
-
+  const alive = arr => arr.filter(u => u.alive);
   function pickTarget(foes) {
     const front = foes.filter(u => u.idx < 2);
     return pick(front.length ? front : foes);
@@ -284,56 +426,64 @@ const Game = (() => {
     if (!foes.length) return;
     if (u.energy >= 100) {
       u.energy = 0;
-      castSkill(u, foes, friends);
+      castSkill(u, foes, friends, B);
     } else {
-      const t = pickTarget(foes);
       BattleView.lunge(u);
-      hit(u, t, 1);
-      u.energy += 34;
+      hit(u, pickTarget(foes), 1, B);
+      u.energy += u.raid ? 25 : 34;
     }
     BattleView.bars(u);
     checkEnd(B);
   }
 
-  function hit(src, tgt, mult) {
+  function hit(src, tgt, mult, B) {
     let elem = 1;
     if (ADV[src.el] === tgt.el) elem = 1.5;
     else if (ADV[tgt.el] === src.el) elem = 0.75;
     const crit = Math.random() < 0.12;
     let dmg = src.atk * mult * elem * (100 / (100 + tgt.def * 2)) * rand(0.9, 1.1) * (crit ? 1.6 : 1);
     dmg = Math.max(1, Math.round(dmg));
-    let shown = dmg;
+    const shown = dmg;
     if (tgt.shield > 0) { const a = Math.min(tgt.shield, dmg); tgt.shield -= a; dmg -= a; }
+    const real = Math.min(tgt.hp, dmg);
     tgt.hp -= dmg;
+    if (src.side === 'ally') B.dmg += real;
     BattleView.damage(tgt, shown, crit, elem);
-    if (tgt.hp <= 0) { tgt.hp = 0; tgt.alive = false; BattleView.die(tgt); }
-    else BattleView.bars(tgt);
+    if (tgt.hp <= 0) {
+      tgt.hp = 0; tgt.alive = false;
+      BattleView.die(tgt, B.mode === 'stage' && tgt.side === 'enemy');
+    } else BattleView.bars(tgt);
     return shown;
   }
 
-  function castSkill(u, foes, friends) {
-    const sk = SKILLS[u.skill];
-    BattleView.skill(u, sk.name);
+  function castSkill(u, foes, friends, B) {
+    BattleView.skill(u, u.raid ? '대지 진동' : SKILLS[u.skill].name);
+    if (u.raid) {
+      BattleView.flash(u.el); Sound.play('blast');
+      foes.forEach(t => hit(u, t, 1.1, B));
+      return;
+    }
     switch (u.skill) {
       case 'nuke': {
         const t = foes.reduce((a, b) => (b.hp > a.hp ? b : a));
-        BattleView.beam(u, t); hit(u, t, 3.2); break;
+        BattleView.beam(u, t); hit(u, t, 3.2, B); break;
       }
       case 'blast':
-        BattleView.flash(u.el);
-        foes.forEach(t => hit(u, t, 1.4)); break;
+        BattleView.flash(u.el); Sound.play('blast');
+        foes.forEach(t => hit(u, t, 1.4, B)); break;
       case 'heal': {
         const low = friends.reduce((a, b) => (b.hp / b.maxHp < a.hp / a.maxHp ? b : a));
         friends.forEach(f => heal(f, f === low ? u.atk * 3 : u.atk * 1.2));
-        break;
+        Sound.play('heal'); break;
       }
       case 'shield':
         friends.forEach(f => { f.shield += Math.round(u.atk * 2); BattleView.shield(f); });
-        hit(u, pickTarget(foes), 1.2); break;
+        Sound.play('shield');
+        hit(u, pickTarget(foes), 1.2, B); break;
       case 'drain': {
         const t = pickTarget(foes);
         BattleView.beam(u, t);
-        const d = hit(u, t, 2.4); heal(u, d * 0.6); break;
+        heal(u, hit(u, t, 2.4, B) * 0.6); break;
       }
     }
   }
@@ -347,7 +497,10 @@ const Game = (() => {
 
   function checkEnd(B) {
     if (B.over) return;
-    if (!alive(B.enemies).length) {
+    const enemiesDead = !alive(B.enemies).length, alliesDead = !alive(B.allies).length;
+    if (B.mode === 'raid') { if (enemiesDead) raidEnd(B, true); else if (alliesDead) raidEnd(B, false); return; }
+    if (B.mode === 'arena') { if (enemiesDead) arenaEnd(B, true); else if (alliesDead) arenaEnd(B, false); return; }
+    if (enemiesDead) {
       if (B.wave < B.waves - 1) {
         B.over = true; B.timer = 0.7;
         B.next = () => {
@@ -356,10 +509,11 @@ const Game = (() => {
           B.enemies = makeWave(B.stage, B.wave, B.waves);
           B.over = false;
           BattleView.render(B);
+          if (B.info.boss) BattleView.warning();
           UI.refreshStage();
         };
-      } else win(B);
-    } else if (!alive(B.allies).length) lose(B);
+      } else stageWin(B);
+    } else if (alliesDead) stageLose(B);
   }
 
   function stageReward(s, first) {
@@ -371,43 +525,79 @@ const Game = (() => {
     return r;
   }
 
-  function win(B) {
+  function stageWin(B) {
     const s = G.state, first = B.stage > s.best;
     const r = stageReward(B.stage, first);
-    s.gold += r.gold; s.food += r.food; s.gems += r.gems; s.stones += r.stones;
+    grant(r);
     if (first) s.best = B.stage;
+    quest('stage');
     BattleView.banner('CLEAR!', r);
+    Sound.play('win');
     B.over = true; B.timer = 1.4;
     B.next = () => startStage(s.autoChallenge ? s.best + 1 : Math.max(1, s.best));
     save();
     UI.refresh();
   }
 
-  function lose(B) {
-    const s = G.state;
-    s.autoChallenge = false;
+  function stageLose(B) {
+    G.state.autoChallenge = false;
     BattleView.banner('패배...', null, true);
+    Sound.play('lose');
     B.over = true; B.timer = 1.6;
-    B.next = () => startStage(Math.max(1, s.best));
+    B.next = () => startStage(Math.max(1, G.state.best));
     UI.toast('패배! 몬스터를 강화하고 다시 도전하세요');
     UI.refresh();
   }
 
-  // ---------- 초기화 / 메인루프 ----------
+  function raidEnd(B, killed) {
+    if (B.over) return;
+    B.over = true; B.timer = 9999; B.next = null;
+    const boss = B.enemies[0];
+    const pct = Math.min(1, B.dmg / boss.maxHp);
+    const rate = idleRate(), lv = 1 + 0.25 * (B.lvl - 1);
+    const r = {
+      gold: Math.round(rate.gold * (20 + 100 * pct) * lv),
+      food: Math.round(rate.food * (20 + 100 * pct) * lv),
+      stones: Math.floor(pct * 4) + (killed ? 3 : 0),
+      gems: killed ? 50 : 0,
+    };
+    grant(r);
+    const R = G.state.raid;
+    R.bestPct = Math.max(R.bestPct, pct);
+    if (killed) { R.lvl++; R.bestPct = 0; BattleView.banner('격파!', null); }
+    Sound.play(killed ? 'win' : 'reward');
+    save();
+    setTimeout(() => UI.raidResult({ killed, pct, dmg: B.dmg, reward: r, lvl: B.lvl }, resumeStage), 700);
+  }
+
+  function arenaEnd(B, won) {
+    if (B.over) return;
+    B.over = true; B.timer = 9999; B.next = null;
+    const A = G.state.arena, opp = B.opp;
+    const delta = won ? Math.round(14 + 10 * opp.mult) : -8;
+    const before = arenaTier();
+    A.pts = Math.max(0, A.pts + delta);
+    won ? A.wins++ : A.losses++;
+    const got = grant(resolveReward(won ? { gems: Math.round(10 + 10 * opp.mult), goldMin: 10 } : { goldMin: 3 }));
+    const after = arenaTier();
+    refreshOpps();
+    Sound.play(won ? 'win' : 'lose');
+    BattleView.banner(won ? '승리!' : '패배...', null, !won);
+    save();
+    setTimeout(() => UI.arenaResult({ won, delta, pts: A.pts, reward: got, promoted: after.min > before.min ? after : null }, resumeStage), 900);
+  }
+
+  // ================= 초기화 / 메인루프 =================
   function init() {
     const loaded = load();
     G.state = loaded || defaultState();
-    if (!loaded) {
-      ['coal', 'clam', 'acorn'].forEach(id => give(id));
-    }
+    if (!loaded) ['coal', 'clam', 'acorn'].forEach(id => give(id));
     checkDaily();
-    // 오프라인 보상
+    Sound.set('bgm', G.state.settings.bgm);
+    Sound.set('sfx', G.state.settings.sfx);
     const away = Math.min(IDLE_CAP_MIN * 60, (Date.now() - G.state.lastSave) / 1000);
-    if (loaded && away > 60) {
-      accrueIdle(away);
-      UI.offline(away);
-    }
-    startStage(G.state.autoChallenge ? G.state.best + 1 : Math.max(1, G.state.best));
+    if (loaded && away > 60) { accrueIdle(away); UI.offline(away); }
+    resumeStage();
     let last = performance.now(), lastReal = Date.now(), saveT = 0, uiT = 0;
     function loop(now) {
       const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -415,7 +605,7 @@ const Game = (() => {
       tick(dt * (boosted() ? 2 : 1) * G.speed);
       accrueIdle(realDt);
       uiT += dt; saveT += dt;
-      if (uiT > 0.5) { uiT = 0; UI.tickUI(); }
+      if (uiT > 0.25) { uiT = 0; UI.tickUI(); }
       if (saveT > 10) { saveT = 0; checkDaily(); save(); }
       requestAnimationFrame(loop);
     }
@@ -423,11 +613,15 @@ const Game = (() => {
     document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
     window.addEventListener('beforeunload', save);
     if (!G.state.seenIntro) UI.intro();
+    else if (canAttend()) setTimeout(() => UI.attendance(), 600);
   }
 
   return {
     init, save, reset, checkDaily, stats, monStats, power, teamPower, levelCost, starCost, idleRate, boosted,
-    give, levelUp, canEvolve, evolve, starUp, toggleTeam, pull, claimIdle, startExped, claimExped, skipCost,
-    stageInfo, startStage, restartStage, challenge,
+    give, levelUp, canLevel, canEvolve, evolve, canStar, starUp, monAlert, toggleTeam, pull, claimIdle,
+    startExped, claimExped, skipCost, expedAlert,
+    quest, questDone, claimQuest, claimQuestAll, allQuestsClaimed, questAlert, canAttend, attend, resolveReward, grant,
+    raidTickets, arenaTickets, raidBossId, raidBossStats, arenaTier, refreshOpps,
+    stageInfo, startStage, restartStage, resumeStage, challenge, startRaid, startArena, giveUp,
   };
 })();

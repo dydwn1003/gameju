@@ -80,7 +80,47 @@ const IAP = [
 ];
 
 // 일일 광고 제한
-const AD_LIMITS = { pull: 3, gem: 5, boost: 6, idle: 10, exped: 10 };
+const AD_LIMITS = { pull: 3, gem: 5, boost: 6, idle: 10, exped: 10, raidAd: 2, arenaAd: 3, attend: 1 };
 const AD_GEM_REWARD = 30;
 const BOOST_MIN = 30;
 const IDLE_CAP_MIN = 720; // 12시간
+
+// 출석 (7일 주기) — goldMin/foodMin: 방치 보상 N분 어치
+const ATTENDANCE = [
+  { gems: 100 },
+  { goldMin: 120 },
+  { stones: 3 },
+  { gems: 150 },
+  { foodMin: 180 },
+  { stones: 5, goldMin: 180 },
+  { gems: 500 },
+];
+
+// 일일 퀘스트
+const QUESTS = [
+  { id: 'stage',   name: '스테이지 클리어',  target: 10, reward: { gems: 30 } },
+  { id: 'levelup', name: '몬스터 레벨업',    target: 10, reward: { goldMin: 60 } },
+  { id: 'summon',  name: '몬스터 소환',      target: 5,  reward: { gems: 30 } },
+  { id: 'ad',      name: '광고 시청',        target: 3,  reward: { gems: 40 } },
+  { id: 'idle',    name: '방치 보상 받기',   target: 2,  reward: { foodMin: 60 } },
+  { id: 'raid',    name: '보스 레이드 도전', target: 1,  reward: { stones: 2 } },
+  { id: 'arena',   name: '아레나 전투',      target: 2,  reward: { gems: 20 } },
+];
+const QUEST_ALL_REWARD = { gems: 100, stones: 3 };
+
+// 보스 레이드 (요일별 보스)
+const RAID = { time: 45, tickets: 3 };
+const RAID_BOSSES = ['abyss', 'golem', 'koi', 'ember', 'wolf', 'deer', 'dragon']; // 일~토
+
+// 아레나
+const ARENA = { time: 60, tickets: 5, start: 1000, refreshCost: 10 };
+const ARENA_TIERS = [
+  { name: '브론즈',   min: 0,    color: '#c98a4b' },
+  { name: '실버',     min: 1100, color: '#c9d3e0' },
+  { name: '골드',     min: 1250, color: '#ffc94a' },
+  { name: '플래티넘', min: 1450, color: '#5fe0d0' },
+  { name: '다이아',   min: 1700, color: '#8fb8ff' },
+  { name: '마스터',   min: 2000, color: '#ff6bd5' },
+];
+const NICK_A = ['용감한', '졸린', '빛나는', '무서운', '귀여운', '전설의', '배고픈', '수상한', '행복한', '어둠의', '번개', '말랑한'];
+const NICK_B = ['조련사', '모험가', '사냥꾼', '마법사', '기사', '소환사', '탐험가', '수호자', '도토리', '용사'];

@@ -3,15 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#1b1640">
+  <meta name="theme-color" content="#140f33">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>몬스터 키우기</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 
   <!--
     ===== Google H5 Games Ads (보상형 광고) =====
-    1) AdSense 계정에서 H5 게임 광고 승인을 받은 뒤
-    2) 아래 ca-pub-XXXXXXXXXXXXXXXX 를 본인 퍼블리셔 ID로 바꾸고 주석을 해제하세요.
-    3) data-adbreak-test="on" 은 테스트 모드입니다. 출시 시 제거하세요.
+    AdSense H5 게임 광고 승인 후 ca-pub-XXXXXXXXXXXXXXXX 를 본인 ID로 바꾸고 주석 해제.
+    data-adbreak-test="on" 은 테스트 모드 (출시 시 제거).
   <script async data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-adbreak-test="on"
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
   <script>
@@ -23,49 +28,78 @@
 </head>
 <body>
   <div id="app">
-    <header id="top">
-      <div class="cur"><span>💰</span><b id="c-gold">0</b></div>
-      <div class="cur"><span>🍖</span><b id="c-food">0</b></div>
-      <div class="cur"><span>🔮</span><b id="c-stones">0</b></div>
-      <div class="cur gem" data-shop><span>💎</span><b id="c-gems">0</b><i>+</i></div>
-    </header>
+    <!-- ===== 전투 화면 (2/3) ===== -->
+    <section id="field" data-el="grass" data-mode="stage">
+      <div id="bg-img"></div>
+      <div class="scene">
+        <div class="sky"></div>
+        <div class="sun"></div>
+        <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+        <svg class="mt mt-far" viewBox="0 0 400 100" preserveAspectRatio="none"><path d="M0 100 L0 62 L35 38 L70 58 L120 22 L170 52 L215 30 L262 56 L310 26 L360 50 L400 36 L400 100Z"/></svg>
+        <svg class="mt mt-near" viewBox="0 0 400 100" preserveAspectRatio="none"><path d="M0 100 L0 70 C40 55 70 62 100 68 C150 78 180 50 230 58 C280 66 310 74 350 60 C375 52 390 56 400 60 L400 100Z"/></svg>
+        <div class="ground"><div class="ground-tex"></div></div>
+      </div>
+      <div id="units"></div>
 
-    <section id="field">
-      <div class="field-bg"></div>
-      <div class="hud">
-        <div id="stage-label">스테이지</div>
-        <div class="hud-r">
-          <span id="boost-label" class="boostlbl" style="display:none"></span>
-          <span id="mode-label" class="mode on">도전 중</span>
-          <button id="speed-btn">x1</button>
+      <div class="top-ui">
+        <header id="top">
+          <div class="cur"><span data-ic="gold">💰</span><b id="c-gold">0</b></div>
+          <div class="cur"><span data-ic="food">🍖</span><b id="c-food">0</b></div>
+          <div class="cur"><span data-ic="stones">🔮</span><b id="c-stones">0</b></div>
+          <div class="cur gem" id="gem-btn"><span data-ic="gems">💎</span><b id="c-gems">0</b><i>+</i></div>
+        </header>
+        <div class="hud">
+          <div id="stage-pill"><span id="stage-label">스테이지</span><div id="wave-dots"></div></div>
+          <div class="hud-r">
+            <span id="boost-label" class="boostlbl" style="display:none"></span>
+            <button id="speed-btn" class="hbtn">x1</button>
+            <button id="snd-btn" class="hbtn">🔊</button>
+            <button id="set-btn" class="hbtn">⚙️</button>
+          </div>
         </div>
       </div>
-      <div id="wave-label" class="wave">웨이브 1/3</div>
+
+      <div class="side left">
+        <button class="side-btn" id="sb-attend"><span class="sic" data-ic="attend">📅</span><small>출석</small><i class="dot"></i></button>
+        <button class="side-btn" id="sb-quest"><span class="sic" data-ic="quest">📜</span><small>퀘스트</small><i class="dot"></i></button>
+      </div>
+      <div class="side right">
+        <button class="side-btn chest" id="sb-chest"><span class="sic" data-ic="chest">🎁</span><small id="chest-amt">보상</small><i class="dot"></i></button>
+        <button class="side-btn boost" id="sb-boost"><span class="sic" data-ic="boost">⚡</span><small>2배</small><em class="adtag">AD</em></button>
+      </div>
+      <div id="mode-hud"></div>
     </section>
 
-    <main id="panel"></main>
-
-    <nav id="nav">
-      <button data-tab="home" class="active"><span>⚔️</span>전투</button>
-      <button data-tab="mons"><span>🐾</span>몬스터</button>
-      <button data-tab="summon"><span>🥚</span>소환</button>
-      <button data-tab="exped"><span>🧭</span>탐험</button>
-      <button data-tab="shop"><span>🛒</span>상점</button>
-    </nav>
+    <!-- ===== 메뉴 (1/3) ===== -->
+    <section id="bottom">
+      <main id="panel"></main>
+      <nav id="nav">
+        <button data-tab="home" class="active"><span data-ic="nav_home">⚔️</span>전투<i class="dot"></i></button>
+        <button data-tab="mons"><span data-ic="nav_mons">🐾</span>몬스터<i class="dot"></i></button>
+        <button data-tab="summon"><span data-ic="nav_summon">🥚</span>소환<i class="dot"></i></button>
+        <button data-tab="adv"><span data-ic="nav_adv">🗺️</span>모험<i class="dot"></i></button>
+        <button data-tab="shop"><span data-ic="nav_shop">🛒</span>상점<i class="dot"></i></button>
+      </nav>
+    </section>
   </div>
   <div id="toasts"></div>
 
   <script src="js/data.js"></script>
   <script src="js/art.js"></script>
+  <script src="js/assets.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/monetize.js"></script>
   <script src="js/battleview.js"></script>
   <script src="js/game.js"></script>
   <script src="js/ui.js"></script>
   <script>
+    Assets.init();
+    Sound.init();
     Game.init();
     UI.init();
-    UI.refresh();
-    document.querySelector('[data-shop]').onclick = () => UI.setTab('shop');
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>

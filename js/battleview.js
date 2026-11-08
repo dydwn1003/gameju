@@ -1,96 +1,183 @@
 // ===== 전투 화면 렌더링 / 이펙트 =====
 const BattleView = (() => {
-  const ALLY_POS = [[33, 34], [33, 74], [15, 20], [15, 54], [15, 88]];
-  const ENEMY_POS = [[67, 34], [67, 74], [85, 20], [85, 54], [85, 88]];
-  let field;
+  // 좌표 = 발 위치(%)
+  const ALLY_POS = [[33, 64], [33, 88], [14, 58], [14, 76], [14, 94]];
+  const ENEMY_POS = [[67, 64], [67, 88], [86, 58], [86, 76], [86, 94]];
+  let layer, field, lastCutin = 0;
 
   function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
 
-  function render(B) {
+  function setScene(elName) {
     field = document.getElementById('field');
-    field.querySelectorAll('.unit, .fx, .banner').forEach(n => n.remove());
-    field.dataset.el = B.info.el;
+    if (field.dataset.el === elName) return;
+    field.dataset.el = elName;
+    const bg = Assets.bg(elName), img = document.getElementById('bg-img');
+    if (bg) { img.style.backgroundImage = `url("${bg}")`; field.classList.add('has-bg'); }
+    else field.classList.remove('has-bg');
+  }
+
+  function render(B) {
+    layer = document.getElementById('units');
+    setScene(B.info.el);
+    field.dataset.mode = B.mode;
+    layer.innerHTML = '';
     B.allies.forEach((u, i) => place(u, ALLY_POS[i]));
-    B.enemies.forEach((u, i) => place(u, u.boss ? [76, 52] : ENEMY_POS[i]));
+    B.enemies.forEach((u, i) => place(u, u.raid ? [74, 92] : u.boss ? [75, 86] : ENEMY_POS[i]));
   }
 
   function place(u, pos) {
-    const d = el(`<div class="unit ${u.side}${u.boss ? ' boss' : ''}${u.alive ? '' : ' dead'}" style="left:${pos[0]}%;top:${pos[1]}%">
-      <div class="sprite">${Art.creature(u.lineId, u.form)}</div>
-      <div class="bars"><div class="hp"><i></i><b></b></div>${u.side === 'ally' ? '<div class="en"><i></i></div>' : ''}</div>
+    const cls = `unit ${u.side}${u.boss ? ' boss' : ''}${u.raid ? ' raid' : ''}${u.alive ? '' : ' dead'}`;
+    const d = el(`<div class="${cls}" style="left:${pos[0]}%;top:${pos[1]}%;z-index:${Math.round(pos[1])}">
+      ${u.raid ? '' : `<div class="ubar"><div class="hp"><i></i><b></b></div>${u.side === 'ally' ? '<div class="en"><i></i></div>' : ''}</div>`}
+      <div class="shadow"></div>
+      <div class="sprite"><div class="bob" style="animation-delay:${(-Math.random() * 2).toFixed(2)}s">${Assets.monster(u.lineId, u.form)}</div></div>
     </div>`);
     u.dom = d;
-    field.appendChild(d);
+    layer.appendChild(d);
     bars(u);
   }
 
   function bars(u) {
+    if (u.raid) { UI.raidBar(u); return; }
     if (!u.dom) return;
-    const hp = u.dom.querySelector('.hp i');
-    hp.style.width = Math.max(0, (u.hp / u.maxHp) * 100) + '%';
-    const sh = u.dom.querySelector('.hp b');
-    sh.style.width = Math.min(100, (u.shield / u.maxHp) * 100) + '%';
+    u.dom.querySelector('.hp i').style.width = Math.max(0, (u.hp / u.maxHp) * 100) + '%';
+    u.dom.querySelector('.hp b').style.width = Math.min(100, (u.shield / u.maxHp) * 100) + '%';
     const en = u.dom.querySelector('.en i');
-    if (en) en.style.width = Math.max(0, Math.min(100, u.energy)) + '%';
+    if (en) {
+      en.style.width = Math.max(0, Math.min(100, u.energy)) + '%';
+      u.dom.classList.toggle('ready', u.energy >= 100);
+    }
   }
 
-  function retrigger(node, cls) {
-    node.classList.remove(cls); void node.offsetWidth; node.classList.add(cls);
-  }
+  function retrigger(node, cls) { if (!node) return; node.classList.remove(cls); void node.offsetWidth; node.classList.add(cls); }
+  const sprite = u => u.dom && u.dom.querySelector('.sprite');
 
-  function lunge(u) { if (u.dom) retrigger(u.dom.querySelector('.sprite'), 'atk'); }
+  function lunge(u) { retrigger(sprite(u), 'atk'); }
+
+  // 유닛 몸통 중앙 좌표 (layer 기준 px)
+  function center(u) {
+    const lr = layer.getBoundingClientRect(), r = u.dom.querySelector('.sprite').getBoundingClientRect();
+    return { x: r.left + r.width / 2 - lr.left, y: r.top + r.height * 0.55 - lr.top };
+  }
 
   function floatText(u, text, cls) {
-    if (!u.dom || !field) return;
+    if (!u.dom) return;
+    const c = center(u);
     const t = el(`<div class="fx ftext ${cls}">${text}</div>`);
-    t.style.left = u.dom.style.left;
-    t.style.top = `calc(${u.dom.style.top} - 30px)`;
-    t.style.setProperty('--dx', (Math.random() * 24 - 12) + 'px');
-    field.appendChild(t);
-    setTimeout(() => t.remove(), 900);
+    t.style.left = c.x + 'px';
+    t.style.top = (c.y - (u.raid ? 60 : 30)) + 'px';
+    t.style.setProperty('--dx', (Math.random() * 30 - 15) + 'px');
+    layer.appendChild(t);
+    setTimeout(() => t.remove(), 1000);
+  }
+
+  function sparks(u, color, n = 7) {
+    if (!u.dom) return;
+    const c = center(u);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, d = 18 + Math.random() * 26;
+      const p = el(`<div class="fx spark"></div>`);
+      p.style.left = c.x + 'px'; p.style.top = c.y + 'px';
+      p.style.setProperty('--tx', Math.cos(a) * d + 'px');
+      p.style.setProperty('--ty', Math.sin(a) * d + 'px');
+      p.style.background = color;
+      layer.appendChild(p);
+      setTimeout(() => p.remove(), 500);
+    }
   }
 
   function damage(u, dmg, crit, elem) {
-    if (u.dom) retrigger(u.dom.querySelector('.sprite'), 'hit');
+    retrigger(sprite(u), 'hit');
     floatText(u, fmt(dmg) + (crit ? '!' : ''), (crit ? 'crit ' : '') + (elem > 1 ? 'eff' : elem < 1 ? 'weak' : ''));
+    sparks(u, crit ? '#ffe14a' : '#fff', crit ? 10 : 5);
+    Sound.play(crit ? 'crit' : 'hit');
+    if (crit && u.raid) retrigger(field, 'shake');
   }
 
-  function healFx(u, amt) { floatText(u, '+' + fmt(amt), 'heal'); if (u.dom) retrigger(u.dom, 'healed'); }
+  function healFx(u, amt) { floatText(u, '+' + fmt(amt), 'heal'); if (u.dom) retrigger(u.dom, 'healed'); sparks(u, '#6bff9c', 6); }
   function shield(u) { if (u.dom) retrigger(u.dom, 'shielded'); }
 
-  function die(u) { if (u.dom) u.dom.classList.add('dead'); }
+  function die(u, dropCoins) {
+    if (!u.dom) return;
+    u.dom.classList.add('dead');
+    sparks(u, '#ffffff', 12);
+    Sound.play('die');
+    if (dropCoins) coins(u);
+  }
+
+  function coins(u) {
+    const c = center(u);
+    const target = document.getElementById('c-gold');
+    if (!target) return;
+    const lr = layer.getBoundingClientRect(), tr = target.getBoundingClientRect();
+    const tx = tr.left - lr.left, ty = tr.top - lr.top + 6;
+    for (let i = 0; i < 4; i++) {
+      const k = el(`<div class="fx coin">${Assets.icon('gold', '💰')}</div>`);
+      k.style.left = c.x + 'px'; k.style.top = c.y + 'px';
+      layer.appendChild(k);
+      const sx = (Math.random() - 0.5) * 60, sy = -20 - Math.random() * 30;
+      k.animate([
+        { transform: 'translate(-50%,-50%) scale(.6)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${sx}px), calc(-50% + ${sy}px)) scale(1)`, opacity: 1, offset: 0.35 },
+        { transform: `translate(calc(-50% + ${tx - c.x}px), calc(-50% + ${ty - c.y}px)) scale(.5)`, opacity: 0.6 },
+      ], { duration: 800 + i * 90, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' });
+      setTimeout(() => { k.remove(); if (i === 0) { Sound.play('coin'); retrigger(target.parentNode, 'bump'); } }, 800 + i * 90);
+    }
+  }
 
   function skill(u, name) {
-    if (!u.dom) return;
-    retrigger(u.dom.querySelector('.sprite'), 'cast');
-    floatText(u, name, 'skillname');
+    retrigger(sprite(u), 'cast');
+    Sound.play('skill');
+    const big = u.side === 'ally' && (u.r === 'SSR' || u.r === 'UR');
+    if (big && performance.now() - lastCutin > 3500) { lastCutin = performance.now(); cutin(u, name); }
+    else floatText(u, name, 'skillname');
+  }
+
+  function cutin(u, name) {
+    const c = el(`<div class="fx cutin" data-el="${u.el}">
+      <div class="ci-art">${Assets.monster(u.lineId, u.form)}</div>
+      <div class="ci-txt"><small>${LINE_MAP[u.lineId].names[u.form]}</small><b>${name}</b></div></div>`);
+    layer.appendChild(c);
+    setTimeout(() => c.remove(), 1100);
   }
 
   function beam(a, b) {
     if (!a.dom || !b.dom) return;
+    const p = center(a), q = center(b);
     const f = el(`<div class="fx beam" data-el="${a.el}"></div>`);
-    const fr = field.getBoundingClientRect(), ar = a.dom.getBoundingClientRect(), br = b.dom.getBoundingClientRect();
-    const x1 = ar.left + ar.width / 2 - fr.left, y1 = ar.top + ar.height / 2 - fr.top;
-    const x2 = br.left + br.width / 2 - fr.left, y2 = br.top + br.height / 2 - fr.top;
-    const len = Math.hypot(x2 - x1, y2 - y1), ang = Math.atan2(y2 - y1, x2 - x1);
-    Object.assign(f.style, { left: x1 + 'px', top: y1 + 'px', width: len + 'px', transform: `rotate(${ang}rad)` });
-    field.appendChild(f);
+    const len = Math.hypot(q.x - p.x, q.y - p.y), ang = Math.atan2(q.y - p.y, q.x - p.x);
+    Object.assign(f.style, { left: p.x + 'px', top: p.y + 'px', width: len + 'px', transform: `rotate(${ang}rad)` });
+    layer.appendChild(f);
     setTimeout(() => f.remove(), 450);
   }
 
   function flash(elName) {
     const f = el(`<div class="fx flash" data-el="${elName}"></div>`);
-    field.appendChild(f);
+    layer.appendChild(f);
     retrigger(field, 'shake');
-    setTimeout(() => f.remove(), 500);
+    setTimeout(() => f.remove(), 550);
   }
 
   function banner(text, r, bad) {
-    const rw = r ? `<div class="rw">💰 ${fmt(r.gold)} &nbsp; 🍖 ${fmt(r.food)}${r.gems ? ` &nbsp; 💎 ${r.gems}` : ''}${r.stones ? ` &nbsp; 🔮 ${r.stones}` : ''}</div>` : '';
-    const b = el(`<div class="banner${bad ? ' bad' : ''}"><div class="bt">${text}</div>${rw}</div>`);
-    field.appendChild(b);
-    setTimeout(() => b.remove(), 1400);
+    const rw = r ? `<div class="rw">${Assets.icon('gold', '💰')} ${fmt(r.gold)} &nbsp; ${Assets.icon('food', '🍖')} ${fmt(r.food)}${r.gems ? ` &nbsp; ${Assets.icon('gems', '💎')} ${r.gems}` : ''}${r.stones ? ` &nbsp; ${Assets.icon('stones', '🔮')} ${r.stones}` : ''}</div>` : '';
+    const b = el(`<div class="fx banner${bad ? ' bad' : ''}"><div class="bt">${text}</div>${rw}</div>`);
+    layer.appendChild(b);
+    setTimeout(() => b.remove(), 1500);
   }
 
-  return { render, bars, lunge, damage, healFx, shield, die, skill, beam, flash, banner };
+  function warning() {
+    const w = el(`<div class="fx warning"><div class="stripe"></div><b>WARNING</b><small>강력한 보스가 나타났다!</small><div class="stripe"></div></div>`);
+    layer.appendChild(w);
+    Sound.play('warning');
+    setTimeout(() => w.remove(), 1800);
+  }
+
+  function versus(name) {
+    const w = el(`<div class="fx versus"><b>VS</b><small>${name}</small></div>`);
+    layer.appendChild(w);
+    Sound.play('warning');
+    setTimeout(() => w.remove(), 1500);
+  }
+
+  return { render, bars, lunge, damage, healFx, shield, die, skill, beam, flash, banner, warning, versus, setScene };
 })();
