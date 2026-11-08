@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1b1640">
+  <title>몬스터 키우기</title>
+  <link rel="stylesheet" href="css/style.css">
+
+  <!--
+    ===== Google H5 Games Ads (보상형 광고) =====
+    1) AdSense 계정에서 H5 게임 광고 승인을 받은 뒤
+    2) 아래 ca-pub-XXXXXXXXXXXXXXXX 를 본인 퍼블리셔 ID로 바꾸고 주석을 해제하세요.
+    3) data-adbreak-test="on" 은 테스트 모드입니다. 출시 시 제거하세요.
+  <script async data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-adbreak-test="on"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" crossorigin="anonymous"></script>
+  <script>
+    window.adsbygoogle = window.adsbygoogle || [];
+    window.adBreak = window.adConfig = function (o) { adsbygoogle.push(o); };
+    adConfig({ preloadAdBreaks: 'on', sound: 'on' });
+  </script>
+  -->
+</head>
+<body>
+  <div id="app">
+    <header id="top">
+      <div class="cur"><span>💰</span><b id="c-gold">0</b></div>
+      <div class="cur"><span>🍖</span><b id="c-food">0</b></div>
+      <div class="cur"><span>🔮</span><b id="c-stones">0</b></div>
+      <div class="cur gem" data-shop><span>💎</span><b id="c-gems">0</b><i>+</i></div>
+    </header>
+
+    <section id="field">
+      <div class="field-bg"></div>
+      <div class="hud">
+        <div id="stage-label">스테이지</div>
+        <div class="hud-r">
+          <span id="boost-label" class="boostlbl" style="display:none"></span>
+          <span id="mode-label" class="mode on">도전 중</span>
+          <button id="speed-btn">x1</button>
+        </div>
+      </div>
+      <div id="wave-label" class="wave">웨이브 1/3</div>
+    </section>
+
+    <main id="panel"></main>
+
+    <nav id="nav">
+      <button data-tab="home" class="active"><span>⚔️</span>전투</button>
+      <button data-tab="mons"><span>🐾</span>몬스터</button>
+      <button data-tab="summon"><span>🥚</span>소환</button>
+      <button data-tab="exped"><span>🧭</span>탐험</button>
+      <button data-tab="shop"><span>🛒</span>상점</button>
+    </nav>
+  </div>
+  <div id="toasts"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/monetize.js"></script>
+  <script src="js/battleview.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    Game.init();
+    UI.init();
+    UI.refresh();
+    document.querySelector('[data-shop]').onclick = () => UI.setTab('shop');
+  </script>
+</body>
+</html>
