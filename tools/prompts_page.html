@@ -119,7 +119,7 @@ function render() {
         <div class="head"><span class="file">${esc(it.file)}</span><span class="name">${esc(it.name)}</span>
           ${it.tags.map(t => `<span class="tag${t === '시작 몬스터' || t === '화풍 기준' ? ' hot' : ''}">${esc(t)}</span>`).join('')}</div>
         ${it.attach ? `<div class="attach">첨부: ${esc(it.attach)}</div>` : ''}
-        ${it.note ? `<div class="split">파일 나누기 ${esc(it.note)}</div>` : ''}
+        ${it.note ? `<div class="split">${esc(it.note)}</div>` : ''}
         <pre>${esc(it.prompt)}</pre>
         <div class="acts"><button class="copy" type="button">복사</button>
           <label><input type="checkbox" id="chk-${esc(key).replace(/[^a-z0-9_-]/gi, '_')}" ${done[key] ? 'checked' : ''}>완료</label></div>

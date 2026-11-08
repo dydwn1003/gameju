@@ -128,7 +128,7 @@ def build():
 
     g = {"id": "ui", "title": "UI 아이콘", "note": "시트 2장 + 배너 + 로고 · assets/ui/", "items": []}
     for f, name, d, keys in UIS:
-        g["items"].append({"file": f"{f}.png", "name": name, "tags": [], "attach": "", "note": "→ " + keys, "prompt": UI_STYLE + ", " + d})
+        g["items"].append({"file": f"{f}.png", "name": name, "tags": [], "attach": "", "note": "파일 나누기 → " + keys, "prompt": UI_STYLE + ", " + d})
     g["items"].append({"file": "banner.png", "name": "소환 배너", "tags": ["가로 2:1"], "attach": "몬스터 그림 2~3장 첨부",
                        "prompt": "Cute pixel art gacha summon banner for a mobile RPG, 16-bit retro style, horizontal 2:1, three cute fantasy monsters (fire fox, holy angel, golden baby dragon) posing together, sparkling purple magic background with light rays, crisp pixels, no text, no watermark"})
     g["items"].append({"file": "logo.png", "name": "게임 로고", "tags": [], "attach": "",

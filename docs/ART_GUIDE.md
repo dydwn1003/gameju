@@ -1,6 +1,6 @@
 # 🎨 아트 제작 가이드: 귀여운 도트(픽셀) 스타일 · Gemini용
 
-> 📋 **바로 복사해서 쓰는 완성 프롬프트 92개는 [PROMPTS.md](PROMPTS.md)에 있어요.** (`python3 tools/gen_prompts.py`로 다시 생성)
+> 🧩 **최신: 한 장에 9마리씩 그리는 격자 프롬프트 16개는 [PROMPTS_GRID.md](PROMPTS_GRID.md)** (`node tools/gen_grid_prompts.js`). 아래 92개 단일 프롬프트([PROMPTS.md](PROMPTS.md))는 예전 몬스터 목록 기준이에요. (`python3 tools/gen_prompts.py`로 다시 생성)
 
 게임은 `assets/` 폴더에서 **정해진 파일 이름**의 그림을 자동으로 찾아서 씁니다.
 없는 그림은 지금의 기본 그림으로 나오므로 **조금씩 만들어서 넣어도 됩니다.**
