@@ -30,7 +30,7 @@ const Assets = (() => {
   function init() {
     if (window.NO_ASSET_PROBE) return;
     // 프로토콜이 file:// 이든 http 이든 동작 (없는 파일은 조용히 무시)
-    for (const L of LINES) for (let f = 0; f < 3; f++) probe(`m_${L.id}_${f}`, [`assets/monsters/${L.id}_${f}.png`, `assets/monsters/${L.id}_${f}.webp`]);
+    for (const L of LINES) if (!SIZES()[L.id]) for (let f = 0; f < 3; f++) probe(`m_${L.id}_${f}`, [`assets/monsters/${L.id}_${f}.png`, `assets/monsters/${L.id}_${f}.webp`]);
     for (const el of Object.keys(ELEMENTS)) probe(`bg_${el}`, [`assets/bg/${el}.jpg`, `assets/bg/${el}.png`, `assets/bg/${el}.webp`]);
     for (const k of UI_KEYS) probe(`ui_${k}`, [`assets/ui/${k}.png`, `assets/ui/${k}.webp`]);
     for (const g of ['m', 'f']) for (const c of Object.keys(CLASSES)) probe(`hero_${g}_${c}`, [`assets/hero/${g}_${c}.png`]);
@@ -40,10 +40,27 @@ const Assets = (() => {
     }
   }
 
+  // 제미나이 격자에서 잘라낸 그림 (assets/sizes.js 에 크기 목록)
+  // opts.battle: 전투 화면 (몬스터끼리 실제 크기 비율 유지) / 그 외: 칸에 맞춰 표시
+  const SIZES = () => window.ASSET_SIZES || {};
+  const REF = 190; // 이 너비(px)의 그림이 기본 유닛 칸을 꽉 채움
+  function sized(id, form, opts, path) {
+    const sil = opts.silhouette ? ' silhouette' : '';
+    if (opts.battle) {
+      const [w] = SIZES()[id], k = [0.78, 0.9, 1][form] * (opts.base || 1);
+      return `<div class="natbox"><img class="mimg nat${sil}" src="${path}" style="width:${Math.round((w / REF) * 100 * k)}%" draggable="false" alt=""></div>`;
+    }
+    return `<div class="fitbox f${form}"><img class="mimg fit${sil}" src="${path}" draggable="false" alt=""></div>`;
+  }
   function monster(id, form, opts = {}) {
     const u = img[`m_${id}_${form}`];
     if (u) return `<img class="mimg${opts.silhouette ? ' silhouette' : ''}" src="${u}" draggable="false" alt="">`;
+    if (SIZES()[id]) return sized(id, form, opts, `assets/monsters/${id}.png`);
     return MonArt.monster(id, form, opts);
+  }
+  function enemy(id, form, opts = {}) {
+    if (SIZES()[id]) return sized(id, form, opts, `assets/enemies/${id}.png`);
+    return MonArt.enemy(id, form, opts);
   }
   const bg = el => img[`bg_${el}`] || null;
   const icon = (k, emoji) => (img[`ui_${k}`] ? `<img class="ic" src="${img[`ui_${k}`]}" alt="">` : emoji);
@@ -52,7 +69,8 @@ const Assets = (() => {
   function stats() {
     const keys = Object.keys(img);
     return {
-      monsters: keys.filter(k => k.startsWith('m_')).length, monstersTotal: LINES.length * 3,
+      monsters: LINES.filter(l => SIZES()[l.id]).length + keys.filter(k => k.startsWith('m_')).length, monstersTotal: LINES.length,
+      enemies: ENEMIES.filter(e => SIZES()[e.id]).length, enemiesTotal: ENEMIES.length,
       bg: keys.filter(k => k.startsWith('bg_')).length, bgTotal: 5,
       ui: keys.filter(k => k.startsWith('ui_')).length, uiTotal: UI_KEYS.length,
       hero: keys.filter(k => k.startsWith('hero_')).length, heroTotal: 8,
@@ -61,5 +79,5 @@ const Assets = (() => {
   }
   const onChange = f => listeners.push(f);
 
-  return { init, monster, bg, icon, has, raw, stats, onChange };
+  return { init, monster, enemy, bg, icon, has, raw, stats, onChange };
 })();

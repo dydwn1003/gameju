@@ -592,3 +592,14 @@ svg.pix, .mimg { image-rendering: pixelated; }
 .bob:has(.spr) { animation: none; }
 .unit.enemy .sprite .spr { transform: scaleX(-1); }
 .unit .sprite .spr.hero { width: 70%; margin: 0 auto; }
+
+/* ================= v0.5: 제미나이 그림 ================= */
+.mimg { image-rendering: auto; }
+.natbox { display: flex; justify-content: center; align-items: flex-end; width: 100%; overflow: visible; }
+.natbox .mimg.nat { flex: none; max-width: none; display: block; }
+.unit .sprite .natbox img { width: auto; }
+.unit.enemy .sprite .natbox img { transform: scaleX(-1); }
+.fitbox { width: 100%; aspect-ratio: 1; display: flex; align-items: flex-end; justify-content: center; }
+.fitbox .mimg.fit { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.fitbox.f0 .mimg.fit { max-width: 80%; max-height: 80%; }
+.fitbox.f1 .mimg.fit { max-width: 90%; max-height: 90%; }

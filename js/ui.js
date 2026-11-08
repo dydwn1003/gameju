@@ -398,7 +398,7 @@ const UI = (() => {
     const running = G.state.exped.filter(Boolean).length, done = G.state.exped.filter(x => x && Date.now() >= x.end).length;
     p.innerHTML = `<div class="adv">
       <button class="adv-card raid" id="adv-raid">
-        <div class="ac-art">${MonArt.enemy(bossId, 2)}</div>
+        <div class="ac-art">${Assets.enemy(bossId, 2)}</div>
         <div class="ac-name">보스 레이드</div>
         <small>Lv.${G.state.raid.lvl} · 🎫 ${Game.raidTickets()}</small>
         ${Game.raidTickets() > 0 ? '<i class="dot on"></i>' : ''}
@@ -430,7 +430,7 @@ const UI = (() => {
     const id = Game.raidBossId(), E = ENEMY_MAP[id], L = { el: E.ch, names: [E.n, E.n, E.n] }, R = G.state.raid, st = Game.raidBossStats(R.lvl);
     const days = ['일', '월', '화', '수', '목', '금', '토'];
     const m = modal(`<div class="raid-m">
-      <div class="rm-art" data-el="${L.el}">${MonArt.enemy(id, 2)}</div>
+      <div class="rm-art" data-el="${L.el}">${Assets.enemy(id, 2)}</div>
       <div class="rp-title">${ELEMENTS[L.el].icon} ${L.names[2]} <small>Lv.${R.lvl}</small></div>
       <div class="muted small">${days[new Date().getDay()]}요일 보스 · 유리한 속성: ${Object.entries(ADV).filter(([a, b]) => b === L.el).map(([a]) => ELEMENTS[a].icon).join('')}</div>
       <div class="rm-info">
@@ -920,7 +920,7 @@ const UI = (() => {
       <label class="tg"><span>배경음악</span><input type="checkbox" id="st-bgm" ${st.bgm ? 'checked' : ''}><i></i></label>
       <label class="tg"><span>효과음</span><input type="checkbox" id="st-sfx" ${st.sfx ? 'checked' : ''}><i></i></label>
       <div class="card small"><b>에셋 상태</b> <span class="muted">(assets 폴더)</span><br>
-        캐릭터 ${a.hero}/${a.heroTotal} · 몬스터 ${a.monsters}/${a.monstersTotal} · 장비 ${a.gear}/${a.gearTotal}<br>배경 ${a.bg}/${a.bgTotal} · UI ${a.ui}/${a.uiTotal}<br>
+        캐릭터 ${a.hero}/${a.heroTotal} · 몬스터 ${a.monsters}/${a.monstersTotal} · 적 ${a.enemies}/${a.enemiesTotal} · 장비 ${a.gear}/${a.gearTotal}<br>배경 ${a.bg}/${a.bgTotal} · UI ${a.ui}/${a.uiTotal}<br>
         <span class="muted">없는 파일은 기본 그림으로 표시돼요</span></div>
       <button class="btn gray wide" id="st-reset">데이터 초기화</button>
       <div class="small muted center">몬스터 키우기 v0.3</div></div>`);

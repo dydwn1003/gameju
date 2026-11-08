@@ -5,7 +5,11 @@ const BattleView = (() => {
   const ENEMY_POS = [[67, 64], [67, 88], [86, 58], [86, 76], [86, 94]];
   let layer, field, lastCutin = 0;
 
-  const artOf = u => (u.hero ? HeroArt.of(G.state.hero) : u.enemyId ? MonArt.enemy(u.enemyId, u.form) : Assets.monster(u.lineId, u.form));
+  const artOf = u => {
+    if (u.hero) return HeroArt.of(G.state.hero);
+    const o = { battle: true, base: u.raid ? 2.6 * 21 / 58 : u.boss ? 1.45 * 21 / 34 : 1 };
+    return u.enemyId ? Assets.enemy(u.enemyId, u.form, o) : Assets.monster(u.lineId, u.form, o);
+  };
   const nameOf = u => (u.hero ? u.name : u.enemyId ? ENEMY_MAP[u.enemyId].n : LINE_MAP[u.lineId].names[u.form]);
 
   function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
@@ -138,7 +142,7 @@ const BattleView = (() => {
 
   function cutin(u, name) {
     const c = el(`<div class="fx cutin" data-el="${u.el || 'light'}">
-      <div class="ci-art">${artOf(u)}</div>
+      <div class="ci-art">${u.hero ? HeroArt.of(G.state.hero) : u.enemyId ? Assets.enemy(u.enemyId, u.form) : Assets.monster(u.lineId, u.form)}</div>
       <div class="ci-txt"><small>${nameOf(u)}</small><b>${name}</b></div></div>`);
     layer.appendChild(c);
     setTimeout(() => c.remove(), 1100);

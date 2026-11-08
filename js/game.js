@@ -338,7 +338,7 @@ const Game = (() => {
   function enemyStats(s, boss) {
     const lvl = 1 + Math.floor((s - 1) * 0.8);
     const m = (1 + 0.1 * (lvl - 1)) * Math.pow(1.03, s - 1);
-    const b = RARITY.N.base;
+    const b = RARITY.C.base;
     const st = { atk: b.atk * m, hp: b.hp * m, def: b.def * m };
     if (boss) { st.atk *= 1.5; st.hp *= 3.5; st.def *= 1.3; }
     return st;

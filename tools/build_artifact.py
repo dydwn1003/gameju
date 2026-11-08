@@ -5,7 +5,7 @@ out = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else root / 'dist' / 'play.
 html = (root / 'index.html').read_text()
 css = (root / 'css' / 'style.css').read_text()
 body = re.search(r'<body>(.*?)<script src=', html, re.S).group(1)
-scripts = re.findall(r'<script src="(js/[^"]+)"></script>', html)
+scripts = re.findall(r'<script src="((?:js|assets)/[^"]+)"></script>', html)
 js = '\n'.join((root / s).read_text() for s in scripts)
 override = 'html,body{height:100%;background:#08061a}:root{color-scheme:dark}#app{height:100%}'
 page = f'''<title>몬스터 키우기</title>
