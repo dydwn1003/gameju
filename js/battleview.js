@@ -7,7 +7,8 @@ const BattleView = (() => {
 
   const artOf = u => {
     if (u.hero) return HeroArt.of(G.state.hero, { battle: true });
-    const o = { battle: true, base: u.raid ? 2.6 * 21 / 58 : u.boss ? 1.45 * 21 / 34 : 1 };
+    // cw: 이 유닛 칸이 기본 칸보다 몇 배 넓은지 · boost: 보스·레이드는 더 크게
+    const o = { battle: true, cw: u.raid ? 58 / 21 : u.boss ? 34 / 21 : 1, boost: u.raid ? 3 : u.boss ? 1.2 : 1 };
     return u.enemyId ? Assets.enemy(u.enemyId, u.form, o) : Assets.monster(u.lineId, u.form, o);
   };
   const nameOf = u => (u.hero ? u.name : u.enemyId ? ENEMY_MAP[u.enemyId].n : LINE_MAP[u.lineId].names[u.form]);
@@ -70,6 +71,18 @@ const BattleView = (() => {
       u._poseT = setTimeout(() => step(i + 1), seq[i][1]);
     };
     step(0);
+  }
+  // 스킬 이펙트 (assets/fx, 검은 배경 → 화면 합성으로 빛만 보이게)
+  const FX_EL = { fire: 'fire', water: 'water', grass: 'wood', light: 'light', dark: 'dark' };
+  function fx(u, name, scale = 1) {
+    if (!u || !u.dom || !layer) return;
+    name = FX_EL[name] || name;
+    const sz = (window.ASSET_SIZES || {})['fx_' + name];
+    if (!sz) return;
+    const c = center(u), size = Math.round(105 * scale);
+    const e = el(`<div class="fx fxs" style="left:${c.x}px;top:${c.y}px;width:${size}px;height:${Math.round(size * sz[1] / sz[0])}px;background-image:url(assets/fx/${name}.png)"></div>`);
+    layer.appendChild(e);
+    setTimeout(() => e.remove(), 640);
   }
   function lunge(u) { retrigger(sprite(u), 'atk'); if (u.hero) pose(u, [[2, 380]]); }
 
@@ -202,5 +215,5 @@ const BattleView = (() => {
     setTimeout(() => w.remove(), 1500);
   }
 
-  return { render, bars, lunge, damage, healFx, shield, die, skill, beam, flash, banner, warning, versus, setScene };
+  return { fx, render, bars, lunge, damage, healFx, shield, die, skill, beam, flash, banner, warning, versus, setScene };
 })();

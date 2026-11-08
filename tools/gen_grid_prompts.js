@@ -154,7 +154,7 @@ const POSES = 'Animation pose sheet of THIS SAME character from the attached ima
 const groups = [];
 // ---- 뽑기 몬스터: 9마리씩 (SSS 3종은 따로 크게) ----
 const normal = LINES.filter(l => l.r !== 'SSS'), sss = LINES.filter(l => l.r === 'SSS');
-const mg = { id: 'monster', title: '뽑기 몬스터 (82종)', note: '격자 10장 · 올려주시면 제가 잘라서 assets/monsters/ 에 넣어요 · 대표 모습(2단계) 기준', items: [] };
+const mg = { id: 'monster', title: '✅ 뽑기 몬스터 (82종)', note: '적용 완료 · 격자 10장 · 올려주시면 제가 잘라서 assets/monsters/ 에 넣어요 · 대표 모습(2단계) 기준', items: [] };
 for (let i = 0, k = 1; i < normal.length; i += 9, k++) {
   const chunk = normal.slice(i, i + 9), n = chunk.length;
   const rows = n === 9 ? 3 : Math.ceil(n / 3), cols = 3;
@@ -179,7 +179,7 @@ mg.items.push({
 groups.push(mg);
 
 // ---- 적 몬스터: 9마리씩 3장 ----
-const eg = { id: 'enemy', title: '적 몬스터 (27종)', note: '격자 3장 · 뽑기 몬스터와 다른 무서운 느낌 · assets/enemies/', items: [] };
+const eg = { id: 'enemy', title: '✅ 적 몬스터 (27종)', note: '적용 완료 · 격자 3장 · 뽑기 몬스터와 다른 무서운 느낌 · assets/enemies/', items: [] };
 for (let i = 0, k = 1; i < ENEMIES.length; i += 9, k++) {
   const chunk = ENEMIES.slice(i, i + 9);
   eg.items.push({
@@ -193,7 +193,7 @@ for (let i = 0, k = 1; i < ENEMIES.length; i += 9, k++) {
 groups.push(eg);
 
 // ---- 캐릭터: 6명 한 장 → 1명씩 고화질 → 동작 시트(마법 포함) ----
-const hg = { id: 'hero', title: '메인 캐릭터 (인간·구미호·도깨비 × 남·여)', note: '직업 없음 · ① 6명 한 장으로 디자인 확정 → ② 1명씩 크게 → ③ 동작 6개(마법 모으기·발사 포함) · assets/hero/', items: [] };
+const hg = { id: 'hero', title: '✅ 메인 캐릭터 (인간·구미호·도깨비 × 남·여)', note: '적용 완료 · 직업 없음 · ① 6명 한 장으로 디자인 확정 → ② 1명씩 크게 → ③ 동작 6개(마법 모으기·발사 포함) · assets/hero/', items: [] };
 const heroStyle = STYLE.replace('Cute chibi pixel art sprites', 'High quality pixel art main player character sprites').replace('big expressive eyes,', '');
 const POS = ['top-left', 'top-middle', 'top-right', 'bottom-left', 'bottom-middle', 'bottom-right'];
 hg.items.push({
@@ -214,7 +214,7 @@ groups.push(hg);
 
 // ---- 마법 동작: 몬스터·적 격자를 같은 배치로 '마법 쓰는 모습' ----
 const EL_MAGIC = { fire: 'fire magic', water: 'water magic', grass: 'nature magic with leaves and vines', light: 'golden holy light magic', dark: 'purple ghost-fire dark magic' };
-const cg = { id: 'cast', title: '몬스터·적 마법 동작', note: '원본 격자와 같은 칸 배치로 마법 쓰는 모습 · 공격·맞는 동작은 게임 연출로 처리', items: [] };
+const cg = { id: 'cast', title: '✅ 몬스터·적 마법 동작', note: '적용 완료 · 원본 격자와 같은 칸 배치로 마법 쓰는 모습 · 공격·맞는 동작은 게임 연출로 처리', items: [] };
 for (const it of [...mg.items, ...eg.items]) {
   const c = it._cast, n = c.list.length;
   cg.items.push({
@@ -240,9 +240,95 @@ const FX = [
   ['fx_foxfire', '구미호: 여우불', 'blue and pink foxfire orbs swirling together and blasting forward'],
   ['fx_dokkaebi', '도깨비: 벼락 방망이', 'a club smash shockwave on the ground with blue lightning bolts and flying gold coins'],
 ];
-groups.push({ id: 'fx', title: '마법 이펙트 (11종)', note: '6프레임 애니메이션 · 검은 배경 그대로 OK (게임에서 빛나게 합성) · assets/fx/', items: FX.map(([id, ko, d]) => ({
+groups.push({ id: 'fx', title: '✅ 마법 이펙트 (11종)', note: '적용 완료 · 6프레임 애니메이션 · 검은 배경 그대로 OK (게임에서 빛나게 합성) · assets/fx/', items: FX.map(([id, ko, d]) => ({
   file: `${id}.png`, name: ko, tags: ['이펙트'], attach: 'grid_m01 결과 이미지 첨부 (같은 도트 크기)', note: '',
   prompt: `Same pixel size as the attached image. ${FX_STYLE}\nEffect: ${d}.`,
+})) });
+
+// ===================== 다음 생성분 (2차) =====================
+// ---- 등급별 스킬 이펙트: 모양·끝맺음이 전부 다르게, 등급이 오를수록 화려하게 ----
+const FX2_STYLE = 'Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000.';
+const TIER_LOOK = {
+  1: 'Rank C-B: small and simple, quick and light, few particles.',
+  2: 'Rank A: medium size, clearly more detail and a distinct shape.',
+  3: 'Rank S: big and dramatic, fills most of the frame, layered glow and many particles.',
+  4: 'Rank SS (Four Guardian Gods): huge, cinematic, a giant mythical creature made of energy appears, screen-filling.',
+  5: 'Rank SSS (god tier): the most spectacular, cinematic ultimate move, multiple phases, radiant golden-white highlights, screen-filling, unforgettable finish.',
+};
+const FX2 = [
+  // [파일, 이름, 등급단계, 프레임수, 시작~절정, 끝맺음(전부 다르게)]
+  ['sk_fire_1', '불 C·B: 불씨 튕기기', 1, 6, 'a tiny ember pops forward and bursts into a few sparks', 'ends with a small curl of gray smoke drifting upward'],
+  ['sk_fire_2', '불 A: 화염 화살', 2, 6, 'a flaming arrow streaks forward and sticks into the ground, flames licking up', 'ends with a scorched black mark on the ground with flickering embers'],
+  ['sk_fire_3', '불 S: 화염 기둥', 3, 6, 'a roaring vertical pillar of fire erupts from a glowing crack in the ground', 'ends with the pillar collapsing into a rain of falling embers'],
+  ['sk_water_1', '물 C·B: 물방울 튕기기', 1, 6, 'a small water droplet shoots forward and splashes', 'ends with expanding ripple rings on the ground'],
+  ['sk_water_2', '물 A: 얼음 창', 2, 6, 'a sharp ice spear flies forward and pierces', 'ends with the spear shattering into glittering ice crystals that tinkle away'],
+  ['sk_water_3', '물 S: 소용돌이 해일', 3, 6, 'a swirling whirlpool rises into a curling tidal wave that crashes down', 'ends with white foam and drifting mist settling'],
+  ['sk_wood_1', '나무 C·B: 나뭇잎 표창', 1, 6, 'a flurry of spinning leaf blades flies forward', 'ends with a few leaves fluttering down slowly'],
+  ['sk_wood_2', '나무 A: 가시덩굴 속박', 2, 6, 'thorny vines burst from the ground and wrap tightly around a spot', 'ends with the vines withering and crumbling into dry petals'],
+  ['sk_wood_3', '나무 S: 신목의 뿌리', 3, 6, 'giant ancient tree roots erupt and a spirit tree blooms with plum blossoms', 'ends with a whirlwind of plum blossom petals swirling away'],
+  ['sk_light_1', '빛 C·B: 별빛 반짝', 1, 6, 'a small star twinkles and pops', 'ends with a single gentle twinkle fading out'],
+  ['sk_light_2', '빛 A: 빛의 검 교차', 2, 6, 'two golden light blades slash in an X', 'ends with the X lines fading and leaving glowing dancheong-pattern sparks'],
+  ['sk_light_3', '빛 S: 천상의 빛기둥', 3, 6, 'a holy beam of light falls from the sky onto a glowing mandala circle', 'ends with soft feathers of light drifting down'],
+  ['sk_dark_1', '어둠 C·B: 혼불 깨물기', 1, 6, 'a little purple ghost wisp dashes forward and bites', 'ends with the wisp giggling and vanishing in a puff of smoke'],
+  ['sk_dark_2', '어둠 A: 그림자 손', 2, 6, 'shadowy hands reach up from a dark pool and grab', 'ends with the hands sinking back into a shrinking black puddle'],
+  ['sk_dark_3', '어둠 S: 원혼의 사슬', 3, 6, 'a swarm of wailing spirits and black chains spirals and binds', 'ends with the chains snapping and spirits scattering like ash'],
+  ['sk_hit_slash', '기본 공격: 베기', 1, 4, 'a sharp white crescent slash', 'ends with thin slash lines fading'],
+  ['sk_hit_bite', '기본 공격: 물기', 1, 4, 'big cartoon fangs snapping shut with impact lines', 'ends with tooth-mark sparkles'],
+  ['sk_hit_blunt', '기본 공격: 내려치기', 1, 4, 'a heavy blunt impact star with a ground crack', 'ends with dust puffs and a small rock spray'],
+  ['sk_ss_cheongryong', 'SS 청룡: 푸른 용의 승천', 4, 8, 'a long azure water dragon made of water spirals across the frame, roars, and dives down', 'ends with a gentle rain of glowing blue scales and droplets'],
+  ['sk_ss_baekho', 'SS 백호: 백호의 발톱', 4, 8, 'a giant translucent white tiger leaps out and rakes three huge claw slashes with a lightning roar shockwave', 'ends with three glowing claw marks that crack and break apart'],
+  ['sk_ss_jujak', 'SS 주작: 불새의 강림', 4, 8, 'a vermilion phoenix of fire spreads its wings wide and dives in a firestorm', 'ends with burning feathers floating down and burning out one by one'],
+  ['sk_ss_hyeonmu', 'SS 현무: 거북 등껍질 진', 4, 8, 'a giant black tortoise shell barrier slams down while a serpent of dark water strikes, earthquake shockwave', 'ends with hexagonal shell fragments sinking into the ground'],
+  ['sk_ss_girin', 'SS 기린: 상서로운 질주', 4, 8, 'a radiant qilin gallops across leaving golden auspicious clouds and flowers, then bursts', 'ends with rainbow-colored auspicious clouds slowly dissolving'],
+  ['sk_sss_hwangryong', 'SSS 황룡: 천룡강림', 5, 8, 'the heavens split open, a colossal golden dragon descends through swirling clouds, coils, and fires a blinding beam from its red yeouiju pearl', 'ends with a giant golden sun-disc mandala slowly fading while golden dust rains down'],
+  ['sk_sss_cheonho', 'SSS 천호: 구미호 여우불 폭풍', 5, 8, 'nine huge fox tails fan out into a giant flower of blue and pink foxfire, then nine foxfire comets rain down one after another', 'ends with a fox-face shaped flame winking and vanishing into cherry blossom petals'],
+  ['sk_sss_yeomra', 'SSS 염라: 저승문 심판', 5, 8, 'a massive red-lacquered underworld gate rises from the ground and swings open, ghostly black chains and blue soul flames pull everything inside', 'ends with the gate slamming shut, leaving a burning circular seal mark (abstract symbols, no letters) that fades'],
+];
+groups.push({ id: 'skillfx', title: '🆕 등급별 스킬 이펙트 (26종)', note: '끝나는 모양이 전부 다름 · C·B → A → S → SS(사신 전용) → SSS(전용 궁극기) 순으로 화려해짐 · 검은 배경 OK · assets/fx/', items: FX2.map(([id, ko, t, n, a, end]) => ({
+  file: `${id}.png`, name: ko, tags: [['', 'C·B', 'A', 'S', 'SS', 'SSS'][t], `${n}프레임`], attach: '받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)', note: '',
+  prompt: `${FX2_STYLE} Exactly ${n} frames. ${TIER_LOOK[t]}\nAnimation: ${a}; ${end}. Make the final frames clearly different from a generic explosion.`,
+})) });
+
+// ---- 맵 (전투 배경) ----
+const MAP_STYLE = 'Pixel art battle background for a Korean folklore fantasy mobile RPG, same crisp 16-bit pixel style as the attached image, Joseon-era fairy-tale mood, vertical portrait 3:4 (for example 1536x2048), the top 45% is sky and distant scenery with props, the bottom 55% is a wide FLAT open ground where characters stand, keep the middle of the ground empty (no big objects there), detailed but not busy, no characters, no text, no UI.';
+const MAPS = [
+  ['bg_grass', '1장: 산골 마을', 'a peaceful mountain village in spring: thatched-roof and tiled-roof hanok houses, stone walls, persimmon trees, distant green mountains, a jangseung pair at the village entrance, grassy dirt-path ground'],
+  ['bg_water', '2장: 바닷가 포구', 'a seaside fishing harbor: wooden boats with sails, sandy beach, rocky cliffs with pine trees, blue sea and seagulls, wet sand ground'],
+  ['bg_fire', '3장: 화산 계곡', 'a volcanic valley: smoking volcano, lava rivers in the distance, scorched dead trees, red-orange sky with ash, cracked dark rock ground with glowing seams'],
+  ['bg_dark', '4장: 귀신 나오는 밤 숲', 'a haunted forest at night: huge purple full moon, twisted bare trees, old graves and stone markers, ghostly blue fires, mist, dark grass ground'],
+  ['bg_light', '5장: 하늘 궁궐', 'a heavenly palace above the clouds: golden-roofed palace halls with dancheong colors, floating islands, rainbow and light rays, white marble floor ground'],
+  ['bg_raid', '레이드: 요괴 소굴', 'the entrance to the underworld: giant red gate, chains, lanterns with blue soul fire, dark red sky, cracked stone courtyard ground'],
+  ['bg_arena', '아레나: 무술 대련장', 'a traditional martial arts courtyard at dusk: wooden pavilion, colorful festival flags, drums, spectators silhouettes far in the background, packed sand ground with a ring (ssireum style)'],
+];
+groups.push({ id: 'map', title: '🆕 맵 · 전투 배경 (7장)', note: '세로 3:4 · 아래 55%는 캐릭터가 서는 평평한 땅 · assets/bg/', items: MAPS.map(([id, ko, d]) => ({
+  file: `${id}.png`, name: ko, tags: [], attach: 'grid_m01 결과 이미지 첨부 (같은 도트 화풍)', note: '',
+  prompt: `${MAP_STYLE}\nScene: ${d}.`,
+})) });
+
+// ---- 장비 아이콘: 한 줄 6개 (C → SSS) ----
+const GEAR_STYLE = 'Pixel art RPG item icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 6 items of the same kind in one horizontal row, evenly spaced, equal size, left to right getting rarer and more magnificent: 1) C common plain and worn, 2) B sturdy with blue accents, 3) A fine craftsmanship with jade and purple gems, 4) S heroic, ornate gold with a soft glow, 5) SS legendary, gold and red with dancheong patterns and strong glow, 6) SSS mythic, radiant white-gold with rainbow aura and sparkles. Dark 1-pixel outline, no text, no labels, flat solid magenta #FF00FF background.';
+const GEARS = [
+  ['weapon_human', '인간 무기: 환도', 'Korean hwando sabers'],
+  ['weapon_fox', '구미호 무기: 여우구슬', 'magical fox beads (yeowoo guseul) floating with foxfire'],
+  ['weapon_goblin', '도깨비 무기: 방망이', 'dokkaebi clubs (bangmangi) with studs'],
+  ['armor', '갑옷', 'Joseon armors: from a simple cloth jeogori to studded dujeonggap armor to a royal golden armor'],
+  ['helmet', '머리 장비', 'Korean headgear: from a cloth headband to a straw hat, jeollip warrior hat, iron helmet, golden helmet with plume, and a royal crown'],
+  ['ring', '가락지', 'Korean rings (garakji) with gems'],
+  ['collar', '몬스터 목걸이', 'cute pet collars with a norigae tassel pendant'],
+  ['charm', '몬스터 부적', 'charms: from a paper talisman to a jade pendant to a golden amulet'],
+];
+groups.push({ id: 'gear', title: '🆕 장비 아이콘 (시트 8장 → 48개)', note: '한 줄에 C~SSS 6개 · 제가 잘라서 등급별 파일로 넣어요 · 캐릭터가 끼면 아이콘·효과로 표시 · assets/gear/', items: GEARS.map(([id, ko, d]) => ({
+  file: `${id}_sheet.png`, name: ko, tags: ['C~SSS'], attach: 'grid_m01 결과 이미지 첨부', note: '순서: C · B · A · S · SS · SSS',
+  prompt: `${GEAR_STYLE}\nItems: ${d}.`,
+})) });
+
+// ---- UI 아이콘 ----
+groups.push({ id: 'ui', title: '🆕 UI 아이콘 (시트 2장)', note: '16개 · assets/ui/', items: [
+  ['ui_sheet_1', '재화·메뉴 8개', 'a pile of old Korean brass coins (gold), a shiny diamond, a glowing purple evolution crystal orb, a hammer with a glowing enhancement stone, a calendar scroll, a quest scroll with a red ribbon, a lacquered treasure chest, a lightning boost talisman', 'gold, gems, stones, ench, attend, quest, chest, boost'],
+  ['ui_sheet_2', '모험·탭 8개', 'a golden trophy, a compass, a traveler bundle bag (bottari), crossed swords, a paw print, a glowing egg, a treasure map, a market stall bag', 'arena, exped, bag, nav_home, nav_mons, nav_summon, nav_adv, nav_shop'],
+].map(([id, ko, d, keys]) => ({
+  file: `${id}.png`, name: ko, tags: [], attach: 'grid_m01 결과 이미지 첨부', note: '순서: ' + keys,
+  prompt: `Pixel art game UI icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 8 icons in 2 rows of 4, evenly spaced, equal size, glossy and cute, dark 1-pixel outline, no text, flat solid magenta #FF00FF background.\nIcons: ${d}.`,
 })) });
 
 function md() {
@@ -261,12 +347,13 @@ function md() {
   fs.writeFileSync(path.join(ROOT, 'docs/PROMPTS_GRID.md'), out.join('\n'));
 }
 
+groups.sort((a, b) => (a.title.startsWith("🆕") ? 0 : 1) - (b.title.startsWith("🆕") ? 0 : 1)); // 새로 만들 것 먼저
 md();
 if (process.argv[2]) {
   const tpl = fs.readFileSync(path.join(ROOT, 'tools/prompts_page.html'), 'utf8')
     .replace('몬스터 키우기 프롬프트북', '몬스터 키우기 프롬프트북')
     .replace('제미나이에 그대로 붙여넣는 도트 그림 프롬프트 모음이에요. 위에서부터 순서대로 만들면 화풍이 맞춰져요.',
-      '제미나이 한 번에 여러 마리를 그리는 격자 프롬프트예요. 맨 위 grid_m01부터 만들면 그 그림이 화풍 기준이 돼요.');
+      '🆕 표시가 다음에 만들 것들이에요 (스킬 이펙트·맵·장비·UI). ✅ 표시는 이미 받아서 게임에 넣은 것이에요.');
   const total = groups.reduce((a, g) => a + g.items.length, 0);
   fs.writeFileSync(process.argv[2], tpl.replace('__DATA__', JSON.stringify(groups)).replace('__TOTAL__', String(total)));
 }

@@ -504,6 +504,7 @@ const Game = (() => {
     tgt.hp -= dmg;
     if (src.side === 'ally') B.dmg += real;
     BattleView.damage(tgt, shown, crit, elem);
+    if (crit) BattleView.fx(tgt, 'hit', 0.7);
     if (tgt.hp <= 0) {
       tgt.hp = 0; tgt.alive = false;
       BattleView.die(tgt, B.mode === 'stage' && tgt.side === 'enemy');
@@ -515,37 +516,39 @@ const Game = (() => {
     if (u.hero) {
       const C = CLASSES[u.cls].skill;
       BattleView.skill(u, C.name);
-      if (C.type === 'blast') { BattleView.flash({ human: 'light', fox: 'fire', goblin: 'water' }[u.cls] || 'light'); Sound.play('blast'); foes.forEach(t => hit(u, t, C.mult, B)); }
-      else if (C.type === 'nuke') { const t = foes.reduce((a, b) => (b.hp > a.hp ? b : a)); BattleView.beam(u, t); hit(u, t, C.mult, B); }
-      else for (let i = 0; i < C.hits; i++) { const al = foes.filter(f => f.alive); if (!al.length) break; const t = pick(al); BattleView.beam(u, t); hit(u, t, C.mult, B); }
+      const fxn = { human: 'talisman', fox: 'foxfire', goblin: 'dokkaebi' }[u.cls];
+      if (C.type === 'blast') { BattleView.flash({ human: 'light', fox: 'fire', goblin: 'water' }[u.cls] || 'light'); Sound.play('blast'); foes.forEach(t => { BattleView.fx(t, fxn, 1.2); hit(u, t, C.mult, B); }); }
+      else if (C.type === 'nuke') { const t = foes.reduce((a, b) => (b.hp > a.hp ? b : a)); BattleView.beam(u, t); BattleView.fx(t, fxn, 1.5); hit(u, t, C.mult, B); }
+      else for (let i = 0; i < C.hits; i++) { const al = foes.filter(f => f.alive); if (!al.length) break; const t = pick(al); BattleView.beam(u, t); BattleView.fx(t, fxn, 1); hit(u, t, C.mult, B); }
       return;
     }
     BattleView.skill(u, u.raid ? '대지 진동' : SKILLS[u.skill].name);
     if (u.raid) {
       BattleView.flash(u.el); Sound.play('blast');
-      foes.forEach(t => hit(u, t, 1.1, B));
+      foes.forEach(t => { BattleView.fx(t, u.el, 1.4); hit(u, t, 1.1, B); });
       return;
     }
+    const tier = 1 + Math.max(0, RARITY_ORDER.indexOf(u.r)) * 0.12; // 등급이 높을수록 이펙트가 큼
     switch (u.skill) {
       case 'nuke': {
         const t = foes.reduce((a, b) => (b.hp > a.hp ? b : a));
-        BattleView.beam(u, t); hit(u, t, 3.2, B); break;
+        BattleView.beam(u, t); BattleView.fx(t, u.el, 1.3 * tier); hit(u, t, 3.2, B); break;
       }
       case 'blast':
         BattleView.flash(u.el); Sound.play('blast');
-        foes.forEach(t => hit(u, t, 1.4, B)); break;
+        foes.forEach(t => { BattleView.fx(t, u.el, tier); hit(u, t, 1.4, B); }); break;
       case 'heal': {
         const low = friends.reduce((a, b) => (b.hp / b.maxHp < a.hp / a.maxHp ? b : a));
-        friends.forEach(f => heal(f, f === low ? u.atk * 3 : u.atk * 1.2));
+        friends.forEach(f => { BattleView.fx(f, 'heal', f === low ? 1.1 * tier : 0.7); heal(f, f === low ? u.atk * 3 : u.atk * 1.2); });
         Sound.play('heal'); break;
       }
       case 'shield':
-        friends.forEach(f => { f.shield += Math.round(u.atk * 2); BattleView.shield(f); });
+        friends.forEach(f => { f.shield += Math.round(u.atk * 2); BattleView.shield(f); BattleView.fx(f, 'shield', 0.9 * tier); });
         Sound.play('shield');
         hit(u, pickTarget(foes), 1.2, B); break;
       case 'drain': {
         const t = pickTarget(foes);
-        BattleView.beam(u, t);
+        BattleView.beam(u, t); BattleView.fx(t, 'dark', 1.1 * tier);
         heal(u, hit(u, t, 2.4, B) * 0.6); break;
       }
     }

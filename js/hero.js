@@ -241,7 +241,7 @@ const HeroArt = (() => {
     const ik = `${h.cls}_${h.gender}`, sz = (window.ASSET_SIZES || {})['hero_' + ik];
     if (sz) {
       if (opts.battle) for (let i = 1; i < 6; i++) new Image().src = `assets/hero/${ik}_p${i}.png`; // 동작 프레임 미리 불러오기
-      if (opts.battle) return `<div class="natbox"><img class="mimg nat hero-pose" data-k="${ik}" src="assets/hero/${ik}_p0.png" style="width:${Math.round((sz[0] / 190) * 100 * 0.7)}%" draggable="false" alt=""></div>`;
+      if (opts.battle) return `<div class="natbox"><img class="mimg nat hero-pose" data-k="${ik}" src="assets/hero/${ik}_p0.png" style="width:${Math.round((sz[0] / sz[1]) * 1.18 * 100 * (19 / 21))}%" draggable="false" alt=""></div>`;
       return `<div class="fitbox"><img class="mimg fit" src="assets/hero/${ik}.png" draggable="false" alt=""></div>`;
     }
     return P.sprHTML(sheet(lookOf(h, opts)), W, H, 3, 'hero' + (opts.cls ? ' ' + opts.cls : ''));

@@ -616,3 +616,7 @@ svg.pix, .mimg { image-rendering: pixelated; }
 .unit.enemy .sprite .natwrap { transform: scaleX(-1); }
 .d-skill:has(.skillart) { display: flex; gap: 10px; align-items: center; }
 .d-skill .skillart { width: 96px; flex-shrink: 0; border-radius: 8px; background: rgba(255,255,255,.06); }
+/* 스킬 이펙트 시트 (6프레임) */
+.fxs { transform: translate(-50%, -50%); background-size: 600% 100%; background-repeat: no-repeat;
+  image-rendering: auto; animation: fxs .6s steps(6) forwards; z-index: 115; }
+@keyframes fxs { from { background-position: 0% 0; } to { background-position: 120% 0; } }

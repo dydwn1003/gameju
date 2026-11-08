@@ -43,14 +43,15 @@ const Assets = (() => {
   // 제미나이 격자에서 잘라낸 그림 (assets/sizes.js 에 크기 목록)
   // opts.battle: 전투 화면 (몬스터끼리 실제 크기 비율 유지) / 그 외: 칸에 맞춰 표시
   const SIZES = () => window.ASSET_SIZES || {};
-  const REF = 190; // 이 너비(px)의 그림이 기본 유닛 칸을 꽉 채움
   function sized(id, form, opts, path) {
     const sil = opts.silhouette ? ' silhouette' : '';
     if (opts.battle) {
-      const [w] = SIZES()[id], k = [0.78, 0.9, 1][form] * (opts.base || 1), cs = SIZES()[id + '_cast'];
+      // 키 기준: (가로/세로) × 목표 키 ÷ 칸 너비 비율 → 칸 너비 대비 %
+      const [w, h] = SIZES()[id], cs = SIZES()[id + '_cast'];
+      const pct = (w / h) * sizeOf(id) * [0.8, 0.92, 1][form] * (opts.boost || 1) / (opts.cw || 1) * 100;
       // 마법 쓰는 모습: 같은 왼쪽·아래 기준으로 겹쳐 두었다가 스킬 쓸 때만 보임
       const cast = cs ? `<img class="mimg cast" src="${path.replace('.png', '_cast.png')}" style="width:${Math.round((cs[0] / w) * 100)}%" draggable="false" alt="">` : '';
-      return `<div class="natbox"><span class="natwrap" style="width:${Math.round((w / REF) * 100 * k)}%"><img class="mimg nat${sil}" src="${path}" draggable="false" alt="">${cast}</span></div>`;
+      return `<div class="natbox"><span class="natwrap" style="width:${Math.round(pct)}%"><img class="mimg nat${sil}" src="${path}" draggable="false" alt="">${cast}</span></div>`;
     }
     return `<div class="fitbox f${form}"><img class="mimg fit${sil}" src="${path}" draggable="false" alt=""></div>`;
   }

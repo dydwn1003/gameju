@@ -1,6 +1,7 @@
 """제미나이 격자 이미지 → 칸별로 잘라 마젠타 배경 제거 → assets/ 에 저장
 사용: python3 tools/slice_grids.py <격자이미지 폴더>
       python3 tools/slice_grids.py <폴더> --suffix _cast   (마법 쓰는 모습 격자)
+      python3 tools/slice_grids.py --fx <폴더> dark,dokkaebi,fire,...   (스킬 이펙트, 파일 이름순)
       python3 tools/slice_grids.py --hero <폴더> fox_f,fox_m,goblin_f,goblin_m,human_f,human_m
   폴더 안 파일 이름: grid_e01.jpg/png ... grid_m10.jpg/png (페이지 순서대로 p-000.jpg ... 도 지원)
 """
@@ -199,8 +200,44 @@ def main_hero(src, order):
     print('완료:', sizes)
 
 
+# ===================== 스킬 이펙트 (검은 배경, 가로 6프레임) =====================
+def process_fx(path, name, outdir, frame_h=200):
+    img = Image.open(path).convert('RGB')
+    a = np.array(img)
+    h, w = a.shape[:2]
+    # 워터마크(오른쪽 아래 회색 반짝이) 지우기
+    a[int(h * 0.82):, int(w * 0.965):] = 0
+    a[a.max(axis=2) < 20] = 0  # 압축 노이즈 → 완전 검정
+    img = Image.fromarray(a)
+    fw = w / 6
+    k = frame_h / h
+    sheet = Image.new('RGB', (int(fw * k) * 6, frame_h))
+    for i in range(6):
+        f = img.crop((int(i * fw), 0, int((i + 1) * fw), h)).resize((int(fw * k), frame_h), Image.LANCZOS)
+        sheet.paste(f, (i * int(fw * k), 0))
+    # 검은 배경 → 투명 (밝기를 알파로, 색은 원래 밝기로 복원 = 빛나는 이펙트)
+    arr = np.asarray(sheet).astype(np.float32)
+    alpha = arr.max(axis=2)
+    rgb = np.where(alpha[..., None] > 0, arr * 255.0 / np.maximum(alpha[..., None], 1), 0)
+    rgba = np.dstack([np.clip(rgb, 0, 255), np.clip(alpha * 1.15, 0, 255)]).astype(np.uint8)
+    d = outdir / 'fx'
+    d.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(rgba, 'RGBA').save(d / f'{name}.png', optimize=True)
+    return {f'fx_{name}': [int(fw * k), frame_h]}
+
+def main_fx(src, names):
+    files = sorted([p for p in pathlib.Path(src).iterdir() if p.suffix.lower() in ('.jpg', '.png') and p.stem.startswith('p-')])
+    sizes = {}
+    for p, n in zip(files, names):
+        print(n, '←', p.name)
+        sizes.update(process_fx(p, n, ROOT / 'assets'))
+    merge_sizes(sizes)
+
+
 if __name__ == '__main__':
-    if sys.argv[1] == '--hero':
+    if sys.argv[1] == '--fx':
+        main_fx(sys.argv[2], sys.argv[3].split(','))
+    elif sys.argv[1] == '--hero':
         main_hero(sys.argv[2], sys.argv[3].split(','))
     else:
         if '--suffix' in sys.argv: SUFFIX = sys.argv[sys.argv.index('--suffix') + 1]

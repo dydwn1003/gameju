@@ -278,3 +278,21 @@ const GEAR_RARITY = {
 const GEAR_MAX_ENH = 15;
 const ENH_RATE = [100, 100, 100, 100, 100, 90, 80, 70, 60, 50, 45, 40, 35, 30, 25]; // +n → +n+1 성공률
 const GEAR_BAG_MAX = 120;
+
+// ===== 전투 화면 크기 (키 기준) =====
+// xs 아주 작음 · s 작음 · m 보통 · l 큼 · xl 아주 큼 · xxl 거대. 값 = 기본 유닛 칸 너비 대비 키
+const SIZE_H = { xs: 0.5, s: 0.66, m: 0.84, l: 1.02, xl: 1.22, xxl: 1.45 };
+const SIZE_CLASS = (() => {
+  const t = {
+    xs: 'bandit chamsae',
+    s: 'jipsin horong yeopjeon bokjumeo tteok songpyeon dotori dukkeobi gaeguri cheongseol metdwaeji nabi kkachi pyeonbok ingeo kkotge dokkaebibul pureunbul godeureum horibyeong buchae hahoetal yeonkkot haepari jindo juibul e_jwi e_beoseot e_haepari e_hwajwi',
+    m: 'bitjaru jangdok neoguri megi dalgyal idkki sapsal cheongdok hongdok buheong yeowoo sudal geobuk gureongi jine muneo cheonyeo mulgwi chorong maetdol eunin hwaro geumdu geumdok maegu eopgu jowang e_dwaeji e_sandok e_mulgwi e_jipge e_agwi e_buldok e_yongam e_hwabak e_wonhon e_dalgyal e_haegol e_neukdae e_cheondung e_gureum',
+    l: 'jangseung hak noru bandal kkotsasum dueok yongma bulgom cheonghak mokgak haetae bulgasari samjok jangsan sangun yongwang dokdaejang yeomra e_seoksang e_geumgang e_saja',
+    xl: 'geuseundae imugi cheongryong baekho jujak hyeonmu girin cheonho e_heukgom e_daemuneo e_hwasan e_noesin',
+    xxl: 'hwangryong r_heugimugi r_gumiho',
+  };
+  const o = {};
+  for (const [k, v] of Object.entries(t)) for (const id of v.split(' ')) o[id] = k;
+  return o;
+})();
+const sizeOf = id => SIZE_H[SIZE_CLASS[id] || 'm'];

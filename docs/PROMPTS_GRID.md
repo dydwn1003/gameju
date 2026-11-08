@@ -4,9 +4,412 @@
 - 결과 이미지는 **파일 이름 그대로** 저장해서 대화창에 올려주세요. 잘라서 게임에 넣는 건 제가 합니다.
 - 칸이 삐뚤거나 그림에 글자가 들어가면 같은 프롬프트로 다시 뽑으면 돼요.
 
-## 뽑기 몬스터 (82종)
+## 🆕 등급별 스킬 이펙트 (26종)
 
-> 격자 10장 · 올려주시면 제가 잘라서 assets/monsters/ 에 넣어요 · 대표 모습(2단계) 기준
+> 끝나는 모양이 전부 다름 · C·B → A → S → SS(사신 전용) → SSS(전용 궁극기) 순으로 화려해짐 · 검은 배경 OK · assets/fx/
+
+### `sk_fire_1.png` 불 C·B: 불씨 튕기기
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank C-B: small and simple, quick and light, few particles.
+Animation: a tiny ember pops forward and bursts into a few sparks; ends with a small curl of gray smoke drifting upward. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_fire_2.png` 불 A: 화염 화살
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank A: medium size, clearly more detail and a distinct shape.
+Animation: a flaming arrow streaks forward and sticks into the ground, flames licking up; ends with a scorched black mark on the ground with flickering embers. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_fire_3.png` 불 S: 화염 기둥
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank S: big and dramatic, fills most of the frame, layered glow and many particles.
+Animation: a roaring vertical pillar of fire erupts from a glowing crack in the ground; ends with the pillar collapsing into a rain of falling embers. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_water_1.png` 물 C·B: 물방울 튕기기
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank C-B: small and simple, quick and light, few particles.
+Animation: a small water droplet shoots forward and splashes; ends with expanding ripple rings on the ground. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_water_2.png` 물 A: 얼음 창
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank A: medium size, clearly more detail and a distinct shape.
+Animation: a sharp ice spear flies forward and pierces; ends with the spear shattering into glittering ice crystals that tinkle away. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_water_3.png` 물 S: 소용돌이 해일
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank S: big and dramatic, fills most of the frame, layered glow and many particles.
+Animation: a swirling whirlpool rises into a curling tidal wave that crashes down; ends with white foam and drifting mist settling. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_wood_1.png` 나무 C·B: 나뭇잎 표창
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank C-B: small and simple, quick and light, few particles.
+Animation: a flurry of spinning leaf blades flies forward; ends with a few leaves fluttering down slowly. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_wood_2.png` 나무 A: 가시덩굴 속박
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank A: medium size, clearly more detail and a distinct shape.
+Animation: thorny vines burst from the ground and wrap tightly around a spot; ends with the vines withering and crumbling into dry petals. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_wood_3.png` 나무 S: 신목의 뿌리
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank S: big and dramatic, fills most of the frame, layered glow and many particles.
+Animation: giant ancient tree roots erupt and a spirit tree blooms with plum blossoms; ends with a whirlwind of plum blossom petals swirling away. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_light_1.png` 빛 C·B: 별빛 반짝
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank C-B: small and simple, quick and light, few particles.
+Animation: a small star twinkles and pops; ends with a single gentle twinkle fading out. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_light_2.png` 빛 A: 빛의 검 교차
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank A: medium size, clearly more detail and a distinct shape.
+Animation: two golden light blades slash in an X; ends with the X lines fading and leaving glowing dancheong-pattern sparks. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_light_3.png` 빛 S: 천상의 빛기둥
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank S: big and dramatic, fills most of the frame, layered glow and many particles.
+Animation: a holy beam of light falls from the sky onto a glowing mandala circle; ends with soft feathers of light drifting down. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_dark_1.png` 어둠 C·B: 혼불 깨물기
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank C-B: small and simple, quick and light, few particles.
+Animation: a little purple ghost wisp dashes forward and bites; ends with the wisp giggling and vanishing in a puff of smoke. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_dark_2.png` 어둠 A: 그림자 손
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank A: medium size, clearly more detail and a distinct shape.
+Animation: shadowy hands reach up from a dark pool and grab; ends with the hands sinking back into a shrinking black puddle. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_dark_3.png` 어둠 S: 원혼의 사슬
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 6 frames. Rank S: big and dramatic, fills most of the frame, layered glow and many particles.
+Animation: a swarm of wailing spirits and black chains spirals and binds; ends with the chains snapping and spirits scattering like ash. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_hit_slash.png` 기본 공격: 베기
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 4 frames. Rank C-B: small and simple, quick and light, few particles.
+Animation: a sharp white crescent slash; ends with thin slash lines fading. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_hit_bite.png` 기본 공격: 물기
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 4 frames. Rank C-B: small and simple, quick and light, few particles.
+Animation: big cartoon fangs snapping shut with impact lines; ends with tooth-mark sparkles. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_hit_blunt.png` 기본 공격: 내려치기
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 4 frames. Rank C-B: small and simple, quick and light, few particles.
+Animation: a heavy blunt impact star with a ground crack; ends with dust puffs and a small rock spray. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_ss_cheongryong.png` SS 청룡: 푸른 용의 승천
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 8 frames. Rank SS (Four Guardian Gods): huge, cinematic, a giant mythical creature made of energy appears, screen-filling.
+Animation: a long azure water dragon made of water spirals across the frame, roars, and dives down; ends with a gentle rain of glowing blue scales and droplets. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_ss_baekho.png` SS 백호: 백호의 발톱
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 8 frames. Rank SS (Four Guardian Gods): huge, cinematic, a giant mythical creature made of energy appears, screen-filling.
+Animation: a giant translucent white tiger leaps out and rakes three huge claw slashes with a lightning roar shockwave; ends with three glowing claw marks that crack and break apart. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_ss_jujak.png` SS 주작: 불새의 강림
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 8 frames. Rank SS (Four Guardian Gods): huge, cinematic, a giant mythical creature made of energy appears, screen-filling.
+Animation: a vermilion phoenix of fire spreads its wings wide and dives in a firestorm; ends with burning feathers floating down and burning out one by one. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_ss_hyeonmu.png` SS 현무: 거북 등껍질 진
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 8 frames. Rank SS (Four Guardian Gods): huge, cinematic, a giant mythical creature made of energy appears, screen-filling.
+Animation: a giant black tortoise shell barrier slams down while a serpent of dark water strikes, earthquake shockwave; ends with hexagonal shell fragments sinking into the ground. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_ss_girin.png` SS 기린: 상서로운 질주
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 8 frames. Rank SS (Four Guardian Gods): huge, cinematic, a giant mythical creature made of energy appears, screen-filling.
+Animation: a radiant qilin gallops across leaving golden auspicious clouds and flowers, then bursts; ends with rainbow-colored auspicious clouds slowly dissolving. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_sss_hwangryong.png` SSS 황룡: 천룡강림
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 8 frames. Rank SSS (god tier): the most spectacular, cinematic ultimate move, multiple phases, radiant golden-white highlights, screen-filling, unforgettable finish.
+Animation: the heavens split open, a colossal golden dragon descends through swirling clouds, coils, and fires a blinding beam from its red yeouiju pearl; ends with a giant golden sun-disc mandala slowly fading while golden dust rains down. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_sss_cheonho.png` SSS 천호: 구미호 여우불 폭풍
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 8 frames. Rank SSS (god tier): the most spectacular, cinematic ultimate move, multiple phases, radiant golden-white highlights, screen-filling, unforgettable finish.
+Animation: nine huge fox tails fan out into a giant flower of blue and pink foxfire, then nine foxfire comets rain down one after another; ends with a fox-face shaped flame winking and vanishing into cherry blossom petals. Make the final frames clearly different from a generic explosion.
+```
+
+### `sk_sss_yeomra.png` SSS 염라: 저승문 심판
+첨부: 받은 이펙트 시트 아무거나 1장 첨부 (예: fx_fire)
+
+
+```
+Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000. Exactly 8 frames. Rank SSS (god tier): the most spectacular, cinematic ultimate move, multiple phases, radiant golden-white highlights, screen-filling, unforgettable finish.
+Animation: a massive red-lacquered underworld gate rises from the ground and swings open, ghostly black chains and blue soul flames pull everything inside; ends with the gate slamming shut, leaving a burning circular seal mark (abstract symbols, no letters) that fades. Make the final frames clearly different from a generic explosion.
+```
+
+## 🆕 맵 · 전투 배경 (7장)
+
+> 세로 3:4 · 아래 55%는 캐릭터가 서는 평평한 땅 · assets/bg/
+
+### `bg_grass.png` 1장: 산골 마을
+첨부: grid_m01 결과 이미지 첨부 (같은 도트 화풍)
+
+
+```
+Pixel art battle background for a Korean folklore fantasy mobile RPG, same crisp 16-bit pixel style as the attached image, Joseon-era fairy-tale mood, vertical portrait 3:4 (for example 1536x2048), the top 45% is sky and distant scenery with props, the bottom 55% is a wide FLAT open ground where characters stand, keep the middle of the ground empty (no big objects there), detailed but not busy, no characters, no text, no UI.
+Scene: a peaceful mountain village in spring: thatched-roof and tiled-roof hanok houses, stone walls, persimmon trees, distant green mountains, a jangseung pair at the village entrance, grassy dirt-path ground.
+```
+
+### `bg_water.png` 2장: 바닷가 포구
+첨부: grid_m01 결과 이미지 첨부 (같은 도트 화풍)
+
+
+```
+Pixel art battle background for a Korean folklore fantasy mobile RPG, same crisp 16-bit pixel style as the attached image, Joseon-era fairy-tale mood, vertical portrait 3:4 (for example 1536x2048), the top 45% is sky and distant scenery with props, the bottom 55% is a wide FLAT open ground where characters stand, keep the middle of the ground empty (no big objects there), detailed but not busy, no characters, no text, no UI.
+Scene: a seaside fishing harbor: wooden boats with sails, sandy beach, rocky cliffs with pine trees, blue sea and seagulls, wet sand ground.
+```
+
+### `bg_fire.png` 3장: 화산 계곡
+첨부: grid_m01 결과 이미지 첨부 (같은 도트 화풍)
+
+
+```
+Pixel art battle background for a Korean folklore fantasy mobile RPG, same crisp 16-bit pixel style as the attached image, Joseon-era fairy-tale mood, vertical portrait 3:4 (for example 1536x2048), the top 45% is sky and distant scenery with props, the bottom 55% is a wide FLAT open ground where characters stand, keep the middle of the ground empty (no big objects there), detailed but not busy, no characters, no text, no UI.
+Scene: a volcanic valley: smoking volcano, lava rivers in the distance, scorched dead trees, red-orange sky with ash, cracked dark rock ground with glowing seams.
+```
+
+### `bg_dark.png` 4장: 귀신 나오는 밤 숲
+첨부: grid_m01 결과 이미지 첨부 (같은 도트 화풍)
+
+
+```
+Pixel art battle background for a Korean folklore fantasy mobile RPG, same crisp 16-bit pixel style as the attached image, Joseon-era fairy-tale mood, vertical portrait 3:4 (for example 1536x2048), the top 45% is sky and distant scenery with props, the bottom 55% is a wide FLAT open ground where characters stand, keep the middle of the ground empty (no big objects there), detailed but not busy, no characters, no text, no UI.
+Scene: a haunted forest at night: huge purple full moon, twisted bare trees, old graves and stone markers, ghostly blue fires, mist, dark grass ground.
+```
+
+### `bg_light.png` 5장: 하늘 궁궐
+첨부: grid_m01 결과 이미지 첨부 (같은 도트 화풍)
+
+
+```
+Pixel art battle background for a Korean folklore fantasy mobile RPG, same crisp 16-bit pixel style as the attached image, Joseon-era fairy-tale mood, vertical portrait 3:4 (for example 1536x2048), the top 45% is sky and distant scenery with props, the bottom 55% is a wide FLAT open ground where characters stand, keep the middle of the ground empty (no big objects there), detailed but not busy, no characters, no text, no UI.
+Scene: a heavenly palace above the clouds: golden-roofed palace halls with dancheong colors, floating islands, rainbow and light rays, white marble floor ground.
+```
+
+### `bg_raid.png` 레이드: 요괴 소굴
+첨부: grid_m01 결과 이미지 첨부 (같은 도트 화풍)
+
+
+```
+Pixel art battle background for a Korean folklore fantasy mobile RPG, same crisp 16-bit pixel style as the attached image, Joseon-era fairy-tale mood, vertical portrait 3:4 (for example 1536x2048), the top 45% is sky and distant scenery with props, the bottom 55% is a wide FLAT open ground where characters stand, keep the middle of the ground empty (no big objects there), detailed but not busy, no characters, no text, no UI.
+Scene: the entrance to the underworld: giant red gate, chains, lanterns with blue soul fire, dark red sky, cracked stone courtyard ground.
+```
+
+### `bg_arena.png` 아레나: 무술 대련장
+첨부: grid_m01 결과 이미지 첨부 (같은 도트 화풍)
+
+
+```
+Pixel art battle background for a Korean folklore fantasy mobile RPG, same crisp 16-bit pixel style as the attached image, Joseon-era fairy-tale mood, vertical portrait 3:4 (for example 1536x2048), the top 45% is sky and distant scenery with props, the bottom 55% is a wide FLAT open ground where characters stand, keep the middle of the ground empty (no big objects there), detailed but not busy, no characters, no text, no UI.
+Scene: a traditional martial arts courtyard at dusk: wooden pavilion, colorful festival flags, drums, spectators silhouettes far in the background, packed sand ground with a ring (ssireum style).
+```
+
+## 🆕 장비 아이콘 (시트 8장 → 48개)
+
+> 한 줄에 C~SSS 6개 · 제가 잘라서 등급별 파일로 넣어요 · 캐릭터가 끼면 아이콘·효과로 표시 · assets/gear/
+
+### `weapon_human_sheet.png` 인간 무기: 환도
+첨부: grid_m01 결과 이미지 첨부
+순서: C · B · A · S · SS · SSS
+
+```
+Pixel art RPG item icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 6 items of the same kind in one horizontal row, evenly spaced, equal size, left to right getting rarer and more magnificent: 1) C common plain and worn, 2) B sturdy with blue accents, 3) A fine craftsmanship with jade and purple gems, 4) S heroic, ornate gold with a soft glow, 5) SS legendary, gold and red with dancheong patterns and strong glow, 6) SSS mythic, radiant white-gold with rainbow aura and sparkles. Dark 1-pixel outline, no text, no labels, flat solid magenta #FF00FF background.
+Items: Korean hwando sabers.
+```
+
+### `weapon_fox_sheet.png` 구미호 무기: 여우구슬
+첨부: grid_m01 결과 이미지 첨부
+순서: C · B · A · S · SS · SSS
+
+```
+Pixel art RPG item icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 6 items of the same kind in one horizontal row, evenly spaced, equal size, left to right getting rarer and more magnificent: 1) C common plain and worn, 2) B sturdy with blue accents, 3) A fine craftsmanship with jade and purple gems, 4) S heroic, ornate gold with a soft glow, 5) SS legendary, gold and red with dancheong patterns and strong glow, 6) SSS mythic, radiant white-gold with rainbow aura and sparkles. Dark 1-pixel outline, no text, no labels, flat solid magenta #FF00FF background.
+Items: magical fox beads (yeowoo guseul) floating with foxfire.
+```
+
+### `weapon_goblin_sheet.png` 도깨비 무기: 방망이
+첨부: grid_m01 결과 이미지 첨부
+순서: C · B · A · S · SS · SSS
+
+```
+Pixel art RPG item icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 6 items of the same kind in one horizontal row, evenly spaced, equal size, left to right getting rarer and more magnificent: 1) C common plain and worn, 2) B sturdy with blue accents, 3) A fine craftsmanship with jade and purple gems, 4) S heroic, ornate gold with a soft glow, 5) SS legendary, gold and red with dancheong patterns and strong glow, 6) SSS mythic, radiant white-gold with rainbow aura and sparkles. Dark 1-pixel outline, no text, no labels, flat solid magenta #FF00FF background.
+Items: dokkaebi clubs (bangmangi) with studs.
+```
+
+### `armor_sheet.png` 갑옷
+첨부: grid_m01 결과 이미지 첨부
+순서: C · B · A · S · SS · SSS
+
+```
+Pixel art RPG item icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 6 items of the same kind in one horizontal row, evenly spaced, equal size, left to right getting rarer and more magnificent: 1) C common plain and worn, 2) B sturdy with blue accents, 3) A fine craftsmanship with jade and purple gems, 4) S heroic, ornate gold with a soft glow, 5) SS legendary, gold and red with dancheong patterns and strong glow, 6) SSS mythic, radiant white-gold with rainbow aura and sparkles. Dark 1-pixel outline, no text, no labels, flat solid magenta #FF00FF background.
+Items: Joseon armors: from a simple cloth jeogori to studded dujeonggap armor to a royal golden armor.
+```
+
+### `helmet_sheet.png` 머리 장비
+첨부: grid_m01 결과 이미지 첨부
+순서: C · B · A · S · SS · SSS
+
+```
+Pixel art RPG item icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 6 items of the same kind in one horizontal row, evenly spaced, equal size, left to right getting rarer and more magnificent: 1) C common plain and worn, 2) B sturdy with blue accents, 3) A fine craftsmanship with jade and purple gems, 4) S heroic, ornate gold with a soft glow, 5) SS legendary, gold and red with dancheong patterns and strong glow, 6) SSS mythic, radiant white-gold with rainbow aura and sparkles. Dark 1-pixel outline, no text, no labels, flat solid magenta #FF00FF background.
+Items: Korean headgear: from a cloth headband to a straw hat, jeollip warrior hat, iron helmet, golden helmet with plume, and a royal crown.
+```
+
+### `ring_sheet.png` 가락지
+첨부: grid_m01 결과 이미지 첨부
+순서: C · B · A · S · SS · SSS
+
+```
+Pixel art RPG item icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 6 items of the same kind in one horizontal row, evenly spaced, equal size, left to right getting rarer and more magnificent: 1) C common plain and worn, 2) B sturdy with blue accents, 3) A fine craftsmanship with jade and purple gems, 4) S heroic, ornate gold with a soft glow, 5) SS legendary, gold and red with dancheong patterns and strong glow, 6) SSS mythic, radiant white-gold with rainbow aura and sparkles. Dark 1-pixel outline, no text, no labels, flat solid magenta #FF00FF background.
+Items: Korean rings (garakji) with gems.
+```
+
+### `collar_sheet.png` 몬스터 목걸이
+첨부: grid_m01 결과 이미지 첨부
+순서: C · B · A · S · SS · SSS
+
+```
+Pixel art RPG item icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 6 items of the same kind in one horizontal row, evenly spaced, equal size, left to right getting rarer and more magnificent: 1) C common plain and worn, 2) B sturdy with blue accents, 3) A fine craftsmanship with jade and purple gems, 4) S heroic, ornate gold with a soft glow, 5) SS legendary, gold and red with dancheong patterns and strong glow, 6) SSS mythic, radiant white-gold with rainbow aura and sparkles. Dark 1-pixel outline, no text, no labels, flat solid magenta #FF00FF background.
+Items: cute pet collars with a norigae tassel pendant.
+```
+
+### `charm_sheet.png` 몬스터 부적
+첨부: grid_m01 결과 이미지 첨부
+순서: C · B · A · S · SS · SSS
+
+```
+Pixel art RPG item icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 6 items of the same kind in one horizontal row, evenly spaced, equal size, left to right getting rarer and more magnificent: 1) C common plain and worn, 2) B sturdy with blue accents, 3) A fine craftsmanship with jade and purple gems, 4) S heroic, ornate gold with a soft glow, 5) SS legendary, gold and red with dancheong patterns and strong glow, 6) SSS mythic, radiant white-gold with rainbow aura and sparkles. Dark 1-pixel outline, no text, no labels, flat solid magenta #FF00FF background.
+Items: charms: from a paper talisman to a jade pendant to a golden amulet.
+```
+
+## 🆕 UI 아이콘 (시트 2장)
+
+> 16개 · assets/ui/
+
+### `ui_sheet_1.png` 재화·메뉴 8개
+첨부: grid_m01 결과 이미지 첨부
+순서: gold, gems, stones, ench, attend, quest, chest, boost
+
+```
+Pixel art game UI icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 8 icons in 2 rows of 4, evenly spaced, equal size, glossy and cute, dark 1-pixel outline, no text, flat solid magenta #FF00FF background.
+Icons: a pile of old Korean brass coins (gold), a shiny diamond, a glowing purple evolution crystal orb, a hammer with a glowing enhancement stone, a calendar scroll, a quest scroll with a red ribbon, a lacquered treasure chest, a lightning boost talisman.
+```
+
+### `ui_sheet_2.png` 모험·탭 8개
+첨부: grid_m01 결과 이미지 첨부
+순서: arena, exped, bag, nav_home, nav_mons, nav_summon, nav_adv, nav_shop
+
+```
+Pixel art game UI icon sprite sheet, same crisp 16-bit pixel style as the attached image, Korean Joseon fantasy design, exactly 8 icons in 2 rows of 4, evenly spaced, equal size, glossy and cute, dark 1-pixel outline, no text, flat solid magenta #FF00FF background.
+Icons: a golden trophy, a compass, a traveler bundle bag (bottari), crossed swords, a paw print, a glowing egg, a treasure map, a market stall bag.
+```
+
+## ✅ 뽑기 몬스터 (82종)
+
+> 적용 완료 · 격자 10장 · 올려주시면 제가 잘라서 assets/monsters/ 에 넣어요 · 대표 모습(2단계) 기준
 
 ### `grid_m01.png` C등급 1~9번
 순서: 1.짚신동이 · 2.빗자루귀 · 3.장독이 · 4.호롱불이 · 5.엽전귀 · 6.복주머니 · 7.떡보 · 8.송편이 · 9.도토리귀
@@ -179,9 +582,9 @@ Rarity look: the rarest god-tier beings, most detailed and majestic, with a radi
 3. Yeomra, King of the Underworld: black royal robe, wide black gat hat, pale face, ominous blue soul flames
 ```
 
-## 적 몬스터 (27종)
+## ✅ 적 몬스터 (27종)
 
-> 격자 3장 · 뽑기 몬스터와 다른 무서운 느낌 · assets/enemies/
+> 적용 완료 · 격자 3장 · 뽑기 몬스터와 다른 무서운 느낌 · assets/enemies/
 
 ### `grid_e01.png` 적 1~9번
 첨부: grid_m01 결과 이미지 첨부 (같은 화풍 유지)
@@ -234,9 +637,9 @@ Use exactly the same pixel art style, outline and pixel size as the attached ima
 9. RAID BOSS: a dark purple nine-tailed fox queen with pink foxfire
 ```
 
-## 메인 캐릭터 (인간·구미호·도깨비 × 남·여)
+## ✅ 메인 캐릭터 (인간·구미호·도깨비 × 남·여)
 
-> 직업 없음 · ① 6명 한 장으로 디자인 확정 → ② 1명씩 크게 → ③ 동작 6개(마법 모으기·발사 포함) · assets/hero/
+> 적용 완료 · 직업 없음 · ① 6명 한 장으로 디자인 확정 → ② 1명씩 크게 → ③ 동작 6개(마법 모으기·발사 포함) · assets/hero/
 
 ### `grid_h_all.png` 6명 한 장 (디자인 확정용)
 첨부: grid_m01 결과 이미지 첨부 (몬스터와 같은 도트 크기)
@@ -355,9 +758,9 @@ Animation pose sheet of THIS SAME character from the attached image (keep exactl
 Animation pose sheet of THIS SAME character from the attached image (keep exactly the same design, colors, costume and proportions), all facing right, 6 poses: 1) idle standing, 2) running, 3) melee attack with motion lines, 4) charging a spell (magic energy gathering around the hands), 5) releasing the spell forward with a magic burst, 6) hurt / knocked back. Signature magic: slamming the club to call blue lightning and dokkaebi fire. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 6 different characters arranged in a 2x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
 ```
 
-## 몬스터·적 마법 동작
+## ✅ 몬스터·적 마법 동작
 
-> 원본 격자와 같은 칸 배치로 마법 쓰는 모습 · 공격·맞는 동작은 게임 연출로 처리
+> 적용 완료 · 원본 격자와 같은 칸 배치로 마법 쓰는 모습 · 공격·맞는 동작은 게임 연출로 처리
 
 ### `grid_m01_cast.png` C등급 1~9번 · 마법 쓰는 모습
 첨부: grid_m01.png 결과 이미지 첨부
@@ -572,9 +975,9 @@ Use the attached sprite sheet as the exact reference: the SAME 9 characters in t
 9. 구미호여왕: fire magic
 ```
 
-## 마법 이펙트 (11종)
+## ✅ 마법 이펙트 (11종)
 
-> 6프레임 애니메이션 · 검은 배경 그대로 OK (게임에서 빛나게 합성) · assets/fx/
+> 적용 완료 · 6프레임 애니메이션 · 검은 배경 그대로 OK (게임에서 빛나게 합성) · assets/fx/
 
 ### `fx_fire.png` 불 공격
 첨부: grid_m01 결과 이미지 첨부 (같은 도트 크기)
