@@ -127,7 +127,7 @@ const LINES_RAW = [
   { id: 'yeomra',   el: 'dark',  r: 'SSS', n: '염라',      arch: 'reaper',  pal: ['#1a1a24', '#3a3a4a', '#d8463a'], feat: ['gat'], names: ['저승차사', '저승사자', '염라대왕'], skill: 'drain', spd: 1.05 },
 ];
 const LINES = LINES_RAW.map(l => Object.assign({}, l, {
-  names: l.names || [`아기 ${l.n}`, l.n, l.r === 'S' ? `대${l.n}` : `${EPITHET[l.r]} ${l.n}`],
+  names: Array(3).fill(l.names ? l.names[1] : l.n), // 진화 삭제 → 이름 하나
 }));
 const LINE_MAP = Object.fromEntries(LINES.map(l => [l.id, l]));
 
@@ -171,10 +171,11 @@ const ENEMY_MAP = Object.fromEntries(ENEMIES.map(e => [e.id, e]));
 const RACES = { human: '인간', fox: '구미호', goblin: '도깨비' }; // 메인 캐릭터 종족 (직업 없음)
 
 // 성장 공식
-const FORM_MUL = [1, 1.7, 2.8];
-const FORM_CAP = [20, 40, 60];
-const FORM_LABEL = ['1단계', '2단계', '3단계'];
-const EVO_COST = [ { stones: 5, gold: 3000 }, { stones: 20, gold: 25000 } ];
+const FORM_MUL = [1, 1, 1]; // 단계(크기 연출용)는 능력치에 영향 없음
+// 진화 없음: 몬스터는 레벨(최대 100)과 성급으로만 성장
+const MON_MAX_LV = 100;
+const FORM_CAP = [MON_MAX_LV, MON_MAX_LV, MON_MAX_LV];
+const STAR_STONES = star => 3 * (star + 1); // 성급 강화에 드는 영혼석
 const MAX_STAR = 5;
 const DUP_SHARDS = 10;
 

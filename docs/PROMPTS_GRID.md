@@ -4,6 +4,319 @@
 - 결과 이미지는 **파일 이름 그대로** 저장해서 대화창에 올려주세요. 잘라서 게임에 넣는 건 제가 합니다.
 - 칸이 삐뚤거나 그림에 글자가 들어가면 같은 프롬프트로 다시 뽑으면 돼요.
 
+## 🆕 자연스러운 모션 (25장)
+
+> 숨쉬기·흔들림은 코드로 처리 중 · 이 그림이 오면 공격이 더 생동감 있어져요 · 몬스터는 원본 격자와 같은 칸 배치
+
+### `grid_m01_atk.png` C등급 1~9번 · 기본 공격 포즈
+첨부: grid_m01.png 결과 이미지 첨부
+순서: 1.짚신동이 · 2.빗자루귀 · 3.장독이 · 4.호롱불이 · 5.엽전귀 · 6.복주머니 · 7.떡보 · 8.송편이 · 9.도토리귀
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 짚신동이: kicking hop
+2. 빗자루귀: sweeping swing
+3. 장독이: rolling bash
+4. 호롱불이: swinging bump
+5. 엽전귀: spinning roll
+6. 복주머니: bouncing bump
+7. 떡보: jumping body slam
+8. 송편이: jumping body slam
+9. 도토리귀: jumping body slam
+```
+
+### `grid_m02_atk.png` C등급 10~18번 · 기본 공격 포즈
+첨부: grid_m02.png 결과 이미지 첨부
+순서: 1.꼬마두꺼비 · 2.개구리동자 · 3.청설모 · 4.너구리 · 5.아기멧돼지 · 6.반딧불요정 · 7.나비정령 · 8.까치 · 9.참새동이
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 꼬마두꺼비: tongue lash
+2. 개구리동자: tongue lash
+3. 청설모: pouncing forward with claws
+4. 너구리: pouncing forward with claws
+5. 아기멧돼지: pouncing forward with claws
+6. 반딧불요정: darting sting
+7. 나비정령: darting sting
+8. 까치: diving peck with wings spread
+9. 참새동이: diving peck with wings spread
+```
+
+### `grid_m03_atk.png` C등급 19~27번 · 기본 공격 포즈
+첨부: grid_m03.png 결과 이미지 첨부
+순서: 1.편복이 · 2.꼬마잉어 · 3.메기 · 4.꽃게 · 5.도깨비불 · 6.푸른혼불 · 7.달걀귀신 · 8.이끼돌 · 9.고드름이
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 편복이: diving bite
+2. 꼬마잉어: leaping tail slap
+3. 메기: leaping tail slap
+4. 꽃게: claw pinch
+5. 도깨비불: flaming head-butt
+6. 푸른혼불: flaming head-butt
+7. 달걀귀신: sudden lunge
+8. 이끼돌: rolling tackle
+9. 고드름이: jumping body slam
+```
+
+### `grid_m04_atk.png` C·B등급 28~36번 · 기본 공격 포즈
+첨부: grid_m04.png 결과 이미지 첨부
+순서: 1.호리병 · 2.부채정령 · 3.하회탈 · 4.연꽃정령 · 5.해파리 · 6.진돗개 · 7.삽살개 · 8.청도깨비 · 9.홍도깨비
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 호리병: head-butt
+2. 부채정령: sharp fan slash
+3. 하회탈: head-butt with a scary face
+4. 연꽃정령: jumping body slam
+5. 해파리: stinging tentacle lash
+6. 진돗개: pouncing forward with claws
+7. 삽살개: pouncing forward with claws
+8. 청도깨비: swinging the club overhead
+9. 홍도깨비: swinging the club overhead
+```
+
+### `grid_m05_atk.png` B등급 37~45번 · 기본 공격 포즈
+첨부: grid_m05.png 결과 이미지 첨부
+순서: 1.장승 · 2.두루미 · 3.수리부엉이 · 4.불여우 · 5.노루 · 6.반달곰 · 7.수달 · 8.거북 · 9.구렁이
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 장승: heavy body slam
+2. 두루미: sharp beak strike
+3. 수리부엉이: talon strike
+4. 불여우: pouncing forward with claws
+5. 노루: pouncing forward with claws
+6. 반달곰: big paw swipe
+7. 수달: pouncing forward with claws
+8. 거북: shell bash
+9. 구렁이: snapping strike
+```
+
+### `grid_m06_atk.png` B등급 46~54번 · 기본 공격 포즈
+첨부: grid_m06.png 결과 이미지 첨부
+순서: 1.지네 · 2.문어 · 3.처녀귀신 · 4.물귀신 · 5.청사초롱 · 6.맷돌정령 · 7.꽃사슴 · 8.은빛잉어 · 9.화로정령
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 지네: pincer bite
+2. 문어: tentacle whip
+3. 처녀귀신: lunging with long hair whipping
+4. 물귀신: scary lunge with claws
+5. 청사초롱: swinging bump
+6. 맷돌정령: heavy spin bash
+7. 꽃사슴: pouncing forward with claws
+8. 은빛잉어: leaping tail slap
+9. 화로정령: rolling bash
+```
+
+### `grid_m07_atk.png` B·A등급 55~63번 · 기본 공격 포즈
+첨부: grid_m07.png 결과 이미지 첨부
+순서: 1.쥐불이 · 2.금두꺼비 · 3.그슨대 · 4.두억시니 · 5.금도깨비 · 6.매구 · 7.용마 · 8.불곰신 · 9.청학
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 쥐불이: pouncing forward with claws
+2. 금두꺼비: tongue lash
+3. 그슨대: giant shadow claw
+4. 두억시니: swinging the club overhead
+5. 금도깨비: swinging the club overhead
+6. 매구: pouncing forward with claws
+7. 용마: rearing up and kicking
+8. 불곰신: big paw swipe
+9. 청학: sharp beak strike
+```
+
+### `grid_m08_atk.png` A·S등급 64~72번 · 기본 공격 포즈
+첨부: grid_m08.png 결과 이미지 첨부
+순서: 1.업구렁이 · 2.목각장군 · 3.조왕신 · 4.해태 · 5.불가사리 · 6.이무기 · 7.삼족오 · 8.장산범 · 9.산군
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 업구렁이: snapping strike
+2. 목각장군: heavy body slam
+3. 조왕신: rolling bash
+4. 해태: charging headbutt
+5. 불가사리: charging headbutt
+6. 이무기: snapping strike
+7. 삼족오: diving peck with wings spread
+8. 장산범: charging headbutt
+9. 산군: pouncing with a big claw swipe
+```
+
+### `grid_m09_atk.png` S·SS등급 73~79번 · 기본 공격 포즈
+첨부: grid_m09.png 결과 이미지 첨부
+순서: 1.용왕거북 · 2.도깨비대장 · 3.청룡 · 4.백호 · 5.주작 · 6.현무 · 7.기린
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 7 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 7 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 용왕거북: shell bash
+2. 도깨비대장: swinging the club overhead
+3. 청룡: biting lunge
+4. 백호: pouncing with a big claw swipe
+5. 주작: wing slash
+6. 현무: shell bash
+7. 기린: rearing up and kicking
+```
+
+### `grid_m10_atk.png` SSS등급 3종 (크게) · 기본 공격 포즈
+첨부: grid_m10.png 결과 이미지 첨부
+순서: 1.황룡 · 2.천호 · 3.염라
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 3 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 3 different characters arranged in a 1x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 황룡: biting lunge
+2. 천호: pouncing forward with claws
+3. 염라: swinging a staff
+```
+
+### `grid_e01_atk.png` 적 1~9번 · 기본 공격 포즈
+첨부: grid_e01.png 결과 이미지 첨부
+순서: 1.들쥐요괴 · 2.성난멧돼지 · 3.독버섯귀 · 4.산도깨비 · 5.흑곰대장 · 6.익사귀 · 7.독해파리 · 8.집게귀 · 9.아귀
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 들쥐요괴: pouncing forward with claws
+2. 성난멧돼지: charging tusk tackle
+3. 독버섯귀: jumping body slam
+4. 산도깨비: swinging the club overhead
+5. 흑곰대장: big paw swipe
+6. 익사귀: scary lunge with claws
+7. 독해파리: stinging tentacle lash
+8. 집게귀: claw pinch
+9. 아귀: leaping tail slap
+```
+
+### `grid_e02_atk.png` 적 10~18번 · 기본 공격 포즈
+첨부: grid_e02.png 결과 이미지 첨부
+순서: 1.대왕문어 · 2.불도깨비 · 3.화서 · 4.용암두꺼비 · 5.화염박쥐 · 6.화산거인 · 7.원혼 · 8.얼굴없는귀 · 9.해골병사
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 대왕문어: tentacle whip
+2. 불도깨비: swinging the club overhead
+3. 화서: pouncing forward with claws
+4. 용암두꺼비: tongue lash
+5. 화염박쥐: diving bite
+6. 화산거인: ground punch
+7. 원혼: lunging with long hair whipping
+8. 얼굴없는귀: sudden lunge
+9. 해골병사: swinging the club overhead
+```
+
+### `grid_e03_atk.png` 적 19~27번 · 기본 공격 포즈
+첨부: grid_e03.png 결과 이미지 첨부
+순서: 1.그림자늑대 · 2.저승사자 · 3.석상해태 · 4.천둥새 · 5.먹구름요괴 · 6.금강역사 · 7.뇌신 · 8.흑이무기 · 9.구미호여왕
+
+```
+Use the attached sprite sheet as the exact reference: the SAME 9 characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. 그림자늑대: pouncing forward with claws
+2. 저승사자: swinging a staff
+3. 석상해태: charging headbutt
+4. 천둥새: diving peck with wings spread
+5. 먹구름요괴: thunder bump
+6. 금강역사: swinging the club overhead
+7. 뇌신: ground punch
+8. 흑이무기: biting lunge
+9. 구미호여왕: pouncing forward with claws
+```
+
+### `hero_human_m_idle.png` 인간 남자 숨쉬기 4프레임
+첨부: hero_human_m 결과 이미지 첨부
+순서: 기본 · 들숨 · 멈춤 · 날숨
+
+```
+Idle breathing animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, the character stays in EXACTLY the same position, size and pose in every frame (pixel-identical except tiny changes): frame 1 neutral, frame 2 inhale (chest and shoulders rise by 1-2 pixels), frame 3 hold, frame 4 exhale back down; hair, ribbons, sleeves and tails sway very slightly. Do not move the feet. Same scale in all frames. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_human_m_attack.png` 인간 남자 기본 공격 4프레임
+첨부: hero_human_m 결과 이미지 첨부
+순서: 예비동작 · 타격 · 마무리 · 복귀
+
+```
+Basic attack animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, keep the same design, colors and scale, feet stay on the same ground line: frame 1 anticipation (pulling back the weapon), frame 2 strike (fast swing with a white motion arc), frame 3 follow-through, frame 4 recover to ready stance. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_fox_m_idle.png` 구미호 남자 숨쉬기 4프레임
+첨부: hero_fox_m 결과 이미지 첨부
+순서: 기본 · 들숨 · 멈춤 · 날숨
+
+```
+Idle breathing animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, the character stays in EXACTLY the same position, size and pose in every frame (pixel-identical except tiny changes): frame 1 neutral, frame 2 inhale (chest and shoulders rise by 1-2 pixels), frame 3 hold, frame 4 exhale back down; hair, ribbons, sleeves and tails sway very slightly. Do not move the feet. Same scale in all frames. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_fox_m_attack.png` 구미호 남자 기본 공격 4프레임
+첨부: hero_fox_m 결과 이미지 첨부
+순서: 예비동작 · 타격 · 마무리 · 복귀
+
+```
+Basic attack animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, keep the same design, colors and scale, feet stay on the same ground line: frame 1 anticipation (pulling back the weapon), frame 2 strike (fast swing with a white motion arc), frame 3 follow-through, frame 4 recover to ready stance. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_goblin_m_idle.png` 도깨비 남자 숨쉬기 4프레임
+첨부: hero_goblin_m 결과 이미지 첨부
+순서: 기본 · 들숨 · 멈춤 · 날숨
+
+```
+Idle breathing animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, the character stays in EXACTLY the same position, size and pose in every frame (pixel-identical except tiny changes): frame 1 neutral, frame 2 inhale (chest and shoulders rise by 1-2 pixels), frame 3 hold, frame 4 exhale back down; hair, ribbons, sleeves and tails sway very slightly. Do not move the feet. Same scale in all frames. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_goblin_m_attack.png` 도깨비 남자 기본 공격 4프레임
+첨부: hero_goblin_m 결과 이미지 첨부
+순서: 예비동작 · 타격 · 마무리 · 복귀
+
+```
+Basic attack animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, keep the same design, colors and scale, feet stay on the same ground line: frame 1 anticipation (pulling back the weapon), frame 2 strike (fast swing with a white motion arc), frame 3 follow-through, frame 4 recover to ready stance. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_human_f_idle.png` 인간 여자 숨쉬기 4프레임
+첨부: hero_human_f 결과 이미지 첨부
+순서: 기본 · 들숨 · 멈춤 · 날숨
+
+```
+Idle breathing animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, the character stays in EXACTLY the same position, size and pose in every frame (pixel-identical except tiny changes): frame 1 neutral, frame 2 inhale (chest and shoulders rise by 1-2 pixels), frame 3 hold, frame 4 exhale back down; hair, ribbons, sleeves and tails sway very slightly. Do not move the feet. Same scale in all frames. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_human_f_attack.png` 인간 여자 기본 공격 4프레임
+첨부: hero_human_f 결과 이미지 첨부
+순서: 예비동작 · 타격 · 마무리 · 복귀
+
+```
+Basic attack animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, keep the same design, colors and scale, feet stay on the same ground line: frame 1 anticipation (pulling back the weapon), frame 2 strike (fast swing with a white motion arc), frame 3 follow-through, frame 4 recover to ready stance. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_fox_f_idle.png` 구미호 여자 숨쉬기 4프레임
+첨부: hero_fox_f 결과 이미지 첨부
+순서: 기본 · 들숨 · 멈춤 · 날숨
+
+```
+Idle breathing animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, the character stays in EXACTLY the same position, size and pose in every frame (pixel-identical except tiny changes): frame 1 neutral, frame 2 inhale (chest and shoulders rise by 1-2 pixels), frame 3 hold, frame 4 exhale back down; hair, ribbons, sleeves and tails sway very slightly. Do not move the feet. Same scale in all frames. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_fox_f_attack.png` 구미호 여자 기본 공격 4프레임
+첨부: hero_fox_f 결과 이미지 첨부
+순서: 예비동작 · 타격 · 마무리 · 복귀
+
+```
+Basic attack animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, keep the same design, colors and scale, feet stay on the same ground line: frame 1 anticipation (pulling back the weapon), frame 2 strike (fast swing with a white motion arc), frame 3 follow-through, frame 4 recover to ready stance. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_goblin_f_idle.png` 도깨비 여자 숨쉬기 4프레임
+첨부: hero_goblin_f 결과 이미지 첨부
+순서: 기본 · 들숨 · 멈춤 · 날숨
+
+```
+Idle breathing animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, the character stays in EXACTLY the same position, size and pose in every frame (pixel-identical except tiny changes): frame 1 neutral, frame 2 inhale (chest and shoulders rise by 1-2 pixels), frame 3 hold, frame 4 exhale back down; hair, ribbons, sleeves and tails sway very slightly. Do not move the feet. Same scale in all frames. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
+### `hero_goblin_f_attack.png` 도깨비 여자 기본 공격 4프레임
+첨부: hero_goblin_f 결과 이미지 첨부
+순서: 예비동작 · 타격 · 마무리 · 복귀
+
+```
+Basic attack animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, keep the same design, colors and scale, feet stay on the same ground line: frame 1 anticipation (pulling back the weapon), frame 2 strike (fast swing with a white motion arc), frame 3 follow-through, frame 4 recover to ready stance. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+```
+
 ## 🆕 등급별 스킬 이펙트 (26종)
 
 > 끝나는 모양이 전부 다름 · C·B → A → S → SS(사신 전용) → SSS(전용 궁극기) 순으로 화려해짐 · 검은 배경 OK · assets/fx/

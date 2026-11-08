@@ -245,6 +245,27 @@ groups.push({ id: 'fx', title: '✅ 마법 이펙트 (11종)', note: '적용 완
   prompt: `Same pixel size as the attached image. ${FX_STYLE}\nEffect: ${d}.`,
 })) });
 
+// ---- 🆕 자연스러운 모션: 몬스터 기본 공격 포즈 + 캐릭터 숨쉬기·공격 연속 프레임 ----
+const ATK_KIND = { quad: 'pouncing forward with claws', fox: 'pouncing forward with claws', tiger: 'pouncing with a big claw swipe', lion: 'charging headbutt', horse: 'rearing up and kicking', boar: 'charging tusk tackle', bear: 'big paw swipe', goblin: 'swinging the club overhead', blob: 'jumping body slam', toad: 'tongue lash', bird: 'diving peck with wings spread', crane: 'sharp beak strike', owl: 'talon strike', bat: 'diving bite', insect: 'darting sting', phoenix: 'wing slash', fish: 'leaping tail slap', crab: 'claw pinch', octo: 'tentacle whip', jelly: 'stinging tentacle lash', wisp: 'flaming head-butt', ghost: 'scary lunge with claws', ghostlady: 'lunging with long hair whipping', egghost: 'sudden lunge', reaper: 'swinging a staff', shadow: 'giant shadow claw', turtle: 'shell bash', serpent: 'snapping strike', dragon: 'biting lunge', centipede: 'pincer bite', golem: 'ground punch', cloud: 'thunder bump', shoe: 'kicking hop', broom: 'sweeping swing', jar: 'rolling bash', millstone: 'heavy spin bash', lantern: 'swinging bump', coin: 'spinning roll', pouch: 'bouncing bump', gourd: 'head-butt', fan: 'sharp fan slash', mask: 'head-butt with a scary face', totem: 'heavy body slam', rock: 'rolling tackle' };
+const ag = { id: 'motion', title: '🆕 자연스러운 모션 (25장)', note: '숨쉬기·흔들림은 코드로 처리 중 · 이 그림이 오면 공격이 더 생동감 있어져요 · 몬스터는 원본 격자와 같은 칸 배치', items: [] };
+for (const it of [...mg.items, ...eg.items]) {
+  const c = it._cast, n = c.list.length;
+  ag.items.push({
+    file: it.file.replace('.png', '_atk.png'), name: `${it.name} · 기본 공격 포즈`, tags: ['공격'], attach: `${it.file} 결과 이미지 첨부`,
+    note: it.note,
+    prompt: `Use the attached sprite sheet as the exact reference: the SAME ${n} characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in the middle of a physical basic attack (NO magic): body leaning forward toward the right, a clear dynamic action pose with a few white motion lines, still facing right, still fully inside its own cell. ${STYLE} ${GRID(c.rows, c.cols, n)}\n${c.list.map((m, j) => `${j + 1}. ${m.n}: ${ATK_KIND[m.arch] || 'lunging strike'}`).join('\n')}`,
+  });
+}
+const IDLE = 'Idle breathing animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, the character stays in EXACTLY the same position, size and pose in every frame (pixel-identical except tiny changes): frame 1 neutral, frame 2 inhale (chest and shoulders rise by 1-2 pixels), frame 3 hold, frame 4 exhale back down; hair, ribbons, sleeves and tails sway very slightly. Do not move the feet. Same scale in all frames.';
+const ATK4 = 'Basic attack animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, keep the same design, colors and scale, feet stay on the same ground line: frame 1 anticipation (pulling back the weapon), frame 2 strike (fast swing with a white motion arc), frame 3 follow-through, frame 4 recover to ready stance.';
+HEROES.forEach(([id, ko]) => {
+  ag.items.push({ file: `hero_${id}_idle.png`, name: `${ko} 숨쉬기 4프레임`, tags: ['숨쉬기'], attach: `hero_${id} 결과 이미지 첨부`, note: '순서: 기본 · 들숨 · 멈춤 · 날숨',
+    prompt: `${IDLE} ${heroStyle} ${COOL} ${GRID(1, 4, 4)}` });
+  ag.items.push({ file: `hero_${id}_attack.png`, name: `${ko} 기본 공격 4프레임`, tags: ['공격'], attach: `hero_${id} 결과 이미지 첨부`, note: '순서: 예비동작 · 타격 · 마무리 · 복귀',
+    prompt: `${ATK4} ${heroStyle} ${COOL} ${GRID(1, 4, 4)}` });
+});
+groups.push(ag);
+
 // ===================== 다음 생성분 (2차) =====================
 // ---- 등급별 스킬 이펙트: 모양·끝맺음이 전부 다르게, 등급이 오를수록 화려하게 ----
 const FX2_STYLE = 'Pixel art skill effect animation sprite sheet for a Korean folklore fantasy RPG, same crisp 16-bit pixel style and pixel size as the attached effect sheet, bright glowing colors, traditional Korean motifs (dancheong patterns, taegeuk, clouds, talismans) but NO letters and NO text, frames of equal size in one horizontal row, left to right in time order, no characters, the entire background is flat solid black #000000.';

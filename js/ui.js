@@ -196,7 +196,7 @@ const UI = (() => {
         ${s.team.map(id => {
           const o = s.owned[id], L = LINE_MAP[id];
           return `<div class="tcard" data-id="${id}" style="--rc:${RARITY[L.r].color}">
-            <div class="art">${mon(id, o.form)}</div>
+            <div class="art">${mon(id, 2)}</div>
             <div class="tlv">Lv.${o.lvl}</div>
             <button class="qlv" data-q="${id}" ${Game.canLevel(id) ? '' : 'disabled'}>▲</button>
           </div>`;
@@ -244,13 +244,13 @@ const UI = (() => {
         <div class="rt">${L.r}</div><div class="art">${mon(id, 0, { silhouette: true })}</div><div class="nm">???</div></div>`;
     }
     const inTeam = G.state.team.includes(id);
-    const alert = Game.canEvolve(id) || Game.canStar(id);
+    const alert = Game.canStar(id);
     return `<div class="mcard${inTeam ? ' inteam' : ''}" data-id="${id}" style="--rc:${RARITY[L.r].color}">
       <div class="rt">${L.r}</div><div class="elx">${ELEMENTS[L.el].icon}</div>
       ${alert ? '<div class="dot on">!</div>' : ''}
-      <div class="art">${mon(id, o.form)}</div>
+      <div class="art">${mon(id, 2)}</div>
       <div class="st">${stars(o.star)}</div>
-      <div class="nm">${L.names[o.form]}</div>
+      <div class="nm">${L.names[1]}</div>
       <div class="lv">Lv.${o.lvl}</div>
     </div>`;
   }
@@ -281,7 +281,7 @@ const UI = (() => {
     const L = LINE_MAP[id], o = G.state.owned[id], s = G.state;
     const st = Game.monStats(id), cap = FORM_CAP[o.form], cost = Game.levelCost(o.lvl);
     const maxed = o.lvl >= cap, inTeam = s.team.includes(id);
-    const shards = s.shards[id] || 0, need = Game.starCost(o.star), evoC = EVO_COST[o.form];
+    const shards = s.shards[id] || 0, need = Game.starCost(o.star), needSt = STAR_STONES(o.star);
     let nextSt = null;
     if (!maxed) {
       const a = Game.stats(id, o.lvl, o.form, o.star), b2 = Game.stats(id, o.lvl + 1, o.form, o.star);
@@ -290,11 +290,11 @@ const UI = (() => {
     const m = modal(`
       <div class="detail" style="--rc:${RARITY[L.r].color}">
         <div class="d-top">
-          <div class="d-art" data-el="${L.el}">${mon(id, o.form)}</div>
+          <div class="d-art" data-el="${L.el}">${mon(id, 2)}</div>
           <div class="d-info">
             <div><span class="rbadge">${L.r}</span> <span class="ebadge">${ELEMENTS[L.el].icon} ${ELEMENTS[L.el].name}</span></div>
-            <div class="d-name">${L.names[o.form]}</div>
-            <div class="muted">${FORM_LABEL[o.form]} · Lv.${o.lvl}/${cap}</div>
+            <div class="d-name">${L.names[1]}</div>
+            <div class="muted">${L.r}등급 · Lv.${o.lvl}/${cap}</div>
             <div class="lvbar"><i style="width:${(o.lvl / cap) * 100}%"></i></div>
             <div class="d-star">${'★'.repeat(o.star)}<span class="muted">${'☆'.repeat(MAX_STAR - o.star)}</span></div>
             <div class="d-pow">⚔️ ${fmt(Game.power(st))}</div>
@@ -307,15 +307,12 @@ const UI = (() => {
         </div>
         <div class="d-skill">${Assets.castArt(id)}<div><b>✦ ${SKILLS[L.skill].name}</b> <span class="muted">${SKILLS[L.skill].desc}</span></div></div>
         <div class="mgear"><span class="muted small">장비</span>${MON_SLOTS.map(sl => gearCell(Gear.inSlot('m:' + id, sl), sl)).join('')}<span class="muted small">다른 몬스터와<br>돌려 쓸 수 있어요</span></div>
-        <div class="evo-line">${L.names.map((n, i) => `<div class="${i === o.form ? 'now' : ''}">${mon(id, i, { silhouette: i > o.form })}<small>${i <= o.form ? n : '???'}</small></div>`).join('<span>›</span>')}</div>
         <div class="d-actions">
           ${!maxed ? `
             <button class="btn" data-lv="1">레벨업<small>${ic('gold')}${fmt(cost.gold)}</small></button>
             <button class="btn" data-lv="10">+10 레벨<small>가능한 만큼</small></button>`
-          : o.form < 2 ? `
-            <button class="btn purple wide" data-evo ${Game.canEvolve(id) ? '' : 'disabled'}>✨ 진화 → ${L.names[o.form + 1]}<small>${ic('stones')}${s.stones}/${evoC.stones} ${ic('gold')}${fmt(evoC.gold)}</small></button>`
-          : `<div class="muted wide center">최대 레벨 · 최종 진화 완료!</div>`}
-          <button class="btn gold" data-star ${Game.canStar(id) ? '' : 'disabled'}>⭐ 성급 강화<small>${o.star >= MAX_STAR ? 'MAX' : `조각 ${shards}/${need}`}</small></button>
+          : `<div class="muted wide center">최대 레벨 달성! 성급 강화로 더 강해질 수 있어요</div>`}
+          <button class="btn gold" data-star ${Game.canStar(id) ? '' : 'disabled'}>⭐ 성급 강화<small>${o.star >= MAX_STAR ? 'MAX' : `조각 ${shards}/${need} · ${ic('stones')}${s.stones}/${needSt}`}</small></button>
           <button class="btn ${inTeam ? 'gray' : 'green'}" data-team>${inTeam ? '팀에서 빼기' : '팀에 넣기'}</button>
         </div>
       </div>`, 'wide-modal');
@@ -324,8 +321,6 @@ const UI = (() => {
       if (!n) return toast('골드가 부족해요');
       Sound.play('levelup'); toast(`레벨 +${n}!`); Game.save(); after(id);
     });
-    const ev = m.querySelector('[data-evo]');
-    if (ev) ev.onclick = () => { if (Game.evolve(id)) { Game.save(); Game.restartStage(); evoFx(id); } };
     m.querySelector('[data-star]').onclick = () => { if (Game.starUp(id)) { Sound.play('levelup'); toast('⭐ 성급 상승!'); Game.save(); after(id); } };
     m.querySelector('[data-team]').onclick = () => {
       const r = Game.toggleTeam(id);
@@ -340,7 +335,7 @@ const UI = (() => {
   function evoFx(id) {
     const L = LINE_MAP[id], o = G.state.owned[id];
     Sound.play('evolve');
-    modal(`<div class="evofx"><div class="evo-rays"></div><div class="evo-glow">${mon(id, o.form)}</div>
+    modal(`<div class="evofx"><div class="evo-rays"></div><div class="evo-glow">${mon(id, 2)}</div>
       <div class="rp-title">진화 성공!</div><div>${L.names[o.form - 1]} → <b>${L.names[o.form]}</b></div>
       <button class="btn wide" data-close>확인</button></div>`, 'evo-modal');
     refresh();
@@ -436,7 +431,7 @@ const UI = (() => {
       <div class="rm-info">
         <div>체력 <b>${fmt(st.hp)}</b></div><div>제한시간 <b>${RAID.time}초</b></div><div>최고 <b>${Math.round(R.bestPct * 100)}%</b></div>
       </div>
-      <div class="small muted">입힌 피해량에 비례해 골드·먹이 · 25%마다 진화석 · 처치 시 💎50 + 🔮3 + 다음 레벨</div>
+      <div class="small muted">입힌 피해량에 비례해 골드·먹이 · 25%마다 영혼석 · 처치 시 💎50 + 🔮3 + 다음 레벨</div>
       <div class="row">
         <button class="btn red" id="raid-go" ${Game.raidTickets() > 0 ? '' : 'disabled'}>⚔️ 도전<small>🎫 ${Game.raidTickets()}/${RAID.tickets}</small></button>
         ${adBtn('입장권 +1', adLeft('raidAd'), 'raid-ad')}
@@ -461,7 +456,7 @@ const UI = (() => {
         const t = Game.arenaTier(o.pts);
         return `<div class="opp">
           <div class="op-info"><b>${o.name}</b><small style="color:${t.color}">${t.name} ${o.pts}</small><small>⚔️ ${fmt(o.power)}</small></div>
-          <div class="op-team">${o.lines.map(id => `<div>${mon(id, o.form)}</div>`).join('')}</div>
+          <div class="op-team">${o.lines.map(id => `<div>${mon(id, 2)}</div>`).join('')}</div>
           <button class="btn ${o.mult > 1 ? 'red' : o.mult < 1 ? 'green' : ''}" data-fight="${i}" ${Game.arenaTickets() > 0 ? '' : 'disabled'}>도전</button>
         </div>`;
       }).join('')}</div>
@@ -565,7 +560,7 @@ const UI = (() => {
         <button class="btn gold" data-pkg="adfree" ${s.adFree ? 'disabled' : ''}>${s.adFree ? '보유 중' : '₩5,500'}</button></div>
       <div class="pkg"><div><b>골드 주머니</b><br><small class="muted">💰${fmt(goldAmt)}</small></div><button class="btn" data-ex="gold">💎 100</button></div>
       <div class="pkg"><div><b>강화석 x30</b><br><small class="muted">🔨30</small></div><button class="btn" data-ex="ench">💎 100</button></div>
-      <div class="pkg"><div><b>진화석 x5</b><br><small class="muted">🔮5</small></div><button class="btn" data-ex="stones">💎 150</button></div>
+      <div class="pkg"><div><b>영혼석 x5</b><br><small class="muted">🔮5</small></div><button class="btn" data-ex="stones">💎 150</button></div>
       <p class="small muted center">테스트 빌드: 결제는 실제로 청구되지 않습니다.</p>`;
     p.querySelector('.gem-ad').onclick = async () => {
       if (await watchAd('gem', 'free_gems')) { s.gems += AD_GEM_REWARD; Game.save(); rewardPopup('무료 다이아', { gems: AD_GEM_REWARD }); }
@@ -949,7 +944,7 @@ const UI = (() => {
       <div class="intro-arts">${['jipsin', 'tteok', 'dukkeobi'].map(id => `<div>${mon(id, 0)}</div>`).join('')}</div>
       <div class="rp-title">몬스터 키우기</div>
       <p>몬스터들이 <b>자동으로 전투</b>하며 스테이지를 올라가요.<br>
-      <b>레벨업 · 진화 · 성급 강화</b>로 키우고<br><b>소환</b>으로 새로운 몬스터를 모아보세요!</p>
+      <b>레벨업 · 성급 강화 · 장비</b>로 키우고<br><b>소환</b>으로 새로운 몬스터를 모아보세요!</p>
       <p class="muted small">시작 선물: 💎300 (소환 3회)</p>
       <button class="btn wide" data-close>시작하기</button></div>`, '', () => setTimeout(attendance, 300));
     G.state.seenIntro = true; Game.save();

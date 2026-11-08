@@ -133,7 +133,7 @@ const Gear = (() => {
     if (!owner) return '';
     if (owner === 'hero') return S().hero ? S().hero.name : '영웅';
     const id = owner.slice(2), o = S().owned[id];
-    return o ? LINE_MAP[id].names[o.form] : '';
+    return o ? LINE_MAP[id].names[1] : '';
   }
 
   return { name, fullName, statsOf, power, icon, create, drop, find, ofOwner, inSlot, bonus, canWear, equip, unequip, autoEquip,

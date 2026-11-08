@@ -11,7 +11,10 @@ const BattleView = (() => {
     const o = { battle: true, cw: u.raid ? 58 / 21 : u.boss ? 34 / 21 : 1, boost: u.raid ? 3 : u.boss ? 1.2 : 1 };
     return u.enemyId ? Assets.enemy(u.enemyId, u.form, o) : Assets.monster(u.lineId, u.form, o);
   };
-  const nameOf = u => (u.hero ? u.name : u.enemyId ? ENEMY_MAP[u.enemyId].n : LINE_MAP[u.lineId].names[u.form]);
+  const nameOf = u => (u.hero ? u.name : u.enemyId ? ENEMY_MAP[u.enemyId].n : LINE_MAP[u.lineId].names[1]);
+
+  // 둥실 떠 있는 체형 (숨쉬기 대신 위아래로 떠다님)
+  const FLOATERS = ['bat', 'insect', 'wisp', 'ghost', 'ghostlady', 'egghost', 'fish', 'jelly', 'cloud', 'dragon', 'phoenix', 'lantern', 'mask', 'coin', 'fan', 'shadow', 'reaper'];
 
   function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
 
@@ -34,11 +37,13 @@ const BattleView = (() => {
   }
 
   function place(u, pos) {
-    const cls = `unit ${u.side}${u.hero ? ' hero' : ''}${u.boss ? ' boss' : ''}${u.raid ? ' raid' : ''}${u.alive ? '' : ' dead'}`;
+    const def = u.enemyId ? ENEMY_MAP[u.enemyId] : u.lineId ? LINE_MAP[u.lineId] : null;
+    const float = def && FLOATERS.includes(def.arch) ? ' float' : '';
+    const cls = `unit ${u.side}${u.hero ? ' hero' : ''}${u.boss ? ' boss' : ''}${u.raid ? ' raid' : ''}${float}${u.alive ? '' : ' dead'}`;
     const d = el(`<div class="${cls}" style="left:${pos[0]}%;top:${pos[1]}%;z-index:${Math.round(pos[1])}">
       ${u.raid ? '' : `<div class="ubar"><div class="hp"><i></i><b></b></div>${u.side === 'ally' ? '<div class="en"><i></i></div>' : ''}</div>`}
       <div class="shadow"></div>
-      <div class="sprite"><div class="bob" style="animation-delay:${(-Math.random() * 2).toFixed(2)}s">${artOf(u)}</div></div>
+      <div class="sprite"><div class="bob" style="--bd:${(2.3 + Math.random() * 0.9).toFixed(2)}s;animation-delay:${(-Math.random() * 3).toFixed(2)}s">${artOf(u)}</div></div>
     </div>`);
     u.dom = d;
     layer.appendChild(d);
@@ -119,6 +124,9 @@ const BattleView = (() => {
   }
 
   function damage(u, dmg, crit, elem) {
+    setTimeout(() => damageNow(u, dmg, crit, elem), 160); // 공격 모션의 '맞는 순간'에 맞춰 표시
+  }
+  function damageNow(u, dmg, crit, elem) {
     if (u.hero && !u._posing) pose(u, [[5, 300]]);
     retrigger(sprite(u), 'hit');
     floatText(u, fmt(dmg) + (crit ? '!' : ''), (crit ? 'crit ' : '') + (elem > 1 ? 'eff' : elem < 1 ? 'weak' : ''));

@@ -620,3 +620,48 @@ svg.pix, .mimg { image-rendering: pixelated; }
 .fxs { transform: translate(-50%, -50%); background-size: 600% 100%; background-repeat: no-repeat;
   image-rendering: auto; animation: fxs .6s steps(6) forwards; z-index: 115; }
 @keyframes fxs { from { background-position: 0% 0; } to { background-position: 120% 0; } }
+
+/* ================= 자연스러운 모션 ================= */
+/* 숨쉬기: 발을 기준으로 들숨에 살짝 길어지고 날숨에 살짝 퍼짐 */
+.unit .bob { animation: breathe var(--bd, 2.6s) ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes breathe {
+  0%, 100% { transform: scale(1, 1); }
+  40% { transform: scale(0.988, 1.028) translateY(-0.5%); }
+  55% { transform: scale(0.99, 1.024) translateY(-0.4%); }
+  80% { transform: scale(1.008, 0.99); }
+}
+/* 떠다니는 몬스터: 천천히 위아래 + 살짝 기울기 */
+.unit.float .bob { animation: hover calc(var(--bd, 2.6s) * 0.9) ease-in-out infinite; }
+@keyframes hover {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-6%) rotate(-1.5deg) scale(1.01, 0.99); }
+  65% { transform: translateY(-3%) rotate(1deg); }
+}
+.unit.float .shadow { animation: shadowPulse calc(var(--bd, 2.6s) * 0.9) ease-in-out infinite; }
+@keyframes shadowPulse { 30% { transform: scaleX(.8); opacity: .6; } }
+/* 기본 공격: 뒤로 젖힘(예비) → 돌진 → 타격 순간 찌그러짐 → 복귀 */
+.sprite.atk { animation: lungeR .52s cubic-bezier(.3, .8, .4, 1); transform-origin: 50% 100%; }
+.enemy .sprite.atk { animation: lungeL .52s cubic-bezier(.3, .8, .4, 1); transform-origin: 50% 100%; }
+@keyframes lungeR {
+  0% { transform: none; }
+  20% { transform: translateX(-8%) scale(1.04, .95) rotate(-4deg); }
+  42% { transform: translateX(32%) scale(1.07, .94) rotate(5deg); }
+  56% { transform: translateX(27%) scale(.96, 1.04) rotate(2deg); }
+  100% { transform: none; }
+}
+@keyframes lungeL {
+  0% { transform: none; }
+  20% { transform: translateX(8%) scale(1.04, .95) rotate(4deg); }
+  42% { transform: translateX(-32%) scale(1.07, .94) rotate(-5deg); }
+  56% { transform: translateX(-27%) scale(.96, 1.04) rotate(-2deg); }
+  100% { transform: none; }
+}
+/* 맞았을 때: 하얗게 번쩍 + 뒤로 밀림 + 찌그러짐 */
+.sprite.hit { animation: hitBackL .34s ease-out; transform-origin: 50% 100%; }
+.enemy .sprite.hit { animation: hitBackR .34s ease-out; }
+@keyframes hitBackL { 0% { filter: brightness(3) saturate(0); } 25% { transform: translateX(-9%) scale(1.05, .93); filter: brightness(1.6); } 60% { transform: translateX(-3%) scale(.98, 1.02); } 100% { transform: none; filter: none; } }
+@keyframes hitBackR { 0% { filter: brightness(3) saturate(0); } 25% { transform: translateX(9%) scale(1.05, .93); filter: brightness(1.6); } 60% { transform: translateX(3%) scale(.98, 1.02); } 100% { transform: none; filter: none; } }
+/* 스킬 시전: 힘 모으며 몸을 웅크렸다 펴기 */
+.sprite.cast { animation: castPose .6s ease-out; transform-origin: 50% 100%; }
+@keyframes castPose { 0% { transform: none; } 30% { transform: scale(1.06, .92); filter: brightness(1.3) drop-shadow(0 0 8px #fff6a0); } 60% { transform: scale(.96, 1.08) translateY(-4%); filter: brightness(1.5) drop-shadow(0 0 14px #fff6a0); } 100% { transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .unit .bob, .unit.float .bob { animation: none; } }

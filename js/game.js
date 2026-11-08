@@ -49,6 +49,7 @@ const Game = (() => {
         if (s.idle && s.idle.food) { s.idle.gold += s.idle.food; delete s.idle.food; }
         s.team = s.team.slice(0, 4);
         if (s.hero && !CLASSES[s.hero.cls]) s.hero.cls = 'human';
+        for (const o of Object.values(s.owned)) o.form = 0;
         return s;
       }
     } catch (e) { console.warn(e); }
@@ -123,7 +124,7 @@ const Game = (() => {
   // ================= 성장 공식 =================
   function stats(lineId, lvl, form, star) {
     const L = LINE_MAP[lineId], b = RARITY[L.r].base;
-    const m = (1 + 0.12 * (lvl - 1)) * FORM_MUL[form] * (1 + 0.15 * star);
+    const m = (1 + 0.15 * (lvl - 1)) * FORM_MUL[form] * (1 + 0.2 * star); // 진화 대신 레벨·성급 성장 강화
     return { atk: Math.round(b.atk * m), hp: Math.round(b.hp * m), def: Math.round(b.def * m), spd: L.spd };
   }
   function monStats(id) {
@@ -202,29 +203,19 @@ const Game = (() => {
     const c = levelCost(o.lvl);
     return G.state.gold >= c.gold;
   }
-  function canEvolve(id) {
-    const o = G.state.owned[id];
-    if (o.form >= 2 || o.lvl < FORM_CAP[o.form]) return false;
-    const c = EVO_COST[o.form];
-    return G.state.stones >= c.stones && G.state.gold >= c.gold;
-  }
-  function evolve(id) {
-    if (!canEvolve(id)) return false;
-    const o = G.state.owned[id], c = EVO_COST[o.form];
-    G.state.stones -= c.stones; G.state.gold -= c.gold; o.form++;
-    return true;
-  }
+  const canEvolve = () => false; // 진화 삭제
+  const evolve = () => false;
   function canStar(id) {
     const o = G.state.owned[id];
-    return o.star < MAX_STAR && (G.state.shards[id] || 0) >= starCost(o.star);
+    return o.star < MAX_STAR && (G.state.shards[id] || 0) >= starCost(o.star) && G.state.stones >= STAR_STONES(o.star);
   }
   function starUp(id) {
     if (!canStar(id)) return false;
     const o = G.state.owned[id];
-    G.state.shards[id] -= starCost(o.star); o.star++;
+    G.state.shards[id] -= starCost(o.star); G.state.stones -= STAR_STONES(o.star); o.star++;
     return true;
   }
-  function monAlert() { return Object.keys(G.state.owned).some(id => canEvolve(id) || canStar(id)); }
+  function monAlert() { return Object.keys(G.state.owned).some(id => canStar(id)); }
 
   function toggleTeam(id) {
     const t = G.state.team, i = t.indexOf(id);
@@ -317,7 +308,7 @@ const Game = (() => {
     const pool = LINES.filter(l => RARITY_ORDER.indexOf(l.r) < 4 || Math.random() < 0.3);
     const lines = [];
     while (lines.length < n) { const l = pick(pool).id; if (!lines.includes(l)) lines.push(l); }
-    const formOf = lv => (lv > 40 ? 2 : lv > 20 ? 1 : 0);
+    const formOf = () => 2;
     const pw = lv => lines.reduce((a, id) => a + power(stats(id, lv, formOf(lv), 0)), 0);
     let lvl = 1;
     while (lvl < 60 && pw(lvl) < target) lvl++;
@@ -391,7 +382,7 @@ const Game = (() => {
   }
   function teamUnits() {
     const list = G.state.hero ? [heroUnit()] : [];
-    G.state.team.forEach(id => { const o = G.state.owned[id]; list.push(unit('ally', id, o.form, monStats(id), list.length)); });
+    G.state.team.forEach(id => { const o = G.state.owned[id]; list.push(unit('ally', id, 2, monStats(id), list.length)); });
     return list;
   }
 
