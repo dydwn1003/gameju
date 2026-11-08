@@ -90,7 +90,7 @@ const UI = (() => {
     if (!B) return;
     if (B.mode === 'stage') {
       const info = B.info;
-      $('#stage-label').innerHTML = `${ELEMENTS[info.el].icon} ${info.label}${info.boss ? ' <span class="bosstag">BOSS</span>' : ''}<span class="mode ${G.state.autoChallenge ? 'on' : 'off'}">${G.state.autoChallenge ? '도전' : '반복'}</span>`;
+      $('#stage-label').innerHTML = `${ELEMENTS[info.el].icon} ${info.label}${info.loop ? ` <span class="bosstag elite">강화 ${info.loop}</span>` : ''}${info.boss ? ' <span class="bosstag">BOSS</span>' : ''}<span class="mode ${G.state.autoChallenge ? 'on' : 'off'}">${G.state.autoChallenge ? '도전' : '반복'}</span>`;
       $('#wave-dots').innerHTML = Array.from({ length: B.waves }, (_, i) =>
         `<i class="${i < B.wave ? 'done' : i === B.wave ? 'cur' : ''}${info.boss && i === B.waves - 1 ? ' boss' : ''}"></i>`).join('');
     }

@@ -14,15 +14,17 @@ const ADV = { fire: 'grass', grass: 'water', water: 'fire', light: 'dark', dark:
 
 // 등급: C < B < A < S < SS < SSS
 const RARITY = {
-  C:   { rate: 50,   color: '#a3acb8', base: { atk: 10, hp: 80,  def: 4 } },
-  B:   { rate: 30,   color: '#56c46e', base: { atk: 13, hp: 100, def: 5 } },
-  A:   { rate: 13.5, color: '#4fa3ff', base: { atk: 17, hp: 130, def: 7 } },
-  S:   { rate: 5,    color: '#b26bff', base: { atk: 22, hp: 170, def: 9 } },
-  SS:  { rate: 1.2,  color: '#ffb020', base: { atk: 28, hp: 215, def: 11 } },
-  SSS: { rate: 0.3,  color: '#ff4f6b', base: { atk: 35, hp: 270, def: 14 } },
+  // 등급 배율: C 1 · B 1.5 · A 2.3 · S 3.5 · SS 5.5 · SSS 8.5  (확률 합계 100%)
+  C:   { rate: 54.3, color: '#a3acb8', base: { atk: 10, hp: 80,  def: 4 } },
+  B:   { rate: 30,   color: '#56c46e', base: { atk: 15, hp: 120, def: 6 } },
+  A:   { rate: 12,   color: '#4fa3ff', base: { atk: 23, hp: 184, def: 9 } },
+  S:   { rate: 3,    color: '#b26bff', base: { atk: 35, hp: 280, def: 14 } },
+  SS:  { rate: 0.62, color: '#ffb020', base: { atk: 55, hp: 440, def: 22 } },
+  SSS: { rate: 0.08, color: '#ff4f6b', base: { atk: 85, hp: 680, def: 34 } },
 };
 const RARITY_ORDER = ['C', 'B', 'A', 'S', 'SS', 'SSS'];
-const PITY_MAX = 80;       // 80회 안에 S 이상 확정
+const PITY_MAX = 80;       // 80회 안에 S 이상 확정 (천장: S 80% · SS 18% · SSS 2%)
+const SKILL_TIER = { C: 1, B: 1.12, A: 1.25, S: 1.42, SS: 1.65, SSS: 2 }; // 등급별 스킬 위력 배율
 const TEN_PULL_MIN = 'A';  // 10회 소환 마지막은 A 이상
 
 const SKILLS = {
@@ -297,3 +299,12 @@ const SIZE_CLASS = (() => {
   return o;
 })();
 const sizeOf = id => SIZE_H[SIZE_CLASS[id] || 'm'];
+
+// ===== 스테이지 구성 =====
+// 챕터 하나(1-1 ~ 1-10) = 몬스터 세트 하나 (일반 4종 + 10스테이지 보스).
+// 세트를 다 돌면 처음 세트로 돌아가되 더 강한 '강화' 회차가 되어 무한히 이어진다.
+const ENEMY_SETS = ELEMENT_ORDER.map(el => ({
+  el,
+  normals: ENEMIES.filter(e => e.ch === el && !e.boss && !e.raid).map(e => e.id),
+  boss: ENEMIES.find(e => e.ch === el && e.boss).id,
+}));

@@ -39,7 +39,7 @@ const BattleView = (() => {
   function place(u, pos) {
     const def = u.enemyId ? ENEMY_MAP[u.enemyId] : u.lineId ? LINE_MAP[u.lineId] : null;
     const float = def && FLOATERS.includes(def.arch) ? ' float' : '';
-    const cls = `unit ${u.side}${u.hero ? ' hero' : ''}${u.boss ? ' boss' : ''}${u.raid ? ' raid' : ''}${float}${u.alive ? '' : ' dead'}`;
+    const cls = `unit ${u.side}${u.hero ? ' hero' : ''}${u.boss ? ' boss' : ''}${u.raid ? ' raid' : ''}${u.loop ? ' elite' : ''}${float}${u.alive ? '' : ' dead'}`;
     const d = el(`<div class="${cls}" style="left:${pos[0]}%;top:${pos[1]}%;z-index:${Math.round(pos[1])}">
       ${u.raid ? '' : `<div class="ubar"><div class="hp"><i></i><b></b></div>${u.side === 'ally' ? '<div class="en"><i></i></div>' : ''}</div>`}
       <div class="shadow"></div>

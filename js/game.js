@@ -231,7 +231,7 @@ const Game = (() => {
     s.pity++;
     let r;
     const idx = k => RARITY_ORDER.indexOf(k);
-    if (s.pity >= PITY_MAX) { const x = Math.random(); r = x < 0.05 ? 'SSS' : x < 0.25 ? 'SS' : 'S'; }
+    if (s.pity >= PITY_MAX) { const x = Math.random(); r = x < 0.02 ? 'SSS' : x < 0.2 ? 'SS' : 'S'; }
     else {
       let x = Math.random() * 100;
       r = 'C';
@@ -324,7 +324,8 @@ const Game = (() => {
   // ================= 전투 =================
   function stageInfo(s) {
     const ch = Math.ceil(s / 10), sub = ((s - 1) % 10) + 1;
-    return { ch, sub, boss: sub === 10, el: ELEMENT_ORDER[(ch - 1) % 5], label: `${ch}-${sub}` };
+    const n = ENEMY_SETS.length, set = ENEMY_SETS[(ch - 1) % n], loop = Math.floor((ch - 1) / n);
+    return { ch, sub, boss: sub === 10, el: set.el, set, loop, label: `${ch}-${sub}` };
   }
 
   function enemyStats(s, boss) {
@@ -339,22 +340,21 @@ const Game = (() => {
   function makeWave(s, w, waves) {
     const info = stageInfo(s);
     const isBoss = info.boss && w === waves - 1;
-    const pool = ENEMIES.filter(e => e.ch === info.el && !e.boss && !e.raid);
-    const others = ENEMIES.filter(e => !e.boss && !e.raid && e.ch !== info.el);
-    const form = s < 15 ? 0 : s < 40 ? 1 : 2;
+    // 챕터마다 고정 구성: 같은 4종이 정해진 순서로 나오고, 뒤 스테이지일수록 마릿수가 늘어남
+    const N = info.set.normals, sub = info.sub, form = 2;
     const list = [];
     if (isBoss) {
-      const bossE = ENEMIES.find(e => e.ch === info.el && e.boss);
-      list.push({ id: bossE.id, form: Math.min(2, form + 1), boss: true });
-      const extra = Math.min(2, Math.floor(s / 20));
-      for (let i = 0; i < extra; i++) list.push({ id: pick(pool).id, form });
+      list.push({ id: info.set.boss, form, boss: true });
+      list.push({ id: N[0], form }, { id: N[1], form });
     } else {
-      const n = Math.min(5, 2 + Math.floor(s / 6) + (w > 0 ? 1 : 0));
-      for (let i = 0; i < n; i++) list.push({ id: (Math.random() < 0.8 ? pick(pool) : pick(others)).id, form });
+      const n = Math.min(5, 2 + Math.floor((sub - 1) / 3) + w); // 1~3: 2·3마리, 4~6: 3·4, 7~9: 4·5
+      for (let i = 0; i < n; i++) list.push({ id: N[(sub + w + i) % N.length], form });
     }
     return list.map((e, i) => {
       const st = enemyStats(s, e.boss);
-      return enemyUnit(e.id, e.form, { atk: Math.round(st.atk), hp: Math.round(st.hp), def: Math.round(st.def), spd: rand(0.9, 1.05) }, i, !!e.boss);
+      const u = enemyUnit(e.id, e.form, { atk: Math.round(st.atk), hp: Math.round(st.hp), def: Math.round(st.def), spd: 0.95 + ((i * 37 + s) % 10) / 100 }, i, !!e.boss);
+      u.loop = info.loop;
+      return u;
     });
   }
 
@@ -520,27 +520,28 @@ const Game = (() => {
       return;
     }
     const tier = 1 + Math.max(0, RARITY_ORDER.indexOf(u.r)) * 0.12; // 등급이 높을수록 이펙트가 큼
+    const sp = u.side === 'ally' ? (SKILL_TIER[u.r] || 1) : 1;      // 등급이 높을수록 스킬이 셈
     switch (u.skill) {
       case 'nuke': {
         const t = foes.reduce((a, b) => (b.hp > a.hp ? b : a));
-        BattleView.beam(u, t); BattleView.fx(t, u.el, 1.3 * tier); hit(u, t, 3.2, B); break;
+        BattleView.beam(u, t); BattleView.fx(t, u.el, 1.3 * tier); hit(u, t, 3.2 * sp, B); break;
       }
       case 'blast':
         BattleView.flash(u.el); Sound.play('blast');
-        foes.forEach(t => { BattleView.fx(t, u.el, tier); hit(u, t, 1.4, B); }); break;
+        foes.forEach(t => { BattleView.fx(t, u.el, tier); hit(u, t, 1.4 * sp, B); }); break;
       case 'heal': {
         const low = friends.reduce((a, b) => (b.hp / b.maxHp < a.hp / a.maxHp ? b : a));
-        friends.forEach(f => { BattleView.fx(f, 'heal', f === low ? 1.1 * tier : 0.7); heal(f, f === low ? u.atk * 3 : u.atk * 1.2); });
+        friends.forEach(f => { BattleView.fx(f, 'heal', f === low ? 1.1 * tier : 0.7); heal(f, (f === low ? u.atk * 3 : u.atk * 1.2) * sp); });
         Sound.play('heal'); break;
       }
       case 'shield':
-        friends.forEach(f => { f.shield += Math.round(u.atk * 2); BattleView.shield(f); BattleView.fx(f, 'shield', 0.9 * tier); });
+        friends.forEach(f => { f.shield += Math.round(u.atk * 2 * sp); BattleView.shield(f); BattleView.fx(f, 'shield', 0.9 * tier); });
         Sound.play('shield');
         hit(u, pickTarget(foes), 1.2, B); break;
       case 'drain': {
         const t = pickTarget(foes);
         BattleView.beam(u, t); BattleView.fx(t, 'dark', 1.1 * tier);
-        heal(u, hit(u, t, 2.4, B) * 0.6); break;
+        heal(u, hit(u, t, 2.4 * sp, B) * 0.6); break;
       }
     }
   }
