@@ -138,17 +138,18 @@ const E = {
   r_gumiho: 'RAID BOSS: a dark purple nine-tailed fox queen with pink foxfire',
 };
 
-// 메인 캐릭터: 종족 3 × 성별 2 (직업 없음). 최대한 만화처럼.
-const CARTOON = 'Very cartoony and expressive like a Korean webtoon/comic: exaggerated chibi proportions (big head, about 2 heads tall), huge sparkling eyes, bold personality in the pose and facial expression, playful and lively.';
+// 메인 캐릭터: 종족 3 × 성별 2 (직업 없음). 멋지고 전통적인 한국 판타지 MMORPG 도트 느낌
+const COOL = 'Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette.';
 const HEROES = [
-  ['human_m', '인간 남자', 'a human boy hero: messy black hair tied in a small topknot with a red headband, blue hanbok jeogori jacket with white collar and gray baji pants, straw sandals, a wooden sword on his shoulder, big confident grin'],
-  ['fox_m', '구미호 남자', 'a REAL nine-tailed fox (gumiho), not a human: an anthropomorphic white fox boy standing on two legs, fox head with pointed ears and long snout, nine big fluffy tails fanned out behind him with golden tips, wearing a small purple hanbok vest, a blue foxfire flame floating above one paw, sly smirk'],
-  ['goblin_m', '도깨비 남자', 'a REAL dokkaebi goblin, not a human: blue-skinned stocky goblin boy with one big horn on his forehead, wild spiky hair, sharp fangs in a huge toothy grin, tiger-skin pants, holding a spiked wooden dokkaebi club (bangmangi)'],
-  ['human_f', '인간 여자', 'a human girl hero: long black hair in a single braid tied with a red daenggi ribbon, yellow jeogori jacket with red otgoreum bow and a pink chima skirt, holding a red-and-blue folding fan, cheerful wink'],
-  ['fox_f', '구미호 여자', 'a REAL nine-tailed fox (gumiho), not a human: an anthropomorphic white fox girl standing on two legs, fox head with big ears and long eyelashes, nine big fluffy tails with pink tips fanned out behind her, a flower hairpin and red silk ribbon, a pink foxfire orb in her paw, mischievous smile'],
-  ['goblin_f', '도깨비 여자', 'a REAL dokkaebi goblin, not a human: red-skinned goblin girl with one horn, curly hair in two buns, sharp little fangs in a big laugh, tiger-skin skirt, holding a small golden dokkaebi club with lucky coins'],
+  ['human_m', '인간 남자', 'a young human Joseon swordsman-taoist: black hair in a topknot with a long red headband whose tails flow in the wind, dark navy dopo coat over a white jeogori with gold trim, black boots, a hwando sword at the waist and a yellow paper talisman held between two fingers, sharp determined eyes'],
+  ['fox_m', '구미호 남자', 'a REAL nine-tailed fox (gumiho), not a human: an elegant bipedal silver-white fox with a fox head, sharp golden eyes and red eye markings, wearing a dark violet Joseon noble durumagi robe and a black gat hat, nine large flowing tails with blue foxfire at the tips, dangerous charming smirk'],
+  ['goblin_m', '도깨비 남자', 'a REAL dokkaebi, not a human: a muscular blue-skinned dokkaebi warrior with one great horn, wild white mane, fierce fangs, gold arm rings, tiger-skin wrap over dark hanbok pants, holding a huge spiked dokkaebi club crackling with blue lightning'],
+  ['human_f', '인간 여자', 'a young human Joseon taoist heroine: long black hair half-tied with a jade binyeo hairpin and a red daenggi ribbon, white and crimson hanbok with long flowing sleeves and a sash, holding a folding fan with a taegeuk pattern, small paper talismans floating around her, calm and confident'],
+  ['fox_f', '구미호 여자', 'a REAL nine-tailed fox (gumiho), not a human: a graceful bipedal snow-white fox with a fox head, crimson eye markings and long lashes, a jeweled hairpin between her ears, wearing a red and gold hanbok with long sleeves, nine large flowing tails with pink foxfire at the tips, alluring sly smile'],
+  ['goblin_f', '도깨비 여자', 'a REAL dokkaebi, not a human: a crimson-skinned dokkaebi girl with one horn wrapped in a golden ring, wild curly hair, fierce fanged grin, dark jeogori with a tiger-skin skirt, holding a golden magic club strung with old lucky coins, ghostly blue dokkaebi fire around her'],
 ];
-const POSES = 'Character pose sheet of THIS SAME character from the attached image (keep exactly the same design, colors, outfit and proportions): 4 poses in one horizontal row, all facing right: 1) idle standing, 2) running, 3) attacking with a big dynamic action and motion lines, 4) hurt / knocked back with a funny comic expression.';
+const HERO_SKILL = { human: 'throwing glowing paper talismans (bujeok) that burst into golden light', fox: 'conjuring swirling foxfire orbs', goblin: 'slamming the club to call blue lightning and dokkaebi fire' };
+const POSES = 'Animation pose sheet of THIS SAME character from the attached image (keep exactly the same design, colors, costume and proportions), all facing right, 6 poses: 1) idle standing, 2) running, 3) melee attack with motion lines, 4) charging a spell (magic energy gathering around the hands), 5) releasing the spell forward with a magic burst, 6) hurt / knocked back.';
 
 const groups = [];
 // ---- 뽑기 몬스터: 9마리씩 (SSS 3종은 따로 크게) ----
@@ -166,12 +167,14 @@ for (let i = 0, k = 1; i < normal.length; i += 9, k++) {
     attach: k === 1 ? '' : 'grid_m01 결과 이미지 첨부 (같은 화풍 유지)',
     note: '순서: ' + chunk.map((c, j) => `${j + 1}.${c.n}`).join(' · '),
     prompt: `${k === 1 ? '' : 'Use exactly the same pixel art style, outline and pixel size as the attached image. '}${STYLE} ${GRID(rows, cols, n)}${emptyNote}\nRarity look: ${hint}.\n${list}`,
+    _cast: { list: chunk, rows, cols },
   });
 }
 mg.items.push({
   file: `grid_m${String(mg.items.length + 1).padStart(2, '0')}.png`, name: 'SSS등급 3종 (크게)', tags: ['SSS등급'],
   attach: 'grid_m01 결과 이미지 첨부 (같은 화풍 유지)', note: '순서: ' + sss.map((c, j) => `${j + 1}.${c.n}`).join(' · '),
   prompt: `Use exactly the same pixel art style, outline and pixel size as the attached image, but these 3 are larger and more detailed. ${STYLE} ${GRID(1, 3, 3)}\nRarity look: ${GRADE_HINT.SSS}.\n${sss.map((c, j) => `${j + 1}. ${D[c.id]}`).join('\n')}`,
+  _cast: { list: sss, rows: 1, cols: 3 },
 });
 groups.push(mg);
 
@@ -184,29 +187,63 @@ for (let i = 0, k = 1; i < ENEMIES.length; i += 9, k++) {
     attach: 'grid_m01 결과 이미지 첨부 (같은 화풍 유지)',
     note: '순서: ' + chunk.map((c, j) => `${j + 1}.${c.n}`).join(' · '),
     prompt: `Use exactly the same pixel art style, outline and pixel size as the attached image. ${STYLE} These are ENEMY monsters: a bit menacing but still chibi, angry red glowing eyes, darker colors; BOSS entries are bigger and more detailed. ${GRID(3, 3, chunk.length)}\n${chunk.map((c, j) => `${j + 1}. ${E[c.id]}`).join('\n')}`,
+    _cast: { list: chunk.map(c => Object.assign({ el: c.ch }, c)), rows: 3, cols: 3, enemy: true },
   });
 }
 groups.push(eg);
 
-// ---- 캐릭터: 6명 한 장 → 1명씩 고화질 → 동작 시트 ----
-const hg = { id: 'hero', title: '메인 캐릭터 (인간·구미호·도깨비 × 남·여)', note: '직업 없음 · ① 6명 한 장으로 디자인 확정 → ② 1명씩 크게 → ③ 동작 4개 · assets/hero/', items: [] };
-const heroStyle = STYLE.replace('sprites', 'main player character sprites');
+// ---- 캐릭터: 6명 한 장 → 1명씩 고화질 → 동작 시트(마법 포함) ----
+const hg = { id: 'hero', title: '메인 캐릭터 (인간·구미호·도깨비 × 남·여)', note: '직업 없음 · ① 6명 한 장으로 디자인 확정 → ② 1명씩 크게 → ③ 동작 6개(마법 모으기·발사 포함) · assets/hero/', items: [] };
+const heroStyle = STYLE.replace('Cute chibi pixel art sprites', 'High quality pixel art main player character sprites').replace('big expressive eyes,', '');
+const POS = ['top-left', 'top-middle', 'top-right', 'bottom-left', 'bottom-middle', 'bottom-right'];
 hg.items.push({
-  file: 'grid_h_all.png', name: '6명 한 장 (디자인 확정용)', tags: ['먼저'], attach: 'grid_m01 결과 이미지 첨부 (몬스터와 같은 화풍)',
+  file: 'grid_h_all.png', name: '6명 한 장 (디자인 확정용)', tags: ['먼저'], attach: 'grid_m01 결과 이미지 첨부 (몬스터와 같은 도트 크기)',
   note: '순서: 위 줄 남자 인간·구미호·도깨비 / 아래 줄 여자 인간·구미호·도깨비',
-  prompt: `Use exactly the same pixel art style, outline and pixel size as the attached image. ${heroStyle} ${CARTOON} All 6 are the same height and drawn at the same scale. ${GRID(2, 3, 6)}\nTop row = boys, bottom row = girls; columns left to right = human, gumiho, dokkaebi.\n${[0, 1, 2, 3, 4, 5].map(j => `${j + 1}. ${HEROES[j][2]}`).join('\n')}`,
+  prompt: `Same pixel size and outline as the attached image, but these heroes are more detailed and cooler. ${heroStyle} ${COOL} All 6 are the same height and drawn at the same scale. ${GRID(2, 3, 6)}\nTop row = young men, bottom row = young women; columns left to right = human, gumiho, dokkaebi.\n${HEROES.map((h, j) => `${j + 1}. ${h[2]}`).join('\n')}`,
 });
-HEROES.forEach(([id, ko, desc]) => hg.items.push({
-  file: `hero_${id}.png`, name: `${ko} (1명 크게)`, tags: [], attach: 'grid_h_all 결과 이미지 첨부 (해당 캐릭터 디자인 그대로)',
-  note: '',
-  prompt: `Redraw only the ${ko === '인간 남자' ? 'top-left' : ko === '구미호 남자' ? 'top-middle' : ko === '도깨비 남자' ? 'top-right' : ko === '인간 여자' ? 'bottom-left' : ko === '구미호 여자' ? 'bottom-middle' : 'bottom-right'} character from the attached image as a single large sprite with more detail, keeping exactly the same design, colors and pixel art style. ${heroStyle} ${CARTOON} Single character, full body, centered, facing right, flat solid magenta #FF00FF background, no text, square 1:1.\n${desc}`,
+HEROES.forEach(([id, ko, desc], j) => hg.items.push({
+  file: `hero_${id}.png`, name: `${ko} (1명 크게)`, tags: [], attach: 'grid_h_all 결과 이미지 첨부 (해당 캐릭터 디자인 그대로)', note: '',
+  prompt: `Redraw only the ${POS[j]} character from the attached image as a single large sprite with much more detail, keeping exactly the same design, colors and pixel art style. ${heroStyle} ${COOL} Single character, full body, centered, facing right, flat solid magenta #FF00FF background, no text, square 1:1.\n${desc}`,
 }));
 HEROES.forEach(([id, ko]) => hg.items.push({
-  file: `hero_${id}_poses.png`, name: `${ko} 동작 4개`, tags: ['움직임'], attach: `hero_${id} 결과 이미지 첨부`,
-  note: '순서: 서있기 · 달리기 · 공격 · 맞았을 때',
-  prompt: `${POSES} ${heroStyle} ${CARTOON} ${GRID(1, 4, 4)}`,
+  file: `hero_${id}_poses.png`, name: `${ko} 동작 6개`, tags: ['움직임', '마법'], attach: `hero_${id} 결과 이미지 첨부`,
+  note: '순서: 서있기 · 달리기 · 근접공격 · 마법 모으기 · 마법 발사 · 맞았을 때',
+  prompt: `${POSES} Signature magic: ${HERO_SKILL[id.split('_')[0]]}. ${heroStyle} ${COOL} ${GRID(2, 3, 6)}`,
 }));
 groups.push(hg);
+
+// ---- 마법 동작: 몬스터·적 격자를 같은 배치로 '마법 쓰는 모습' ----
+const EL_MAGIC = { fire: 'fire magic', water: 'water magic', grass: 'nature magic with leaves and vines', light: 'golden holy light magic', dark: 'purple ghost-fire dark magic' };
+const cg = { id: 'cast', title: '몬스터·적 마법 동작', note: '원본 격자와 같은 칸 배치로 마법 쓰는 모습 · 공격·맞는 동작은 게임 연출로 처리', items: [] };
+for (const it of [...mg.items, ...eg.items]) {
+  const c = it._cast, n = c.list.length;
+  cg.items.push({
+    file: it.file.replace('.png', '_cast.png'), name: `${it.name} · 마법 쓰는 모습`, tags: ['마법'], attach: `${it.file} 결과 이미지 첨부`,
+    note: it.note,
+    prompt: `Use the attached sprite sheet as the exact reference: the SAME ${n} characters in the SAME cell positions, same design, colors, pixel size and style. Redraw each one in a spell-casting pose (mouth open or arms/wings raised, body leaning forward) with a small matching magic effect glowing next to it, still facing right, still inside its own cell. ${STYLE} ${GRID(c.rows, c.cols, n)}\n${c.list.map((m, j) => `${j + 1}. ${m.n}: ${EL_MAGIC[m.el] || 'magic'}`).join('\n')}`,
+  });
+}
+groups.push(cg);
+
+// ---- 마법 이펙트: 6프레임 애니메이션 ----
+const FX_STYLE = 'Pixel art spell effect animation sprite sheet for a Korean folklore fantasy RPG, 16-bit retro style, crisp hard pixels, no anti-aliasing, bright glowing colors, traditional Korean motifs, exactly 6 animation frames of equal size in one horizontal row, left to right in time order (appear, grow, peak, fade), no characters, no text, no letters, the entire background is flat solid black #000000.';
+const FX = [
+  ['fx_fire', '불 공격', 'a fireball flying right and exploding into flames with ember sparks'],
+  ['fx_water', '물 공격', 'a swirling water orb bursting into a splash wave with droplets'],
+  ['fx_wood', '나무 공격', 'sharp leaves and thorny vines whipping out and bursting'],
+  ['fx_light', '빛 공격', 'a golden taegeuk-like circle of light expanding into radiant rays'],
+  ['fx_dark', '어둠 공격', 'purple ghost-fire wisps spiraling and bursting into dark smoke'],
+  ['fx_heal', '치유', 'soft green and gold sparkles rising with a blooming lotus flower'],
+  ['fx_shield', '보호 결계', 'a round protective barrier with dancheong temple patterns appearing and shimmering'],
+  ['fx_hit', '타격', 'a white and yellow impact spark with a slash streak'],
+  ['fx_talisman', '인간: 부적술', 'a yellow paper talisman with abstract red brush marks flying right and exploding into golden light'],
+  ['fx_foxfire', '구미호: 여우불', 'blue and pink foxfire orbs swirling together and blasting forward'],
+  ['fx_dokkaebi', '도깨비: 벼락 방망이', 'a club smash shockwave on the ground with blue lightning bolts and flying gold coins'],
+];
+groups.push({ id: 'fx', title: '마법 이펙트 (11종)', note: '6프레임 애니메이션 · 검은 배경 그대로 OK (게임에서 빛나게 합성) · assets/fx/', items: FX.map(([id, ko, d]) => ({
+  file: `${id}.png`, name: ko, tags: ['이펙트'], attach: 'grid_m01 결과 이미지 첨부 (같은 도트 크기)', note: '',
+  prompt: `Same pixel size as the attached image. ${FX_STYLE}\nEffect: ${d}.`,
+})) });
 
 function md() {
   const out = ['# 🧩 제미나이 격자 프롬프트 (한 장에 여러 마리)', '',
