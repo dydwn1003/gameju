@@ -147,6 +147,7 @@ const BattleView = (() => {
 
   function skill(u, name) {
     retrigger(sprite(u), 'cast');
+    if (!u.hero && u.dom && u.dom.querySelector('img.cast')) { clearTimeout(u._castT); u.dom.classList.add('casting'); u._castT = setTimeout(() => u.dom && u.dom.classList.remove('casting'), 750); }
     if (u.hero) pose(u, [[3, 300], [4, 500]]);
     Sound.play('skill');
     const big = u.side === 'ally' && RARITY_ORDER.indexOf(u.r) >= 3;

@@ -47,8 +47,10 @@ const Assets = (() => {
   function sized(id, form, opts, path) {
     const sil = opts.silhouette ? ' silhouette' : '';
     if (opts.battle) {
-      const [w] = SIZES()[id], k = [0.78, 0.9, 1][form] * (opts.base || 1);
-      return `<div class="natbox"><img class="mimg nat${sil}" src="${path}" style="width:${Math.round((w / REF) * 100 * k)}%" draggable="false" alt=""></div>`;
+      const [w] = SIZES()[id], k = [0.78, 0.9, 1][form] * (opts.base || 1), cs = SIZES()[id + '_cast'];
+      // 마법 쓰는 모습: 같은 왼쪽·아래 기준으로 겹쳐 두었다가 스킬 쓸 때만 보임
+      const cast = cs ? `<img class="mimg cast" src="${path.replace('.png', '_cast.png')}" style="width:${Math.round((cs[0] / w) * 100)}%" draggable="false" alt="">` : '';
+      return `<div class="natbox"><span class="natwrap" style="width:${Math.round((w / REF) * 100 * k)}%"><img class="mimg nat${sil}" src="${path}" draggable="false" alt="">${cast}</span></div>`;
     }
     return `<div class="fitbox f${form}"><img class="mimg fit${sil}" src="${path}" draggable="false" alt=""></div>`;
   }
@@ -57,6 +59,12 @@ const Assets = (() => {
     if (u) return `<img class="mimg${opts.silhouette ? ' silhouette' : ''}" src="${u}" draggable="false" alt="">`;
     if (SIZES()[id]) return sized(id, form, opts, `assets/monsters/${id}.png`);
     return MonArt.monster(id, form, opts);
+  }
+  // 스킬 그림 (상세 화면용)
+  function castArt(id) {
+    if (!SIZES()[id + '_cast']) return '';
+    const dir = id.startsWith('e_') || id.startsWith('r_') ? 'enemies' : 'monsters';
+    return `<img class="mimg skillart" src="assets/${dir}/${id}_cast.png" draggable="false" alt="">`;
   }
   function enemy(id, form, opts = {}) {
     if (SIZES()[id]) return sized(id, form, opts, `assets/enemies/${id}.png`);
@@ -79,5 +87,5 @@ const Assets = (() => {
   }
   const onChange = f => listeners.push(f);
 
-  return { init, monster, enemy, bg, icon, has, raw, stats, onChange };
+  return { init, monster, enemy, castArt, bg, icon, has, raw, stats, onChange };
 })();

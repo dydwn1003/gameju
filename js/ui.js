@@ -305,7 +305,7 @@ const UI = (() => {
           <div>체력<b>${fmt(st.hp)}</b>${nextSt ? `<small>+${nextSt.hp - st.hp}</small>` : ''}</div>
           <div>방어<b>${fmt(st.def)}</b>${nextSt ? `<small>+${nextSt.def - st.def}</small>` : ''}</div>
         </div>
-        <div class="d-skill"><b>✦ ${SKILLS[L.skill].name}</b> <span class="muted">${SKILLS[L.skill].desc}</span></div>
+        <div class="d-skill">${Assets.castArt(id)}<div><b>✦ ${SKILLS[L.skill].name}</b> <span class="muted">${SKILLS[L.skill].desc}</span></div></div>
         <div class="mgear"><span class="muted small">장비</span>${MON_SLOTS.map(sl => gearCell(Gear.inSlot('m:' + id, sl), sl)).join('')}<span class="muted small">다른 몬스터와<br>돌려 쓸 수 있어요</span></div>
         <div class="evo-line">${L.names.map((n, i) => `<div class="${i === o.form ? 'now' : ''}">${mon(id, i, { silhouette: i > o.form })}<small>${i <= o.form ? n : '???'}</small></div>`).join('<span>›</span>')}</div>
         <div class="d-actions">

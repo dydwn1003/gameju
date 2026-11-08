@@ -1,5 +1,6 @@
 """제미나이 격자 이미지 → 칸별로 잘라 마젠타 배경 제거 → assets/ 에 저장
 사용: python3 tools/slice_grids.py <격자이미지 폴더>
+      python3 tools/slice_grids.py <폴더> --suffix _cast   (마법 쓰는 모습 격자)
       python3 tools/slice_grids.py --hero <폴더> fox_f,fox_m,goblin_f,goblin_m,human_f,human_m
   폴더 안 파일 이름: grid_e01.jpg/png ... grid_m10.jpg/png (페이지 순서대로 p-000.jpg ... 도 지원)
 """
@@ -9,6 +10,7 @@ from PIL import Image, ImageDraw
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SCALE = 0.5  # 원본 → 게임용 축소 비율 (모든 몬스터 같은 비율 → 크기 차이 유지)
+SUFFIX = ''   # '_cast' 이면 마법 쓰는 모습 격자
 
 def load_order():
     """js/data.js 에서 몬스터/적 id 순서를 읽는다 (node 없이 정규식으로)"""
@@ -91,10 +93,10 @@ def process(path, rows, cols, ids, kind, outdir):
             print('  ! 비어있음', mid); continue
         x0, y0, x1, y1 = bbox
         rgba = rgba.crop((max(0, x0 - 2), max(0, y0 - 2), min(rgba.width, x1 + 2), min(rgba.height, y1 + 2)))
-        out = outdir / kind / f'{mid}.png'
+        out = outdir / kind / f'{mid}{SUFFIX}.png'
         out.parent.mkdir(parents=True, exist_ok=True)
         rgba.save(out, optimize=True)
-        res[mid] = rgba.size
+        res[mid + SUFFIX] = rgba.size
     return res
 
 def main():
@@ -201,4 +203,5 @@ if __name__ == '__main__':
     if sys.argv[1] == '--hero':
         main_hero(sys.argv[2], sys.argv[3].split(','))
     else:
+        if '--suffix' in sys.argv: SUFFIX = sys.argv[sys.argv.index('--suffix') + 1]
         main()
