@@ -370,6 +370,7 @@ function md() {
 
 groups.sort((a, b) => (a.title.startsWith("🆕") ? 0 : 1) - (b.title.startsWith("🆕") ? 0 : 1)); // 새로 만들 것 먼저
 md();
+fs.writeFileSync(path.join(ROOT, "docs/prompts_grid.json"), JSON.stringify(groups.map(g => ({ id: g.id, title: g.title, items: g.items.map(({ file, name, attach, prompt }) => ({ file, name, attach, prompt })) })), null, 1)); // 일괄 생성 스크립트용
 if (process.argv[2]) {
   const tpl = fs.readFileSync(path.join(ROOT, 'tools/prompts_page.html'), 'utf8')
     .replace('몬스터 키우기 프롬프트북', '몬스터 키우기 프롬프트북')
