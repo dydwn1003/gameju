@@ -242,15 +242,14 @@ const NICK_B = ['조련사', '모험가', '사냥꾼', '마법사', '기사', '�
 
 // ================= 메인 캐릭터 =================
 // 성능 차이는 크지 않게: 전투력 공식(atk*4 + hp*0.6 + def*3) 기준 비슷하게 맞춤
+// 메인 캐릭터 종족 (직업 없음). 성능 차이는 크지 않게 (전투력 공식 기준 비슷)
 const CLASSES = {
-  warrior: { name: '무사',   weapon: '환도',     desc: '튼튼한 체력과 방어력', base: { atk: 20, hp: 210, def: 12 }, spd: 1.0,
-             skill: { name: '회오리 베기', type: 'blast', mult: 1.3, desc: '모든 적에게 공격력 130% 피해' } },
-  rogue:   { name: '자객',   weapon: '비수',   desc: '빠른 공격과 높은 치명타', base: { atk: 23, hp: 165, def: 9 }, spd: 1.2, crit: 0.25,
-             skill: { name: '급소 찌르기', type: 'nuke', mult: 3.4, desc: '적 1명에게 공격력 340% 피해' } },
-  mage:    { name: '도사',   weapon: '도술봉', desc: '강력한 광역 도술', base: { atk: 25, hp: 150, def: 8 }, spd: 0.95,
-             skill: { name: '뇌전부', type: 'blast', mult: 1.7, desc: '모든 적에게 공격력 170% 피해' } },
-  archer:  { name: '궁사',   weapon: '각궁',     desc: '여러 번 쏘는 연속 공격', base: { atk: 23, hp: 170, def: 9 }, spd: 1.1,
-             skill: { name: '연발 사격', type: 'multi', mult: 1.1, hits: 4, desc: '무작위 적에게 110% 피해 4발' } },
+  human:  { name: '인간',   weapon: '환도',     desc: '검과 부적을 함께 쓰는 균형형', base: { atk: 22, hp: 180, def: 10 }, spd: 1.05,
+            skill: { name: '부적술', type: 'nuke', mult: 3.2, desc: '부적을 날려 적 1명에게 공격력 320% 피해' } },
+  fox:    { name: '구미호', weapon: '여우구슬', desc: '빠르고 치명적인 여우불', base: { atk: 24, hp: 160, def: 9 }, spd: 1.15, crit: 0.2,
+            skill: { name: '여우불', type: 'multi', mult: 1.1, hits: 4, desc: '여우불 4발, 무작위 적에게 110% 피해' } },
+  goblin: { name: '도깨비', weapon: '방망이',   desc: '튼튼한 몸과 광역 벼락', base: { atk: 20, hp: 200, def: 12 }, spd: 0.95,
+            skill: { name: '벼락 방망이', type: 'blast', mult: 1.4, desc: '벼락을 내리쳐 모든 적에게 공격력 140% 피해' } },
 };
 const GENDERS = { m: '남자', f: '여자' };
 const HERO_MAX_LV = 100;

@@ -650,7 +650,7 @@ const UI = (() => {
       <div class="muted center small">${GENDERS[h.gender]} ${C.name} · ${C.desc}</div>
       <div class="d-stats"><div>공격<b>${fmt(st.atk)}</b></div><div>체력<b>${fmt(st.hp)}</b></div><div>방어<b>${fmt(st.def)}</b></div></div>
       <div class="d-skill"><b>✦ ${C.skill.name}</b> <span class="muted">${C.skill.desc}</span>${C.crit ? '<br><span class="muted">패시브: 치명타 확률 +25%</span>' : ''}</div>
-      <div class="row"><button class="btn gray" id="hi-change">외형·직업 변경<small>${ic('gems')} 200</small></button></div></div>`);
+      <div class="row"><button class="btn gray" id="hi-change">외형·종족 변경<small>${ic('gems')} 200</small></button></div></div>`);
     $('#hi-change', m).onclick = () => {
       if (G.state.gems < 200) return toast('다이아가 부족해요');
       createHero(false, true);
@@ -659,7 +659,7 @@ const UI = (() => {
 
   function createHero(first, change) {
     const cur = G.state.hero || {};
-    let gender = cur.gender || 'm', cls = cur.cls || 'warrior';
+    let gender = cur.gender || 'm', cls = CLASSES[cur.cls] ? cur.cls : 'human';
     const draw = m => {
       const C = CLASSES[cls];
       $('#cr-prev', m).innerHTML = HeroArt.hero(gender, cls);
@@ -671,7 +671,7 @@ const UI = (() => {
       $('#cr-desc', m).innerHTML = `<b>${C.name}</b> · ${C.desc}<br><span class="muted">스킬: ${C.skill.name} — ${C.skill.desc}</span>`;
     };
     const m = modal(`<div class="create">
-      <div class="rp-title">${change ? '외형·직업 변경' : '나의 캐릭터 만들기'}</div>
+      <div class="rp-title">${change ? '외형·종족 변경' : '나의 캐릭터 만들기'}</div>
       <div class="cr-top"><div class="cr-prev" id="cr-prev"></div>
         <div class="cr-side">
           <div class="seg"><button data-g="m">남자</button><button data-g="f">여자</button></div>
@@ -679,7 +679,7 @@ const UI = (() => {
         </div></div>
       <div class="cls-grid">${Object.entries(CLASSES).map(([k, C]) => `<button class="cc" data-c="${k}"><div class="cc-art"></div><b>${C.name}</b></button>`).join('')}</div>
       <div class="cr-desc small" id="cr-desc"></div>
-      <div class="small muted center">직업마다 스타일만 다르고 성능 차이는 크지 않아요</div>
+      <div class="small muted center">종족마다 술법이 다르고 성능 차이는 크지 않아요</div>
       <button class="btn wide gold" id="cr-go">${change ? '변경하기 (💎200)' : '모험 시작!'}</button></div>`, 'wide-modal',
       () => { if (!G.state.hero) setTimeout(() => createHero(first), 50); });
     m.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { gender = b.dataset.g; draw(m); });

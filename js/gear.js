@@ -22,7 +22,7 @@ const Gear = (() => {
   function icon(it) {
     const key = it.slot === 'weapon' && S().hero ? `gear_weapon_${S().hero.cls}_${it.r}` : `gear_${it.slot}_${it.r}`;
     if (Assets.has(key)) return Assets.raw(key, 'gimg');
-    if (it.slot === 'weapon' && S().hero) return { warrior: '🗡️', rogue: '🔪', mage: '🪄', archer: '🏹' }[S().hero.cls];
+    if (it.slot === 'weapon' && S().hero) return { human: '🗡️', fox: '🔮', goblin: '🏏' }[S().hero.cls] || '⚔️';
     return GEAR_SLOTS[it.slot].icon;
   }
 

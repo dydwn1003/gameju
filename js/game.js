@@ -48,6 +48,7 @@ const Game = (() => {
         if (s.food) { s.gold += s.food; delete s.food; }
         if (s.idle && s.idle.food) { s.idle.gold += s.idle.food; delete s.idle.food; }
         s.team = s.team.slice(0, 4);
+        if (s.hero && !CLASSES[s.hero.cls]) s.hero.cls = 'human';
         return s;
       }
     } catch (e) { console.warn(e); }
@@ -137,7 +138,7 @@ const Game = (() => {
   }
   function createHero(gender, cls, name, look = {}) {
     const s = G.state;
-    s.hero = Object.assign({ gender, cls, name: name || (gender === 'f' ? '연화' : '무진'), lvl: 1, race: 'human' }, look);
+    s.hero = Object.assign({ gender, cls, name: name || (gender === 'f' ? '연화' : '무진'), lvl: 1 }, look);
     if (!s.gear.some(x => x.eq === 'hero')) {
       Gear.equip(Gear.create('weapon', 'B', 1).id, 'hero');
       Gear.equip(Gear.create('armor', 'C', 1).id, 'hero');
@@ -514,7 +515,7 @@ const Game = (() => {
     if (u.hero) {
       const C = CLASSES[u.cls].skill;
       BattleView.skill(u, C.name);
-      if (C.type === 'blast') { BattleView.flash(u.cls === 'mage' ? 'fire' : 'light'); Sound.play('blast'); foes.forEach(t => hit(u, t, C.mult, B)); }
+      if (C.type === 'blast') { BattleView.flash({ human: 'light', fox: 'fire', goblin: 'water' }[u.cls] || 'light'); Sound.play('blast'); foes.forEach(t => hit(u, t, C.mult, B)); }
       else if (C.type === 'nuke') { const t = foes.reduce((a, b) => (b.hp > a.hp ? b : a)); BattleView.beam(u, t); hit(u, t, C.mult, B); }
       else for (let i = 0; i < C.hits; i++) { const al = foes.filter(f => f.alive); if (!al.length) break; const t = pick(al); BattleView.beam(u, t); hit(u, t, C.mult, B); }
       return;

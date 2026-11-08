@@ -603,3 +603,5 @@ svg.pix, .mimg { image-rendering: pixelated; }
 .fitbox .mimg.fit { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 .fitbox.f0 .mimg.fit { max-width: 80%; max-height: 80%; }
 .fitbox.f1 .mimg.fit { max-width: 90%; max-height: 90%; }
+.cls-grid { grid-template-columns: repeat(3, 1fr); }
+.unit.hero .natbox img { filter: drop-shadow(0 0 4px rgba(255,230,120,.5)); }

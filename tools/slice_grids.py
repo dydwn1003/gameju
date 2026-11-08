@@ -1,5 +1,6 @@
 """제미나이 격자 이미지 → 칸별로 잘라 마젠타 배경 제거 → assets/ 에 저장
 사용: python3 tools/slice_grids.py <격자이미지 폴더>
+      python3 tools/slice_grids.py --hero <폴더> fox_f,fox_m,goblin_f,goblin_m,human_f,human_m
   폴더 안 파일 이름: grid_e01.jpg/png ... grid_m10.jpg/png (페이지 순서대로 p-000.jpg ... 도 지원)
 """
 import sys, re, pathlib, json
@@ -44,7 +45,7 @@ def key_out(cell):
     a = np.asarray(cell.convert('RGB'))
     h, w = a.shape[:2]
     cand = is_magenta(a)
-    m = Image.fromarray((cand * 255).astype(np.uint8), 'L')
+    m = Image.fromarray((cand * 255).astype(np.uint8), 'L').copy()
     for x in range(w):
         for y in (0, h - 1):
             if m.getpixel((x, y)) == 255: ImageDraw.floodfill(m, (x, y), 128)
@@ -110,9 +111,94 @@ def main():
         print(f'{name} ← {path.name} ({len(ids)}칸)')
         sizes.update(process(path, rows, cols, ids, kind, ROOT / 'assets'))
     # 이미지 크기 표 (게임에서 몬스터끼리 크기 비율 유지용)
-    js = 'window.ASSET_SIZES = ' + json.dumps(sizes, separators=(',', ':')) + ';\n'
-    (ROOT / 'assets' / 'sizes.js').write_text(js)
+    merge_sizes(sizes)
     print('완료:', len(sizes), '장')
 
+
+
+# ===================== 캐릭터 (동작 시트 + 큰 그림) =====================
+def components(alpha):
+    """알파 마스크의 연결 덩어리 목록 [(넓이, (x0,y0,x1,y1), 라벨이미지값)]"""
+    m = Image.fromarray(np.where(alpha > 0, 255, 0).astype(np.uint8), 'L').copy()
+    a = np.asarray(m).copy()
+    h, w = a.shape
+    comps = []
+    lab = 1
+    ys, xs = np.nonzero(a == 255)
+    for y, x in zip(ys, xs):
+        if m.getpixel((int(x), int(y))) != 255: continue
+        ImageDraw.floodfill(m, (int(x), int(y)), lab)
+        arr = np.asarray(m) == lab
+        yy, xx = np.nonzero(arr)
+        comps.append((len(yy), (xx.min(), yy.min(), xx.max(), yy.max()), lab))
+        lab += 1
+        if lab >= 250: break
+    return comps, np.asarray(m)
+
+def drop_strays(rgba, strict=False):
+    """본체에서 멀리 떨어진 작은 조각(잘못 그려진 발, 작은 머리 등) 제거"""
+    a = np.array(rgba)
+    comps, labels = components(a[..., 3])
+    if not comps: return rgba
+    big = max(comps)
+    bx0, by0, bx1, by1 = big[1]
+    mw, mh = (bx1 - bx0) * 0.08, (by1 - by0) * 0.08
+    for area, (x0, y0, x1, y1), lab in comps:
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        inside = bx0 - mw <= cx <= bx1 + mw and by0 - mh <= cy <= by1 + mh
+        if (strict and area < big[0] * 0.06) or (area < big[0] * 0.08 and not inside):
+            a[labels == lab, 3] = 0
+    return Image.fromarray(a, 'RGBA')
+
+def process_hero(sheet_path, portrait_path, key, outdir, scale=0.45, pscale=0.3):
+    """동작 시트(2x3: 서기·달리기·공격·기모으기·발사·피격)를 같은 틀로 잘라 프레임 정렬"""
+    img = remove_watermark(Image.open(sheet_path).convert('RGB'))
+    W, H = img.size
+    cw, ch = W / 3, H / 2
+    cells = []
+    for i in range(6):
+        r, c = divmod(i, 3)
+        cell = img.crop((int(c * cw) + 16, int(r * ch) + 16, int((c + 1) * cw) - 16, int((r + 1) * ch) - 16))
+        cell = cell.resize((int(cell.width * scale), int(cell.height * scale)), Image.LANCZOS)
+        cells.append(drop_strays(key_out(cell)))
+    boxes = [c.getchannel('A').point(lambda v: 255 if v else 0).getbbox() for c in cells]
+    boxes = [b for b in boxes if b]
+    x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes)
+    x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
+    d = outdir / 'hero'
+    d.mkdir(parents=True, exist_ok=True)
+    for i, c in enumerate(cells):
+        c.crop((x0, y0, x1, y1)).save(d / f'{key}_p{i}.png', optimize=True)
+    p = remove_watermark(Image.open(portrait_path).convert('RGB'))
+    p = p.resize((int(p.width * pscale), int(p.height * pscale)), Image.LANCZOS)
+    pr = drop_strays(key_out(p), strict=True)
+    pr = pr.crop(pr.getchannel('A').point(lambda v: 255 if v else 0).getbbox())
+    pr.save(d / f'{key}.png', optimize=True)
+    return {f'hero_{key}': [x1 - x0, y1 - y0]}
+
+def merge_sizes(new):
+    f = ROOT / 'assets' / 'sizes.js'
+    cur = {}
+    if f.exists():
+        t = f.read_text()
+        cur = json.loads(t[t.index('{'):t.rindex('}') + 1])
+    cur.update(new)
+    f.write_text('window.ASSET_SIZES = ' + json.dumps(cur, separators=(',', ':')) + ';\n')
+
+def main_hero(src, order):
+    """src 폴더의 이미지 순서: (동작시트, 큰그림) 쌍이 order 순서대로"""
+    files = sorted([p for p in pathlib.Path(src).iterdir() if p.suffix.lower() in ('.jpg', '.jpeg', '.png') and p.stem.startswith('p-')])
+    sizes = {}
+    for k, key in enumerate(order):
+        sheet, portrait = files[k * 2], files[k * 2 + 1]
+        print(f'{key} ← {sheet.name}, {portrait.name}')
+        sizes.update(process_hero(sheet, portrait, key, ROOT / 'assets'))
+    merge_sizes(sizes)
+    print('완료:', sizes)
+
+
 if __name__ == '__main__':
-    main()
+    if sys.argv[1] == '--hero':
+        main_hero(sys.argv[2], sys.argv[3].split(','))
+    else:
+        main()

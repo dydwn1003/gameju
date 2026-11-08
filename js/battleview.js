@@ -6,7 +6,7 @@ const BattleView = (() => {
   let layer, field, lastCutin = 0;
 
   const artOf = u => {
-    if (u.hero) return HeroArt.of(G.state.hero);
+    if (u.hero) return HeroArt.of(G.state.hero, { battle: true });
     const o = { battle: true, base: u.raid ? 2.6 * 21 / 58 : u.boss ? 1.45 * 21 / 34 : 1 };
     return u.enemyId ? Assets.enemy(u.enemyId, u.form, o) : Assets.monster(u.lineId, u.form, o);
   };
@@ -59,7 +59,19 @@ const BattleView = (() => {
   function retrigger(node, cls) { if (!node) return; node.classList.remove(cls); void node.offsetWidth; node.classList.add(cls); }
   const sprite = u => u.dom && u.dom.querySelector('.sprite');
 
-  function lunge(u) { retrigger(sprite(u), 'atk'); }
+  // 캐릭터 동작 프레임: 0 서기 · 1 달리기 · 2 공격 · 3 기모으기 · 4 발사 · 5 피격
+  function pose(u, seq) {
+    const im = u.dom && u.dom.querySelector('img.hero-pose');
+    if (!im) return;
+    clearTimeout(u._poseT);
+    const k = im.dataset.k, step = i => {
+      if (i >= seq.length) { im.src = `assets/hero/${k}_p0.png`; u._posing = false; return; }
+      im.src = `assets/hero/${k}_p${seq[i][0]}.png`; u._posing = true;
+      u._poseT = setTimeout(() => step(i + 1), seq[i][1]);
+    };
+    step(0);
+  }
+  function lunge(u) { retrigger(sprite(u), 'atk'); if (u.hero) pose(u, [[2, 380]]); }
 
   // 유닛 몸통 중앙 좌표 (layer 기준 px)
   function center(u) {
@@ -94,6 +106,7 @@ const BattleView = (() => {
   }
 
   function damage(u, dmg, crit, elem) {
+    if (u.hero && !u._posing) pose(u, [[5, 300]]);
     retrigger(sprite(u), 'hit');
     floatText(u, fmt(dmg) + (crit ? '!' : ''), (crit ? 'crit ' : '') + (elem > 1 ? 'eff' : elem < 1 ? 'weak' : ''));
     sparks(u, crit ? '#ffe14a' : '#fff', crit ? 10 : 5);
@@ -134,6 +147,7 @@ const BattleView = (() => {
 
   function skill(u, name) {
     retrigger(sprite(u), 'cast');
+    if (u.hero) pose(u, [[3, 300], [4, 500]]);
     Sound.play('skill');
     const big = u.side === 'ally' && RARITY_ORDER.indexOf(u.r) >= 3;
     if (big && performance.now() - lastCutin > 3500) { lastCutin = performance.now(); cutin(u, name); }
