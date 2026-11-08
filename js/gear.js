@@ -35,14 +35,14 @@ const Gear = (() => {
   }
 
   function rollRarity(minIdx = 0) {
-    let x = Math.random() * 100, r = 'N';
-    for (const k of ['UR', 'SSR', 'SR', 'R', 'N']) { x -= GEAR_RARITY[k].rate; if (x <= 0) { r = k; break; } }
+    let x = Math.random() * 100, r = 'C';
+    for (const k of RARITY_ORDER.slice().reverse()) { x -= GEAR_RARITY[k].rate; if (x <= 0) { r = k; break; } }
     if (RARITY_ORDER.indexOf(r) < minIdx) r = RARITY_ORDER[minIdx];
     return r;
   }
 
   // 무작위 장비 획득 (가방이 가득 차면 강화석으로 자동 분해)
-  function drop(ilvl, minR = 'N') {
+  function drop(ilvl, minR = 'C') {
     const slots = Object.keys(GEAR_SLOTS);
     const slot = pick(slots);
     const r = rollRarity(RARITY_ORDER.indexOf(minR));

@@ -135,13 +135,13 @@ const Game = (() => {
     const C = CLASSES[h.cls], m = 1 + 0.12 * (h.lvl - 1), b = Gear.bonus('hero');
     return { atk: Math.round(C.base.atk * m) + b.atk, hp: Math.round(C.base.hp * m) + b.hp, def: Math.round(C.base.def * m) + b.def, spd: C.spd };
   }
-  function createHero(gender, cls, name) {
+  function createHero(gender, cls, name, look = {}) {
     const s = G.state;
-    s.hero = { gender, cls, name: name || (gender === 'f' ? '루미' : '레오'), lvl: 1 };
+    s.hero = Object.assign({ gender, cls, name: name || (gender === 'f' ? '연화' : '무진'), lvl: 1, race: 'human' }, look);
     if (!s.gear.some(x => x.eq === 'hero')) {
-      Gear.equip(Gear.create('weapon', 'R', 1).id, 'hero');
-      Gear.equip(Gear.create('armor', 'N', 1).id, 'hero');
-      const c = Gear.create('collar', 'N', 1);
+      Gear.equip(Gear.create('weapon', 'B', 1).id, 'hero');
+      Gear.equip(Gear.create('armor', 'C', 1).id, 'hero');
+      const c = Gear.create('collar', 'C', 1);
       if (s.team[0]) Gear.equip(c.id, 'm:' + s.team[0]);
     }
     save();
@@ -238,14 +238,15 @@ const Game = (() => {
     const s = G.state;
     s.pity++;
     let r;
-    if (s.pity >= 80) r = Math.random() < 0.15 ? 'UR' : 'SSR';
+    const idx = k => RARITY_ORDER.indexOf(k);
+    if (s.pity >= PITY_MAX) { const x = Math.random(); r = x < 0.05 ? 'SSS' : x < 0.25 ? 'SS' : 'S'; }
     else {
       let x = Math.random() * 100;
-      r = 'N';
-      for (const k of ['UR', 'SSR', 'SR', 'R', 'N']) { x -= RARITY[k].rate; if (x <= 0) { r = k; break; } }
+      r = 'C';
+      for (const k of RARITY_ORDER.slice().reverse()) { x -= RARITY[k].rate; if (x <= 0) { r = k; break; } }
     }
-    if (guaranteeSR && (r === 'N' || r === 'R')) r = 'SR';
-    if (r === 'SSR' || r === 'UR') s.pity = 0;
+    if (guaranteeSR && idx(r) < idx(TEN_PULL_MIN)) r = TEN_PULL_MIN;
+    if (idx(r) >= idx('S')) s.pity = 0;
     return r;
   }
   function pull(n) {
@@ -312,7 +313,7 @@ const Game = (() => {
   function genOpp(mult) {
     const target = Math.max(200, teamPower() * mult);
     const n = Math.max(3, Math.min(5, G.state.team.length + 1));
-    const pool = LINES.filter(l => l.r !== 'UR' || Math.random() < 0.3);
+    const pool = LINES.filter(l => RARITY_ORDER.indexOf(l.r) < 4 || Math.random() < 0.3);
     const lines = [];
     while (lines.length < n) { const l = pick(pool).id; if (!lines.includes(l)) lines.push(l); }
     const formOf = lv => (lv > 40 ? 2 : lv > 20 ? 1 : 0);
@@ -346,25 +347,34 @@ const Game = (() => {
   function makeWave(s, w, waves) {
     const info = stageInfo(s);
     const isBoss = info.boss && w === waves - 1;
-    const pool = LINES.filter(l => l.el === info.el && l.r !== 'UR');
-    const others = LINES.filter(l => l.r === 'N' || l.r === 'R');
+    const pool = ENEMIES.filter(e => e.ch === info.el && !e.boss && !e.raid);
+    const others = ENEMIES.filter(e => !e.boss && !e.raid && e.ch !== info.el);
     const form = s < 15 ? 0 : s < 40 ? 1 : 2;
     const list = [];
     if (isBoss) {
-      const bossLine = pick(LINES.filter(l => l.el === info.el && (l.r === 'SSR' || l.r === 'SR')));
-      list.push({ line: bossLine.id, form: Math.min(2, form + 1), boss: true });
+      const bossE = ENEMIES.find(e => e.ch === info.el && e.boss);
+      list.push({ id: bossE.id, form: Math.min(2, form + 1), boss: true });
       const extra = Math.min(2, Math.floor(s / 20));
-      for (let i = 0; i < extra; i++) list.push({ line: pick(pool).id, form });
+      for (let i = 0; i < extra; i++) list.push({ id: pick(pool).id, form });
     } else {
       const n = Math.min(5, 2 + Math.floor(s / 6) + (w > 0 ? 1 : 0));
-      for (let i = 0; i < n; i++) list.push({ line: (Math.random() < 0.7 ? pick(pool) : pick(others)).id, form });
+      for (let i = 0; i < n; i++) list.push({ id: (Math.random() < 0.8 ? pick(pool) : pick(others)).id, form });
     }
     return list.map((e, i) => {
       const st = enemyStats(s, e.boss);
-      return unit('enemy', e.line, e.form, { atk: Math.round(st.atk), hp: Math.round(st.hp), def: Math.round(st.def), spd: LINE_MAP[e.line].spd * 0.95 }, i, !!e.boss);
+      return enemyUnit(e.id, e.form, { atk: Math.round(st.atk), hp: Math.round(st.hp), def: Math.round(st.def), spd: rand(0.9, 1.05) }, i, !!e.boss);
     });
   }
 
+  const ENEMY_SKILL = { ghost: 'drain', ghostlady: 'drain', egghost: 'drain', reaper: 'drain', jelly: 'blast', cloud: 'blast', golem: 'blast', octo: 'blast', dragon: 'blast', fox: 'drain', bear: 'shield', crab: 'shield' };
+  function enemyUnit(id, form, st, idx, boss = false) {
+    const E = ENEMY_MAP[id];
+    return {
+      side: 'enemy', enemyId: id, lineId: null, form, idx, boss, el: E.ch, skill: ENEMY_SKILL[E.arch] || 'nuke', r: boss ? 'S' : 'C',
+      atk: st.atk, maxHp: st.hp, hp: st.hp, def: st.def, spd: st.spd,
+      cd: rand(0.3, 1.0), energy: -34, shield: 0, alive: true, dom: null,
+    };
+  }
   function unit(side, lineId, form, st, idx, boss = false) {
     const L = LINE_MAP[lineId];
     return {
@@ -375,7 +385,7 @@ const Game = (() => {
   }
   function heroUnit() {
     const h = G.state.hero, st = heroStats(), C = CLASSES[h.cls];
-    return { side: 'ally', hero: true, gender: h.gender, cls: h.cls, name: h.name, lineId: null, form: 0, idx: 0, boss: false, el: null, skill: 'hero', r: 'SSR',
+    return { side: 'ally', hero: true, gender: h.gender, cls: h.cls, name: h.name, lineId: null, form: 0, idx: 0, boss: false, el: null, skill: 'hero', r: 'S',
       atk: st.atk, maxHp: st.hp, hp: st.hp, def: st.def, spd: st.spd, crit: C.crit || 0, cd: rand(0.2, 0.6), energy: 0, shield: 0, alive: true, dom: null };
   }
   function teamUnits() {
@@ -402,9 +412,9 @@ const Game = (() => {
     G.state.daily.raidUsed++;
     quest('raid');
     const id = raidBossId(), lvl = G.state.raid.lvl;
-    const boss = unit('enemy', id, 2, raidBossStats(lvl), 0, true);
+    const boss = enemyUnit(id, 2, raidBossStats(lvl), 0, true);
     boss.raid = true; boss.energy = 0;
-    G.battle = { mode: 'raid', info: { el: LINE_MAP[id].el, label: `보스 레이드 Lv.${lvl}` }, wave: 0, waves: 1,
+    G.battle = { mode: 'raid', info: { el: ENEMY_MAP[id].ch, label: `보스 레이드 Lv.${lvl}` }, wave: 0, waves: 1,
       allies: teamUnits(), enemies: [boss], over: false, timer: 0, next: null, time: 0, limit: RAID.time, dmg: 0, lvl };
     BattleView.render(G.battle);
     BattleView.warning();
@@ -584,7 +594,7 @@ const Game = (() => {
     if (first) s.best = B.stage;
     quest('stage');
     if (B.info.boss || Math.random() < 0.25) {
-      const it = Gear.drop(B.stage, B.info.boss && first ? 'R' : 'N');
+      const it = Gear.drop(B.stage, B.info.boss && first ? 'B' : 'C');
       r.item = it;
     }
     BattleView.banner('CLEAR!', r);
@@ -618,7 +628,7 @@ const Game = (() => {
       gems: killed ? 50 : 0,
     };
     grant(r);
-    if (killed || pct >= 0.5) r.item = Gear.drop(Math.max(G.state.best, 5 + B.lvl * 7), killed ? 'SR' : 'R');
+    if (killed || pct >= 0.5) r.item = Gear.drop(Math.max(G.state.best, 5 + B.lvl * 7), killed ? 'A' : 'B');
     const R = G.state.raid;
     R.bestPct = Math.max(R.bestPct, pct);
     if (killed) { R.lvl++; R.bestPct = 0; BattleView.banner('격파!', null); }
@@ -636,7 +646,7 @@ const Game = (() => {
     A.pts = Math.max(0, A.pts + delta);
     won ? A.wins++ : A.losses++;
     const got = grant(resolveReward(won ? { gems: Math.round(10 + 10 * opp.mult), goldMin: 10, ench: 3 } : { goldMin: 3 }));
-    if (won && Math.random() < 0.3) got.item = Gear.drop(G.state.best, 'R');
+    if (won && Math.random() < 0.3) got.item = Gear.drop(G.state.best, 'B');
     const after = arenaTier();
     refreshOpps();
     Sound.play(won ? 'win' : 'lose');
@@ -649,7 +659,7 @@ const Game = (() => {
   function init() {
     const loaded = load();
     G.state = loaded || defaultState();
-    if (!loaded) ['coal', 'clam', 'acorn'].forEach(id => give(id));
+    if (!loaded) ['jipsin', 'tteok', 'dukkeobi'].forEach(id => give(id));
     checkDaily();
     Sound.set('bgm', G.state.settings.bgm);
     Sound.set('sfx', G.state.settings.sfx);

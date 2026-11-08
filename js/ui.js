@@ -101,7 +101,7 @@ const UI = (() => {
     const B = G.battle, h = $('#mode-hud');
     if (!B || B.mode === 'stage') { h.innerHTML = ''; return; }
     if (B.mode === 'raid') {
-      const boss = B.enemies[0], L = LINE_MAP[boss.lineId];
+      const boss = B.enemies[0], E = ENEMY_MAP[boss.enemyId], L = { el: E.ch, names: [E.n, E.n, E.n] };
       h.innerHTML = `<div class="raid-hud">
         <div class="rh-name">${ELEMENTS[L.el].icon} ${L.names[2]} <small>Lv.${B.lvl}</small></div>
         <div class="rh-bar"><i id="raid-hp"></i><span id="raid-hp-txt"></span></div>
@@ -189,7 +189,7 @@ const UI = (() => {
       </div>
       <div class="team5">
         ${s.hero ? `<div class="tcard hero" data-hero style="--rc:#ffd23f">
-            <div class="art">${HeroArt.hero(s.hero.gender, s.hero.cls)}</div>
+            <div class="art">${HeroArt.of(s.hero)}</div>
             <div class="tlv">Lv.${s.hero.lvl}</div>
             <button class="qlv" data-hq ${Game.heroCanLevel() ? '' : 'disabled'}>▲</button>
           </div>` : ''}
@@ -355,13 +355,13 @@ const UI = (() => {
       <div class="summon">
         <div class="sm-banner">
           ${Assets.has('ui_banner') ? `<div class="sm-img">${Assets.icon('banner', '')}</div>` :
-          `<div class="sm-arts">${['angel', 'dragon', 'ember'].map(id => `<div>${mon(id, 2)}</div>`).join('')}</div>`}
+          `<div class="sm-arts">${['jujak', 'hwangryong', 'cheonho'].map(id => `<div>${mon(id, 2)}</div>`).join('')}</div>`}
           <div class="sm-title">몬스터 소환</div>
-          <div class="sm-sub">SSR 확정까지 <b>${80 - s.pity}</b>회</div>
+          <div class="sm-sub">S 등급 확정까지 <b>${PITY_MAX - s.pity}</b>회</div>
         </div>
         <div class="sm-btns">
           <button class="btn" data-pull="1">1회 소환<small>${ic('gems')} 100</small></button>
-          <button class="btn gold" data-pull="10">10회 소환<small>${ic('gems')} 900 · SR↑ 확정</small></button>
+          <button class="btn gold" data-pull="10">10회 소환<small>${ic('gems')} 900 · A↑ 확정</small></button>
           ${adBtn('무료 소환', adLeft('pull'), 'pull-ad')}
         </div>
       </div>
@@ -398,7 +398,7 @@ const UI = (() => {
     const running = G.state.exped.filter(Boolean).length, done = G.state.exped.filter(x => x && Date.now() >= x.end).length;
     p.innerHTML = `<div class="adv">
       <button class="adv-card raid" id="adv-raid">
-        <div class="ac-art">${mon(bossId, 2)}</div>
+        <div class="ac-art">${MonArt.enemy(bossId, 2)}</div>
         <div class="ac-name">보스 레이드</div>
         <small>Lv.${G.state.raid.lvl} · 🎫 ${Game.raidTickets()}</small>
         ${Game.raidTickets() > 0 ? '<i class="dot on"></i>' : ''}
@@ -427,10 +427,10 @@ const UI = (() => {
   }
 
   function raidModal() {
-    const id = Game.raidBossId(), L = LINE_MAP[id], R = G.state.raid, st = Game.raidBossStats(R.lvl);
+    const id = Game.raidBossId(), E = ENEMY_MAP[id], L = { el: E.ch, names: [E.n, E.n, E.n] }, R = G.state.raid, st = Game.raidBossStats(R.lvl);
     const days = ['일', '월', '화', '수', '목', '금', '토'];
     const m = modal(`<div class="raid-m">
-      <div class="rm-art" data-el="${L.el}">${mon(id, 2)}</div>
+      <div class="rm-art" data-el="${L.el}">${MonArt.enemy(id, 2)}</div>
       <div class="rp-title">${ELEMENTS[L.el].icon} ${L.names[2]} <small>Lv.${R.lvl}</small></div>
       <div class="muted small">${days[new Date().getDay()]}요일 보스 · 유리한 속성: ${Object.entries(ADV).filter(([a, b]) => b === L.el).map(([a]) => ELEMENTS[a].icon).join('')}</div>
       <div class="rm-info">
@@ -559,7 +559,7 @@ const UI = (() => {
         <div class="si free"><div class="si-ic">${ic('gems')}</div><div class="si-nm">무료 다이아 ${AD_GEM_REWARD}</div>${adBtn('받기', adLeft('gem'), 'gem-ad')}</div>
         ${IAP.map(it => `<button class="si" data-iap="${it.id}"><div class="si-ic">${ic('gems')}</div><div class="si-nm">${it.name}</div><div class="si-pr">${it.price}</div></button>`).join('')}
       </div>
-      <div class="pkg ${s.bought.starter ? 'sold' : ''}"><div><b>🎁 스타터 패키지</b> <span class="badge">1회</span><br><small class="muted">💎1,000 · 🔮10 · 🔨50 · 💰20,000 · SSR 장비</small></div>
+      <div class="pkg ${s.bought.starter ? 'sold' : ''}"><div><b>🎁 스타터 패키지</b> <span class="badge">1회</span><br><small class="muted">💎1,000 · 🔮10 · 🔨50 · 💰20,000 · S 장비</small></div>
         <button class="btn gold" data-pkg="starter" ${s.bought.starter ? 'disabled' : ''}>${s.bought.starter ? '완료' : '₩3,300'}</button></div>
       <div class="pkg ${s.adFree ? 'sold' : ''}"><div><b>🚫 광고 제거 패스</b> <span class="badge">영구</span><br><small class="muted">광고 없이 광고 보상 즉시 획득</small></div>
         <button class="btn gold" data-pkg="adfree" ${s.adFree ? 'disabled' : ''}>${s.adFree ? '보유 중' : '₩5,500'}</button></div>
@@ -579,7 +579,7 @@ const UI = (() => {
       if (k === 'starter' && await Monetize.purchase({ name: '스타터 패키지', price: '₩3,300' })) {
         s.bought.starter = true; Game.save();
         const got = Game.grant({ gems: 1000, stones: 10, ench: 50, gold: 20000 });
-        got.item = Gear.drop(Math.max(5, s.best), 'SSR');
+        got.item = Gear.drop(Math.max(5, s.best), 'S');
         return rewardPopup('스타터 패키지', got);
       }
       if (k === 'adfree' && await Monetize.purchase({ name: '광고 제거 패스', price: '₩5,500' })) {
@@ -611,7 +611,7 @@ const UI = (() => {
     const st = Game.heroStats(), C = CLASSES[h.cls], cost = Game.levelCost(h.lvl);
     p.innerHTML = `
       <div class="hero-tab">
-        <button class="ht-art" id="ht-art">${HeroArt.hero(h.gender, h.cls)}</button>
+        <button class="ht-art" id="ht-art">${HeroArt.of(h)}</button>
         <div class="ht-info">
           <div class="ht-name">${h.name}</div>
           <div class="muted small">${GENDERS[h.gender]} · ${C.name} · Lv.${h.lvl}</div>
@@ -645,7 +645,7 @@ const UI = (() => {
   function heroInfo() {
     const h = G.state.hero, C = CLASSES[h.cls], st = Game.heroStats();
     const m = modal(`<div class="hero-info">
-      <div class="hi-art">${HeroArt.hero(h.gender, h.cls)}</div>
+      <div class="hi-art">${HeroArt.of(h)}</div>
       <div class="rp-title">${h.name} <small>Lv.${h.lvl}</small></div>
       <div class="muted center small">${GENDERS[h.gender]} ${C.name} · ${C.desc}</div>
       <div class="d-stats"><div>공격<b>${fmt(st.atk)}</b></div><div>체력<b>${fmt(st.hp)}</b></div><div>방어<b>${fmt(st.def)}</b></div></div>
@@ -775,18 +775,18 @@ const UI = (() => {
   function bag() {
     const list = G.state.gear.filter(x => GEAR_SLOTS[x.slot].owner === bagTab)
       .sort((a, b) => RARITY_ORDER.indexOf(b.r) - RARITY_ORDER.indexOf(a.r) || Gear.power(b) - Gear.power(a));
-    const junk = G.state.gear.filter(x => !x.eq && x.enh === 0 && (x.r === 'N' || x.r === 'R'));
+    const junk = G.state.gear.filter(x => !x.eq && x.enh === 0 && (x.r === 'C' || x.r === 'B'));
     const m = modal(`<div class="bag"><div class="rp-title">🎒 가방 <small>${G.state.gear.length}/${GEAR_BAG_MAX}</small></div>
       <div class="seg"><button data-bt="hero" class="${bagTab === 'hero' ? 'on' : ''}">캐릭터 장비</button><button data-bt="mon" class="${bagTab === 'mon' ? 'on' : ''}">몬스터 장비</button></div>
       <div class="bag-grid">${list.map(it => `<button class="gcell" data-bid="${it.id}" style="--rc:${RARITY[it.r].color}"><span class="gi">${Gear.icon(it)}</span>${it.enh ? `<b class="enh">+${it.enh}</b>` : ''}<small>${it.r}</small>${it.eq ? '<i class="eqb">E</i>' : ''}</button>`).join('') || '<div class="muted empty-msg">비어 있어요</div>'}</div>
-      <div class="row"><button class="btn red" id="bag-dis" ${junk.length ? '' : 'disabled'}>N·R 일괄 분해 (${junk.length})</button></div></div>`, 'wide-modal');
+      <div class="row"><button class="btn red" id="bag-dis" ${junk.length ? '' : 'disabled'}>C·B 일괄 분해 (${junk.length})</button></div></div>`, 'wide-modal');
     m.querySelectorAll('[data-bt]').forEach(b => b.onclick = () => { bagTab = b.dataset.bt; bag(); });
     m.querySelectorAll('[data-bid]').forEach(b => b.onclick = () => {
       const it = Gear.find(+b.dataset.bid);
       gearDetail(it.id, it.eq || (bagTab === 'hero' ? 'hero' : null), bag);
     });
     $('#bag-dis', m).onclick = async () => {
-      if (!(await confirm(`착용하지 않은 N·R 장비 ${junk.length}개를 분해할까요?`, '분해'))) return bag();
+      if (!(await confirm(`착용하지 않은 C·B 장비 ${junk.length}개를 분해할까요?`, '분해'))) return bag();
       const n = Gear.disassemble(junk.map(x => x.id)); Game.save();
       toast(`분해 완료! ${ic('ench')} +${n}`); refreshTop(); bag();
     };
@@ -803,13 +803,13 @@ const UI = (() => {
     p.innerHTML = `${summonTabs()}
       <div class="summon">
         <div class="sm-banner gear">
-          <div class="sm-gears">${['weapon', 'armor', 'ring', 'collar'].map((sl, i) => `<span>${Gear.icon({ slot: sl, r: RARITY_ORDER[4 - i] })}</span>`).join('')}</div>
+          <div class="sm-gears">${['weapon', 'armor', 'ring', 'collar'].map((sl, i) => `<span>${Gear.icon({ slot: sl, r: RARITY_ORDER[5 - i] })}</span>`).join('')}</div>
           <div class="sm-title">장비 소환</div>
           <div class="sm-sub">캐릭터·몬스터 장비 · iLv.${Math.max(1, s.best)}</div>
         </div>
         <div class="sm-btns">
           <button class="btn" data-gp="1">1회 소환<small>${ic('gems')} 100</small></button>
-          <button class="btn gold" data-gp="10">10회 소환<small>${ic('gems')} 900 · SR↑ 확정</small></button>
+          <button class="btn gold" data-gp="10">10회 소환<small>${ic('gems')} 900 · A↑ 확정</small></button>
           ${adBtn('무료 소환', adLeft('gearPull'), 'gp-ad')}
         </div>
       </div>
@@ -946,7 +946,7 @@ const UI = (() => {
 
   function intro() {
     modal(`<div class="center intro">
-      <div class="intro-arts">${['coal', 'clam', 'acorn'].map(id => `<div>${mon(id, 0)}</div>`).join('')}</div>
+      <div class="intro-arts">${['jipsin', 'tteok', 'dukkeobi'].map(id => `<div>${mon(id, 0)}</div>`).join('')}</div>
       <div class="rp-title">몬스터 키우기</div>
       <p>몬스터들이 <b>자동으로 전투</b>하며 스테이지를 올라가요.<br>
       <b>레벨업 · 진화 · 성급 강화</b>로 키우고<br><b>소환</b>으로 새로운 몬스터를 모아보세요!</p>

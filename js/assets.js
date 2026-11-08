@@ -43,7 +43,7 @@ const Assets = (() => {
   function monster(id, form, opts = {}) {
     const u = img[`m_${id}_${form}`];
     if (u) return `<img class="mimg${opts.silhouette ? ' silhouette' : ''}" src="${u}" draggable="false" alt="">`;
-    return Art.creature(id, form, opts);
+    return MonArt.monster(id, form, opts);
   }
   const bg = el => img[`bg_${el}`] || null;
   const icon = (k, emoji) => (img[`ui_${k}`] ? `<img class="ic" src="${img[`ui_${k}`]}" alt="">` : emoji);

@@ -578,3 +578,17 @@ svg.pix, .mimg { image-rendering: pixelated; }
 .pull-stage .egg.chest { border-radius: 14px; background: linear-gradient(#c98a4b, #8a5a2b); box-shadow: 0 0 40px #ffb020; }
 .pull-stage.gold .egg.chest { background: linear-gradient(#ffe066, #f29a12); }
 #nav button { font-size: 10.5px; }
+
+/* ================= v0.4: 도트 스프라이트 (임시 그림) ================= */
+.spr { width: 100%; aspect-ratio: calc(var(--fw) / var(--fh)); background-image: var(--sheet); background-repeat: no-repeat;
+  background-size: calc(6 * 100%) calc(var(--rows) * 100%); image-rendering: pixelated; background-position: 0% 0%;
+  animation: spr-idle 1s steps(6) infinite; }
+.spr.still { animation: none; }
+@keyframes spr-idle { from { background-position: 0% 0%; } to { background-position: 120% 0%; } }
+.sprite.atk .spr, .sprite.cast .spr.mon { animation: spr-atk .32s steps(4) 1; }
+.sprite.cast .spr.hero { animation: spr-cast .5s steps(4) 1; }
+@keyframes spr-atk { from { background-position: 0% var(--ry1); } to { background-position: 80% var(--ry1); } }
+@keyframes spr-cast { from { background-position: 0% 100%; } to { background-position: 80% 100%; } }
+.bob:has(.spr) { animation: none; }
+.unit.enemy .sprite .spr { transform: scaleX(-1); }
+.unit .sprite .spr.hero { width: 70%; margin: 0 auto; }

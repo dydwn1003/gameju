@@ -5,8 +5,8 @@ const BattleView = (() => {
   const ENEMY_POS = [[67, 64], [67, 88], [86, 58], [86, 76], [86, 94]];
   let layer, field, lastCutin = 0;
 
-  const artOf = u => (u.hero ? HeroArt.hero(u.gender, u.cls) : Assets.monster(u.lineId, u.form));
-  const nameOf = u => (u.hero ? u.name : LINE_MAP[u.lineId].names[u.form]);
+  const artOf = u => (u.hero ? HeroArt.of(G.state.hero) : u.enemyId ? MonArt.enemy(u.enemyId, u.form) : Assets.monster(u.lineId, u.form));
+  const nameOf = u => (u.hero ? u.name : u.enemyId ? ENEMY_MAP[u.enemyId].n : LINE_MAP[u.lineId].names[u.form]);
 
   function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
 
@@ -131,7 +131,7 @@ const BattleView = (() => {
   function skill(u, name) {
     retrigger(sprite(u), 'cast');
     Sound.play('skill');
-    const big = u.side === 'ally' && (u.r === 'SSR' || u.r === 'UR');
+    const big = u.side === 'ally' && RARITY_ORDER.indexOf(u.r) >= 3;
     if (big && performance.now() - lastCutin > 3500) { lastCutin = performance.now(); cutin(u, name); }
     else floatText(u, name, 'skillname');
   }
