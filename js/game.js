@@ -162,7 +162,7 @@ const Game = (() => {
   }
   function heroCanLevel() { const h = G.state.hero; return h && h.lvl < HERO_MAX_LV && G.state.gold >= levelCost(h.lvl).gold; }
   function power(st) { return Math.round(st.atk * 4 + st.hp * 0.6 + st.def * 3); }
-  function teamPower() { return G.state.team.reduce((a, id) => a + power(monStats(id)), G.state.hero ? power(heroStats()) : 0); }
+  function teamPower() { return teamPowerWith(G.state.team); } // 시너지 포함
   function levelCost(lvl) {
     const k = Math.pow(1.04, lvl);
     return { gold: Math.round(28 * lvl * k) };
@@ -358,32 +358,94 @@ const Game = (() => {
     });
   }
 
-  const ENEMY_SKILL = { ghost: 'drain', ghostlady: 'drain', egghost: 'drain', reaper: 'drain', jelly: 'blast', cloud: 'blast', golem: 'blast', octo: 'blast', dragon: 'blast', fox: 'drain', bear: 'shield', crab: 'shield' };
+  // ----- 유닛 -----
+  function baseUnit(o) {
+    return Object.assign({ cd: rand(0.3, 1.0), energy: 0, shield: 0, alive: true, dom: null, buffs: [], dots: [], stunUntil: 0,
+      crit: 0, critDmg: 0, lifesteal: 0, dodge: 0, thorns: 0, regen: 0, elemental: 0, bossbane: 0, skillUp: 0, _regenT: 0, _dotT: 0 }, o);
+  }
+  function applyPassive(u, P) {
+    if (!P) return;
+    const v = P.v;
+    switch (P.key) {
+      case 'tough': u.maxHp *= 1 + v; break;
+      case 'fierce': u.atk *= 1 + v; break;
+      case 'guard': u.def *= 1 + v; break;
+      case 'keen': u.crit += v; break;
+      case 'brutal': u.critDmg += v; break;
+      case 'vamp': u.lifesteal += v; break;
+      case 'evasion': u.dodge += v; break;
+      case 'regen': u.regen += v; break;
+      case 'thorns': u.thorns += v; break;
+      case 'quick': u.energy += v; break;
+      case 'elemental': u.elemental += v; break;
+      case 'bossbane': u.bossbane += v; break;
+    }
+  }
+  function applyBonus(u, b) {
+    u.atk *= 1 + (b.atk || 0); u.maxHp *= 1 + (b.hp || 0); u.def *= 1 + (b.def || 0); u.spd *= 1 + (b.spd || 0);
+    u.crit += b.crit || 0; u.critDmg += b.critDmg || 0; u.dodge += b.dodge || 0; u.lifesteal += b.lifesteal || 0;
+    u.skillUp += b.skill || 0; u.regen += b.regen || 0;
+  }
+  function finish(u) { u.atk = Math.round(u.atk); u.maxHp = Math.round(u.maxHp); u.def = Math.round(u.def); u.hp = u.maxHp; return u; }
+
   function enemyUnit(id, form, st, idx, boss = false) {
-    const E = ENEMY_MAP[id];
-    return {
-      side: 'enemy', enemyId: id, lineId: null, form, idx, boss, el: E.ch, skill: ENEMY_SKILL[E.arch] || 'nuke', r: boss ? 'S' : 'C',
-      atk: st.atk, maxHp: st.hp, hp: st.hp, def: st.def, spd: st.spd,
-      cd: rand(0.3, 1.0), energy: -34, shield: 0, alive: true, dom: null,
-    };
+    const E = ENEMY_MAP[id], sk = SkillDB.enemy(id, boss);
+    const u = baseUnit({ side: 'enemy', enemyId: id, lineId: null, form, idx, boss, el: E.ch, r: boss ? 'S' : 'C', active: sk.active, passive: sk.passive,
+      atk: st.atk, maxHp: st.hp, def: st.def, spd: st.spd, energy: -34 });
+    applyPassive(u, sk.passive);
+    return finish(u);
   }
   function unit(side, lineId, form, st, idx, boss = false) {
-    const L = LINE_MAP[lineId];
-    return {
-      side, lineId, form, idx, boss, el: L.el, skill: L.skill, r: L.r,
-      atk: st.atk, maxHp: st.hp, hp: st.hp, def: st.def, spd: st.spd,
-      cd: rand(0.3, 1.0), energy: side === 'ally' ? 0 : -34, shield: 0, alive: true, dom: null,
-    };
+    const L = LINE_MAP[lineId], sk = SkillDB.of(lineId);
+    const u = baseUnit({ side, lineId, form, idx, boss, el: L.el, r: L.r, active: sk.active, passive: sk.passive,
+      atk: st.atk, maxHp: st.hp, def: st.def, spd: st.spd, energy: side === 'ally' ? 0 : -34 });
+    applyPassive(u, sk.passive);
+    return finish(u);
   }
   function heroUnit() {
-    const h = G.state.hero, st = heroStats(), C = CLASSES[h.cls];
-    return { side: 'ally', hero: true, gender: h.gender, cls: h.cls, name: h.name, lineId: null, form: 0, idx: 0, boss: false, el: null, skill: 'hero', r: 'S',
-      atk: st.atk, maxHp: st.hp, hp: st.hp, def: st.def, spd: st.spd, crit: C.crit || 0, cd: rand(0.2, 0.6), energy: 0, shield: 0, alive: true, dom: null };
+    const h = G.state.hero, st = heroStats(), C = CLASSES[h.cls], S = C.skill;
+    const type = { blast: 'burst', nuke: 'strike', multi: 'barrage' }[S.type];
+    const active = { type, name: S.name, mult: S.mult, hits: S.hits || 1, fx: { human: 'talisman', fox: 'foxfire', goblin: 'dokkaebi' }[h.cls] };
+    const u = baseUnit({ side: 'ally', hero: true, gender: h.gender, cls: h.cls, name: h.name, lineId: null, form: 0, idx: 0, boss: false, el: null, r: 'S', active,
+      atk: st.atk, maxHp: st.hp, def: st.def, spd: st.spd, cd: rand(0.2, 0.6) });
+    u.crit += C.crit || 0;
+    return finish(u);
+  }
+  // 팀: 캐릭터 + 파트너 몬스터. 패시브 오라와 조합 시너지를 모두에게 적용
+  function teamBonus(ids = G.state.team) {
+    const syn = Synergy.compute(ids), b = Object.assign({}, syn.bonus);
+    ids.forEach(id => {
+      const P = SkillDB.of(id).passive;
+      if (P.key === 'aura_atk') b.atk = (b.atk || 0) + P.v;
+      if (P.key === 'aura_hp') b.hp = (b.hp || 0) + P.v;
+    });
+    return { bonus: b, active: syn.active };
   }
   function teamUnits() {
     const list = G.state.hero ? [heroUnit()] : [];
-    G.state.team.forEach(id => { const o = G.state.owned[id]; list.push(unit('ally', id, 2, monStats(id), list.length)); });
+    G.state.team.forEach(id => list.push(unit('ally', id, 2, monStats(id), list.length)));
+    const { bonus } = teamBonus();
+    list.forEach(u => { applyBonus(u, bonus); finish(u); });
     return list;
+  }
+  // 시너지를 포함한 팀 전투력 (편성 화면 비교용)
+  function teamPowerWith(ids) {
+    const { bonus } = teamBonus(ids);
+    const k = (1 + (bonus.atk || 0)) * 0.55 + (1 + (bonus.hp || 0)) * 0.3 + (1 + (bonus.def || 0)) * 0.15 + (bonus.crit || 0) + (bonus.skill || 0) * 0.5 + (bonus.spd || 0);
+    const base = ids.reduce((a, id) => a + power(monStats(id)), G.state.hero ? power(heroStats()) : 0);
+    return Math.round(base * k);
+  }
+  function autoTeam() {
+    const ids = Object.keys(G.state.owned).sort((a, b) => power(monStats(b)) - power(monStats(a))).slice(0, 12);
+    let best = ids.slice(0, 4), bestP = teamPowerWith(best);
+    const n = ids.length;
+    for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) for (let c = b + 1; c < n; c++) for (let d = c + 1; d < n; d++) {
+      const t = [ids[a], ids[b], ids[c], ids[d]], p = teamPowerWith(t);
+      if (p > bestP) { bestP = p; best = t; }
+    }
+    G.state.team = best.slice(0, Math.min(4, n));
+    restartStage(); save();
+    return bestP;
   }
 
   function startStage(s) {
@@ -455,9 +517,52 @@ const Game = (() => {
     }
     for (const u of B.allies.concat(B.enemies)) {
       if (!u.alive) continue;
+      status(u, dt, B);
+      if (!u.alive) { checkEnd(B); if (B.over) return; continue; }
+      if (B.time < u.stunUntil) continue; // 기절 중
       u.cd -= dt;
       if (u.cd <= 0) { act(u, B); u.cd = 1.2 / u.spd; if (B.over) return; }
     }
+  }
+
+  // ----- 상태이상 · 버프 -----
+  function status(u, dt, B) {
+    if (u.buffs.length) u.buffs = u.buffs.filter(x => x.until > B.time);
+    if (u.dots.length) {
+      u._dotT += dt;
+      if (u._dotT >= 1) {
+        u._dotT -= 1;
+        u.dots = u.dots.filter(x => x.until > B.time);
+        const d = Math.round(u.dots.reduce((a, x) => a + x.dps, 0));
+        if (d > 0) {
+          u.hp -= d; BattleView.status(u, '-' + fmt(d), 'burn');
+          if (u.hp <= 0) { u.hp = 0; u.alive = false; BattleView.die(u, B.mode === 'stage' && u.side === 'enemy'); } else BattleView.bars(u);
+        }
+      }
+    }
+    if (u.regen) {
+      u._regenT += dt;
+      if (u._regenT >= 3) { u._regenT -= 3; if (u.hp < u.maxHp) heal(u, u.maxHp * u.regen, true); }
+    }
+  }
+  const atkOf = u => u.atk * Math.max(0.3, 1 + u.buffs.filter(x => x.k === 'atk').reduce((a, x) => a + x.v, 0));
+  const defOf = u => u.def * Math.max(0.2, 1 + u.buffs.filter(x => x.k === 'def').reduce((a, x) => a + x.v, 0));
+  function buff(u, k, v, dur, B) {
+    if (!u.alive) return;
+    u.buffs.push({ k, v, until: B.time + dur });
+    BattleView.status(u, `${k === 'atk' ? '공격' : '방어'}${v > 0 ? '▲' : '▼'}`, v > 0 ? 'up' : 'down');
+  }
+  function stun(u, dur, B) {
+    if (!u.alive) return;
+    const resist = u.raid ? 0.3 : u.boss ? 0.6 : 1; // 보스는 기절이 짧음
+    u.stunUntil = Math.max(u.stunUntil, B.time + dur * resist);
+    BattleView.status(u, '기절', 'stun');
+    BattleView.stunned(u, dur * resist / (G.speed || 1));
+  }
+  function burn(u, dps, dur, B) {
+    if (!u.alive) return;
+    u.dots.push({ dps, until: B.time + dur });
+    BattleView.status(u, '화상', 'burn');
   }
 
   const alive = arr => arr.filter(u => u.alive);
@@ -482,12 +587,16 @@ const Game = (() => {
     checkEnd(B);
   }
 
-  function hit(src, tgt, mult, B) {
+  function hit(src, tgt, mult, B, o = {}) {
+    if (!tgt.alive) return 0;
+    if (tgt.dodge && Math.random() < tgt.dodge) { BattleView.status(tgt, '회피', 'miss'); return 0; }
     let elem = 1;
     if (ADV[src.el] === tgt.el) elem = 1.5;
     else if (ADV[tgt.el] === src.el) elem = 0.75;
-    const crit = Math.random() < 0.12 + (src.crit || 0);
-    let dmg = src.atk * mult * elem * (100 / (100 + tgt.def * 2)) * rand(0.9, 1.1) * (crit ? 1.6 : 1);
+    const crit = o.crit || Math.random() < 0.12 + (src.crit || 0);
+    let dmg = atkOf(src) * mult * elem * (elem > 1 ? 1 + src.elemental : 1) * (tgt.boss ? 1 + src.bossbane : 1) * (o.skill ? 1 + src.skillUp : 1)
+      * (100 / (100 + defOf(tgt) * 2)) * rand(0.9, 1.1) * (crit ? 1.6 + src.critDmg : 1);
+    if (o.exec && tgt.hp / tgt.maxHp <= o.exec) dmg *= 2;
     dmg = Math.max(1, Math.round(dmg));
     const shown = dmg;
     if (tgt.shield > 0) { const a = Math.min(tgt.shield, dmg); tgt.shield -= a; dmg -= a; }
@@ -496,6 +605,12 @@ const Game = (() => {
     if (src.side === 'ally') B.dmg += real;
     BattleView.damage(tgt, shown, crit, elem);
     if (crit) BattleView.fx(tgt, 'hit', 0.7);
+    if (src.lifesteal && real > 0 && src.alive) heal(src, real * src.lifesteal, true);
+    if (tgt.thorns && src.alive && !o.noThorns) {
+      const r = Math.max(1, Math.round(shown * tgt.thorns));
+      src.hp -= r; BattleView.status(src, '-' + fmt(r), 'thorns');
+      if (src.hp <= 0) { src.hp = 0; src.alive = false; BattleView.die(src, B.mode === 'stage' && src.side === 'enemy'); } else BattleView.bars(src);
+    }
     if (tgt.hp <= 0) {
       tgt.hp = 0; tgt.alive = false;
       BattleView.die(tgt, B.mode === 'stage' && tgt.side === 'enemy');
@@ -503,53 +618,68 @@ const Game = (() => {
     return shown;
   }
 
+  // ----- 액티브 스킬 실행 -----
+  const RAID_ACTIVE = { type: 'burst', name: '대지 진동', mult: 1.1 };
   function castSkill(u, foes, friends, B) {
-    if (u.hero) {
-      const C = CLASSES[u.cls].skill;
-      BattleView.skill(u, C.name);
-      const fxn = { human: 'talisman', fox: 'foxfire', goblin: 'dokkaebi' }[u.cls];
-      if (C.type === 'blast') { BattleView.flash({ human: 'light', fox: 'fire', goblin: 'water' }[u.cls] || 'light'); Sound.play('blast'); foes.forEach(t => { BattleView.fx(t, fxn, 1.2); hit(u, t, C.mult, B); }); }
-      else if (C.type === 'nuke') { const t = foes.reduce((a, b) => (b.hp > a.hp ? b : a)); BattleView.beam(u, t); BattleView.fx(t, fxn, 1.5); hit(u, t, C.mult, B); }
-      else for (let i = 0; i < C.hits; i++) { const al = foes.filter(f => f.alive); if (!al.length) break; const t = pick(al); BattleView.beam(u, t); BattleView.fx(t, fxn, 1); hit(u, t, C.mult, B); }
-      return;
-    }
-    BattleView.skill(u, u.raid ? '대지 진동' : SKILLS[u.skill].name);
-    if (u.raid) {
-      BattleView.flash(u.el); Sound.play('blast');
-      foes.forEach(t => { BattleView.fx(t, u.el, 1.4); hit(u, t, 1.1, B); });
-      return;
-    }
-    const tier = 1 + Math.max(0, RARITY_ORDER.indexOf(u.r)) * 0.12; // 등급이 높을수록 이펙트가 큼
-    const sp = u.side === 'ally' ? (SKILL_TIER[u.r] || 1) : 1;      // 등급이 높을수록 스킬이 셈
-    switch (u.skill) {
-      case 'nuke': {
-        const t = foes.reduce((a, b) => (b.hp > a.hp ? b : a));
-        BattleView.beam(u, t); BattleView.fx(t, u.el, 1.3 * tier); hit(u, t, 3.2 * sp, B); break;
+    const A = u.raid ? RAID_ACTIVE : u.active;
+    const big = (1 + Math.max(0, RARITY_ORDER.indexOf(u.r)) * 0.12) * (A.ult ? 1.4 : 1); // 등급이 높을수록 이펙트가 큼
+    const fxEl = A.fx || u.el || 'light', T = A.type;
+    BattleView.skill(u, A.name, A.ult);
+    if (A.ult) BattleView.flash(fxEl);
+    const live = () => foes.filter(f => f.alive);
+    if (T === 'strike' || T === 'stun' || T === 'dot' || T === 'drain' || T === 'execute') {
+      const t = T === 'execute' ? foes.reduce((a, b) => (b.hp / b.maxHp < a.hp / a.maxHp ? b : a))
+        : T === 'strike' ? foes.reduce((a, b) => (b.hp > a.hp ? b : a)) : pickTarget(foes);
+      BattleView.beam(u, t); BattleView.fx(t, T === 'drain' ? 'dark' : fxEl, 1.3 * big);
+      const d = hit(u, t, A.mult, B, { skill: true, exec: A.exec });
+      if (A.stun) stun(t, A.stun, B);
+      if (A.burn) burn(t, atkOf(u) * A.burn, A.dur || 4, B);
+      if (A.steal) heal(u, d * A.steal);
+    } else if (T === 'burst' || T === 'curse') {
+      BattleView.flash(fxEl); Sound.play('blast');
+      let total = 0;
+      foes.forEach(t => {
+        BattleView.fx(t, fxEl, big);
+        total += hit(u, t, A.mult, B, { skill: true });
+        if (A.stunAll) stun(t, A.stunAll, B);
+        if (A.burnAll) burn(t, atkOf(u) * A.burnAll, A.dur || 4, B);
+        if (A.defDown) buff(t, 'def', -A.defDown, A.dur, B);
+        if (A.reap && !t.boss && t.alive && t.hp / t.maxHp <= A.reap) { t.hp = 0; t.alive = false; BattleView.status(t, '즉사', 'down'); BattleView.die(t, B.mode === 'stage' && t.side === 'enemy'); }
+      });
+      if (A.teamSteal) friends.forEach(f => heal(f, (total * A.teamSteal) / friends.length));
+      if (A.atkUpTeam) friends.forEach(f => buff(f, 'atk', A.atkUpTeam, A.dur, B));
+    } else if (T === 'barrage') {
+      for (let i = 0; i < (A.hits || 4); i++) {
+        const al = live(); if (!al.length) break;
+        const t = pick(al);
+        BattleView.beam(u, t); BattleView.fx(t, fxEl, 0.9 * big);
+        hit(u, t, A.mult, B, { skill: true, crit: A.critAll });
+        if (A.burnAll) burn(t, atkOf(u) * A.burnAll, A.dur || 4, B);
       }
-      case 'blast':
-        BattleView.flash(u.el); Sound.play('blast');
-        foes.forEach(t => { BattleView.fx(t, u.el, tier); hit(u, t, 1.4 * sp, B); }); break;
-      case 'heal': {
-        const low = friends.reduce((a, b) => (b.hp / b.maxHp < a.hp / a.maxHp ? b : a));
-        friends.forEach(f => { BattleView.fx(f, 'heal', f === low ? 1.1 * tier : 0.7); heal(f, (f === low ? u.atk * 3 : u.atk * 1.2) * sp); });
-        Sound.play('heal'); break;
-      }
-      case 'shield':
-        friends.forEach(f => { f.shield += Math.round(u.atk * 2 * sp); BattleView.shield(f); BattleView.fx(f, 'shield', 0.9 * tier); });
-        Sound.play('shield');
-        hit(u, pickTarget(foes), 1.2, B); break;
-      case 'drain': {
-        const t = pickTarget(foes);
-        BattleView.beam(u, t); BattleView.fx(t, 'dark', 1.1 * tier);
-        heal(u, hit(u, t, 2.4 * sp, B) * 0.6); break;
-      }
+    } else if (T === 'heal') {
+      const low = friends.reduce((a, b) => (b.hp / b.maxHp < a.hp / a.maxHp ? b : a));
+      friends.forEach(f => { BattleView.fx(f, 'heal', f === low ? 1.1 * big : 0.75); heal(f, atkOf(u) * (f === low ? A.heal : A.healAll)); });
+      if (A.atkUp) friends.forEach(f => buff(f, 'atk', A.atkUp, A.dur, B));
+      Sound.play('heal');
+    } else if (T === 'shield') {
+      friends.forEach(f => { f.shield += Math.round(atkOf(u) * A.shield); BattleView.shield(f); BattleView.fx(f, 'shield', 0.9 * big); });
+      if (A.atkUp) friends.forEach(f => buff(f, 'atk', A.atkUp, A.dur, B));
+      if (A.defUp) friends.forEach(f => buff(f, 'def', A.defUp, A.dur, B));
+      Sound.play('shield');
+    } else if (T === 'warcry') {
+      const t = pickTarget(foes);
+      BattleView.fx(t, fxEl, big); hit(u, t, A.mult, B, { skill: true });
+      friends.forEach(f => buff(f, 'atk', A.atkUp, A.dur, B));
+      Sound.play('reward');
     }
   }
 
-  function heal(u, amt) {
+  function heal(u, amt, quiet) {
+    if (!u.alive) return;
     amt = Math.round(amt);
+    if (amt <= 0) return;
     u.hp = Math.min(u.maxHp, u.hp + amt);
-    BattleView.healFx(u, amt);
+    if (quiet) BattleView.status(u, '+' + fmt(amt), 'heal'); else BattleView.healFx(u, amt);
     BattleView.bars(u);
   }
 
@@ -687,6 +817,6 @@ const Game = (() => {
     startExped, claimExped, skipCost, expedAlert,
     quest, questDone, claimQuest, claimQuestAll, allQuestsClaimed, questAlert, canAttend, attend, resolveReward, grant,
     raidTickets, arenaTickets, raidBossId, raidBossStats, arenaTier, refreshOpps,
-    stageInfo, startStage, restartStage, resumeStage, challenge, startRaid, startArena, giveUp,
+    teamBonus, teamPowerWith, autoTeam, stageInfo, startStage, restartStage, resumeStage, challenge, startRaid, startArena, giveUp,
   };
 })();

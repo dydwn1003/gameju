@@ -317,6 +317,157 @@ Idle breathing animation of THIS SAME character from the attached image: exactly
 Basic attack animation of THIS SAME character from the attached image: exactly 4 frames in one horizontal row, keep the same design, colors and scale, feet stay on the same ground line: frame 1 anticipation (pulling back the weapon), frame 2 strike (fast swing with a white motion arc), frame 3 follow-through, frame 4 recover to ready stance. High quality pixel art main player character sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones,  every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. Classic Korean fantasy MMORPG pixel sprite feel: stylish heroic SD proportions (about 2.5 to 3 heads tall, not baby-like), detailed traditional Joseon costume with flowing sleeves, ribbons and fabric folds, dancheong color accents (deep red, jade green, cobalt blue, gold), confident cool expression and dynamic stance, mystical and elegant, readable silhouette. Sprite sheet: exactly 4 different characters arranged in a 1x4 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
 ```
 
+## 🆕 적 몬스터 75종 (챕터 6~20)
+
+> 격자 9장 (grid_e04 ~ grid_e12) · 챕터마다 일반 4 + 보스 1 · assets/enemies/
+
+### `grid_e04.png` 적 1~9번
+첨부: grid_e01 결과 이미지 첨부 (같은 화풍)
+순서: 1.눈귀신 · 2.얼음늑대 · 3.설인 · 4.고드름박쥐 · 5.빙룡 · 6.죽순귀 · 7.살쾡이 · 8.청사 · 9.칡넝쿨귀
+
+```
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a snow ghost made of swirling snow
+2. an ice wolf with crystal spikes on its back
+3. a shaggy white yeti
+4. an icicle bat with frozen wings
+5. BOSS: a frost dragon breathing icy mist
+6. a bamboo shoot imp with angry eyes
+7. a fierce Korean wildcat (salkwaengi)
+8. a green bamboo viper
+9. a creature made of tangled arrowroot vines
+```
+
+### `grid_e05.png` 적 10~18번
+첨부: grid_e01 결과 이미지 첨부 (같은 화풍)
+순서: 1.대나무 정령 · 2.엽전도둑 · 3.노름도깨비 · 4.탈귀신 · 5.술병요괴 · 6.시장 두목 · 7.해마병사 · 8.자라대신 · 9.조개무사
+
+```
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. BOSS: a giant bamboo spirit giant with bamboo-stalk limbs
+2. a sneaky little dokkaebi thief carrying a coin bag
+3. a gambling dokkaebi holding dice
+4. a creepy floating mask ghost with ribbons
+5. a drunk rice-wine bottle yokai with a red face
+6. BOSS: the market boss dokkaebi with a golden club and fur cape
+7. a seahorse soldier holding a tiny spear
+8. a softshell turtle minister in an official hat
+9. a clam warrior with shell armor and a sword
+```
+
+### `grid_e06.png` 적 19~27번
+첨부: grid_e01 결과 이미지 첨부 (같은 화풍)
+순서: 1.갈치검객 · 2.상어장군 · 3.망자 · 4.해골말 · 5.저승개 · 6.저승새 · 7.저승 판관 · 8.숯검댕이 · 9.불나방
+
+```
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a silver cutlassfish swordsman
+2. BOSS: a shark general in red armor
+3. a wandering dead spirit in a mourning robe
+4. a skeleton horse with blue ghost-fire mane
+5. a black hellhound with glowing red eyes
+6. a dark spirit bird trailing blue soul fire
+7. BOSS: an underworld judge holding a judgment brush and scroll
+8. a soot sprite with glowing ember eyes
+9. a fire moth with burning wings
+```
+
+### `grid_e07.png` 적 28~36번
+첨부: grid_e01 결과 이미지 첨부 (같은 화풍)
+순서: 1.가마솥귀 · 2.화덕도깨비 · 3.불여우 대모 · 4.목어귀 · 5.석등귀 · 6.풍경귀 · 7.석탑골렘 · 8.범종귀 · 9.거머리
+
+```
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a big iron cauldron yokai bubbling with fire
+2. a furnace dokkaebi with a burning club
+3. BOSS: a fire fox matriarch with five flaming tails
+4. a wooden fish (mogeo) temple ornament come alive
+5. a stone lantern yokai with a flickering light
+6. a wind-chime spirit with a fish-shaped clapper
+7. a stone pagoda golem
+8. BOSS: a giant bronze temple bell yokai with a booming shockwave
+9. a giant swamp leech
+```
+
+### `grid_e08.png` 적 37~45번
+첨부: grid_e01 결과 이미지 첨부 (같은 화풍)
+순서: 1.늪두꺼비 · 2.이끼골렘 · 3.물뱀 · 4.늪의 주인 · 5.해적도깨비 · 6.바다뱀 · 7.해골선원 · 8.폭풍새 · 9.대왕오징어
+
+```
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a swamp toad covered in moss
+2. a mossy mud golem
+3. a dark water snake
+4. BOSS: a colossal swamp catfish lord
+5. a pirate dokkaebi with an eyepatch
+6. a sea serpent with fins
+7. a skeleton sailor with a cutlass
+8. a storm petrel crackling with lightning
+9. BOSS: a giant squid wrapping a ship mast
+```
+
+### `grid_e09.png` 적 46~54번
+첨부: grid_e01 결과 이미지 첨부 (같은 화풍)
+순서: 1.천마 · 2.번개정령 · 3.금빛학 · 4.구름기사 · 5.천둥장군 · 6.용암슬라임 · 7.화염도마뱀 · 8.흑요석골렘 · 9.불박쥐
+
+```
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a white heavenly horse (cheonma) with wings
+2. a lightning spirit
+3. a golden crane
+4. a cloud knight in white armor
+5. BOSS: a thunder general giant with lightning drums
+6. a lava slime
+7. a fire lizard with spiky back
+8. an obsidian golem with lava cracks
+9. a burning cave bat
+```
+
+### `grid_e10.png` 적 55~63번
+첨부: grid_e01 결과 이미지 첨부 (같은 화풍)
+순서: 1.화룡 · 2.그림자 무사 · 3.저주받은 궁녀 · 4.검은 고양이 · 5.유령등불 · 6.그림자 왕 · 7.산양 · 8.나무귀 · 9.버섯군락
+
+```
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. BOSS: a fire dragon emerging from magma
+2. a shadow palace guard
+3. a cursed court lady ghost in faded hanbok
+4. a black cat yokai with two tails
+5. a ghostly palace lantern with blue fire
+6. BOSS: the shadow king wearing a dark crown
+7. a long-haired mountain goat
+8. a walking tree spirit (treant)
+9. a cluster of mushroom spirits
+```
+
+### `grid_e11.png` 적 64~72번
+첨부: grid_e01 결과 이미지 첨부 (같은 화풍)
+순서: 1.산까마귀 · 2.산신 거목 · 3.얼음게 · 4.수정박쥐 · 5.설녀 · 6.얼음거북 · 7.빙하 거인 · 8.혼돈수 · 9.타락 선녀
+
+```
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. Sprite sheet: exactly 9 different characters arranged in a 3x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a mountain raven
+2. BOSS: an ancient mountain-god tree with a face and white beard of moss
+3. an ice crab with crystal claws
+4. a crystal bat
+5. a snow woman spirit with icy breath
+6. an ice turtle with a glacier shell
+7. BOSS: a glacier giant
+8. a chaos chimera beast
+9. a fallen celestial maiden with torn wings
+```
+
+### `grid_e12.png` 적 73~75번
+첨부: grid_e01 결과 이미지 첨부 (같은 화풍)
+순서: 1.공허혼불 · 2.혼돈기사 · 3.혼돈의 용
+
+```
+Use exactly the same pixel art style, outline and pixel size as the attached image. Cute chibi pixel art sprites for a Korean folklore fantasy mobile RPG, old Joseon-era Korean fairy-tale mood (dokkaebi goblins, traditional hanbok, dancheong temple colors, hanji paper textures), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited warm palette, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes, every character full body, facing right in 3/4 side view, all drawn at the same pixel size and similar scale. These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. Sprite sheet: exactly 3 different characters arranged in a 1x3 grid of equal square cells, one character per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a void soul flame
+2. a chaos knight in cracked dark armor
+3. BOSS: the dragon of chaos with rainbow-dark scales
+```
+
 ## 🆕 등급별 스킬 이펙트 (26종)
 
 > 끝나는 모양이 전부 다름 · C·B → A → S → SS(사신 전용) → SSS(전용 궁극기) 순으로 화려해짐 · 검은 배경 OK · assets/fx/

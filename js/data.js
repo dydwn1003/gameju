@@ -298,13 +298,129 @@ const SIZE_CLASS = (() => {
   for (const [k, v] of Object.entries(t)) for (const id of v.split(' ')) o[id] = k;
   return o;
 })();
-const sizeOf = id => SIZE_H[SIZE_CLASS[id] || 'm'];
+const sizeOf = id => SIZE_H[SIZE_CLASS[id] || (ENEMY_MAP[id] && ENEMY_MAP[id].boss ? 'xl' : 'm')];
+
+// ===== 추가 챕터 6~20 (적 75종) =====
+// [속성, 챕터 이름, [[id, 이름, 체형, 색, 장식, 그림 설명(영문)] x5 (마지막은 보스)]]
+const MORE_CHAPTERS = [
+  ['water', '설산', [
+    ['e_nungwi', '눈귀신', 'ghost', ['#e8f4ff', '#ffffff', '#5fa8e0'], ['icicle'], 'a snow ghost made of swirling snow'],
+    ['e_eoreumneukdae', '얼음늑대', 'quad', ['#bfe0f4', '#ffffff', '#3a6a9a'], ['ears_fox', 'crystal', 'tail_big'], 'an ice wolf with crystal spikes on its back'],
+    ['e_seorin', '설인', 'bear', ['#f0f4f8', '#ffffff', '#7a8aa0'], ['ears_round', 'shaggy'], 'a shaggy white yeti'],
+    ['e_godeureumbak', '고드름박쥐', 'bat', ['#8ab8e0', '#e0f0ff', '#2a4a7a'], ['ears_bat', 'icicle'], 'an icicle bat with frozen wings'],
+    ['e_bingryong', '빙룡', 'dragon', ['#9ad0f4', '#ffffff', '#3a7ac0'], ['horns_deer', 'mane_wave', 'whiskers'], 'BOSS: a frost dragon breathing icy mist'],
+  ]],
+  ['grass', '대나무 숲', [
+    ['e_juksun', '죽순귀', 'blob', ['#a8c860', '#e8f0b0', '#5a7a2a'], ['leaf'], 'a bamboo shoot imp with angry eyes'],
+    ['e_salkwaeng', '살쾡이', 'quad', ['#c89a5a', '#f0e0c0', '#3a2a1a'], ['ears_fox', 'stripes', 'tail_big'], 'a fierce Korean wildcat (salkwaengi)'],
+    ['e_cheongsa', '청사', 'serpent', ['#5ac05a', '#d8f0a0', '#2a6a2a'], ['scales'], 'a green bamboo viper'],
+    ['e_chik', '칡넝쿨귀', 'golem', ['#4a8a3a', '#8ac06a', '#2a4a1a'], ['moss'], 'a creature made of tangled arrowroot vines'],
+    ['e_daejeong', '대나무 정령', 'golem', ['#7ab04a', '#c8e090', '#f2c14e'], ['moss'], 'BOSS: a giant bamboo spirit giant with bamboo-stalk limbs'],
+  ]],
+  ['dark', '도깨비 시장', [
+    ['e_yeopdo', '엽전도둑', 'goblin', ['#6a5a8a', '#b0a0d0', '#f2c14e'], ['horn1', 'club'], 'a sneaky little dokkaebi thief carrying a coin bag'],
+    ['e_noreum', '노름도깨비', 'goblin', ['#8a3a4a', '#d07a8a', '#2a1a1a'], ['horns2', 'club'], 'a gambling dokkaebi holding dice'],
+    ['e_talgwi', '탈귀신', 'mask', ['#d8c0a0', '#f4e4c8', '#5a2a2a'], [], 'a creepy floating mask ghost with ribbons'],
+    ['e_sulbyeong', '술병요괴', 'gourd', ['#7a9a5a', '#c8d8a0', '#d8463a'], [], 'a drunk rice-wine bottle yokai with a red face'],
+    ['e_sijangdumok', '시장 두목', 'goblin', ['#3a2a5a', '#7a6aa0', '#f2c14e'], ['horns2', 'club_gold', 'cape'], 'BOSS: the market boss dokkaebi with a golden club and fur cape'],
+  ]],
+  ['water', '용궁', [
+    ['e_haemabyeong', '해마병사', 'fish', ['#e8a03a', '#fff0c0', '#8a4a1a'], ['finbig'], 'a seahorse soldier holding a tiny spear'],
+    ['e_jaradaesin', '자라대신', 'turtle', ['#6a8a5a', '#d8d0a0', '#3a4a2a'], ['whiskers'], 'a softshell turtle minister in an official hat'],
+    ['e_jogaemusa', '조개무사', 'crab', ['#d8b0c0', '#fff0f4', '#8a5a6a'], [], 'a clam warrior with shell armor and a sword'],
+    ['e_galchi', '갈치검객', 'fish', ['#d0d8e8', '#ffffff', '#6a7a9a'], ['teeth'], 'a silver cutlassfish swordsman'],
+    ['e_sangeojang', '상어장군', 'fish', ['#5a6a8a', '#d8e0f0', '#d8463a'], ['teeth', 'finbig'], 'BOSS: a shark general in red armor'],
+  ]],
+  ['dark', '저승길', [
+    ['e_mangja', '망자', 'ghost', ['#9aa0b8', '#d0d4e0', '#3a3a4a'], [], 'a wandering dead spirit in a mourning robe'],
+    ['e_haegolma', '해골말', 'horse', ['#e0dcd0', '#ffffff', '#3a3a3a'], ['mane_wave'], 'a skeleton horse with blue ghost-fire mane'],
+    ['e_sasingyeon', '저승개', 'quad', ['#2a2a3a', '#5a5a6a', '#ff3a3a'], ['ears_fox', 'mane_back'], 'a black hellhound with glowing red eyes'],
+    ['e_jeoseungsae', '저승새', 'bird', ['#3a3a5a', '#7a7a9a', '#7ad8ff'], [], 'a dark spirit bird trailing blue soul fire'],
+    ['e_pangwan', '저승 판관', 'reaper', ['#2a1a1a', '#5a3a3a', '#f2c14e'], ['gat'], 'BOSS: an underworld judge holding a judgment brush and scroll'],
+  ]],
+  ['fire', '숯가마 마을', [
+    ['e_sutgeom', '숯검댕이', 'blob', ['#2a2a2a', '#5a5a5a', '#ff7a2a'], [], 'a soot sprite with glowing ember eyes'],
+    ['e_bulnabang', '불나방', 'insect', ['#d86a2a', '#ffd07a', '#5a2a1a'], ['antenna', 'butterfly'], 'a fire moth with burning wings'],
+    ['e_gamasot', '가마솥귀', 'jar', ['#3a3a3a', '#6a6a6a', '#ff7a2a'], ['coals'], 'a big iron cauldron yokai bubbling with fire'],
+    ['e_hwadeok', '화덕도깨비', 'goblin', ['#c8401a', '#ff9a6a', '#2a1a1a'], ['horn1', 'club', 'flame'], 'a furnace dokkaebi with a burning club'],
+    ['e_bulyeoudaemo', '불여우 대모', 'fox', ['#ff6a2a', '#ffe0c0', '#ffd23f'], ['ears_fox', 'tail_fox', 'foxfire'], 'BOSS: a fire fox matriarch with five flaming tails'],
+  ]],
+  ['light', '폐사찰', [
+    ['e_mogeo', '목어귀', 'fish', ['#a87a4a', '#d8b080', '#5a3a1a'], [], 'a wooden fish (mogeo) temple ornament come alive'],
+    ['e_seokdeung', '석등귀', 'lantern', ['#a8a8a0', '#ffe9a0', '#6a6a64'], ['flame'], 'a stone lantern yokai with a flickering light'],
+    ['e_punggyeong', '풍경귀', 'lantern', ['#c8a050', '#fff0c0', '#5a4a2a'], ['tassel'], 'a wind-chime spirit with a fish-shaped clapper'],
+    ['e_seoktap', '석탑골렘', 'golem', ['#9a9a90', '#c8c8c0', '#5a5a54'], ['cracks'], 'a stone pagoda golem'],
+    ['e_beomjong', '범종귀', 'jar', ['#7a5a2a', '#c8a050', '#f2c14e'], [], 'BOSS: a giant bronze temple bell yokai with a booming shockwave'],
+  ]],
+  ['grass', '늪지', [
+    ['e_geomeori', '거머리', 'centipede', ['#4a3a2a', '#8a6a4a', '#d83a3a'], [], 'a giant swamp leech'],
+    ['e_neupdu', '늪두꺼비', 'toad', ['#5a6a3a', '#a8b07a', '#2a3a1a'], ['spots'], 'a swamp toad covered in moss'],
+    ['e_ikkigol', '이끼골렘', 'golem', ['#4a6a3a', '#7a9a5a', '#2a4a1a'], ['moss'], 'a mossy mud golem'],
+    ['e_mulbaem', '물뱀', 'serpent', ['#3a5a4a', '#8ab0a0', '#1a2a2a'], ['scales'], 'a dark water snake'],
+    ['e_neupjuin', '늪의 주인', 'fish', ['#4a4a3a', '#8a8a6a', '#f2c14e'], ['whiskers', 'teeth'], 'BOSS: a colossal swamp catfish lord'],
+  ]],
+  ['water', '폭풍 바다', [
+    ['e_haejeokdok', '해적도깨비', 'goblin', ['#3a6a8a', '#8ab0c8', '#d8463a'], ['horn1', 'club'], 'a pirate dokkaebi with an eyepatch'],
+    ['e_badabaem', '바다뱀', 'serpent', ['#2a6a8a', '#8ad0e8', '#f2c14e'], ['scales', 'mane_wave'], 'a sea serpent with fins'],
+    ['e_haegolseonwon', '해골선원', 'goblin', ['#e0dcd0', '#ffffff', '#3a6a8a'], ['bones'], 'a skeleton sailor with a cutlass'],
+    ['e_pokpungsae', '폭풍새', 'bird', ['#4a5a7a', '#c8d0e8', '#ffe066'], ['bolt'], 'a storm petrel crackling with lightning'],
+    ['e_daewangojing', '대왕오징어', 'octo', ['#c84a5a', '#f0a0a8', '#3a1a2a'], [], 'BOSS: a giant squid wrapping a ship mast'],
+  ]],
+  ['light', '하늘 성채', [
+    ['e_cheonma', '천마', 'horse', ['#f4f4f8', '#ffffff', '#ffd23f'], ['mane_wave'], 'a white heavenly horse (cheonma) with wings'],
+    ['e_beongaejeong', '번개정령', 'wisp', ['#ffe066', '#ffffff', '#4a5ad8'], [], 'a lightning spirit'],
+    ['e_geumhak', '금빛학', 'crane', ['#f2c14e', '#fff0b0', '#d8263a'], [], 'a golden crane'],
+    ['e_gureumgisa', '구름기사', 'goblin', ['#d8e0f0', '#ffffff', '#4a6ad8'], ['armor', 'helm', 'spear'], 'a cloud knight in white armor'],
+    ['e_cheondungjang', '천둥장군', 'golem', ['#3a4a8a', '#8a9ae0', '#ffe066'], ['bolt', 'drums'], 'BOSS: a thunder general giant with lightning drums'],
+  ]],
+  ['fire', '용암 동굴', [
+    ['e_yongamseul', '용암슬라임', 'blob', ['#ff6a1a', '#ffd07a', '#5a1a0a'], ['magma'], 'a lava slime'],
+    ['e_hwaedomaem', '화염도마뱀', 'quad', ['#d84a1a', '#ffb07a', '#3a1a0a'], ['spikes', 'tail_thick'], 'a fire lizard with spiky back'],
+    ['e_heugyoseok', '흑요석골렘', 'golem', ['#2a2a3a', '#4a4a5a', '#ff4a1a'], ['magma'], 'an obsidian golem with lava cracks'],
+    ['e_bulbak', '불박쥐', 'bat', ['#5a1a1a', '#c84a2a', '#ffb020'], ['ears_bat', 'flame'], 'a burning cave bat'],
+    ['e_hwaryong', '화룡', 'dragon', ['#d8321a', '#ffb07a', '#ffd23f'], ['horns_deer', 'mane_wave'], 'BOSS: a fire dragon emerging from magma'],
+  ]],
+  ['dark', '그림자 궁궐', [
+    ['e_geurimjamusa', '그림자 무사', 'goblin', ['#2a2a3a', '#4a4a6a', '#ff3a5a'], ['helm', 'spear'], 'a shadow palace guard'],
+    ['e_gungnyeo', '저주받은 궁녀', 'ghostlady', ['#e8d8e8', '#ffffff', '#3a1a2a'], [], 'a cursed court lady ghost in faded hanbok'],
+    ['e_geomeungoyang', '검은 고양이', 'quad', ['#1a1a24', '#3a3a4a', '#ffd23f'], ['ears_fox', 'tail_thin'], 'a black cat yokai with two tails'],
+    ['e_yuryeongdeung', '유령등불', 'lantern', ['#3a3a5a', '#7ad8ff', '#1a1a2a'], ['flame'], 'a ghostly palace lantern with blue fire'],
+    ['e_geurimjawang', '그림자 왕', 'shadow', ['#1a1424', '#3a2a4a', '#ffd23f'], [], 'BOSS: the shadow king wearing a dark crown'],
+  ]],
+  ['grass', '신령의 산', [
+    ['e_sanyang', '산양', 'quad', ['#d8d0c0', '#f4f0e8', '#5a4a3a'], ['horns2', 'shaggy'], 'a long-haired mountain goat'],
+    ['e_namugwi', '나무귀', 'golem', ['#6a4a2a', '#9a7a4a', '#4a8a3a'], ['moss'], 'a walking tree spirit (treant)'],
+    ['e_beoseotgun', '버섯군락', 'blob', ['#c8a080', '#f0e0d0', '#d8463a'], ['mushroom'], 'a cluster of mushroom spirits'],
+    ['e_sankkamagwi', '산까마귀', 'bird', ['#1a1a24', '#3a3a4a', '#ffb020'], [], 'a mountain raven'],
+    ['e_sansin', '산신 거목', 'golem', ['#4a6a2a', '#8ab05a', '#f2c14e'], ['moss'], 'BOSS: an ancient mountain-god tree with a face and white beard of moss'],
+  ]],
+  ['water', '빙하 동굴', [
+    ['e_eoreumge', '얼음게', 'crab', ['#a8d8f4', '#ffffff', '#3a7ac0'], [], 'an ice crab with crystal claws'],
+    ['e_sujeongbak', '수정박쥐', 'bat', ['#9ad0f4', '#e0f4ff', '#5a3aa0'], ['ears_bat'], 'a crystal bat'],
+    ['e_seolnyeo', '설녀', 'ghostlady', ['#e8f4ff', '#ffffff', '#3a6a9a'], [], 'a snow woman spirit with icy breath'],
+    ['e_eoreumgeobuk', '얼음거북', 'turtle', ['#8ab8d8', '#e0f0ff', '#3a5a7a'], [], 'an ice turtle with a glacier shell'],
+    ['e_binghageoin', '빙하 거인', 'golem', ['#9ac8e8', '#e0f4ff', '#3a6a9a'], ['cracks'], 'BOSS: a glacier giant'],
+  ]],
+  ['light', '혼돈의 문', [
+    ['e_hondonsu', '혼돈수', 'lion', ['#7a4aa0', '#c8a0e0', '#ffd23f'], ['horn1', 'mane_curl'], 'a chaos chimera beast'],
+    ['e_taraksun', '타락 선녀', 'ghostlady', ['#f0e0f8', '#ffffff', '#5a2a7a'], [], 'a fallen celestial maiden with torn wings'],
+    ['e_gonghonbul', '공허혼불', 'wisp', ['#8a5aff', '#e0d0ff', '#2a1a5a'], [], 'a void soul flame'],
+    ['e_hondongisa', '혼돈기사', 'goblin', ['#3a2a5a', '#7a5aa0', '#ff4a8a'], ['armor', 'helm', 'spear'], 'a chaos knight in cracked dark armor'],
+    ['e_hondonryong', '혼돈의 용', 'dragon', ['#5a2a8a', '#c8a0f0', '#ff4a8a'], ['horns_deer', 'mane_wave', 'whiskers'], 'BOSS: the dragon of chaos with rainbow-dark scales'],
+  ]],
+];
+for (const [el, , list] of MORE_CHAPTERS) list.forEach(([id, n, arch, pal, feat, d], i) => {
+  const e = { id, ch: el, n, arch, pal, feat, d };
+  if (i === 4) e.boss = true;
+  ENEMIES.push(e); ENEMY_MAP[id] = e;
+});
 
 // ===== 스테이지 구성 =====
 // 챕터 하나(1-1 ~ 1-10) = 몬스터 세트 하나 (일반 4종 + 10스테이지 보스).
 // 세트를 다 돌면 처음 세트로 돌아가되 더 강한 '강화' 회차가 되어 무한히 이어진다.
+const BASE_CHAPTER_NAMES = { grass: '산골 마을', water: '바닷가 포구', fire: '화산 계곡', dark: '귀신 나오는 밤숲', light: '하늘 궁궐' };
 const ENEMY_SETS = ELEMENT_ORDER.map(el => ({
-  el,
-  normals: ENEMIES.filter(e => e.ch === el && !e.boss && !e.raid).map(e => e.id),
-  boss: ENEMIES.find(e => e.ch === el && e.boss).id,
-}));
+  el, name: BASE_CHAPTER_NAMES[el],
+  normals: ENEMIES.filter(e => e.ch === el && !e.boss && !e.raid && !e.d).map(e => e.id),
+  boss: ENEMIES.find(e => e.ch === el && e.boss && !e.d).id,
+})).concat(MORE_CHAPTERS.map(([el, name, list]) => ({ el, name, normals: list.slice(0, 4).map(x => x[0]), boss: list[4][0] })));

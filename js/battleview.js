@@ -89,6 +89,14 @@ const BattleView = (() => {
     layer.appendChild(e);
     setTimeout(() => e.remove(), 640);
   }
+  // 상태 글자 (기절·화상·회피·버프 등)
+  function status(u, text, cls) { floatText(u, text, 'status ' + (cls || '')); }
+  function stunned(u, sec) {
+    if (!u.dom) return;
+    u.dom.classList.add('stunned');
+    clearTimeout(u._stunT);
+    u._stunT = setTimeout(() => u.dom && u.dom.classList.remove('stunned'), Math.max(300, sec * 1000));
+  }
   function lunge(u) { retrigger(sprite(u), 'atk'); if (u.hero) pose(u, [[2, 380]]); }
 
   // 유닛 몸통 중앙 좌표 (layer 기준 px)
@@ -166,22 +174,23 @@ const BattleView = (() => {
     }
   }
 
-  function skill(u, name) {
+  function skill(u, name, ult) {
     retrigger(sprite(u), 'cast');
     if (!u.hero && u.dom && u.dom.querySelector('img.cast')) { clearTimeout(u._castT); u.dom.classList.add('casting'); u._castT = setTimeout(() => u.dom && u.dom.classList.remove('casting'), 750); }
     if (u.hero) pose(u, [[3, 300], [4, 500]]);
     Sound.play('skill');
     const big = u.side === 'ally' && RARITY_ORDER.indexOf(u.r) >= 3;
-    if (big && performance.now() - lastCutin > 3500) { lastCutin = performance.now(); cutin(u, name); }
+    if (ult || (big && performance.now() - lastCutin > 3500)) { lastCutin = performance.now(); cutin(u, name, ult); }
     else floatText(u, name, 'skillname');
   }
 
-  function cutin(u, name) {
-    const c = el(`<div class="fx cutin" data-el="${u.el || 'light'}">
+  function cutin(u, name, ult) {
+    const c = el(`<div class="fx cutin${ult ? ' ult' : ''}" data-el="${u.el || 'light'}">
       <div class="ci-art">${u.hero ? HeroArt.of(G.state.hero) : u.enemyId ? Assets.enemy(u.enemyId, u.form) : Assets.monster(u.lineId, u.form)}</div>
-      <div class="ci-txt"><small>${nameOf(u)}</small><b>${name}</b></div></div>`);
+      <div class="ci-txt"><small>${ult ? '궁극기 · ' : ''}${nameOf(u)}</small><b>${name}</b></div></div>`);
     layer.appendChild(c);
-    setTimeout(() => c.remove(), 1100);
+    if (ult) retrigger(field, 'shake');
+    setTimeout(() => c.remove(), ult ? 1600 : 1100);
   }
 
   function beam(a, b) {
@@ -223,5 +232,5 @@ const BattleView = (() => {
     setTimeout(() => w.remove(), 1500);
   }
 
-  return { fx, render, bars, lunge, damage, healFx, shield, die, skill, beam, flash, banner, warning, versus, setScene };
+  return { fx, status, stunned, render, bars, lunge, damage, healFx, shield, die, skill, beam, flash, banner, warning, versus, setScene };
 })();

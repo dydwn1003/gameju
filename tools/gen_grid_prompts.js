@@ -180,8 +180,9 @@ groups.push(mg);
 
 // ---- 적 몬스터: 9마리씩 3장 ----
 const eg = { id: 'enemy', title: '✅ 적 몬스터 (27종)', note: '적용 완료 · 격자 3장 · 뽑기 몬스터와 다른 무서운 느낌 · assets/enemies/', items: [] };
-for (let i = 0, k = 1; i < ENEMIES.length; i += 9, k++) {
-  const chunk = ENEMIES.slice(i, i + 9);
+const BASE_ENEMIES = ENEMIES.filter(e => !e.d); // 처음 27종 (추가 75종은 아래 🆕 그룹)
+for (let i = 0, k = 1; i < BASE_ENEMIES.length; i += 9, k++) {
+  const chunk = BASE_ENEMIES.slice(i, i + 9);
   eg.items.push({
     file: `grid_e${String(k).padStart(2, '0')}.png`, name: `적 ${i + 1}~${i + chunk.length}번`, tags: [],
     attach: 'grid_m01 결과 이미지 첨부 (같은 화풍 유지)',
@@ -265,6 +266,21 @@ HEROES.forEach(([id, ko]) => {
     prompt: `${ATK4} ${heroStyle} ${COOL} ${GRID(1, 4, 4)}` });
 });
 groups.push(ag);
+
+// ---- 🆕 적 몬스터 75종 (챕터 6~20) ----
+{
+  const more = ENEMIES.filter(e => e.d);
+  const ng = { id: 'enemy2', title: '🆕 적 몬스터 75종 (챕터 6~20)', note: '격자 9장 (grid_e04 ~ grid_e12) · 챕터마다 일반 4 + 보스 1 · assets/enemies/', items: [] };
+  for (let i = 0, k = 4; i < more.length; i += 9, k++) {
+    const chunk = more.slice(i, i + 9), n = chunk.length, rows = n > 3 ? 3 : 1;
+    ng.items.push({
+      file: `grid_e${String(k).padStart(2, '0')}.png`, name: `적 ${i + 1}~${i + n}번`, tags: [], attach: 'grid_e01 결과 이미지 첨부 (같은 화풍)',
+      note: '순서: ' + chunk.map((c, j) => `${j + 1}.${c.n}`).join(' · '),
+      prompt: `Use exactly the same pixel art style, outline and pixel size as the attached image. ${STYLE} These are ENEMY monsters: a bit menacing but still chibi, angry glowing eyes, darker colors; BOSS entries are bigger and more detailed. ${GRID(rows, 3, n)}\n${chunk.map((c, j) => `${j + 1}. ${c.d}`).join('\n')}`,
+    });
+  }
+  groups.push(ng);
+}
 
 // ===================== 다음 생성분 (2차) =====================
 // ---- 등급별 스킬 이펙트: 모양·끝맺음이 전부 다르게, 등급이 오를수록 화려하게 ----

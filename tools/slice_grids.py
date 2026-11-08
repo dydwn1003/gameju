@@ -20,6 +20,9 @@ def load_order():
     lines = re.findall(r"\{ id: '([a-z_]+)',\s*el:\s*'(\w+)',\s*r:\s*'(\w+)'", raw)
     ens = src[src.index('const ENEMIES'):src.index('const ENEMY_MAP')]
     enemies = re.findall(r"\{ id: '([a-z_]+)'", ens)
+    if 'const MORE_CHAPTERS' in src:  # 추가 챕터 적 (격자 grid_e04~)
+        more = src[src.index('const MORE_CHAPTERS'):src.index('for (const [el, , list] of MORE_CHAPTERS)')]
+        enemies += re.findall(r"\['(e_[a-z]+)', '", more)
     normal = [i for i, el, r in lines if r != 'SSS']
     sss = [i for i, el, r in lines if r == 'SSS']
     return normal, sss, enemies
@@ -27,8 +30,9 @@ def load_order():
 def grids():
     normal, sss, enemies = load_order()
     out = []
-    for k in range(3):
-        out.append((f'grid_e{k + 1:02d}', 3, 3, enemies[k * 9:(k + 1) * 9], 'enemies'))
+    for k in range((len(enemies) + 8) // 9):
+        ch = enemies[k * 9:(k + 1) * 9]
+        out.append((f'grid_e{k + 1:02d}', 3 if len(ch) > 3 else 1, 3, ch, 'enemies'))
     chunks = [normal[i:i + 9] for i in range(0, len(normal), 9)]
     for k, ch in enumerate(chunks):
         out.append((f'grid_m{k + 1:02d}', 3, 3, ch, 'monsters'))
