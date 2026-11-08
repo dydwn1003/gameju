@@ -1,14 +1,15 @@
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
+// lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 const RANKS = [
-  { name: '수습 차사', mult: 1, cost: 0, region: 0 },
-  { name: '말단 차사', mult: 3, cost: 1e03, region: 0 },
-  { name: '차사', mult: 9, cost: 5e04, region: 1 },
-  { name: '선임 차사', mult: 27, cost: 2.5e06, region: 1 },
-  { name: '차사장', mult: 80, cost: 1.25e08, region: 2 },
-  { name: '판관', mult: 240, cost: 6.25e09, region: 2 },
-  { name: '명부 판관', mult: 720, cost: 3.12e11, region: 3 },
-  { name: '시왕', mult: 2200, cost: 1.56e13, region: 4 },
-  { name: '염라대왕', mult: 6500, cost: 7.81e14, region: 4 },
+  { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
+  { name: '말단 차사', mult: 3, lv: 80, hp: 17000, region: 0 },
+  { name: '차사', mult: 9, lv: 240, hp: 6.5e06, region: 1 },
+  { name: '선임 차사', mult: 27, lv: 320, hp: 2.4e08, region: 1 },
+  { name: '차사장', mult: 80, lv: 360, hp: 2e09, region: 2 },
+  { name: '판관', mult: 240, lv: 390, hp: 1.5e10, region: 2 },
+  { name: '명부 판관', mult: 720, lv: 420, hp: 5.3e10, region: 3 },
+  { name: '시왕', mult: 2200, lv: 450, hp: 3.8e11, region: 4 },
+  { name: '염라대왕', mult: 6500, lv: 480, hp: 2.7e12, region: 4 },
 ];
 const UPGRADES = [
   { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.12, max: 999 },
@@ -81,7 +82,7 @@ const Game = (() => {
   function incomePerSec(noBoost) {
     const dist = 40;
     const main = 1 / (dist / walk() + reap() + 0.15);
-    const vis = Math.min(4, minions()), mr = vis ? 1 / (dist / mWalk() + mReap() + 0.15) : 0;
+    const vis = Math.min(5, minions()), mr = vis ? 1 / (dist / mWalk() + mReap() + 0.15) : 0;
     const cap = 1 / spawn(), coll = Math.min(cap, main + vis * mr);
     const shareM = vis ? (vis * mr) / (main + vis * mr) : 0;
     const scale = vis ? (minions() / vis) * drillMul() : 0;
@@ -130,10 +131,12 @@ const Game = (() => {
 
   // ---------- 승진 ----------
   const nextRank = () => RANKS[S.rank + 1];
-  const testHp = () => nextRank() ? nextRank().cost * 0.05 : 0;
+  const level = () => 1 + Object.values(S.upg).reduce((a, b) => a + b, 0);
+  const canTest = () => !!nextRank() && level() >= nextRank().lv;
+  const testHp = () => nextRank() ? nextRank().hp * rebornMult() : 0;
   function promote() {
-    const N = nextRank(); if (!N || S.souls < N.cost) return false;
-    S.souls -= N.cost; S.rank++; S.lastBuy = Date.now();
+    const N = nextRank(); if (!N || level() < N.lv) return false;
+    S.rank++; S.lastBuy = Date.now();
     apply(); save();
     return true;
   }
@@ -148,7 +151,7 @@ const Game = (() => {
   function gain(n) { S.souls += n; S.total += n; }
   function collect(tier, who) {
     let v = value() * TIER_MULT[tier];
-    if (who === 'minion') { const vis = Math.min(4, minions()); v *= (minions() / Math.max(1, vis)) * drillMul(); }
+    if (who === 'minion') { const vis = Math.min(5, minions()); v *= (minions() / Math.max(1, vis)) * drillMul(); }
     if (who === 'tap') { v = tapValue() * TIER_MULT[tier]; S.stats.tap++; }
     gain(v); return v;
   }
@@ -158,6 +161,7 @@ const Game = (() => {
     Scene.config({ spawn: spawn(), walk: walk(), reap: reap(), minions: minions(), mWalk: mWalk(), mReap: mReap(), roll: rollTier, maxSouls: 6 + Math.min(6, Math.floor(lv('call') / 5)), speed: boosting() ? 1.3 : 1 });
     Scene.setRegion(RANKS[S.rank].region);
     if (S.kind) Scene.setKind(S.kind);
+    Scene.setRank(S.rank);
   }
 
   // ---------- 광고 ----------
@@ -222,7 +226,7 @@ const Game = (() => {
   return {
     get S() { return S; }, lv, load, save, apply, reset,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
-    eff, cost, maxBuy, buy, nextRank, testHp, promote, canReborn, reborn, rebornMult,
+    eff, cost, maxBuy, buy, nextRank, level, canTest, testHp, promote, canReborn, reborn, rebornMult,
     collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, offline,
   };
 })();

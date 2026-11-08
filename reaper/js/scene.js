@@ -13,7 +13,7 @@ const REGIONS = [
 ];
 
 const Scene = (() => {
-  let cv, g, W = 130, H = 150, S = 3, GY = 90, bg = null, region = 0, kind = 'm';
+  let cv, g, W = 130, H = 150, S = 3, GY = 90, bg = null, region = 0, kind = 'm', rank = 0;
   let hooks = {}, cfg = { spawn: 2, maxSouls: 6, walk: 20, reap: 0.8, minions: 0, mWalk: 12, mReap: 1.4, roll: () => 0, speed: 1 };
   const reaper = { x: 60, y: 120, st: 'idle', t: 0, f: 0, face: 1, target: null };
   let minions = [], souls = [], parts = [], flies = [], wraith = null, spawnT = 0, time = 0, stars = [], lanterns = [], shake = 0;
@@ -244,10 +244,10 @@ const Scene = (() => {
     bg = bake(); flies = [];
     reaper.x = Math.min(Math.max(reaper.x, 12), W - 12); reaper.y = clampFeet(reaper.y);
   }
-  const clampFeet = y => Math.max(GY + 26, Math.min(H - 3, y));
+  const clampFeet = y => Math.max(GY + 14, Math.min(H - 3, y));
   function spawnSoul() {
     const tier = cfg.roll();
-    souls.push({ x: rnd(10, W - 10), y: 0, by: rnd(GY - 16, GY + (H - GY) * 0.38), tier, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0 });
+    souls.push({ x: rnd(10, W - 10), y: 0, by: rnd(GY - 8, GY + (H - GY) * 0.5), tier, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0 });
   }
   function pickSoul(who) {
     let best = null, bd = 1e9;
@@ -259,7 +259,7 @@ const Scene = (() => {
     if (u.st === 'idle') {
       const s = pickSoul(u);
       if (s) { s.who = u; u.target = s; u.st = 'walk'; u.t = 0; }
-      else if (!isMain && u.t > 2) { u.wx = rnd(10, W - 10); u.wy = clampFeet(rnd(GY + 26, H - 3)); u.st = 'wander'; }
+      else if (!isMain && u.t > 2) { u.wx = rnd(10, W - 10); u.wy = clampFeet(rnd(GY + 14, H - 3)); u.st = 'wander'; }
     } else if (u.st === 'wander') {
       const dx = u.wx - u.x, dy = u.wy - u.y, d = Math.hypot(dx, dy);
       if (d < 1 || pickSoul(u)) { u.st = 'idle'; u.t = 0; }
@@ -267,7 +267,7 @@ const Scene = (() => {
     } else if (u.st === 'walk') {
       const s = u.target;
       if (!s || s.st !== 'float') { u.st = 'idle'; u.t = 0; return; }
-      const side = s.x > u.x ? -1 : 1, tx = s.x + side * (isMain ? 9 : 6), ty = clampFeet(s.by + (isMain ? 30 : 22));
+      const side = s.x > u.x ? -1 : 1, tx = s.x + side * (isMain ? 7 : 5), ty = clampFeet(s.by + (isMain ? 17 : 13));
       const dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy), v = walk * dt;
       if (d <= v) { u.x = tx; u.y = ty; u.st = 'reap'; u.t = 0; u.face = s.x > u.x ? 1 : -1; s.st = 'pull'; s.t = 0; s.who = u; s.sx = s.x; s.sy = s.y; s.dur = reap; Sound.play('reap'); }
       else { u.x += dx / d * v; u.y += dy / d * v; u.face = dx < 0 ? -1 : 1; }
@@ -277,8 +277,8 @@ const Scene = (() => {
   }
   // 명부(두루마리) 위치 = 혼이 빨려드는 곳
   function scrollPos(u) {
-    if (u.mini) return { x: u.x + u.face * 4, y: u.y - 12 };
-    return { x: u.x + u.face * 13, y: u.y - 34 };
+    if (u.mini) return { x: u.x + u.face * 3, y: u.y - 8 };
+    return { x: u.x + u.face * 9, y: u.y - 16 };
   }
   function burst(x, y, col, n, spd) {
     for (let i = 0; i < n; i++) { const a = rnd(0, 6.28), v = rnd(spd * 0.4, spd); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 10, life: rnd(0.4, 0.8), max: 0.8, col, g: 30 }); }
@@ -290,8 +290,8 @@ const Scene = (() => {
     if (spawnT >= cfg.spawn) { spawnT = 0; if (souls.filter(s => s.st === 'float').length < cfg.maxSouls) spawnSoul(); }
     think(reaper, sd, cfg.walk, cfg.reap, true);
     // 졸개 수 맞추기 (화면에는 최대 4명)
-    const vis = Math.min(4, cfg.minions);
-    while (minions.length < vis) minions.push({ x: rnd(10, W - 10), y: clampFeet(rnd(GY + 26, H - 3)), st: 'idle', t: 0, face: 1, mini: true });
+    const vis = Math.min(5, cfg.minions);
+    while (minions.length < vis) minions.push({ x: rnd(10, W - 10), y: clampFeet(rnd(GY + 14, H - 3)), st: 'idle', t: 0, face: 1, mini: true });
     while (minions.length > vis) minions.pop();
     minions.forEach(m => think(m, sd, cfg.mWalk, cfg.mReap, false));
     for (const s of souls) {
@@ -337,13 +337,20 @@ const Scene = (() => {
     let img;
     const fi = Math.floor(u.ft * (u.st === 'walk' || u.st === 'wander' ? 8 : u.st === 'reap' ? 6 : 2.5));
     if (u.mini) img = SP.mini(u.st === 'walk' || u.st === 'wander' ? 'walk' : 'idle', fi);
-    else img = SP.reaper(kind, u.st === 'wander' ? 'walk' : u.st, fi % 4);
+    else img = SP.reaper(kind, rank, u.st === 'wander' ? 'walk' : u.st, fi % 4);
     if (u.face < 0) img = flipOf(img);
     // 그림자
     g.fillStyle = 'rgba(0,0,0,0.35)';
-    const sw = u.mini ? 8 : 14; g.fillRect(Math.round(u.x - sw / 2), Math.round(u.y - 1), sw, 2); g.fillRect(Math.round(u.x - sw / 2 + 2), Math.round(u.y - 2), sw - 4, 1);
+    const sw = u.mini ? 6 : 10; g.fillRect(Math.round(u.x - sw / 2), Math.round(u.y - 1), sw, 2); g.fillRect(Math.round(u.x - sw / 2 + 2), Math.round(u.y - 2), sw - 4, 1);
     g.drawImage(img, Math.round(u.x - img.width / 2), Math.round(u.y - img.height + 1));
-    if (u.st === 'reap') { const p = scrollPos(u); glow(p.x, p.y, u.mini ? 4 : 7, '#ffe08a', 0.35); }
+    if (!u.mini) { // 주인공 표식
+      const my = Math.round(u.y - img.height - 2 + Math.sin(time * 4) * 1.2), mx = Math.round(u.x) - 1;
+      g.fillStyle = '#0f0c18'; g.fillRect(mx - 2, my - 1, 5, 3); g.fillRect(mx - 1, my + 2, 3, 1); g.fillRect(mx, my + 3, 1, 1);
+      g.fillStyle = '#ffd34a'; g.fillRect(mx - 1, my, 3, 1); g.fillRect(mx, my + 1, 1, 1);
+      g.fillStyle = '#ffffff'; g.fillRect(mx - 1, my, 1, 1);
+    }
+    if (u.st === 'reap') { const p = scrollPos(u); glow(p.x, p.y, u.mini ? 3 : 5, '#ffe08a', 0.35); }
+    if (!u.mini && rank >= 8 && Math.random() < 0.3) parts.push({ x: u.x + rnd(-7, 7), y: u.y - rnd(0, 16), vx: 0, vy: -12, life: 0.6, max: 0.6, col: Math.random() < 0.5 ? '#ff6a3a' : '#ffd34a', g: 0 });
   }
   function render() {
     const ox = shake ? Math.round(rnd(-shake, shake)) : 0;
@@ -369,11 +376,11 @@ const Scene = (() => {
     // 개체 (발 위치 순서)
     const list = [reaper, ...minions].sort((a, b) => a.y - b.y);
     // 혼령은 공중이라 먼저 그림자만, 그리고 위에
-    for (const s of souls) if (s.st === 'float') { g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(Math.round(s.x - 3), Math.round(clampFeet(s.by + 30) - 1), 6, 1); }
+    for (const s of souls) if (s.st === 'float') { g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(Math.round(s.x - 2), Math.round(clampFeet(s.by + 17) - 1), 4, 1); }
     list.forEach(drawUnit);
     for (const s of souls) {
       const img = SP.soul(s.tier, Math.floor(time * 6 + s.ph) % 3);
-      glow(s.x, s.y, s.tier ? 9 : 7, SP.SOUL_PAL[s.tier].Q, 0.25 * s.a);
+      glow(s.x, s.y, s.tier ? 7 : 5, SP.SOUL_PAL[s.tier].Q, 0.25 * s.a);
       g.globalAlpha = s.a;
       const sc = s.scale || 1;
       if (sc < 1) g.drawImage(img, Math.round(s.x - img.width * sc / 2), Math.round(s.y - img.height * sc / 2), Math.round(img.width * sc), Math.round(img.height * sc));
@@ -383,12 +390,12 @@ const Scene = (() => {
     if (wraith) {
       const img = SP.wraith(Math.floor(wraith.t * 3) % 2), y = wraith.y + Math.sin(wraith.t * 2) * 3;
       g.globalAlpha = wraith.dead ? Math.max(0, wraith.fade / 0.6) : Math.min(1, wraith.t * 2) * (0.85 + Math.sin(wraith.t * 9) * 0.1);
-      glow(wraith.x, y, 16, '#ff2e4a', 0.12);
+      glow(wraith.x, y, 11, '#ff2e4a', 0.12);
       g.drawImage(img, Math.round(wraith.x - img.width / 2 + (wraith.flash ? rnd(-1, 1) : 0)), Math.round(y - img.height / 2));
       if (wraith.flash) { g.globalAlpha = wraith.flash * 3; g.globalCompositeOperation = 'lighter'; g.drawImage(img, Math.round(wraith.x - img.width / 2), Math.round(y - img.height / 2)); g.globalCompositeOperation = 'source-over'; }
       g.globalAlpha = 1;
       if (!wraith.dead) { // 체력바
-        const bw = 26, bx = Math.round(wraith.x - bw / 2), by = Math.round(y - img.height / 2 - 6);
+        const bw = 18, bx = Math.round(wraith.x - bw / 2), by = Math.round(y - img.height / 2 - 6);
         g.fillStyle = '#0f0c18'; g.fillRect(bx - 1, by - 1, bw + 2, 4);
         g.fillStyle = '#4a1020'; g.fillRect(bx, by, bw, 2);
         g.fillStyle = '#ff3a5a'; g.fillRect(bx, by, Math.round(bw * wraith.hp / wraith.max), 2);
@@ -414,8 +421,8 @@ const Scene = (() => {
   }
   function tap(e) {
     const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / S, y = (e.clientY - r.top) / S;
-    if (wraith && !wraith.dead && Math.abs(x - wraith.x) < 13 && Math.abs(y - wraith.y) < 15) { hooks.wraithTap && hooks.wraithTap(x * S, y * S); return; }
-    let best = null, bd = 14;
+    if (wraith && !wraith.dead && Math.abs(x - wraith.x) < 10 && Math.abs(y - wraith.y) < 12) { hooks.wraithTap && hooks.wraithTap(x * S, y * S); return; }
+    let best = null, bd = 10;
     for (const s of souls) if (s.st === 'float') { const d = Math.hypot(s.x - x, s.y - y); if (d < bd) { bd = d; best = s; } }
     if (best) {
       if (best.who && best.who.target === best) best.who.target = null;
@@ -438,6 +445,7 @@ const Scene = (() => {
     resize,
     setRegion(i) { region = Math.max(0, Math.min(REGIONS.length - 1, i)); bg = bake(); },
     setKind(k) { kind = k; },
+    setRank(r) { rank = r; },
     config(c) { Object.assign(cfg, c); },
     spawnWraith(hp, life) { wraith = { x: rnd(W * 0.3, W * 0.7), y: GY * 0.75, hp, max: hp, t: 0, life, flash: 0 }; Sound.play('wraith'); },
     hitWraith(dmg) {

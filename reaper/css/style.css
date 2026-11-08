@@ -154,7 +154,6 @@ img.px, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 .pick { display: flex; gap: 12px; margin: 10px 0 12px; }
 .pick button { flex: 1; padding: 10px 4px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--mute); background: #120f20; box-shadow: 0 0 0 2px var(--line), inset 0 0 0 2px #2a2444; }
 .pick button.on { color: var(--gold); background: #2a2146; box-shadow: 0 0 0 2px var(--line), inset 0 0 0 2px var(--gold); }
-.pick canvas { width: 108px; height: auto; }
 .set-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 2px; font-size: 13px; border-bottom: 2px dashed #2a2444; }
 .adbox { padding: 26px 14px; }
 .adbox .cnt { font-size: 34px; font-weight: 700; color: var(--gold); margin: 10px 0; }
@@ -164,3 +163,15 @@ img.px, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
   box-shadow: 0 -2px 0 0 var(--line), 0 2px 0 0 var(--line), -2px 0 0 0 var(--line), 2px 0 0 0 var(--line), inset 0 2px 0 0 #3d3560; }
 .toast .btn { pointer-events: auto; padding: 4px 8px 5px; font-size: 11px; }
 .toast.out { opacity: 0; transition: opacity 0.3s; }
+
+.lvtag { font-size: 12px; font-weight: 700; color: #fff; background: #3a3358; padding: 3px 6px 4px; box-shadow: 0 -2px 0 0 var(--line), 0 2px 0 0 var(--line), -2px 0 0 0 var(--line), 2px 0 0 0 var(--line), inset 0 -2px 0 0 #221d38; }
+.fl.lvup { color: #ffe08a; font-size: 14px; }
+.looks { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 6px; }
+.looks > div { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--mute); }
+.looks canvas { width: 66px; height: 66px; }
+.looks .nx { color: var(--gold); font-weight: 700; }
+.looks b { color: var(--gold); }
+.lad canvas { width: 33px; height: 33px; flex: 0 0 33px; }
+.lad .lvreq { font-size: 11px; color: var(--mute); width: 48px; text-align: right; }
+.lad.done canvas { opacity: 0.55; }
+.pick canvas { width: 88px; height: 88px; }

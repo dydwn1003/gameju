@@ -3,7 +3,7 @@
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 
-const STYLE = 'Cute chibi pixel art for a Korean folklore idle mobile game about a Joseon-era grim reaper (jeoseung-saja) collecting wandering souls, eerie but adorable moonlit-night mood, traditional Korean motifs (black gat hats, hanbok robes, hanji paper scrolls, dancheong colors, cheongsachorong lanterns), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited palette of deep indigo, black, bone white, soul blue and accent red/gold, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes.';
+const STYLE = 'Tiny super-deformed chibi (2 heads tall, very small and adorable), very low-resolution pixel sprite as if drawn on a 16x20 pixel canvas and scaled up with nearest-neighbor so every pixel is a big visible square block, minimal details, cute chibi pixel art for a Korean folklore idle mobile game about a Joseon-era grim reaper (jeoseung-saja) collecting wandering souls, eerie but adorable moonlit-night mood, traditional Korean motifs (black gat hats, hanbok robes, hanji paper scrolls, dancheong colors, cheongsachorong lanterns), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited palette of deep indigo, black, bone white, soul blue and accent red/gold, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes.';
 const SHEET = (n, r, c) => `Sprite sheet: exactly ${n} images arranged in a ${c}x${r} grid of equal square cells (${c} columns, ${r} rows), one per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, all at the same pixel size and scale, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.`;
 const STRIP = 'A horizontal strip of exactly 6 animation frames of the SAME effect, left to right, in 6 equal square cells side by side, the effect centered in each cell, growing then fading over the frames, glowing pixel colors only (no soft blur), no characters, no grid lines, no text, the entire background is one flat solid magenta color #FF00FF.';
 const list = a => a.map((x, i) => `${i + 1}. ${x}`).join('\n');
@@ -93,7 +93,7 @@ const WRAITHS = [
 ];
 G('wraith', '④ 원귀 · 승진 시험 보스', '가끔 나타나는 원귀와 승진 시험 보스예요. 혼령보다 훨씬 크게(약 2배) 그려져요.', [
   { file: 'wraiths_01.png', name: '원귀 9종',
-    prompt: `9 different vengeful ghosts and underworld monsters from Korean folklore, spooky but still chibi-cute, each about twice as big as a small soul flame, full body, floating or standing, facing left toward the player in 3/4 view. ${STYLE} ${SHEET(9, 3, 3)}\n${list(WRAITHS)}` },
+    prompt: `9 different vengeful ghosts and underworld monsters from Korean folklore, spooky but still chibi-cute, each about the same height as the tiny reaper, full body, floating or standing, facing left toward the player in 3/4 view. ${STYLE} ${SHEET(9, 3, 3)}\n${list(WRAITHS)}` },
 ]);
 
 G('minion', '⑤ 졸개 차사 (부하)', '고용하면 화면을 돌아다니며 혼을 거두는 작은 부하예요. 주인공보다 작게(약 0.6배).', [

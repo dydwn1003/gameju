@@ -85,7 +85,7 @@ const UI = (() => {
     }
   }
   function startTest() {
-    const N = Game.nextRank(); if (!N || S().souls < N.cost || test) return;
+    const N = Game.nextRank(); if (!N || !Game.canTest() || test) return;
     test = { t: 30 };
     Scene.spawnWraith(Game.testHp(), 31);
     $('#test-bar').classList.add('on');
@@ -117,7 +117,9 @@ const UI = (() => {
     const can = ids => ids.some(id => { const U = UPGRADES.find(u => u.id === id); return Game.lv(id) < U.max && Game.cost(id) <= S().souls; });
     dot('grow', can(['pen', 'step', 'call', 'hand', 'luck', 'ledger']));
     dot('minion', can(['minion', 'drill']));
-    dot('rank', !!Game.nextRank() && S().souls >= Game.nextRank().cost || Game.canReborn());
+    dot('rank', Game.canTest() || Game.canReborn());
+    $('#v-lv').textContent = 'Lv.' + Game.level();
+    if (Game.canTest() && S().notified !== S().rank) { S().notified = S().rank; toast(`📜 레벨 ${Game.nextRank().lv} 달성! 승진 시험을 볼 수 있어요 (승진 탭)`, 3500); }
     dot('shop', Game.adLeft('jade') > 0);
     refresh();
     if (++stuckT % 25 === 0) checkStuck();
@@ -161,26 +163,30 @@ const UI = (() => {
     refresh(true);
   }
   function renderRank(P) {
-    const N = Game.nextRank(), s = S();
+    const N = Game.nextRank(), s = S(), L = Game.level();
+    previews = previews.filter(p => p.keep);
     let html = '';
     if (N) {
-      const pct = Math.min(100, (s.souls / N.cost) * 100), ok = s.souls >= N.cost;
-      const dps = Game.wraithDps(), tap = Game.tapDmg();
-      html += `<div class="promo pbox"><div class="t">다음 직급: ${N.name}</div>
+      const prev = s.rank ? RANKS[s.rank].lv : 1, pct = Math.max(0, Math.min(100, ((L - prev) / (N.lv - prev)) * 100)), ok = Game.canTest();
+      html += `<div class="promo pbox">
+        <div class="looks"><div><canvas id="lk-now" width="22" height="22"></canvas><span>${RANKS[s.rank].name}</span></div><b>▶</b><div><canvas id="lk-next" width="22" height="22"></canvas><span class="nx">${N.name}</span></div></div>
         <div class="prog"><i style="width:${pct}%"></i></div>
-        <div class="d">필요한 혼 <b style="color:var(--soul)">${fmt(N.cost)}</b> (보유 ${fmt(s.souls)})<br>
+        <div class="d">레벨 <b style="color:var(--soul)">${L}</b> / ${N.lv} <span style="color:var(--mute)">(수련을 1번 올릴 때마다 레벨 +1)</span><br>
         시험: 30초 안에 원귀(체력 <b style="color:#ff8a9a">${fmt(Game.testHp())}</b>) 퇴치<br>
-        내 화력: 자동 초당 ${fmt(dps)} · 터치당 ${fmt(tap)} <br>
-        승진하면 수확량 <b style="color:var(--gold)">×${(N.mult / RANKS[s.rank].mult).toFixed(1)}</b>${RANKS[s.rank].region !== N.region ? ` · 새 지역 <b style="color:var(--gold)">${REGIONS[N.region].name}</b>` : ''}</div>
-        <button class="btn red" data-act="test" ${ok && !test ? '' : 'disabled'}>${test ? '시험 중…' : ok ? '승진 시험 보기' : '혼이 부족해요'}</button></div>`;
+        내 화력: 자동 초당 ${fmt(Game.wraithDps())} · 터치당 ${fmt(Game.tapDmg())}<br>
+        승진하면 옷차림이 바뀌고 수확량 <b style="color:var(--gold)">×${(N.mult / RANKS[s.rank].mult).toFixed(1)}</b>${RANKS[s.rank].region !== N.region ? ` · 새 지역 <b style="color:var(--gold)">${REGIONS[N.region].name}</b>` : ''}</div>
+        <button class="btn red" data-act="test" ${ok && !test ? '' : 'disabled'}>${test ? '시험 중…' : ok ? '승진 시험 보기' : `레벨 ${N.lv}에 열려요`}</button></div>`;
     } else {
-      html += `<div class="promo pbox"><div class="t">염라대왕에 올랐다!</div>
-        <div class="d">윤회하면 직급과 수련이 처음으로 돌아가지만<br>모든 수확량이 영구히 <b style="color:var(--gold)">×${(1 + (s.reborn + 1) * 1.5).toFixed(1)}</b> (지금 ×${Game.rebornMult().toFixed(1)})가 된다.<br>옥·졸개 고용 패키지 효과·구매한 상품은 유지된다.</div>
+      html += `<div class="promo pbox"><div class="looks"><div><canvas id="lk-now" width="22" height="22"></canvas><span>염라대왕</span></div></div><div class="t">염라대왕에 올랐다!</div>
+        <div class="d">윤회하면 직급과 수련이 처음으로 돌아가지만<br>모든 수확량이 영구히 <b style="color:var(--gold)">×${(1 + (s.reborn + 1) * 1.5).toFixed(1)}</b> (지금 ×${Game.rebornMult().toFixed(1)})가 된다.<br>옥과 구매한 상품은 유지된다.</div>
         <button class="btn red" data-act="reborn">윤회하기</button></div>`;
     }
     html += `<div class="sec">저승 직급표</div><div class="ladder pbox">` + RANKS.map((R, i) => `<div class="lad ${i < s.rank ? 'done' : i === s.rank ? 'now' : i === s.rank + 1 ? 'next' : ''}">
-      <span class="n">${i + 1}</span><span class="nm">${R.name} <small style="color:var(--mute)">· ${REGIONS[R.region].name}</small></span><span class="m">×${fmt(R.mult)}</span></div>`).join('') + '</div>';
+      <canvas width="22" height="22" data-rank="${i}"></canvas><span class="nm">${R.name} <small style="color:var(--mute)">· ${REGIONS[R.region].name}</small></span><span class="lvreq">${i ? 'Lv.' + R.lv : ''}</span><span class="m">×${fmt(R.mult)}</span></div>`).join('') + '</div>';
     P.innerHTML = html;
+    const add = (c, r, pose) => c && previews.push({ c, kind: s.kind || 'm', rank: r, pose });
+    add($('#lk-now'), s.rank, 'idle'); if (N) add($('#lk-next'), s.rank + 1, 'idle');
+    P.querySelectorAll('canvas[data-rank]').forEach(c => add(c, +c.dataset.rank, 'idle'));
   }
   function renderShop(P) {
     const s = S(), newbie = Date.now() - s.created < 864e5;
@@ -215,7 +221,7 @@ const UI = (() => {
     });
     if (tab === 'rank' && !force) {
       const bar = document.querySelector('.prog i'), N = Game.nextRank();
-      if (bar && N) { bar.style.width = Math.min(100, (s.souls / N.cost) * 100) + '%'; const b = document.querySelector('[data-act="test"]'); const ok = s.souls >= N.cost && !test; if (b && b.disabled === ok) renderRank($('#panel')); }
+      if (bar && N) { const b = document.querySelector('[data-act="test"]'); const ok = Game.canTest() && !test; if (b && b.disabled === ok) renderRank($('#panel')); }
     }
     if (tab === 'shop' && !force) document.querySelectorAll('[data-jade]').forEach(b => { const J = JADE_SHOP.find(j => j.id === b.dataset.jade); b.disabled = s.jade < J.cost; });
   }
@@ -227,6 +233,7 @@ const UI = (() => {
       if (Game.buy(id, mult)) {
         Sound.play('buy');
         const r = t.getBoundingClientRect(), st = $('#stage').getBoundingClientRect();
+        float(st.width / 2, st.height * 0.42, `Lv.${Game.level()}`, 'lvup');
         if (id === 'minion') { toast('졸개 차사가 합류했다!'); render(); }
         refresh(true);
       } else Sound.play('no');
@@ -306,14 +313,14 @@ const UI = (() => {
       if (!document.body.contains(p.c)) return;
       const g = p.c.getContext('2d'); g.clearRect(0, 0, p.c.width, p.c.height); g.imageSmoothingEnabled = false;
       const f = Math.floor(t * 3 + (p.ph || 0));
-      const img = p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4);
+      const img = p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.rank != null ? p.rank : S().rank, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4);
       g.drawImage(img, 0, 0, p.c.width, p.c.height);
     });
   }
   function charSelect(first) {
     let kind = S().kind || 'm';
     const box = modal(`${first ? '<div class="title-logo">저승사자 키우기</div><div class="title-sub">명부를 들고 떠도는 혼을 거두어 염라대왕이 되어라</div>' : '<h2>모습 바꾸기</h2>'}
-      <div class="pick"><button data-k="m"><canvas width="36" height="37"></canvas>남자 차사</button><button data-k="f"><canvas width="36" height="39"></canvas>여자 차사</button></div>
+      <div class="pick"><button data-k="m"><canvas width="22" height="22"></canvas>남자 차사</button><button data-k="f"><canvas width="22" height="22"></canvas>여자 차사</button></div>
       <input id="nm" maxlength="6" placeholder="이름 (최대 6자)" value="${S().name || ''}">
       <div class="acts"><button class="btn red" id="go">${first ? '저승길 나서기' : '바꾸기'}</button>${first ? '' : '<button class="btn dark" data-act="close">취소</button>'}</div>`, first);
     const sel = () => box.querySelectorAll('.pick button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
@@ -351,11 +358,11 @@ const UI = (() => {
   }
   function promoted(newRegion) {
     const R = RANKS[S().rank];
-    const box = modal(`<h2>승진!</h2><canvas width="36" height="${S().kind === 'f' ? 39 : 37}" style="width:108px"></canvas>
+    const box = modal(`<h2>승진!</h2><canvas width="22" height="22" style="width:110px"></canvas>
       <div class="big" style="color:var(--gold)">${R.name}</div>
       <p>수확량이 <b style="color:var(--gold)">×${fmt(R.mult)}</b>가 되었다.${newRegion ? `<br>새 근무지 <b style="color:var(--gold)">${REGIONS[R.region].name}</b>(으)로 발령!` : ''}</p>
       <div class="acts"><button class="btn red" data-act="close">근무 시작</button></div>`, true);
-    previews.push({ c: box.querySelector('canvas'), kind: S().kind, pose: 'reap' });
+    previews.push({ c: box.querySelector('canvas'), kind: S().kind, rank: S().rank, pose: 'reap' });
   }
   function checkOffline() {
     const o = Game.offline(); if (!o || o.amt <= 0) { Game.save(); return; }
@@ -373,7 +380,7 @@ const UI = (() => {
     const inc = Game.incomePerSec();
     const cheapest = Math.min(...UPGRADES.filter(U => Game.lv(U.id) < U.max).map(U => Game.cost(U.id)));
     const N = Game.nextRank();
-    if (cheapest <= s.souls + inc * 120 || (N && N.cost <= s.souls + inc * 300)) return;
+    if (cheapest <= s.souls + inc * 120 || Game.canTest()) return;
     s.stuckShown = Date.now(); Game.save();
     modal(`<h2>성장이 더디신가요?</h2><p>다음 수련까지 시간이 꽤 걸려요.<br>부적이나 패키지로 빠르게 넘어가 보세요!</p>
       <div class="acts" style="flex-direction:column"><button class="btn red" data-act="boostAd">2배 부적 (광고 무료)</button><button class="btn" id="st-pkg">승진 응원 패키지 ₩3,300</button><button class="btn dark" data-act="close">괜찮아요</button></div>`)
