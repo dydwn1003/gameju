@@ -258,7 +258,7 @@ function fmt(n) {
   n = Math.floor(n);
   if (n < 1e4) return n.toLocaleString('ko-KR');
   const units = [['해', 1e20], ['경', 1e16], ['조', 1e12], ['억', 1e8], ['만', 1e4]];
-  for (const [u, v] of units) if (n >= v) { const x = n / v; return String(x >= 100 ? Math.floor(x) : x >= 10 ? x.toFixed(1) : x.toFixed(2)).replace(/\.?0+$/, '') + u; }
+  for (const [u, v] of units) if (n >= v) { const x = n / v; const t = x >= 100 ? String(Math.floor(x)) : (x >= 10 ? x.toFixed(1) : x.toFixed(2)).replace(/\.?0+$/, ''); return t + u; }
   return String(n);
 }
 function fmtTime(sec) {

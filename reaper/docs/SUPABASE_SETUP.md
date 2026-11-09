@@ -10,7 +10,9 @@
 
 ## 1. Supabase 프로젝트 만들기
 1. https://supabase.com 에 가입하고 **New project** 를 누릅니다. 지역은 `Northeast Asia (Seoul)` 을 고르세요.
-2. **Project Settings → API** 에서 두 값을 복사합니다.
+2. 왼쪽 아래 톱니바퀴 **Project Settings** 에서 두 값을 복사합니다.
+   - **Data API**(또는 API) 화면의 `Project URL`
+   - **API Keys** 화면의 공개 키. **Legacy API keys** 탭에 `anon` `public` 키가 있으면 그것을, 없으면 `Publishable key`(sb_publishable_…)를 씁니다.
    - `Project URL` (예: `https://abcdefgh.supabase.co`)
    - `anon public` 키
    - `service_role` 키는 **절대 게임 코드에 넣지 마세요.** 이 키는 Supabase 서버 안에서만 씁니다.
@@ -76,7 +78,12 @@ Supabase 는 네이버를 기본 지원하지 않아서 `server/supabase/functio
      ```
      https://<프로젝트ID>.supabase.co/functions/v1/naver-auth/callback
      ```
-2. Supabase CLI 를 설치하고 함수를 배포합니다. PC 터미널에서 실행하세요.
+2. **쉬운 방법 (대시보드만 사용):**
+   - Supabase 왼쪽 메뉴 **Edge Functions → Secrets** 에서 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `ALLOWED_REDIRECTS`(게임 주소) 세 개를 추가합니다.
+   - **Edge Functions → Deploy a new function → Via Editor** 를 누르고, 이름을 `naver-auth` 로 정한 뒤 `server/supabase/functions/naver-auth/index.ts` 내용을 통째로 붙여 넣고 **Deploy** 합니다.
+   - 배포된 함수의 **Details(설정)** 에서 **Verify JWT** (Enforce JWT verification) 를 **끕니다.**
+
+   **CLI 방법 (선택):** Supabase CLI 를 설치하고 함수를 배포합니다. PC 터미널에서 실행하세요.
    ```bash
    npm i -g supabase
    ```

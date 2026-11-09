@@ -12,12 +12,13 @@ const RECIPES = [
   { id: 'saengdan', name: '생사단', need: { saengsa: 1, lotus: 2 }, instant: { hours: 4, jade: 20 }, desc: '4시간치 혼 + 옥 20 즉시 획득' },
 ];
 const BUFF_NAME = { value: '망각탕', spawn: '연꽃차', fight: '혼불주' };
+// 파견 보상(hours = 몇 시간치 혼): 걸리는 시간의 약 1/8 (30분 파견은 1/6). 칸이 최대 5개라 돌려 두면 쌓이므로 낮게 잡음
 const EXPEDITIONS = [
-  { id: 'e0', name: '이승 마을 순찰', rank: 0, hrs: 0.5, minion: 1, seed: { mang: 3 }, hours: 0.25, jade: 0 },
-  { id: 'e1', name: '서낭당 고갯길 수색', rank: 2, hrs: 2, minion: 3, seed: { lotus: 2, mang: 2 }, hours: 0.5, jade: 2 },
-  { id: 'e2', name: '삼도천 뱃길 순찰', rank: 4, hrs: 4, minion: 6, seed: { honbul: 2 }, hours: 1, jade: 5 },
-  { id: 'e3', name: '저승문 경비', rank: 6, hrs: 8, minion: 10, seed: { saengsa: 1, honbul: 1 }, hours: 2, jade: 10 },
-  { id: 'e4', name: '명부전 심부름', rank: 7, hrs: 12, minion: 15, seed: { saengsa: 2 }, hours: 3, jade: 20, dex: 1 },
+  { id: 'e0', name: '이승 마을 순찰', rank: 0, hrs: 0.5, minion: 1, seed: { mang: 3 }, hours: 5 / 60, jade: 0 },
+  { id: 'e1', name: '서낭당 고갯길 수색', rank: 2, hrs: 2, minion: 3, seed: { lotus: 2, mang: 2 }, hours: 0.25, jade: 2 },
+  { id: 'e2', name: '삼도천 뱃길 순찰', rank: 4, hrs: 4, minion: 6, seed: { honbul: 2 }, hours: 0.5, jade: 5 },
+  { id: 'e3', name: '저승문 경비', rank: 6, hrs: 8, minion: 10, seed: { saengsa: 1, honbul: 1 }, hours: 1, jade: 10 },
+  { id: 'e4', name: '명부전 심부름', rank: 7, hrs: 12, minion: 15, seed: { saengsa: 2 }, hours: 1.5, jade: 20, dex: 1 },
 ];
 const SPECIALS = [
   ['아이 혼', '댕기를 맨 꼬마 혼령', 0], ['할아버지 혼', '하얀 수염의 혼령', 0], ['선비 혼', '갓을 쓴 글공부 혼령', 1], ['신부 혼', '족두리를 쓴 혼령', 1],

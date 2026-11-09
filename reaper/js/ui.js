@@ -1000,7 +1000,7 @@ const UI = (() => {
         ${l > 0 ? `<button class="btn sk" data-skip="expe:${i}">⏩ 단축</button>` : `<button class="btn red" data-claim="${i}">보상 받기</button>`}</div>`; }).join('');
       h += `<div class="sec">순찰지</div>` + EXPEDITIONS.map(E => {
         const lockR = s.rank < E.rank, lockM = Game.minions() < E.minion, full = s.expe.length >= Life.slots();
-        const rw = [...Object.entries(E.seed).map(([k, v]) => `${fname(k)} 씨앗 ${v}`), E.jade ? `옥 ${E.jade}` : '', `${E.hours >= 1 ? E.hours + '시간' : E.hours * 60 + '분'}치 혼`, E.dex ? '희귀 혼령 기록' : ''].filter(Boolean).join(' · ');
+        const rw = [...Object.entries(E.seed).map(([k, v]) => `${fname(k)} 씨앗 ${v}`), E.jade ? `옥 ${E.jade}` : '', `${E.hours >= 1 ? E.hours + '시간' : Math.round(E.hours * 60) + '분'}치 혼`, E.dex ? '희귀 혼령 기록' : ''].filter(Boolean).join(' · ');
         return `<div class="row pbox ${lockR ? 'maxed' : ''}"><div class="ic"><img class="px" src="${IC('gate', 3)}"></div><div class="info"><div class="nm">${E.name}<small>${fmtTime(E.hrs * 3600)}</small></div><div class="ds">졸개 ${E.minion}명 필요 · <b>${rw}</b></div></div>
           <button class="btn" data-send="${E.id}" ${lockR || lockM || full ? 'disabled' : ''}>${lockR ? RANKS[E.rank].name + '부터' : lockM ? '졸개 부족' : full ? '칸 없음' : '보내기'}</button></div>`;
       }).join('') + `<p class="note">파견을 보내도 졸개는 계속 혼을 거둬요. 선임 차사·명부 판관이 되면 파견 칸이 늘어나요.</p>`;
