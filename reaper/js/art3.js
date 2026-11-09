@@ -7,9 +7,9 @@ const Art3 = (() => {
   const HATS = {
     gat: ['............KKKKKK', '...........KHHhHHH', '...........KHHhHHH', '...........KHHhHHH', '...........KHHHHHH', '...........KHHHHHH', '...........KjjjjjJ',
       '.....KKKKKKKjjjjjj', '...KKJJJHHHHHHHHHH', '.KKHHJHHHHHHHHHHHH', 'KHHHHHHHHHHHHHHHHH', '.KKjjjjjjjjjjjjjjj', '...KKKKKKKKKKKKKKK'],
-    samo: ['', '', '', '............KKKKKK', '...........KHHhHHH', '...........KHHhHHH', '..KKKK....KHHHHHHH', '.KHhHHK..KHHHHHHHH', 'KHHHHHHKKHHHHHHHHH', '.KHHHHK.KHHHHHHHHH', '..KKKK..KjjjjjjjjJ', '.........KKKKKKKKK', ''],
-    crown: ['', '', '.........K...K...K', '........KYK.KYK.KY', '........KYYKYYYKYY', '........KOYYYYYYYY', '........KOYGOYYGOY', '........KOYYYYYYYY', '........KKKKKKKKKK', '........KHHHHHHHHH', '........KjjjjjjjjJ', '.........KKKKKKKKK', ''],
-    myeon: ['', '..KKKKKKKKKKKKKKKK', '..KHhhHHHHHHHHHHHH', '..KKKKKKKKKKKKKKKK', '...O.O.....KHHHHHH', '...Y.Y.....KHHhHHH', '...O.O.....KHHHHHH', '...Y.Y.....KHHHHHH', '...O.O....KYYYYYYG', '...Y.Y....KOOOOOOG', '...O.O.....KKKKKKK', '', ''],
+    samo: ['', '', '', '..............KKKK', '............KKHhHH', '...........KHHhHHH', '...........KHHHHHH', '..KKKK.....KHHHHHH', '.KHhHHKKKKKHHHHHHH', 'KHHHHHHjjjjjHHHHHH', '.KHHHHKKKKKjjjjjjJ', '..KKKK...KjjjjjjjJ', '.........KKKKKKKKK'],
+    crown: ['', '', '..........KK....KK', '.........KYYK..KYY', '.........KYOYKKYOY', '.........KYYYYYYYY', '.........KOYYGYYYY', '.........KOYYYYYYY', '.........KKKKKKKKK', '.........KHHHhHHHH', '.........KjjjjjjjJ', '.........KHHHHHHHH', '.........KKKKKKKKK'],
+    myeon: ['', '', '..KKKKKKKKKKKKKKKK', '..KHhhHHHHHHHHHHHH', '..KKKKKKKKKKKKKKKK', '...O.Y.....KHHHHHH', '...Y.O.....KHHhHHH', '...O.Y.....KHHHHHH', '...Y.O.....KHHHHHH', '...O.Y...KYYYYYYYY', '...Y.O...KOOOOOOOO', '...O.Y...KHHHHHHHH', '.........KKKKKKKKK'],
     smallgat: ['', '', '', '', '.............KKKK', '............KHHhH', '............KHHHH', '............KjjjJ', '.......KKKKKKjjjj', '.....KKJHHHHHHHHH', '....KHHHHHHHHHHHH', '.....KKjjjjjjjjjj', '.......KKKKKKKKKK'],
     bun: ['', '', '', '', '', '', '', '', '............KKKK', '...........KAaAA', '...........KAAAA', '............KKKK', ''],
     topknot: ['', '', '', '', '', '', '', '', '', '...............KK', '..............KAA', '...............KK', ''],
