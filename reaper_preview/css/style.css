@@ -745,3 +745,12 @@ body.deco-t #toasts { top: auto !important; bottom: 150px; }
 #pend-pop { position: fixed; z-index: 75; display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 12px; background: rgba(16, 12, 34, .95); border: 1.5px solid rgba(255, 210, 110, .5); box-shadow: 0 6px 16px rgba(0,0,0,.5); animation: pop .15s; }
 #pend-pop .btn { padding: 6px 12px 7px; font-size: 12px; } #pend-pop small { font-size: 10px; color: #ff8a9a; }
 #deco-inv.dim { opacity: .3; pointer-events: none; }
+/* 보관함 작게 (절반 크기) */
+#deco-inv { width: min(164px, 46vw) !important; max-height: 32% !important; padding: 5px !important; gap: 3px !important; border-radius: 11px !important; }
+.iv-head b { font-size: 10px !important; } .iv-head small { font-size: 8.5px !important; } .iv-head button { width: 20px !important; height: 18px !important; font-size: 9px !important; }
+.iv-cats { gap: 2px !important; } .iv-cats button { padding: 1px 5px !important; font-size: 8.5px !important; } .iv-cats button i { font-size: 7.5px !important; margin-left: 2px !important; }
+.iv-grid { gap: 3px !important; }
+.iv-grid .dk-it { padding: 2px 1px 1px !important; gap: 0 !important; border-radius: 8px !important; border-width: 1px !important; }
+.iv-grid .dk-it img { height: 20px !important; }
+.iv-grid .dk-it span { font-size: 7.5px !important; line-height: 1.25; }
+.iv-grid .dk-it small { font-size: 7px !important; line-height: 1.1; }
