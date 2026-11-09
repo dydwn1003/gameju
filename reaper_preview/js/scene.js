@@ -158,7 +158,7 @@ const Scene = (() => {
     if (kindT === 'dead') return makeObj(18, 26, (x2) => deadTree(x2, 8, 25), x, y);
     if (kindT === 'pers') return makeObj(20, 30, (x2) => persimmon(x2, 10, 29), x, y);
     // 둥근 나무
-    makeObj(24, 30, (x2) => {
+    return makeObj(24, 30, (x2) => {
       const rect = rectOn(x2), c1 = mix(R().mt[1], '#2f6a3a', 0.6), c2 = lit(c1, 1.35), c3 = lit(c1, 0.7);
       rect(10, 18, 4, 12, '#3a2a20'); rect(10, 18, 1, 12, '#5a4030');
       [[12, 11, 9], [6, 15, 6], [18, 15, 6], [9, 7, 5], [15, 7, 5]].forEach(([cx, cy, r]) => { for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (xx * xx + yy * yy <= r * r) rect(cx + xx, cy + yy, 1, 1, xx + yy < -r * 0.5 ? c2 : xx + yy > r * 0.6 ? c3 : c1); });
@@ -195,6 +195,7 @@ const Scene = (() => {
       { id: 'tavern', x: tvx - 30, y: tvy - 44, w: 60, h: 44 }, { id: 'board', x: bdx - 10, y: bdy - 22, w: 20, h: 22 },
       { id: 'stall', x: stx - 18, y: sty - 30, w: 36, h: 30 }, { id: 'stele', x: slx - 6, y: sly - 26, w: 12, h: 26 },
       { id: 'garden', x: 17 * T, y: 19 * T, w: 7 * T, h: 6 * T }, { id: 'gate', x: gtx - 20, y: gty - 40, w: 40, h: 40 },
+      { id: 'shrine', x: shx - 15, y: shy - 26, w: 30, h: 26 }, { id: 'mudang', x: mdx - 13, y: mdy - 28, w: 26, h: 28 },
     ];
     PLOTS = [0, 1, 2, 3, 4, 5].map(i => ({ x: 18.5 * T + (i % 3) * 2 * T, y: 21.2 * T + Math.floor(i / 3) * 2.4 * T }));
     NPCS = [
@@ -210,17 +211,19 @@ const Scene = (() => {
     for (let k = 0; k < 70; k++) {
       const edge = rr(), x = edge < 0.5 ? rr() * MW : (edge < 0.75 ? rr() * 2.2 * T : MW - rr() * 2.2 * T), y = edge < 0.5 ? (rr() < 0.6 ? 1.6 * T + rr() * 1.4 * T : MH - rr() * 1.2 * T) : rr() * MH;
       if (y < 20 || busy(x, y)) continue;
-      treeObj(x, y, rr() < 0.75 ? treeKind : 'round');
+      const to = treeObj(x, y, rr() < 0.75 ? treeKind : 'round'); if (to) { to.prop = 'tree'; to.key = `t${region}_${k}`; }
     }
-    const place = (n, fn) => { for (let k = 0, m = 0; k < 80 && m < n; k++) { const x = (2 + rr() * (TW - 4)) * T, y = (4 + rr() * (TH - 7)) * T; if (busy(x, y) || tileAt(x, y) !== 0) continue; fn(x, y); m++; } };
-    if (P.id === 'village') place(3, (x, y) => makeObj(10, 24, (x2) => x2.drawImage(SP.jangseung(), 0, 1), x, y));
-    if (P.id === 'market') place(3, (x, y) => makeObj(24, 12, (x2) => jars(x2, 3, 11), x, y));
-    if (P.id === 'pass') { place(2, (x, y) => makeObj(16, 18, (x2) => cairn(x2, 8, 17), x, y)); place(1, (x, y) => makeObj(26, 46, (x2) => tree(x2, 12, 45), x, y)); }
-    if (P.id === 'field') place(4, (x, y) => makeObj(10, 20, (x2) => statue(x2, 2, 19), x, y));
-    if (P.id === 'gate') place(4, (x, y) => { makeObj(12, 22, (x2) => stoneLamp(x2, 2, 21), x, y); lanterns.push({ x, y: y - 14, col: '#ffb040', r: 6, a: 0.3 }); });
-    if (P.id === 'hell') place(4, (x, y) => { makeObj(18, 18, (x2) => cauldron(x2, 2, 17), x, y); lanterns.push({ x, y: y - 8, col: '#ff7a20', r: 9, a: 0.3 }); });
-    if (P.id === 'palace') place(4, (x, y) => { makeObj(12, 22, (x2) => stoneLamp(x2, 2, 21), x, y); lanterns.push({ x, y: y - 14, col: '#ffcf6a', r: 6, a: 0.3 }); });
-    if (P.id === 'river') place(2, (x, y) => makeObj(24, 10, (x2) => x2.drawImage(SP.boat(), 1, 1), x, y));
+    let pk = 0;
+    const place = (n, fn, kindP) => { for (let k = 0, m = 0; k < 80 && m < n; k++) { const x = (2 + rr() * (TW - 4)) * T, y = (4 + rr() * (TH - 7)) * T; if (busy(x, y) || tileAt(x, y) !== 0) continue; const before = objs.length; fn(x, y); const o = objs[before]; if (o && kindP) { o.prop = kindP; o.key = `${kindP}${region}_${pk++}`; } m++; } };
+    if (P.id === 'village') place(3, (x, y) => makeObj(10, 24, (x2) => x2.drawImage(SP.jangseung(), 0, 1), x, y), 'jangseung');
+    if (P.id === 'market') place(3, (x, y) => makeObj(24, 12, (x2) => jars(x2, 3, 11), x, y), 'jars');
+    if (P.id === 'pass') { place(2, (x, y) => makeObj(16, 18, (x2) => cairn(x2, 8, 17), x, y), 'cairn'); place(1, (x, y) => makeObj(26, 46, (x2) => tree(x2, 12, 45), x, y), 'tree'); }
+    if (P.id === 'field') place(4, (x, y) => makeObj(10, 20, (x2) => statue(x2, 2, 19), x, y), 'statue');
+    if (P.id === 'gate') place(4, (x, y) => { makeObj(12, 22, (x2) => stoneLamp(x2, 2, 21), x, y); }, 'lamp');
+    if (P.id === 'hell') place(4, (x, y) => { makeObj(18, 18, (x2) => cauldron(x2, 2, 17), x, y); lanterns.push({ x, y: y - 8, col: '#ff7a20', r: 9, a: 0.3 }); }, 'cauldron');
+    if (P.id === 'palace') place(4, (x, y) => { makeObj(12, 22, (x2) => stoneLamp(x2, 2, 21), x, y); }, 'lamp');
+    // (지역 소품은 아래에서 살펴보기 대상이 된다)
+    if (P.id === 'river') place(2, (x, y) => makeObj(24, 10, (x2) => x2.drawImage(SP.boat(), 1, 1), x, y), 'boat');
   }
 
   // ---------- 승진 시험장 (명부전) ----------
@@ -436,6 +439,14 @@ const Scene = (() => {
     const fi = Math.floor(u.ft * (moving ? 8 : 2.5));
     return u.mini ? SP.minit(u.dir === 'up' ? 'up' : 'down', pose, fi) : SP.tinyReaper(kind, rank, u.dir, pose, fi);
   }
+  // 이야기 단서 위치: 장마다 지도 위 걸을 수 있는 빈자리 하나 (지역·장 번호로 고정)
+  const clueCache = {};
+  function clueSpot(ch) {
+    const key = region + '_' + ch; if (clueCache[key]) return clueCache[key];
+    const r = seeded(ch * 97 + region * 13 + 7);
+    for (let k = 0; k < 200; k++) { const x = (3 + r() * (TW - 6)) * T, y = (5 + r() * (TH - 9)) * T; if (!walkable(x, y)) continue; if (objs.some(o => x > o.x - 6 && x < o.x + o.img.width + 6 && y > o.y - 4 && y < o.base + 8)) continue; if (NPCS.some(n => Math.hypot(n.x - x, n.y - y) < 20)) continue; return (clueCache[key] = { x, y }); }
+    return (clueCache[key] = { x: 13 * T, y: 16 * T });
+  }
   function render() {
     if (office) {
       g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(officeData.c, 0, 0);
@@ -494,7 +505,16 @@ const Scene = (() => {
     });
     // y 순서대로 그릴 것 모으기
     const list = [];
-    objs.forEach(o => { if (vis(o.x + o.img.width / 2, o.base, o.img.width)) list.push({ y: o.base, f: () => g.drawImage(o.img, Math.round(o.x - camX), Math.round(o.y - camY)) }); });
+    objs.forEach(o => { if (vis(o.x + o.img.width / 2, o.base, o.img.width)) list.push({ y: o.base, f: () => {
+      g.drawImage(o.img, Math.round(o.x - camX), Math.round(o.y - camY));
+      if (!o.prop || !hooks.propReady) return;
+      const cx = Math.round(o.x + o.img.width / 2 - camX), ready = hooks.propReady(o.key);
+      if (o.prop === 'lamp' && !ready) { glow(cx, o.y + 7 - camY, 8, '#ffcf6a', 0.32 + Math.sin(time * 6 + o.x) * 0.05); g.fillStyle = '#ffe08a'; g.fillRect(cx - 1, Math.round(o.y + 6 - camY), 2, 2); }
+      if (ready) { const sy = Math.round(o.y - 3 - camY + Math.sin(time * 3 + o.x) * 1.5), tw = (Math.floor(time * 4 + o.x) % 4); g.fillStyle = '#0f0c18'; g.fillRect(cx - 2, sy - 2, 5, 5); g.fillStyle = tw === 0 ? '#ffffff' : '#ffe08a'; g.fillRect(cx, sy - 2, 1, 5); g.fillRect(cx - 2, sy, 5, 1); g.fillStyle = '#ffffff'; g.fillRect(cx, sy, 1, 1); }
+    } }); });
+    // 이야기 단서 (✦ 빛나는 종이)
+    const cl = hooks.clue ? hooks.clue() : -1;
+    if (cl >= 0) { const p = clueSpot(cl); if (vis(p.x, p.y)) list.push({ y: p.y, f: () => { const x = Math.round(p.x - camX), y = Math.round(p.y - camY), b = Math.sin(time * 3) * 1.5; glow(x, y - 5 + b, 9, '#9fd6ff', 0.35 + Math.sin(time * 5) * 0.1); g.fillStyle = '#0f0c18'; g.fillRect(x - 4, Math.round(y - 9 + b), 8, 7); g.fillStyle = '#efe2bf'; g.fillRect(x - 3, Math.round(y - 8 + b), 6, 5); g.fillStyle = '#2a1a14'; g.fillRect(x - 2, Math.round(y - 7 + b), 4, 1); g.fillRect(x - 2, Math.round(y - 5 + b), 3, 1); if (Math.random() < 0.15) parts.push({ x: p.x + rnd(-4, 4), y: p.y - 8, vx: rnd(-2, 2), vy: -rnd(8, 14), life: 0.8, max: 0.8, col: '#c8ecff', g: 0 }); } }); }
     for (const n of NPCS) {
       if (n.cond === 'merchant' && !cfg.merchant) continue; if (!vis(n.x, n.y)) continue;
       list.push({ y: n.y, f: () => {
@@ -561,6 +581,8 @@ const Scene = (() => {
     if (best) { if (best.who && best.who.target === best) best.who.target = null; const tp = { face: 1, tap: true }; Object.defineProperty(tp, 'x', { get: () => reaper.x }); Object.defineProperty(tp, 'y', { get: () => reaper.y }); best.who = tp; best.st = 'pull'; best.t = 0; best.sx = best.x; best.sy = best.y - best.h; best.dur = 0.35; Sound.play('tap'); return; }
     for (let i = 0; i < PLOTS.length; i++) { const p = PLOTS[i]; if (Math.abs(x - p.x) < 9 && y > p.y - 16 && y < p.y + 2) { hooks.poi && hooks.poi('plot', i); return; } }
     for (const p of POIS) if (p.id !== 'garden' && x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) { if (p.id === 'stall' && cfg.merchant) { hooks.poi && hooks.poi('merchant'); return; } hooks.poi && hooks.poi(p.id); return; }
+    { const cl = hooks.clue ? hooks.clue() : -1; if (cl >= 0) { const p = clueSpot(cl); if (Math.abs(x - p.x) < 9 && y > p.y - 14 && y < p.y + 4) { burst(p.x, p.y - 6, '#c8ecff', 24, 40); hooks.poi && hooks.poi('clue'); return; } } }
+    for (let k = objs.length - 1; k >= 0; k--) { const o = objs[k]; if (o.prop && x > o.x - 2 && x < o.x + o.img.width + 2 && y > o.y && y < o.base + 4) { const lamps = objs.filter(q => q.prop === 'lamp'); hooks.poi && hooks.poi('prop', { kind: o.prop, key: o.key, x: (o.x + o.img.width / 2 - camX) * S, y: (o.y - camY) * S, wx: o.x + o.img.width / 2, wy: o.base, lampsAll: lamps.length, lampsLit: lamps.filter(q => hooks.propReady && !hooks.propReady(q.key)).length }); if (o.prop === 'tree') { shake = Math.max(shake, 1); for (let i = 0; i < 6; i++) parts.push({ x: o.x + rnd(4, o.img.width - 4), y: o.y + rnd(4, 12), vx: rnd(-6, 6), vy: rnd(-4, 4), life: 0.8, max: 0.8, col: '#6aa84a', g: 30 }); } return; } }
     if (walkable(x, y)) { reaper.manual = { x, y }; follow = true; Sound.play('open'); hooks.moved && hooks.moved(); return; }
     burst(x, y, '#c9b6ff', 5, 18);
   }
@@ -594,6 +616,9 @@ const Scene = (() => {
     wraithAlive: () => !!(wraith && !wraith.dead), wraithHp: () => wraith ? wraith.hp : 0, wraithPos: () => wraith ? scr(wraith.x, wraith.y) : null,
     labels: () => arena || office ? [] : POIS.filter(p => ['office', 'stall', 'stele', 'garden'].includes(p.id)).map(p => ({ id: p.id, x: (p.x + p.w / 2 - camX) * S, y: (p.y - 3 - camY) * S, vis: vis(p.x + p.w / 2, p.y, 4) }))
       .concat(NPCS.map(n => ({ id: 'n_' + n.id, x: (n.x - camX) * S, y: (n.y - (n.id === 'kkachi' ? 14 : 24) - camY) * S, vis: vis(n.x, n.y, 4) && !(n.cond === 'merchant' && !cfg.merchant) }))),
+    clueScreen(ch) { const p = clueSpot(ch); return { x: (p.x - camX) * S, y: (p.y - 6 - camY) * S }; },
+    propsOnScreen() { return objs.filter(o => o.prop && vis(o.x + o.img.width / 2, o.base, 0)).map(o => ({ kind: o.prop, key: o.key, x: (o.x + o.img.width / 2 - camX) * S, y: (o.base - 6 - camY) * S })); },
+    focusClue(ch) { const p = clueSpot(ch); camX = p.x - W / 2; camY = p.y - H / 2; follow = false; followAt = time + 8; },
     focus(id) { const p = POIS.find(q => q.id === id) || POIS.find(q => q.id === 'stall'); if (p) { camX = p.x + p.w / 2 - W / 2; camY = p.y + p.h / 2 - H / 2; follow = false; followAt = time + 8; } },
     burstAt(xc, yc, col, n) { burst(xc / S + camX, yc / S + camY, col, n, 40); },
     soulNear() { for (const [fx, fy] of [[0.4, 0.62], [0.3, 0.7], [0.5, 0.75], [0.35, 0.5], [0.2, 0.6]]) { const x = camX + W * fx, y = camY + H * fy; if (walkable(x, y)) { souls.push({ x, y, tier: 0, sp: -1, ph: 0, t: 0, st: 'float', who: null, a: 1, h: 9, tut: 1 }); follow = false; followAt = time + 30; return; } } },

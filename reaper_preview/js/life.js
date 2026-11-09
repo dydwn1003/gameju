@@ -164,6 +164,53 @@ const Life = (() => {
   const docsNext = () => Math.max(0, DOC_EVERY - ((now() - S().docs.last) % DOC_EVERY)) / 1000;
   const mailNext = () => { const m = S().mail; return Math.max(0, MAIL_EVERY - ((now() - m.last) % MAIL_EVERY)) / 1000; };
 
+  // ---------- 지도 소품 살펴보기: 나무·항아리·장승·돌탑·석상·석등·가마솥·나룻배 ----------
+  const PROP = {
+    tree: { cd: 15 * 60, name: '나무' }, jars: { cd: 30 * 60, name: '항아리' }, jangseung: { cd: 4 * 3600, name: '장승' },
+    cairn: { cd: 6 * 3600, name: '돌탑' }, statue: { cd: 2 * 3600, name: '망각의 석상' }, lamp: { cd: 3600, name: '석등' },
+    cauldron: { cd: 3600, name: '가마솥' }, boat: { cd: 3600, name: '빈 나룻배' },
+  };
+  const STATUE_LINES = ['"…이름을 잃은 혼이 여기 서서 오래 울었지…"', '"…먹물이 번지는 밤엔 혼들이 사라진다…"', '"…기다림도 미련이다. 그러나 다정한 미련이다…"', '"…강 건너에서 누군가 아직 네 이름을 부른다…"', '"…가장 무거운 짐은 내려놓은 기억이다…"'];
+  const propReady = key => now() >= ((S().props || {})[key] || 0);
+  const propLeft = key => Math.max(0, (((S().props || {})[key] || 0) - now()) / 1000);
+  // 결과: { msg, souls, jade, ticket, seed, buff, wraith, lit }
+  function useProp(kind, key, lampsLit, lampsAll) {
+    const s = S(), P = PROP[kind]; if (!P || !propReady(key)) return null;
+    s.props = s.props || {}; s.props[key] = now() + P.cd * 1000;
+    const inc = Game.incomePerSec(true), r = Math.random(), out = { msg: '' };
+    const souls = sec => { out.souls = inc * sec; Game.gain(out.souls); };
+    const jade = n => { out.jade = n; s.jade += n; };
+    const seed = (f, n) => { s.seeds[f] = (s.seeds[f] || 0) + n; out.seed = `${FLOWERS.find(x => x.id === f).name} 씨앗 ${n}`; };
+    const buff = (k, min) => { s.buffs[k] = Math.min(now() + 4 * 3600e3, Math.max(now(), s.buffs[k] || 0) + min * 60e3); out.buff = k; };
+    if (kind === 'tree') {
+      if (r < 0.03) { souls(300); out.msg = '✨ 황금 열매가 떨어졌다!'; }
+      else if (r < 0.13) { jade(1 + (Math.random() < 0.4 ? 1 : 0)); out.msg = '나뭇가지에 옥이 걸려 있었다'; }
+      else if (r < 0.33) { seed(Math.random() < 0.8 ? 'mang' : 'lotus', 1); out.msg = '씨앗이 툭 떨어졌다'; }
+      else { souls(45); out.msg = '숨어 있던 혼령들이 우수수!'; }
+    } else if (kind === 'jars') {
+      if (r < 0.02) { s.tickets = (s.tickets || 0) + 1; out.ticket = 1; out.msg = '🎉 항아리 속에 소환권이!'; }
+      else if (r < 0.22) { jade(3); out.msg = '항아리 바닥에 옥이 있었다'; }
+      else if (r < 0.3) out.msg = '텅 비었다… 도깨비가 먼저 다녀갔나 보다';
+      else { souls(120); out.msg = '항아리에 갇힌 혼령들을 풀어 줬다'; }
+    } else if (kind === 'jangseung') { buff('spawn', 10); out.msg = '장승에게 절했다. 10분 동안 혼령이 더 자주 나타난다'; }
+    else if (kind === 'cairn') {
+      if (r < 0.1) { s.tickets = (s.tickets || 0) + 1; out.ticket = 1; out.msg = '돌탑에 소원을 빌었다… 소원이 이루어졌다!'; }
+      else if (r < 0.5) { jade(5); out.msg = '돌탑 사이에서 옥을 찾았다'; }
+      else { souls(300); out.msg = '돌을 하나 얹자 혼령들이 모여들었다'; }
+    } else if (kind === 'statue') { jade(2); out.msg = '석상이 속삭인다. ' + STATUE_LINES[Math.floor(Math.random() * STATUE_LINES.length)]; }
+    else if (kind === 'lamp') {
+      out.lit = true;
+      if (lampsLit + 1 >= lampsAll) { buff('spawn', 15); jade(5); out.msg = `🏮 석등 ${lampsAll}개에 모두 불이 켜졌다! 15분 동안 혼령이 더 자주 나타난다`; }
+      else out.msg = `석등에 불을 밝혔다 (${lampsLit + 1}/${lampsAll}) · 모두 켜면 축복이 내린다`;
+    } else if (kind === 'cauldron') { out.wraith = true; out.msg = '가마솥에서 갇혀 있던 원귀가 튀어나왔다!'; }
+    else if (kind === 'boat') {
+      if (r < 0.3) { seed('honbul', 1); out.msg = '배 안에서 유실물을 건졌다'; }
+      else if (r < 0.6) { jade(3); out.msg = '뱃삯으로 남겨진 옥을 찾았다'; }
+      else { souls(180); out.msg = '배에 남아 있던 혼령들을 거뒀다'; }
+    }
+    qEvent('prop'); Game.save(); return out;
+  }
+
   // ---------- 시간 단축 (옥: 10분당 10개 · 광고: 30분 단축) ----------
   // kind: plot(밭 i) · expe(파견 i) · docs(결재) · mail(까치 우편) · parade(백귀야행)
   function timerLeft(kind, i) {
@@ -198,8 +245,9 @@ const Life = (() => {
   const judgeLeft = () => S() ? JUDGE_MAX - judgeDay().n : 0;
   function judgeCase() {
     const j = judgeDay(); if (j.n >= JUDGE_MAX) return null;
-    if (j.cur == null) { let pool = JUDGE_CASES.map((_, i) => i).filter(i => !j.seen.includes(i)); if (!pool.length) { j.seen = []; pool = JUDGE_CASES.map((_, i) => i); } j.cur = pool[Math.floor(Math.random() * pool.length)]; }
-    const c = JUDGE_CASES[j.cur]; return { i: j.cur, name: c[0], age: c[1], text: c[2], ans: c[3] };
+    if (j.cur == null && typeof JUDGE_STORY !== 'undefined') { const ch = S().story ? S().story.ch : 0, k = JUDGE_STORY.findIndex(x => ch >= x.ch && !j.seen.includes('s' + JUDGE_STORY.indexOf(x))); if (k >= 0) j.cur = 's' + k; }
+    if (j.cur == null) { let pool = JUDGE_CASES.map((_, i) => i).filter(i => !j.seen.includes(i)); if (!pool.length) { j.seen = j.seen.filter(x => typeof x === 'string'); pool = JUDGE_CASES.map((_, i) => i); } j.cur = pool[Math.floor(Math.random() * pool.length)]; }
+    const st = typeof j.cur === 'string', c = st ? JUDGE_STORY[+j.cur.slice(1)].c : JUDGE_CASES[j.cur]; return { i: j.cur, name: c[0], age: c[1], text: c[2], ans: c[3], story: st };
   }
   function judge(choice) {
     const j = judgeDay(), c = judgeCase(); if (!c) return null;
@@ -341,5 +389,5 @@ const Life = (() => {
       brew: RECIPES.some(canBrew),
     };
   }
-  return { timerLeft, skipCost, skipJade, skipAd, SKIP_AD, judgeLeft, judgeCase, judge, JUDGE_MAX, docsCount, claimDocs, docsNext, fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
+  return { PROP, propReady, propLeft, useProp, timerLeft, skipCost, skipJade, skipAd, SKIP_AD, judgeLeft, judgeCase, judge, JUDGE_MAX, docsCount, claimDocs, docsNext, fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
 })();

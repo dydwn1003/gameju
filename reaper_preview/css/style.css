@@ -634,3 +634,22 @@ img { -webkit-user-drag: none; user-select: none; }
 .sk-opts .btn span { display: flex; align-items: center; gap: 4px; } .sk-opts .btn em { font-style: normal; font-size: 10px; opacity: .8; }
 .btn.sk { padding: 4px 8px 5px; font-size: 10px; background: linear-gradient(180deg, #3a6ab0, #24447a); color: #e8f0ff; }
 .plot .btn.sk { margin-top: 2px; }
+
+/* 이야기: 내레이션 · 기억 조각 · 다시 보기 */
+#promo.narr .tk-por { display: none; }
+#promo.narr .tk-txt p { font-style: italic; color: #d8d0f0; }
+#promo.narr #tk-name { display: none; }
+.mem-card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(320px, 86vw); padding: 22px 18px 18px; text-align: center; border-radius: 18px;
+  background: linear-gradient(180deg, #2a2050, #151028); border: 1.5px solid rgba(160, 200, 255, .45); box-shadow: 0 0 40px rgba(120, 170, 255, .35); animation: memIn .7s ease-out both; }
+.mem-card small { color: #9fb8e8; font-size: 11px; letter-spacing: 1px; }
+.mem-ic { font-size: 40px; color: #c8e0ff; margin: 6px 0; text-shadow: 0 0 18px #7ab0ff; animation: memGlow 2s ease-in-out infinite; }
+.mem-card b { display: block; font-size: 18px; color: #fff3d0; margin-bottom: 8px; }
+.mem-card p { font-size: 13px; line-height: 1.7; color: #e0dcf0; margin: 0 0 14px; }
+@keyframes memIn { from { opacity: 0; transform: translate(-50%, -40%) scale(.9); } }
+@keyframes memGlow { 50% { text-shadow: 0 0 30px #b0d0ff; transform: scale(1.08); } }
+.mem-list, .rp-list { max-height: 54vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin: 8px 0; text-align: left; }
+.mem-row { padding: 8px 10px; border-radius: 10px; background: rgba(140, 180, 255, .08); border: 1px solid rgba(140, 180, 255, .2); }
+.mem-row b { font-size: 12px; color: #fff3d0; } .mem-row p { margin: 3px 0 0 !important; font-size: 11px !important; }
+.mem-row.lock { opacity: .45; }
+.rp-row { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,.04); }
+.rp-row span { flex: 1; font-size: 12px; } .rp-row .btn { padding: 4px 9px 5px; font-size: 11px; }

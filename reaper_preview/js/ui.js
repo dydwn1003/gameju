@@ -13,7 +13,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function init() {
     Game.load();
-    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply();
@@ -508,11 +508,25 @@ const UI = (() => {
     Sound.play('promote'); Scene.burstAt && Scene.burstAt(innerWidth / 2, 160, '#ffe08a', 20);
     toast(`📜 결재 ${r.n}건 완료! 혼 +${fmt(r.souls)} · 옥 +${r.jade}`, 3000); Life.qEvent('docs', r.n); officeBar();
   }
+  // 지도 소품 살펴보기
+  function useProp(o) {
+    if (!Life.propReady(o.key)) { toast(`${Life.PROP[o.kind].name}: ${fmtTime(Life.propLeft(o.key))} 뒤에 다시 살펴볼 수 있어요`); return; }
+    const r = Life.useProp(o.kind, o.key, o.lampsLit, o.lampsAll); if (!r) return;
+    Sound.play(r.ticket || r.buff ? 'promote' : 'collect', 2);
+    Scene.burstAt(o.x, o.y, r.jade || r.ticket ? '#7fffb0' : '#ffe08a', 14);
+    if (r.souls) float(o.x, o.y - 10, '+' + fmt(r.souls), 'big');
+    if (r.wraith) { Scene.spawnWraith(Math.max(Game.value() * 50, Game.incomePerSec() * 10), 22); }
+    toast(r.msg + [r.jade ? ` · 옥 +${r.jade}` : '', r.seed ? ` · ${r.seed}` : '', r.ticket ? ' · 소환권 +1' : ''].join(''), 2600);
+    if (r.buff) Game.apply();
+  }
   function openLife(k) { sub = k; goTab('life'); }
   function poi(id, i) {
     Sound.play('open');
     if (id === 'office') enterOffice();
     else if (id === 'docs') { claimDocs(); tutEv('docs'); }
+    else if (id === 'clue') { if (Story.takeClue()) { Sound.play('promote'); toast('✦ 단서를 찾았다! 위쪽 퀘스트를 눌러 확인하세요', 3200); } }
+    else if (id === 'prop') useProp(i);
+    else if (id === 'shrine') offerModal();
     else if (id === 'tavern' || id === 'jumo') openLife('tavern');
     else if (id === 'elder') questModal();
     else if (id === 'boat') openLife('expe');
@@ -757,7 +771,9 @@ const UI = (() => {
   function portrait(sp) {
     const k = 'por' + sp + (sp === 'me' ? S().kind + S().rank : '');
     if (urls[k]) return urls[k];
-    const c = sp === 'me' ? SP.reaper(S().kind || 'm', S().rank, 'idle', 0) : sp === 'gangrim' ? SP.reaper('m', 4, 'idle', 0) : sp === 'yeomra' ? SP.reaper('m', 8, 'idle', 0) : sp === 'wraith' ? SP.wraith(0) : SP.npc(sp);
+    const dark = c0 => { const d = document.createElement('canvas'); d.width = c0.width; d.height = c0.height; const x2 = d.getContext('2d'); x2.filter = 'grayscale(1) brightness(0.55) sepia(1) hue-rotate(230deg) saturate(2.2)'; x2.drawImage(c0, 0, 0); return d; };
+    const c = sp === 'me' ? SP.reaper(S().kind || 'm', S().rank, 'idle', 0) : sp === 'gangrim' ? SP.reaper('m', 4, 'idle', 0) : sp === 'yeomra' ? SP.reaper('m', 8, 'idle', 0) : sp === 'wraith' ? SP.wraith(0)
+      : sp === 'judge' ? SP.reaper('m', 5, 'idle', 0) : sp === 'muk' ? dark(SP.reaper('m', 6, 'idle', 0)) : sp === 'minion' ? SP.mini('idle', 0) : sp === 'sib' ? SP.npc('elder') : sp === 'kkachi' ? SP.pet(PETS.find(p => p.id === 'kkachi'), 0) : SP.npc(sp);
     return (urls[k] = toURL(c, 5));
   }
   function talk(lines, done) {
@@ -765,8 +781,9 @@ const UI = (() => {
     const o = overlay(`<div class="tk-bg"></div><div class="tk-box"><img class="px tk-por" id="tk-por"><div class="tk-txt"><b id="tk-name"></b><p id="tk-line"></p><small>터치해서 계속 ▶</small></div></div>`);
     const show = () => {
       const [sp, txt] = lines[i];
-      $('#tk-por').src = portrait(sp); $('#tk-por').classList.toggle('flip', sp !== 'me');
-      $('#tk-name').textContent = nameFill(SPEAKERS[sp]); $('#tk-line').textContent = nameFill(txt);
+      const narr = sp === 'narr'; o.classList.toggle('narr', narr);
+      if (!narr) { $('#tk-por').src = portrait(sp); $('#tk-por').classList.toggle('flip', sp !== 'me'); }
+      $('#tk-name').textContent = narr ? '' : nameFill(SPEAKERS[sp]); $('#tk-line').textContent = nameFill(txt);
       Sound.play('open');
     };
     show();
@@ -790,17 +807,36 @@ const UI = (() => {
       const R = c.Q.r, res = Story.claim(); if (!res) return;
       Sound.play('promote');
       toast(`퀘스트 완료! ${Story.rewardText(R)}${res.got.souls ? ` (+${fmt(res.got.souls)})` : ''}`, 3000);
-      if (res.chapterDone) talk(res.outro, () => setTimeout(storyIntro, 300));
+      if (res.chapterDone) talk(res.outro, () => res.mem ? memoryCard(res.mem, Story.memories().length, () => setTimeout(storyIntro, 300)) : setTimeout(storyIntro, 300));
       storyBar(); return;
     }
+    if (c.Q.k === 'clue') { if (S().tut !== 'done' && S().tut != null) return; Scene.focusClue(c.ch); toast('✦ 지도에서 빛나는 단서를 찾아 눌러 보세요', 2600); if (sheetOpen()) closeSheet(); return; }
     storyModal();
+  }
+  // 기억 조각 카드 (장을 끝낼 때)
+  function memoryCard(m, n, done) {
+    Sound.play('promote');
+    const o = overlay(`<div class="tk-bg"></div><div class="mem-card"><small>기억 조각 ${n} / ${Story.memTotal}</small><div class="mem-ic">❖</div><b>「${nameFill(m.t)}」</b><p>${nameFill(m.d)}</p><button class="btn red" id="mem-ok">간직하기</button></div>`);
+    o.querySelector('#mem-ok').onclick = () => { closeOverlay(); done && done(); };
+  }
+  function memoriesModal() {
+    const ms = Story.memories();
+    const box = modal(`<h2>❖ 기억 조각 ${ms.length}/${Story.memTotal}</h2><p class="mute">장을 끝낼 때마다 잃어버린 기억이 하나씩 돌아와요</p>
+      <div class="mem-list">${STORY.map((C, i) => C.mem ? (i < S().story.ch ? `<div class="mem-row"><b>「${nameFill(C.mem.t)}」</b><p>${nameFill(C.mem.d)}</p></div>` : '<div class="mem-row lock"><b>「? ? ?」</b><p>아직 떠오르지 않은 기억</p></div>') : '').join('')}</div>
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+  }
+  function replayModal() {
+    const n = Math.min(S().story.ch + 1, STORY.length);
+    const box = modal(`<h2>📜 이야기 다시 보기</h2><div class="rp-list">${STORY.slice(0, n).map((C, i) => `<div class="rp-row"><span>제 ${i + 1}장 · ${C.title}</span><button class="btn" data-rp="${i}:intro">시작</button>${i < S().story.ch ? `<button class="btn dark" data-rp="${i}:outro">끝</button>` : ''}</div>`).join('')}</div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => { const [i, k] = b.dataset.rp.split(':'); closeModal(); talk(STORY[+i][k]); });
   }
   function storyModal() {
     const c = Story.cur();
     const box = modal(`<h2>제 ${c.ch + 1}장 · ${c.C.title}</h2>
       ${c.C.quests.map((q, i) => `<div class="qrow pbox ${i < c.q ? 'mute' : ''}"><div class="info"><b>${i < c.q ? '✔ ' : i === c.q ? '▶ ' : ''}${q.t}</b>${i === c.q ? ` <span class="mute">${fmt(c.have)}/${fmt(c.need)}</span><div class="bar"><i style="width:${Math.min(100, (c.have / c.need) * 100)}%"></i></div>` : ''}<div class="mute" style="font-size:10px;margin-top:3px">보상: ${Story.rewardText(q.r)}</div></div></div>`).join('')}
-      <div class="acts"><button class="btn dark" id="st-replay">이야기 다시 보기</button><button class="btn red" data-act="close">닫기</button></div>`);
-    box.querySelector('#st-replay').onclick = () => { closeModal(); talk(c.C.intro); };
+      <div class="acts"><button class="btn dark" id="st-replay">이야기 다시 보기</button><button class="btn dark" id="st-mem">❖ 기억 ${Story.memories().length}/${Story.memTotal}</button><button class="btn red" data-act="close">닫기</button></div>`);
+    box.querySelector('#st-replay').onclick = () => { closeModal(); replayModal(); };
+    box.querySelector('#st-mem').onclick = () => { closeModal(); memoriesModal(); };
   }
 
   // ---------- 튜토리얼 (처음 시작할 때 손가락으로 안내) ----------
