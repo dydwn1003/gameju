@@ -242,6 +242,8 @@ const Life = (() => {
 
   // ---------- 망자 심판 ----------
   const JUDGE_MAX = 5;
+  // 심판 1건 보상 = 몇 초치 혼 (맞히면). 처음엔 적게, 계급이 오를수록 늘어남 (틀리면 1/5)
+  const JUDGE_SEC = [30, 50, 80, 120, 160, 210, 270, 330, 400];
   function judgeDay() { const s = S(), day = new Date().toISOString().slice(0, 10); if (!s.judge || s.judge.day !== day) s.judge = { day, n: 0, ok: 0, total: (s.judge && s.judge.total) || 0, seen: (s.judge && s.judge.seen) || [] }; return s.judge; }
   const judgeLeft = () => S() ? JUDGE_MAX - judgeDay().n : 0;
   function judgeCase() {
@@ -253,7 +255,7 @@ const Life = (() => {
   function judge(choice) {
     const j = judgeDay(), c = judgeCase(); if (!c) return null;
     const ok = choice === c.ans, s = S();
-    const souls = Game.incomePerSec(true) * (ok ? 300 : 60) * (1 + s.rank * 0.2), jade = ok ? 3 : 0;
+    const sec = JUDGE_SEC[Math.min(8, s.rank)], souls = Game.incomePerSec(true) * (ok ? sec : sec * 0.2), jade = ok ? 3 : 0;
     Game.gain(souls); s.jade += jade; j.n++; if (ok) { j.ok++; j.total++; } j.seen.push(c.i); j.cur = null;
     let bonus = 0; if (j.n >= JUDGE_MAX && j.ok >= JUDGE_MAX) { bonus = 15; s.jade += bonus; }
     Game.save(); return { ok, souls, jade, bonus, ans: c.ans, left: JUDGE_MAX - j.n, streak: j.ok };
