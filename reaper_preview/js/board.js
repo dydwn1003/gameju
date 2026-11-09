@@ -13,8 +13,8 @@ const Board = (() => {
   }
   // 내 기록 올리기 (바뀌었을 때만, 최대 1분에 한 번 · 승진 직후엔 바로)
   async function push(force) {
-    if (!ready || !Game.S || !Game.S.kind) return;
-    const s = Game.S, row = { score: score(s), lv: Game.level(), rank: s.rank, rb: s.reborn || 0, kind: s.kind };
+    if (!ready || !Game.S || !Game.S.kind || !Game.S.nickSet) return; // 닉네임을 정해야 순위에 오른다
+    const s = Game.S, row = { score: score(s), lv: Game.level(), rank: s.rank, rb: s.reborn || 0, kind: s.kind, nick: s.name };
     const sig = JSON.stringify(row);
     if (sig === lastSent || (!force && Date.now() - lastAt < 60e3)) return;
     lastSent = sig; lastAt = Date.now();
@@ -29,10 +29,10 @@ const Board = (() => {
       const snap = await db.collection('rank').orderBy('score', 'desc').limit(50).get();
       const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
       let my = rows.findIndex(r => r.id === uid) + 1;
-      if (!my) { const above = await db.collection('rank').where('score', '>', score(Game.S)).limit(1000).get(); my = above.size + 1; }
+      if (!my && Game.S.nickSet) { const above = await db.collection('rank').where('score', '>', score(Game.S)).limit(1000).get(); my = above.size + 1; }
       let names = {}; try { names = await user.profiles(rows.map(r => r.id)); } catch (e) {}
-      setPlace(my);
-      return { rows: rows.map(r => Object.assign(r, { name: (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid })), my };
+      setPlace(Game.S.nickSet ? my : 0, rows.length);
+      return { rows: rows.map(r => Object.assign(r, { name: r.nick || (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid })), my, total: rows.length };
     })();
     return Promise.race([q, done]);
   }
@@ -42,13 +42,13 @@ const Board = (() => {
   const today = () => new Date().toISOString().slice(0, 10);
   const timeout = (p, ms = 10000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
   async function pushOffice() {
-    if (!ready || !Game.S || !Game.S.kind) return;
-    const s = Game.S, dc = Decor.ensure(), row = { rank: s.rank, kind: s.kind, rb: s.reborn || 0, placed: dc.placed.map(p => ({ id: p.id, gx: p.gx, gy: p.gy })), score: Decor.score(), likes: (s.officeLikes || 0) };
+    if (!ready || !Game.S || !Game.S.kind || !Game.S.nickSet) return;
+    const s = Game.S, dc = Decor.ensure(), row = { nick: s.name, rank: s.rank, kind: s.kind, rb: s.reborn || 0, placed: dc.placed.map(p => ({ id: p.id, gx: p.gx, gy: p.gy })), score: Decor.score(), likes: (s.officeLikes || 0) };
     const sig = JSON.stringify(row); if (sig === lastOffice) return; lastOffice = sig;
     try { await db.doc('offices/' + uid).set(Object.assign(row, { at: Date.now() })); } catch (e) { lastOffice = ''; }
   }
   async function visitsDoc() { if (myVisits) return myVisits; try { const d = await timeout(db.doc('visits/' + uid).get()); myVisits = d.exists ? d.data() : {}; } catch (e) { myVisits = {}; } myVisits.likedIds = myVisits.likedIds || []; myVisits.likeDay = myVisits.likeDay || {}; myVisits.noteIds = myVisits.noteIds || []; myVisits.notes = myVisits.notes || {}; myVisits.friends = myVisits.friends || []; return myVisits; }
-  const saveVisits = () => db.doc('visits/' + uid).set(Object.assign({}, myVisits, { at: Date.now() }));
+  const saveVisits = () => db.doc('visits/' + uid).set(Object.assign({}, myVisits, { nick: Game.S.name, at: Date.now() }));
   // 이웃 집무실 목록 (최근에 꾸민 순 · 좋아요 순)
   async function offices(sortLikes) {
     if (!ready) return null;
@@ -56,7 +56,7 @@ const Board = (() => {
     const snap = await timeout(db.collection('offices').orderBy(sortLikes ? 'likes' : 'at', 'desc').limit(40).get());
     const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
     let names = {}; try { names = await user.profiles(rows.map(r => r.id)); } catch (e) {}
-    return rows.map(r => Object.assign(r, { name: (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid }));
+    return rows.map(r => Object.assign(r, { name: r.nick || (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid }));
   }
   // 한 집무실 + 그 방의 방명록
   async function office(id) {
@@ -64,16 +64,16 @@ const Board = (() => {
     const d = await timeout(db.doc('offices/' + id).get()); if (!d.exists) return null;
     const o = Object.assign({ id }, d.data());
     let names = {}; try { names = await user.profiles([id]); } catch (e) {}
-    o.name = (names[id] && names[id].name) || '이름 모를 차사'; o.me = id === uid;
+    o.name = o.nick || (names[id] && names[id].name) || '이름 모를 차사'; o.me = id === uid;
     o.notes = await guestbook(id);
     const v = await visitsDoc(); o.likedToday = v.likeDay[id] === today(); o.liked = v.likedIds.includes(id);
     return o;
   }
   async function guestbook(id) {
     try { const snap = await timeout(db.collection('visits').where('noteIds', 'array-contains', id).limit(30).get());
-      const rows = snap.docs.map(d => ({ by: d.id, n: (d.data().notes || {})[id] })).filter(r => r.n).sort((a, b) => b.n.at - a.n.at);
+      const rows = snap.docs.map(d => ({ by: d.id, nick: d.data().nick, n: (d.data().notes || {})[id] })).filter(r => r.n).sort((a, b) => b.n.at - a.n.at);
       let names = {}; try { names = await user.profiles(rows.map(r => r.by)); } catch (e) {}
-      return rows.map(r => ({ m: r.n.m, t: r.n.t, at: r.n.at, name: (names[r.by] && names[r.by].name) || '이름 모를 차사', me: r.by === uid }));
+      return rows.map(r => ({ m: r.n.m, t: r.n.t, at: r.n.at, name: r.nick || (names[r.by] && names[r.by].name) || '이름 모를 차사', me: r.by === uid }));
     } catch (e) { return []; }
   }
   async function like(id) { const v = await visitsDoc(); if (v.likeDay[id] === today()) return false; v.likeDay[id] = today(); if (!v.likedIds.includes(id)) v.likedIds.push(id); await saveVisits(); return true; }
@@ -86,13 +86,16 @@ const Board = (() => {
     const docs = await Promise.all(ids.map(id => timeout(db.doc('offices/' + id).get()).catch(() => null)));
     const rows = docs.map((d, k) => d && d.exists ? Object.assign({ id: ids[k] }, d.data()) : null).filter(Boolean);
     let names = {}; try { names = await user.profiles(rows.map(r => r.id)); } catch (e) {}
-    return rows.map(r => Object.assign(r, { name: (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid }));
+    return rows.map(r => Object.assign(r, { name: r.nick || (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid }));
   }
   // 내 집무실이 받은 좋아요 수 (좋아요를 누른 사람 수)
   async function myLikes() { if (!ready) return 0; try { const snap = await timeout(db.collection('visits').where('likedIds', 'array-contains', uid).limit(1000).get()); const n = snap.size; if (Game.S) { Game.S.officeLikes = n; } await pushOffice(); return n; } catch (e) { return Game.S && Game.S.officeLikes || 0; } }
-  function setPlace(p) { if (p !== place) { place = p; onPlace && onPlace(p); } }
+  let total = 0;
+  function setPlace(p, n) { if (n != null) total = n; if (p !== place || n != null) { place = p; onPlace && onPlace(p, total); } }
+  // 닉네임 중복 확인
+  async function nickTaken(n) { if (!ready) return false; try { const snap = await timeout(db.collection('rank').where('nick', '==', n).limit(3).get()); return snap.docs.some(d => d.id !== uid); } catch (e) { return false; } }
   async function refresh() { try { await top(); } catch (e) {} }
   // 순위 구간: 1 = 1위, 2 = 2~5위, 3 = 6~10위, 0 = 그 밖
   const tierOf = p => (p === 1 ? 1 : p >= 2 && p <= 5 ? 2 : p >= 6 && p <= 10 ? 3 : 0);
-  return { init, push, top, pushOffice, offices, office, like, note, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
+  return { init, push, top, nickTaken, total: () => total, pushOffice, offices, office, like, note, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
 })();

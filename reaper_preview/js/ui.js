@@ -336,7 +336,7 @@ const UI = (() => {
     if (t.dataset.pull) { doPull(t.dataset.pull); return; }
     if (t.dataset.pet) { petInfo(t.dataset.pet); return; }
     if (t.dataset.fuse) { const [g, n] = t.dataset.fuse.split(':'); const r = Pets.fuse(g, +n); if (r) { gachaShow(r, { fuse: g }); render(); } return; }
-    if (t.dataset.eq) { if (Pets.equip(t.dataset.eq)) { Sound.play('buy'); toast(`${Pets.P(t.dataset.eq).name}을(를) 데리고 다녀요`); render(); } else toast('아직 만나지 못한 영물이에요'); return; }
+    if (t.dataset.eq) { if (Pets.equip(t.dataset.eq)) { Sound.play('buy'); toast(`${Pets.P(t.dataset.eq).name}을(를) 소환했어요`); render(); } else toast('아직 만나지 못한 영물이에요'); return; }
     if (lifeClick(t)) return;
     act(t.dataset.act);
   }
@@ -450,7 +450,10 @@ const UI = (() => {
   function exitOffice() { decoEnd(true); if (visiting) { visiting = null; } Scene.exitOffice(); const bar = $('#office-bar'); if (bar) bar.classList.remove('on'); $('#office-acts') && $('#office-acts').classList.remove('on'); $('#side').style.display = ''; $('#stage').classList.remove('in-office'); document.body.classList.remove('in-office-t'); Sound.play('open'); }
   // ---------- 순위 ----------
   const TIER = { 1: { name: '저승 제일 차사', icon: '👑', col: '#ffd34a' }, 2: { name: '명예의 차사', icon: '🥈', col: '#dfe8ff' }, 3: { name: '이름난 차사', icon: '🥉', col: '#ffb070' } };
+  const RANK_MIN_PLAYERS = 5;
+  const rankFxOk = () => S().nickSet && Board.total() >= RANK_MIN_PLAYERS && S().rank >= 1; // 혼자거나 막 시작했으면 순위 이펙트 없음
   function applyPlace(p) {
+    if (!rankFxOk()) { Scene.setRankFx(0); const c = $('#rk-chip'); c.className = 'rkchip'; c.innerHTML = ''; return; }
     const t = Board.tierOf(p), chip = $('#rk-chip');
     Scene.setRankFx(t);
     chip.className = 'rkchip' + (t ? ' t' + t : ''); chip.innerHTML = p ? `${t ? TIER[t].icon : '🏆'} ${p}위` : '';
@@ -475,8 +478,23 @@ const UI = (() => {
   function rankRow(r, place) {
     const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}</small></div><span class="rklv">Lv.${r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
   }
+  // 닉네임 정하기 (순위·이웃 집무실에 보이는 이름)
+  function nickModal(after) {
+    const box = modal(`<h2>✍️ 닉네임 정하기</h2><p>순위표와 이웃 집무실에 보이는 이름이에요.<br><span class="mute">2~8자 · 다른 차사와 겹치지 않게</span></p>
+      <div class="gb-write"><input id="nk-in" maxlength="8" placeholder="닉네임" value="${esc(S().nickSet ? S().name : '')}"><button class="btn red" id="nk-ok">정하기</button></div><p class="mute" id="nk-msg" style="font-size:11px;min-height:16px"></p>
+      <div class="acts"><button class="btn dark" data-act="close">나중에</button></div>`);
+    const msg = t => (box.querySelector('#nk-msg').textContent = t);
+    box.querySelector('#nk-ok').onclick = async () => {
+      const n = box.querySelector('#nk-in').value.trim().replace(/\s+/g, ' ');
+      if (n.length < 2) return msg('2자 이상으로 지어 주세요');
+      if (cleanText(n) !== n) return msg('쓸 수 없는 말이 들어 있어요');
+      msg('확인하는 중…'); if (await Board.nickTaken(n)) return msg('이미 다른 차사가 쓰는 닉네임이에요');
+      S().name = n; S().nickSet = true; Game.save(); Board.push(true); Board.pushOffice(); Sound.play('promote'); closeModal(); toast(`「${esc(n)}」(으)로 정했어요!`); after && after();
+    };
+  }
   async function rankModal() {
-    const s = S(), mine = { name: '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true };
+    if (Board.online() && !S().nickSet) { nickModal(rankModal); return; }
+    const s = S(), mine = { name: s.nickSet ? s.name : '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true };
     const box = modal(`<h2>🏆 저승 명예의 전당</h2><p class="mute">레벨 순위 · 윤회한 차사가 먼저예요</p><div class="rklist" id="rk-list"><div class="rkload">순위를 불러오는 중…</div></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     const L = box.querySelector('#rk-list');
     if (!Board.online()) { L.innerHTML = rankRow(mine, 0) + '<p class="note">다른 플레이어와의 순위는 claude.ai에서 게임을 열면 보여요. 지금은 내 기록만 보여요.</p>'; return; }
@@ -499,6 +517,7 @@ const UI = (() => {
   let nbTab = 'recent';
   async function neighborsModal(tabArg) {
     if (tabArg) nbTab = tabArg;
+    if (Board.online() && !S().nickSet) { nickModal(() => neighborsModal()); return; }
     if (!Board.online()) { modal(`<h2>🏘️ 이웃 집무실</h2><p>다른 차사의 집무실은 claude.ai에서 <b>공유된 게임 페이지</b>를 열면 놀러 갈 수 있어요.<br><span class="mute">지금은 혼자 보는 화면이라 이웃이 없어요.</span></p><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
     const box = modal(`<h2>🏘️ 이웃 집무실</h2><button class="btn red nb-rand" id="nb-rand">🎲 랜덤으로 놀러 가기</button>
       <div class="ds-cats"><button data-nbt="recent" class="${nbTab === 'recent' ? 'on' : ''}">최근 꾸민 곳</button><button data-nbt="pop" class="${nbTab === 'pop' ? 'on' : ''}">🏆 인기 순위</button><button data-nbt="friends" class="${nbTab === 'friends' ? 'on' : ''}">👥 내 이웃</button></div>
@@ -537,7 +556,7 @@ const UI = (() => {
     acts.innerHTML = `<div class="of-acts v4"><button id="vs-like" class="${o.likedToday ? '' : 'hot'}"><span>👍</span>좋아요<i>${o.likes || 0}</i></button><button id="vs-gb"><span>📜</span>방명록<i>${o.notes.length}</i></button><button id="vs-rand"><span>🎲</span>랜덤 방문<i></i></button><button id="vs-nb"><span>🏘️</span>이웃 목록<i></i></button></div>`;
     bar.classList.add('on'); acts.classList.add('on'); $('#side').style.display = 'none'; $('#stage').classList.add('in-office'); document.body.classList.add('in-office-t');
     bar.querySelector('#of-out').onclick = exitOffice;
-    $('#vs-like').onclick = async () => { if (!visiting) return; if (visiting.likedToday) { toast('오늘은 이미 좋아요를 눌렀어요. 내일 또 눌러 주세요'); return; } if (await Board.like(visiting.id)) { visiting.likedToday = true; if (!visiting.liked) { visiting.likes = (visiting.likes || 0) + 1; visiting.liked = true; } Sound.play('promote'); Scene.burstAt(innerWidth / 2, 200, '#ff8ab0', 24); toast(`👍 ${visiting.name}님의 집무실에 좋아요!`); const b = $('#vs-like'); b.classList.remove('hot'); b.querySelector('i').textContent = visiting.likes; } };
+    $('#vs-like').onclick = async () => { if (!visiting) return; if (!S().nickSet) { nickModal(); return; } if (visiting.likedToday) { toast('오늘은 이미 좋아요를 눌렀어요. 내일 또 눌러 주세요'); return; } if (await Board.like(visiting.id)) { visiting.likedToday = true; if (!visiting.liked) { visiting.likes = (visiting.likes || 0) + 1; visiting.liked = true; } Sound.play('promote'); Scene.burstAt(innerWidth / 2, 200, '#ff8ab0', 24); toast(`👍 ${visiting.name}님의 집무실에 좋아요!`); const b = $('#vs-like'); b.classList.remove('hot'); b.querySelector('i').textContent = visiting.likes; } };
     $('#vs-gb').onclick = () => guestbookModal(visiting.id, false);
     $('#vs-nb').onclick = () => neighborsModal();
     $('#vs-rand').onclick = () => randomVisit();
@@ -553,7 +572,7 @@ const UI = (() => {
       ${mine ? '' : `<div class="sec" style="margin-top:8px">한마디 남기기</div><div class="gb-write"><input id="gb-in" maxlength="40" placeholder="방명록을 남겨 주세요 (40자)"><button class="btn red" id="gb-send">남기기</button></div><div class="gb-pick">${GB_PHRASES.map((t, i) => `<button data-gb="${i}">${t}</button>`).join('')}</div>`}
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelectorAll('[data-gb]').forEach(b => b.onclick = () => { const i = box.querySelector('#gb-in'); i.value = GB_PHRASES[+b.dataset.gb]; i.focus(); });
-    const send = box.querySelector('#gb-send'); if (send) send.onclick = async () => { const raw = box.querySelector('#gb-in').value.trim(); if (!raw) { toast('내용을 입력해 주세요'); return; } await Board.note(id, cleanText(raw)); Sound.play('buy'); toast('방명록을 남겼어요 ✍️'); if (visiting && visiting.id === id) { visiting.notes = await Board.guestbook(id); const g = $('#vs-gb i'); if (g) g.textContent = visiting.notes.length; } closeModal(); guestbookModal(id, false); };
+    const send = box.querySelector('#gb-send'); if (send) send.onclick = async () => { if (!S().nickSet) { closeModal(); nickModal(() => guestbookModal(id, mine)); return; } const raw = box.querySelector('#gb-in').value.trim(); if (!raw) { toast('내용을 입력해 주세요'); return; } await Board.note(id, cleanText(raw)); Sound.play('buy'); toast('방명록을 남겼어요 ✍️'); if (visiting && visiting.id === id) { visiting.notes = await Board.guestbook(id); const g = $('#vs-gb i'); if (g) g.textContent = visiting.notes.length; } closeModal(); guestbookModal(id, false); };
     box.querySelectorAll('[data-gb-old]').forEach(b => b.onclick = async () => { await Board.note(id, +b.dataset.gb); Sound.play('buy'); toast('방명록을 남겼어요 ✍️'); if (visiting && visiting.id === id) { visiting.notes = await Board.guestbook(id); const g = $('#vs-gb i'); if (g) g.textContent = visiting.notes.length; } closeModal(); guestbookModal(id, false); });
   }
 
@@ -962,11 +981,12 @@ const UI = (() => {
   function settings() {
     const s = S();
     const box = modal(`<h2>설정</h2>
-      <div class="set-row"><span>${s.name} · ${s.kind === 'f' ? '여자' : '남자'} 차사</span><button class="btn dark" id="s-look">모습 바꾸기</button></div>
+      <div class="set-row"><span>${esc(s.name)} · ${s.kind === 'f' ? '여자' : '남자'} 차사</span><button class="btn dark" id="s-look">모습 바꾸기</button></div>${Board.online() ? `<div class="set-row"><span>닉네임 ${s.nickSet ? '「' + esc(s.name) + '」' : '(아직 없음)'}</span><button class="btn dark" id="s-nick">${s.nickSet ? '바꾸기' : '정하기'}</button></div>` : ''}
       <div class="set-row"><span>효과음</span><button class="btn ${s.sound ? '' : 'dark'}" id="s-snd">${s.sound ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>배경음</span><button class="btn ${s.bgm ? '' : 'dark'}" id="s-bgm">${s.bgm ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>퇴치한 원귀 / 터치 수확</span><span>${s.stats.wraith} / ${s.stats.tap}</span></div>
       <div class="acts"><button class="btn dark" id="s-reset">처음부터</button><button class="btn red" data-act="close">닫기</button></div>`);
+    const sn = box.querySelector('#s-nick'); if (sn) sn.onclick = () => { closeModal(); nickModal(); };
     box.querySelector('#s-look').onclick = () => charSelect(false);
     box.querySelector('#s-snd').onclick = () => { s.sound = !s.sound; Sound.set(s.sound, s.bgm); Game.save(); settings(); };
     box.querySelector('#s-bgm').onclick = () => { s.bgm = !s.bgm; Sound.set(s.sound, s.bgm); Game.save(); settings(); };
@@ -1146,17 +1166,17 @@ const UI = (() => {
     Pets.ensure();
     const s = S(), eq = s.petEq && s.pets[s.petEq] ? Pets.P(s.petEq) : null, own = Object.keys(s.pets).length;
     const stTxt = id => { const st = Pets.stats(id); return `수확량 +${Math.round(st[0] * 100)}% · 이동 +${Math.round(st[1] * 100)}% · 수확속도 +${Math.round(st[2] * 100)}%`; };
-    let h = `<div class="petmain pbox">${eq ? `<canvas id="pet-big" width="12" height="11"></canvas><div class="info"><div class="nm"><span class="gb" style="background:${PET_GRADES[eq.g].col}">${eq.g}</span> ${eq.name} <span class="stars">${'★'.repeat(s.pets[eq.id])}</span></div><div class="ds">${eq.desc}</div><div class="ds st">${stTxt(eq.id)}</div></div>` : '<div class="info"><div class="nm">함께할 영물이 없어요</div><div class="ds">아래에서 영물을 소환해 보세요. 데리고 다니면 수확을 도와줘요.</div></div>'}</div>
+    let h = `<div class="petmain pbox">${eq ? `<canvas id="pet-big" width="12" height="11"></canvas><div class="info"><div class="nm"><span class="gb" style="background:${PET_GRADES[eq.g].col}">${eq.g}</span> ${eq.name} <span class="stars">${'★'.repeat(s.pets[eq.id])}</span></div><div class="ds">${eq.desc}</div><div class="ds st">${stTxt(eq.id)}</div></div>` : '<div class="info"><div class="nm">소환한 영물이 없어요</div><div class="ds">아래에서 영물을 소환해 보세요. 소환하면 수확을 도와줘요.</div></div>'}</div>
       <div class="gacha pbox"><div class="gt">영물 소환</div><div class="gd">C 50% · B 30% · A 13% · S 5% · SS 1.7% · <b style="color:${PET_GRADES.SSS.col}">SSS 0.3%</b><br>SS 이상 확정까지 <b>${PITY - s.pity}</b>회 · 같은 영물은 <b>여분</b>으로 쌓여요</div>
         ${s.tickets ? `<button class="btn red ticket" data-pull="ticket">소환권으로 1회 <em>${s.tickets}장</em></button>` : ''}
         <div class="gb3"><button class="btn" data-pull="ad" ${Pets.adLeft() > 0 ? '' : 'disabled'}>무료 1회<em>AD ${Pets.adLeft()}/2</em></button>
         <button class="btn jade" data-pull="1" ${s.jade >= PULL_COST[1] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[1]} · 1회</button>
         <button class="btn red" data-pull="10" ${s.jade >= PULL_COST[10] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[10]} · 10회</button></div><div class="gd">10회 소환은 A등급 이상 1마리 확정</div></div>
       <div class="ph"><h3>영물 도감</h3><span class="sub">${own}/${PETS.length}종 · 수확량 +${own}%</span></div><div class="petgrid">`;
-    h += PETS.map(p => { const st = s.pets[p.id], inv = s.petInv[p.id] || 0, canUp = st && st < 5 && inv >= Pets.starCost(p.id); return `<button class="pcell pbox ${st ? '' : 'unk'} ${s.petEq === p.id ? 'eq' : ''}" data-pet="${p.id}" style="--gc:${PET_GRADES[p.g].col}"><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span>${inv ? `<span class="pinv ${canUp ? 'up' : ''}">×${inv}</span>` : ''}<img class="px" src="${petIcon(p, !!st)}"><b>${st ? p.name : '???'}</b><small>${st ? '★'.repeat(st) : ''}${s.petEq === p.id ? ' 데리는 중' : ''}</small></button>`; }).join('');
+    h += PETS.map(p => { const st = s.pets[p.id], inv = s.petInv[p.id] || 0, canUp = st && st < 5 && inv >= Pets.starCost(p.id); return `<button class="pcell pbox ${st ? '' : 'unk'} ${s.petEq === p.id ? 'eq' : ''}" data-pet="${p.id}" style="--gc:${PET_GRADES[p.g].col}"><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span>${inv ? `<span class="pinv ${canUp ? 'up' : ''}">×${inv}</span>` : ''}<img class="px" src="${petIcon(p, !!st)}"><b>${st ? p.name : '???'}</b><small>${st ? '★'.repeat(st) : ''}${s.petEq === p.id ? ' 소환 중' : ''}</small></button>`; }).join('');
     h += '</div><div class="ph"><h3>영물 합성</h3><span class="sub">같은 등급 여분 3마리 → 1마리</span></div><div class="fuse pbox">';
     h += Object.keys(Pets.FUSE_UP).map(g => { const n = Pets.spares(g), k = Math.floor(n / Pets.FUSE_N), nx = PET_ORDER[PET_ORDER.indexOf(g) + 1]; return `<div class="frow"><span class="gb" style="background:${PET_GRADES[g].col}">${g}</span><div class="fi"><b>여분 ${n}마리</b><small>${Math.round(Pets.FUSE_UP[g] * 100)}% 확률로 <i style="color:${PET_GRADES[nx].col}">${nx}</i> 등급!</small></div><button class="btn jade" data-fuse="${g}:1" ${k ? '' : 'disabled'}>1회</button><button class="btn red" data-fuse="${g}:99" ${k > 1 ? '' : 'disabled'}>모두 ${k > 1 ? k + '회' : ''}</button></div>`; }).join('');
-    P.innerHTML = h + '</div><p class="note">칸을 누르면 데리고 다니기 · 별 올리기를 할 수 있어요. 여분은 별 올리기(★2←1마리 … ★5←4마리)나 합성에 써요. 합성은 ★5 영물의 여분부터 먼저 써요.</p>';
+    P.innerHTML = h + '</div><p class="note">칸을 누르면 소환하기 · 별 올리기를 할 수 있어요. 여분은 별 올리기(★2←1마리 … ★5←4마리)나 합성에 써요. 합성은 ★5 영물의 여분부터 먼저 써요.</p>';
     if (eq) previews.push({ c: $('#pet-big'), pet: eq });
   }
   function petIcon(p, known) { const k = 'pi' + p.id + known; if (urls[k]) return urls[k]; let c = SP.pet(p, 0); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, 4)); }
@@ -1172,9 +1192,9 @@ const UI = (() => {
     const inv = s.petInv[id] || 0, c = Pets.starCost(id), sv = Pets.stats(id);
     const box = modal(`<div class="pinfo"><canvas id="pi-big" width="12" height="11"></canvas><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</h2><div class="stars">${'★'.repeat(st)}${'☆'.repeat(5 - st)}</div><p>${p.desc}</p>
       <p class="mute">수확량 +${Math.round(sv[0] * 100)}% · 이동 +${Math.round(sv[1] * 100)}% · 수확속도 +${Math.round(sv[2] * 100)}%<br>여분 <b style="color:var(--gold)">${inv}</b>마리${st < 5 ? ` · 별 올리기에 ${c}마리 필요 (능력치 +20%)` : ' · 최대 별!'}</p></div>
-      <div class="acts"><button class="btn" id="pi-eq" ${s.petEq === id ? 'disabled' : ''}>${s.petEq === id ? '데리는 중' : '데리고 다니기'}</button><button class="btn red" id="pi-up" ${st < 5 && inv >= c ? '' : 'disabled'}>★ 올리기</button><button class="btn dark" data-act="close">닫기</button></div>`);
+      <div class="acts"><button class="btn" id="pi-eq" ${s.petEq === id ? 'disabled' : ''}>${s.petEq === id ? '소환 중' : '소환하기'}</button><button class="btn red" id="pi-up" ${st < 5 && inv >= c ? '' : 'disabled'}>★ 올리기</button><button class="btn dark" data-act="close">닫기</button></div>`);
     previews.push({ c: box.querySelector('#pi-big'), pet: p });
-    box.querySelector('#pi-eq').onclick = () => { Pets.equip(id); Sound.play('buy'); toast(`${p.name}을(를) 데리고 다녀요`); closeModal(); render(); };
+    box.querySelector('#pi-eq').onclick = () => { Pets.equip(id); Sound.play('buy'); toast(`${p.name}을(를) 소환했어요`); closeModal(); render(); };
     box.querySelector('#pi-up').onclick = () => { if (Pets.starUp(id)) { Sound.play('promote'); toast(`${p.name} ★${S().pets[id]}!`); closeModal(); render(); petInfo(id); } };
   }
   function gachaShow(res, opt) {
