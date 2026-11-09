@@ -3,24 +3,24 @@
 // 승급 레벨: 일반 플레이(하루 4번 접속 · 나머지는 오프라인) 기준 약 3분 · 20분 · 3시간 · 10시간 · 3일 · 6일 · 14일 · 30일
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 3, lv: 55, hp: 19000, region: 1 },
-  { name: '차사', mult: 9, lv: 305, hp: 3.8e07, region: 2 },
-  { name: '선임 차사', mult: 27, lv: 380, hp: 1.0e09, region: 3 },
-  { name: '차사장', mult: 80, lv: 423, hp: 8.3e09, region: 4 },
-  { name: '판관', mult: 240, lv: 478, hp: 6.8e10, region: 5 },
-  { name: '명부 판관', mult: 720, lv: 506, hp: 4.7e11, region: 6 },
-  { name: '시왕', mult: 2200, lv: 542, hp: 3.4e12, region: 7 },
-  { name: '염라대왕', mult: 6500, lv: 575, hp: 2.4e13, region: 8 },
+  { name: '말단 차사', mult: 3, lv: 55, hp: 19400, region: 1 },
+  { name: '차사', mult: 9, lv: 445, hp: 3.1e09, region: 2 },
+  { name: '선임 차사', mult: 27, lv: 756, hp: 1.66e14, region: 3 },
+  { name: '차사장', mult: 80, lv: 798, hp: 1.21e15, region: 4 },
+  { name: '판관', mult: 240, lv: 850, hp: 8.97e15, region: 5 },
+  { name: '명부 판관', mult: 720, lv: 878, hp: 6.0e16, region: 6 },
+  { name: '시왕', mult: 2200, lv: 913, hp: 4.09e17, region: 7 },
+  { name: '염라대왕', mult: 6500, lv: 945, hp: 2.77e18, region: 8 },
 ];
 const UPGRADES = [
   { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.125, max: 999 },
-  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.32, max: 30 },
-  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.36, max: 35 },
-  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.34, max: 30 },
-  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.55, max: 25 },
-  { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, max: 20 },
+  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.32, cap: 30, max: 100 },
+  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.36, cap: 35, max: 100 },
+  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.34, cap: 30, max: 100 },
+  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.55, cap: 25, max: 80 },
+  { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, cap: 20, grow2: 1.4, max: 40 },
   { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.3, max: 999 },
-  { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 2.4, max: 10 },
+  { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 2.4, cap: 10, grow2: 1.8, max: 22 },
 ];
 const TIER_MULT = [1, 3, 10, 30];
 const TIER_NAME = ['떠도는 혼', '맑은 혼', '황금 혼', '원한 서린 혼'];
@@ -53,24 +53,30 @@ const Game = (() => {
     stats: { wraith: 0, tap: 0 },
   });
   const lv = id => S.upg[id] || 0;
+  // 숙련: 원래 최대(cap)를 넘긴 레벨은 효과 대신 혼 가치 +4%씩 (걸음 · 부르기 · 손길 · 인연)
+  const MASTER = ['step', 'call', 'hand', 'luck'];
+  const capOf = id => { const U = UPGRADES.find(u => u.id === id); return U.cap || U.max; };
+  const lc = id => Math.min(lv(id), capOf(id));
+  const over = (id, L = lv(id)) => Math.max(0, L - capOf(id));
+  const masteryMul = () => MASTER.reduce((m, id) => m * Math.pow(1.04, over(id)), 1);
   const today = () => new Date().toISOString().slice(0, 10);
 
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
   const penMul = L => (1 + L * 0.45) * Math.pow(2, Math.floor(L / 25));
-  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
+  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
-  const walk = () => (30 + lv('step') * 3) * Life.mul('spawn') * Pets.mul('walk');
-  const spawn = () => Math.max(0.1, 0.7 * Math.pow(0.93, lv('call'))) / Life.mul('spawn');
-  const reap = () => Math.max(0.12, 0.9 * Math.pow(0.93, lv('hand')) / Pets.mul('reap'));
+  const walk = () => (30 + lc('step') * 3) * Life.mul('spawn') * Pets.mul('walk');
+  const spawn = () => Math.max(0.1, 0.7 * Math.pow(0.93, lc('call'))) / Life.mul('spawn');
+  const reap = () => Math.max(0.12, 0.9 * Math.pow(0.93, lc('hand')) / Pets.mul('reap'));
   const minions = () => lv('minion');
   const mWalk = () => Math.min(56, 18 * (1 + lv('drill') * 0.05));
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.965, lv('drill')));
   const drillMul = () => 1 + lv('drill') * 0.08;
-  const offHours = () => 2 + lv('ledger');
+  const offHours = () => Math.min(24, 2 + lv('ledger'));
   function tierProbs() {
-    const L = lv('luck');
+    const L = lc('luck');
     const p3 = 0.004 * (1 + 0.15 * L), p2 = 0.015 * (1 + 0.12 * L), p1 = 0.06 * (1 + 0.1 * L);
     return [1 - p1 - p2 - p3, p1, p2, p3];
   }
@@ -89,7 +95,7 @@ const Game = (() => {
     const shareM = vis ? (vis * mr) / (main + vis * mr) : 0;
     const scale = vis ? (minions() / vis) * drillMul() : 0;
     const v = (noBoost ? valueBase() : value()) * avgTier();
-    const group = 1.25 + 1.5 * (1 - Math.exp(-lv('hand') / 8)); // 주변 혼령 함께 거두기
+    const group = 1.25 + 1.5 * (1 - Math.exp(-lc('hand') / 8)); // 주변 혼령 함께 거두기
     return coll * v * ((1 - shareM) + shareM * scale) * group;
   }
   const tapValue = () => value() * 1.5;
@@ -98,6 +104,10 @@ const Game = (() => {
 
   // 업그레이드 효과 표기 (레벨 L 기준)
   function eff(id, L) {
+    if (MASTER.includes(id) && L > capOf(id)) return '숙련 ×' + Math.pow(1.04, L - capOf(id)).toFixed(2); // 혼 가치 배수
+    return effBase(id, L);
+  }
+  function effBase(id, L) {
     switch (id) {
       case 'pen': { const m = (1 + L * 0.45) * Math.pow(2, Math.floor(L / 25)); return '×' + (m >= 100 ? fmt(m) : m.toFixed(2)); }
       case 'step': return Math.round(18 + L * 2.2) + '보';
@@ -106,13 +116,13 @@ const Game = (() => {
       case 'luck': { const p = 0.004 * (1 + 0.15 * L) + 0.015 * (1 + 0.12 * L) + 0.06 * (1 + 0.1 * L); return (p * 100).toFixed(1) + '%'; }
       case 'minion': return L + '명';
       case 'drill': return '×' + (1 + L * 0.08).toFixed(2);
-      case 'ledger': return (2 + L) + '시간';
+      case 'ledger': return Math.min(24, 2 + L) + '시간';
     }
   }
   // ---------- 비용 ----------
   function cost(id, n = 1) {
     const U = UPGRADES.find(u => u.id === id); let c = 0, L = lv(id);
-    for (let i = 0; i < n && L + i < U.max; i++) c += Math.ceil(U.base * Math.pow(U.grow, L + i));
+    for (let i = 0; i < n && L + i < U.max; i++) { const k = L + i, cp = U.cap || U.max; c += Math.ceil(k < cp ? U.base * Math.pow(U.grow, k) : U.base * Math.pow(U.grow, cp) * Math.pow(U.grow2 || 1.22, k - cp + 1)); }
     return c;
   }
   function maxBuy(id) {
@@ -152,7 +162,7 @@ const Game = (() => {
 
   // ---------- 획득 ----------
   function gain(n) { S.souls += n; S.total += n; }
-  function roll() { const sp = Life.rollSpecial(RANKS[S.rank].region, lv('luck')); return sp >= 0 ? { tier: 2, sp } : { tier: rollTier(), sp: -1 }; }
+  function roll() { const sp = Life.rollSpecial(RANKS[S.rank].region, lc('luck')); return sp >= 0 ? { tier: 2, sp } : { tier: rollTier(), sp: -1 }; }
   function collect(tier, who, sp) {
     let v = value() * TIER_MULT[tier];
     if (who === 'minion') { const vis = Math.min(5, minions()); v *= (minions() / Math.max(1, vis)) * drillMul(); }
@@ -162,7 +172,7 @@ const Game = (() => {
   function addBoost(min) { S.boostUntil = Math.max(Date.now(), S.boostUntil) + min * 60000; S.boostUntil = Math.min(S.boostUntil, Date.now() + 180 * 60000); apply(); save(); }
 
   function apply() {
-    Scene.config({ spawn: spawn(), walk: walk(), reap: reap(), minions: minions(), mWalk: mWalk(), mReap: mReap(), roll, maxSouls: 18 + Math.min(18, Math.floor(lv('call') / 2)), reapR: Math.min(26, 14 + lv('hand') * 0.4), reapMax: 3 + Math.floor(lv('hand') / 6), speed: boosting() ? 1.3 : 1 });
+    Scene.config({ spawn: spawn(), walk: walk(), reap: reap(), minions: minions(), mWalk: mWalk(), mReap: mReap(), roll, maxSouls: 18 + Math.min(18, Math.floor(lc('call') / 2)), reapR: Math.min(26, 14 + lc('hand') * 0.4), reapMax: 3 + Math.floor(lc('hand') / 6), speed: boosting() ? 1.3 : 1 });
     Scene.setRegion(RANKS[S.rank].region);
     if (S.kind) Scene.setKind(S.kind);
     Scene.setRank(S.rank);
@@ -199,7 +209,7 @@ const Game = (() => {
     if (P.seal) S.sealUntil = Math.max(Date.now(), S.sealUntil || 0) + P.seal * 86400e3;
     S.bought[id] = (S.bought[id] || 0) + 1;
     if (P.jade) S.jade += P.jade;
-    if (P.minion) S.upg.minion = Math.min(20, lv('minion') + P.minion);
+    if (P.minion) S.upg.minion = Math.min(capOf('minion'), lv('minion') + P.minion);
     if (P.hours) gain(incomePerSec(true) * 3600 * P.hours);
     if (P.boost) addBoost(P.boost);
     if (P.perm2) S.perm2 = true;
@@ -213,7 +223,7 @@ const Game = (() => {
   function jadeBuy(id) {
     const J = JADE_SHOP.find(j => j.id === id), cost = jadeCost(id);
     if (cost == null || jadeLeft(id) <= 0 || S.jade < cost) return false;
-    if (J.minion && lv('minion') >= 20) return false;
+    if (J.minion && lv('minion') >= capOf('minion')) return false;
     S.jade -= cost; if (J.day) { const b = jbuyDay(); b.n[id] = (b.n[id] || 0) + 1; }
     let got = 0;
     if (J.hours) { got = incomePerSec(true) * 3600 * J.hours; gain(got); }

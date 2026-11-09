@@ -48,7 +48,8 @@ const Native = (() => {
     if (!chan && platform() === 'android') { try { await L.createChannel({ id: 'reaper', name: I18N.t('게임 알림'), description: I18N.t('보상 · 파견 · 출석 알림'), importance: 4, visibility: 1 }); } catch (e) {} chan = true; }
     await notifyClear();
     if (!list.length) return;
-    await L.schedule({ notifications: list.map(n => ({ id: n.id, title: I18N.t(n.title), body: n.body.split('\n').map(x => I18N.t(x)).join('\n'), channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true } })) });
+    // isExactNotification:false — 정확한 알람 권한(알람 및 리마인더)을 요구하지 않음. 몇 분 늦어도 괜찮은 알림이라 설정 화면이 뜨지 않게
+    await L.schedule({ notifications: list.map(n => ({ id: n.id, title: I18N.t(n.title), body: n.body.split('\n').map(x => I18N.t(x)).join('\n'), channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true }, isExactNotification: false })) });
   }
 
   // ---------- 보상형 광고 (AdMob) ----------
