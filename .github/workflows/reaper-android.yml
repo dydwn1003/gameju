@@ -45,15 +45,15 @@ jobs:
       CHECK_ONLY: ${{ github.event.inputs.check_only == 'true' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')) }}
       HAS_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: reaper/app/package-lock.json
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'

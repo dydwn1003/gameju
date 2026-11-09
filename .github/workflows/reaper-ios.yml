@@ -36,7 +36,7 @@ jobs:
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       CHECK_ONLY: ${{ github.event.inputs.check_only == 'true' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Xcode 고르기 (App Store 는 Xcode 26 이상으로 빌드해야 받아줘요)
         run: |
@@ -47,7 +47,7 @@ jobs:
           sudo xcode-select -s "$x"
           xcodebuild -version
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm

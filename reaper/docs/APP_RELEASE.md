@@ -53,7 +53,63 @@
 
 ---
 
-## 1. 앱 빌드 준비 (처음 한 번)
+## 1. GitHub 로 자동 빌드 · 업로드 (하루펫과 같은 방식)
+내 컴퓨터에 Android Studio나 Xcode가 없어도 GitHub Actions 가 빌드해서 스토어에 올려 줍니다.
+
+| 워크플로 | 하는 일 |
+|---|---|
+| **저승사자 Android 출시** (`.github/workflows/reaper-android.yml`) | AAB + APK 빌드 → GitHub Release(폰에 바로 설치용 APK) → Play Console 업로드 |
+| **저승사자 iOS TestFlight** (`.github/workflows/reaper-ios.yml`) | 자동 서명 → App Store Connect(TestFlight) 업로드 |
+
+**실행 방법**
+- **수동 실행:** GitHub → **Actions** → 워크플로 선택 → **Run workflow**
+- **태그로 실행:** `reaper-v1.0.0` 같은 태그를 push 하면 두 개가 같이 실행돼요.
+- **자동 빌드 확인:** `reaper/` 를 고쳐서 브랜치에 push 하면 서명 · 업로드 없이 빌드만 확인해요.
+- **빌드 번호:** 실행할 때마다 자동으로 +1 돼요.
+- **버전 이름:** `js/config.js` 의 `APP.version` 을 씁니다.
+
+### 처음 한 번: Secrets 등록
+gameju 저장소 → **Settings → Secrets and variables → Actions → New repository secret** 에서 등록합니다.
+하루펫에 넣었던 값을 **그대로 다시** 넣으면 됩니다. Secrets 는 저장소마다 따로라서 다시 넣어야 해요.
+
+| 이름 | 값 | 하루펫과 같은 값? |
+|---|---|---|
+| `ANDROID_KEYSTORE_BASE64` | 업로드 키스토어(.jks)를 base64 로 바꾼 값 | 같아도 됨 (새로 만들어도 됨) |
+| `ANDROID_KEYSTORE_PASSWORD` | 키스토어 비밀번호 | 〃 |
+| `ANDROID_KEY_ALIAS` | 키 별칭 (예: `upload`) | 〃 |
+| `ANDROID_KEY_PASSWORD` | 키 비밀번호 (같으면 생략) | 〃 |
+| `PLAY_SERVICE_ACCOUNT_JSON` | Play Console 업로드용 서비스 계정 JSON | 같은 값 + **새 앱 권한 추가 필요** |
+| `ASC_KEY_ID` | App Store Connect API 키 ID | 같은 값 |
+| `ASC_ISSUER_ID` | 발급자 ID | 같은 값 |
+| `ASC_KEY_P8_BASE64` | `AuthKey_XXXX.p8` 을 base64 로 바꾼 값 | 같은 값 |
+
+컴퓨터에 GitHub CLI 가 있으면 명령으로도 넣을 수 있어요. 하루펫 폴더에서 쓰던 파일을 그대로 씁니다.
+```bash
+gh secret set ANDROID_KEYSTORE_BASE64 -R dydwn1003/gameju < <(base64 -i upload-keystore.jks)
+```
+```bash
+gh secret set PLAY_SERVICE_ACCOUNT_JSON -R dydwn1003/gameju < play-service-account.json
+```
+```bash
+gh secret set ASC_KEY_P8_BASE64 -R dydwn1003/gameju < <(base64 -i AuthKey_ABC123XYZ9.p8)
+```
+나머지(`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `ASC_KEY_ID`, `ASC_ISSUER_ID`)는 `gh secret set 이름 -R dydwn1003/gameju` 를 실행한 뒤 값을 붙여 넣으면 돼요.
+
+### 새 앱이라서 처음 한 번 해야 하는 것
+- **Play Console**
+  - **앱 만들기**로 `저승사자 키우기` 앱을 먼저 만듭니다(4-2).
+  - **첫 AAB 는 직접 올려야 해요.** 구글 API 는 처음 올리는 앱을 받지 않아요.
+    1. Actions 에서 **Android 출시**를 한 번 실행합니다.
+    2. GitHub **Releases** 의 `reaper-…aab` 를 받아요.
+    3. Play Console → **테스트 → 내부 테스트 → 새 버전 만들기**에 올려요.
+  - 그다음부터는 워크플로가 자동으로 올립니다.
+  - **Play Console → 사용자 및 권한**에서 하루펫 업로드용 서비스 계정(이메일)에 **이 앱 권한(출시 관리)**을 추가해 주세요.
+- **App Store Connect**
+  - **나의 앱 → + 신규 앱**을 만듭니다.
+    - 번들 ID 가 목록에 없으면 developer.apple.com → Identifiers 에서 `com.jeoseungsaja.idle` 을 먼저 등록하세요.
+  - 팀 ID(`V9RLBAGQZD`)는 하루펫과 같은 계정으로 넣어 뒀어요.
+
+## 1-1. 내 컴퓨터에서 직접 빌드할 때 (선택)
 터미널에서 실행합니다.
 ```bash
 cd reaper/app
@@ -80,7 +136,7 @@ npm run sync
    ```
 3. **Edge Functions → Secrets** 의 `ALLOWED_REDIRECTS` 를 쉼표로 이어서 고칩니다(네이버 로그인용).
    ```
-   https://<아이디>.github.io/gameju/reaper/,com.jeoseungsaja.idle://login
+   https://dydwn1003.github.io/gameju/reaper/,com.jeoseungsaja.idle://login
    ```
 4. **계정 삭제 함수 배포**
    - **Edge Functions → Deploy a new function → Via Editor**
@@ -120,7 +176,7 @@ npm run sync
 ### 4-2. Play Console 에 앱 만들기
 1. **앱 만들기** → 이름 `저승사자 키우기`, 언어 한국어, **게임**, **무료**를 고릅니다.
 2. **대시보드 → 앱 설정**의 항목을 차례로 채웁니다.
-   - **개인정보처리방침**: `https://<아이디>.github.io/gameju/reaper/privacy.html`
+   - **개인정보처리방침**: `https://dydwn1003.github.io/gameju/reaper/privacy.html`
      - 올리기 전에 `privacy.html` 안의 `[운영자 이름]` `[문의 이메일]` `[시행일]` 을 실제 정보로 바꾸세요.
    - **앱 액세스**: "모든 기능을 제한 없이 이용 가능"을 고릅니다. 게스트로 시작할 수 있어요.
    - **광고**: **예, 광고 포함**

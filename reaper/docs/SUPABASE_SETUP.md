@@ -32,7 +32,7 @@
 
 ## 3. 로그인 주소 등록 (공통)
 **Authentication → URL Configuration** 에서 설정합니다.
-- **Site URL**: 게임 주소 (예: `https://내아이디.github.io/gameju/reaper/`)
+- **Site URL**: 게임 주소 (예: `https://dydwn1003.github.io/gameju/reaper/`)
 - **Redirect URLs**: 같은 주소를 추가합니다. 테스트용 `http://localhost:8080/` 도 넣어 두면 편합니다.
 
 아래 각 로그인 콘솔에 넣는 **콜백 주소**는 모두 이것입니다.
@@ -94,7 +94,7 @@ Supabase 는 네이버를 기본 지원하지 않아서 `server/supabase/functio
    cd reaper/server && supabase link --project-ref <프로젝트ID>
    ```
    ```bash
-   supabase secrets set NAVER_CLIENT_ID=... NAVER_CLIENT_SECRET=... ALLOWED_REDIRECTS=https://내아이디.github.io/gameju/reaper/
+   supabase secrets set NAVER_CLIENT_ID=... NAVER_CLIENT_SECRET=... ALLOWED_REDIRECTS=https://dydwn1003.github.io/gameju/reaper/
    ```
    ```bash
    supabase functions deploy naver-auth --no-verify-jwt
@@ -127,7 +127,7 @@ providers: ['google', 'kakao', 'naver'],  // 애플 계정 없으면 'apple' 빼
 
 - **GitHub Pages**:
   1. 저장소 **Settings → Pages → Branch: main / root** 를 고릅니다.
-  2. 주소는 `https://<아이디>.github.io/gameju/reaper/` 가 됩니다.
+  2. 주소는 `https://dydwn1003.github.io/gameju/reaper/` 가 됩니다.
 - **Vercel / Netlify**: 저장소를 연결하고 Root Directory 를 `reaper` 로 둡니다.
 - **앱 출시(나중)**: Capacitor 로 감싸서 iOS/Android 로 내보낼 수 있습니다.
   - 이때는 딥링크 주소를 Redirect URLs 에 추가해야 합니다.
