@@ -884,3 +884,4 @@ html.native, html.native body { overscroll-behavior: none; -webkit-touch-callout
 #promo.acts-on .gs-acts { opacity: 1; pointer-events: auto; }
 .gs-skip2 { position: absolute; left: 50%; bottom: 10%; transform: translateX(-50%); z-index: 3; font: inherit; font-size: 13px; color: #fff; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 999px; padding: 10px 26px; min-width: 150px; }
 .gs-skip2:disabled { opacity: .4; }
+.set-sub { display: block; font-size: 9px; color: var(--mute); margin-top: 2px; }

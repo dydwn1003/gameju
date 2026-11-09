@@ -1177,7 +1177,9 @@ const UI = (() => {
     const s = S(), cloud = Cloud.ready(), inn = cloud && Cloud.signedIn();
     const PN = { google: '구글', kakao: '카카오', naver: '네이버', apple: 'Apple', email: '네이버' };
     const box = modal(`<h2>설정</h2>
-      ${cloud ? `<div class="set-sec">계정</div>${inn ? `<div class="set-row"><span>☁️ ${PN[Cloud.provider()] || ''} 계정으로 저장 중</span><button class="btn dark" id="s-out">로그아웃</button></div>` : '<div class="set-row"><span>👤 게스트 (이 기기에만 저장)</span><button class="btn" id="s-link">계정 연동</button></div>'}` : ''}
+      <div class="set-sec">계정</div>${inn ? `<div class="set-row"><span>☁️ ${PN[Cloud.provider()] || ''} 계정으로 저장 중</span><button class="btn dark" id="s-out">로그아웃</button></div>`
+        : cloud ? '<div class="set-row"><span>👤 게스트 (이 기기에만 저장)</span><button class="btn" id="s-link">계정 연동</button></div>'
+        : '<div class="set-row"><span>👤 이 기기에 저장 중<small class="set-sub">로그인 서버를 연결하면 계정 연동 · 로그아웃을 쓸 수 있어요</small></span><button class="btn dark" id="s-out0" disabled>로그아웃</button></div>'}
       <div class="set-sec">게임</div>
       <div class="set-row"><span>${esc(s.name)} · ${s.kind === 'f' ? '여자' : '남자'} 차사</span><button class="btn dark" id="s-look">모습 바꾸기</button></div>${Board.online() ? `<div class="set-row"><span>닉네임 ${s.nickSet ? '「' + esc(s.name) + '」' : '(아직 없음)'}</span><button class="btn dark" id="s-nick">${s.nickSet ? '바꾸기' : '정하기'}</button></div>` : ''}
       <div class="set-row"><span>효과음</span><button class="btn ${s.sound ? '' : 'dark'}" id="s-snd">${s.sound ? '켜짐' : '꺼짐'}</button></div>

@@ -155,10 +155,12 @@ const Life = (() => {
   }
   // ---------- 집무실 결재함: 2시간마다 서류 1건 (최대 3건), 계급이 높을수록 보상 큼 ----------
   const DOC_EVERY = 2 * 3600e3;
+  // 서류 1건 보상 = 몇 초치 혼. 처음엔 적게, 계급이 오를수록 늘어남 (2시간마다 1건, 최대 3건 쌓임)
+  const DOC_SEC = [60, 100, 150, 220, 300, 380, 480, 600, 720];
   const docsCount = () => { const d = S() && S().docs; return d ? Math.min(3, Math.floor((now() - d.last) / DOC_EVERY)) : 0; };
   function claimDocs() {
     const n = docsCount(); if (!n) return null;
-    const s = S(), souls = Game.incomePerSec(true) * 900 * (1 + s.rank * 0.3) * n, jade = (2 + s.rank) * n;
+    const s = S(), souls = Game.incomePerSec(true) * DOC_SEC[Math.min(8, s.rank)] * n, jade = (2 + s.rank) * n;
     Game.gain(souls); s.jade += jade;
     s.docs.last = n >= 3 ? now() : s.docs.last + n * DOC_EVERY; Game.save(); return { n, souls, jade };
   }

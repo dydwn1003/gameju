@@ -1,16 +1,16 @@
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
-// 승급 레벨: 처음 두 번은 빠르게, 그 뒤로는 고르게 (이상적 플레이 기준 약 3분 · 9분 · 1.5시간 · 13시간 · 2일 · 5일 · 13일 · 33일)
+// 승급 레벨: 일반 플레이(하루 4번 접속 · 나머지는 오프라인) 기준 약 3분 · 20분 · 3시간 · 10시간 · 3일 · 6일 · 14일 · 30일
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 3, lv: 60, hp: 23000, region: 1 },
-  { name: '차사', mult: 9, lv: 240, hp: 7.6e06, region: 2 },
-  { name: '선임 차사', mult: 27, lv: 370, hp: 1.0e09, region: 3 },
-  { name: '차사장', mult: 80, lv: 430, hp: 9.1e09, region: 4 },
-  { name: '판관', mult: 240, lv: 470, hp: 1.4e11, region: 5 },
-  { name: '명부 판관', mult: 720, lv: 505, hp: 4.9e11, region: 6 },
-  { name: '시왕', mult: 2200, lv: 540, hp: 3.5e12, region: 7 },
-  { name: '염라대왕', mult: 6500, lv: 575, hp: 2.5e13, region: 8 },
+  { name: '말단 차사', mult: 3, lv: 55, hp: 19000, region: 1 },
+  { name: '차사', mult: 9, lv: 305, hp: 3.8e07, region: 2 },
+  { name: '선임 차사', mult: 27, lv: 380, hp: 1.0e09, region: 3 },
+  { name: '차사장', mult: 80, lv: 423, hp: 8.3e09, region: 4 },
+  { name: '판관', mult: 240, lv: 478, hp: 6.8e10, region: 5 },
+  { name: '명부 판관', mult: 720, lv: 506, hp: 4.7e11, region: 6 },
+  { name: '시왕', mult: 2200, lv: 542, hp: 3.4e12, region: 7 },
+  { name: '염라대왕', mult: 6500, lv: 575, hp: 2.4e13, region: 8 },
 ];
 const UPGRADES = [
   { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.125, max: 999 },
