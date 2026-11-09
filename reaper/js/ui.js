@@ -29,6 +29,7 @@ const UI = (() => {
     $('#btn-parade').addEventListener('click', paradeAsk);
     $('#btn-office').addEventListener('click', enterOffice);
     $('#btn-rankb').addEventListener('click', rankModal);
+    $('#me-card').addEventListener('click', statsModal);
     $('#btn-notice').addEventListener('click', () => noticeModal(false));
     $('#btn-mail').addEventListener('click', mailModal);
     setTimeout(noticeStartup, 1500); setInterval(refreshMail, 5 * 60e3); setTimeout(refreshMail, 4000);
@@ -144,6 +145,9 @@ const UI = (() => {
     dot('minion', can(['minion', 'drill']));
     dot('rank', Game.canTest() || Game.canReborn());
     $('#v-lv').textContent = 'Lv.' + Game.level();
+    $('#me-nick').textContent = S().name || '';
+    if (!previews.some(p => p.c === $('#me-por'))) previews.push({ c: $('#me-por'), kind: S().kind || 'm', pose: 'idle', keep: 1, me: 1 });
+    previews.forEach(p => { if (p.me) p.kind = S().kind || 'm'; });
     if (Game.canTest() && S().notified !== S().rank) { S().notified = S().rank; toast(`📜 레벨 ${Game.nextRank().lv} 달성! 승진할 수 있어요 (승진 탭)`, 3500); }
     dot('shop', Game.adLeft('jade') > 0);
     dot('pet', Pets.adLeft() > 0 || S().jade >= PULL_COST[1] || S().tickets > 0);
@@ -453,6 +457,43 @@ const UI = (() => {
     set('#of-deco', `품격 ${Decor.score()}`, DECOR.some(d => Decor.spare(d.id) > 0) && Decor.ensure().placed.length < Decor.maxPlace());
   }
   function exitOffice() { decoEnd(true); if (visiting) { visiting = null; } Scene.exitOffice(); const bar = $('#office-bar'); if (bar) bar.classList.remove('on'); $('#office-acts') && $('#office-acts').classList.remove('on'); $('#side').style.display = ''; $('#stage').classList.remove('in-office'); document.body.classList.remove('in-office-t'); Sound.play('open'); }
+  // ---------- 내 정보 (왼쪽 위 초상화를 누르면) ----------
+  function statsModal() {
+    const s = S(), R = RANKS[s.rank], N = Game.nextRank(), pct = x => `${x >= 1 ? '+' : ''}${Math.round((x - 1) * 100)}%`, f1 = x => (Math.round(x * 100) / 100).toString();
+    const pet = s.petEq && s.pets && s.pets[s.petEq] ? Pets.P(s.petEq) : null, pst = pet ? Pets.stats(pet.id) : [0, 0, 0];
+    const buffs = [Game.boosting() ? `2배 부적 ×2` : '', Game.sealLeft() > 0 ? `염라의 인장 ×2 (${fmtDays(Game.sealLeft())})` : '', Life.fortuneMul() > 1 ? `운세 ${s.fortune.last} ×${Life.fortuneMul()}` : '', ...['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0).map(k => `${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}`)].filter(Boolean);
+    const row = (k, v, sub) => `<div class="st-row"><span>${k}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    const box = modal(`<div class="st-head"><canvas id="st-por" width="44" height="51"></canvas><div><b>${esc(s.name || '')}</b><span class="badge">${R.name}</span><small>Lv.${Game.level()} · ${REGIONS[R.region].name}${s.reborn ? ` · 윤회 ${s.reborn}회` : ''}</small>${N ? `<div class="prog"><i style="width:${Math.min(100, Game.level() / N.lv * 100)}%"></i></div><small>다음 계급 <b style="color:var(--gold)">${N.name}</b>까지 Lv.${N.lv}</small>` : '<small style="color:var(--gold)">최고 계급!</small>'}</div></div>
+      <div class="st-sec">⚡ 수확</div>
+      ${row('초당 수확량', fmt(Game.incomePerSec()) + ' /초', Game.boosting() ? '2배 부적 적용 중' : '')}
+      ${row('혼 1개 가치', fmt(Game.value() * Game.avgTier()), `평균 등급 ×${f1(Game.avgTier())}`)}
+      ${row('수확 시간', f1(Game.reap()) + '초', '거두는 데 걸리는 시간')}
+      ${row('혼령 나타나는 간격', f1(Game.spawn()) + '초')}
+      ${row('함께 거두기', `Lv.${Game.lv('hand')}`, '주변 혼령을 한 번에')}
+      <div class="st-sec">🏃 이동 · 졸개</div>
+      ${row('이동 속도', Game.walk().toFixed(1))}
+      ${row('졸개 수', Game.minions() + '명', `졸개 이동 ${f1(Game.mWalk())} · 수확 ${f1(Game.mReap())}초`)}
+      ${row('자리 비움 보상 한도', Game.offHours() + '시간', '효율 60%')}
+      <div class="st-sec">⚔️ 원귀 퇴치</div>
+      ${row('터치 화력', fmt(Game.tapDmg()))}
+      ${row('자동 화력', fmt(Game.wraithDps()) + ' /초')}
+      <div class="st-sec">✨ 배수 내역</div>
+      ${row('계급 배수', '×' + fmt(R.mult))}
+      ${s.reborn ? row('윤회 배수', '×' + f1(Game.rebornMult())) : ''}
+      ${row('소환 중인 영물', pet ? `${pet.name} ★${s.pets[pet.id]}` : '없음', pet ? `수확량 +${Math.round(pst[0] * 100)}% · 이동 +${Math.round(pst[1] * 100)}% · 수확속도 +${Math.round(pst[2] * 100)}%` : '')}
+      ${row('영물 도감', `${Object.keys(s.pets || {}).length}종`, `수확량 +${Object.keys(s.pets || {}).length}%`)}
+      ${row('혼령 도감', pct(1 + Life.dexBonus()))}
+      ${row('집무실 품격', `${Decor.score()} (${Decor.title(Decor.score())})`, `수확량 ${pct(Decor.mul())}`)}
+      ${row('지금 받는 버프', buffs.length ? buffs.join('<br>') : '없음')}
+      <div class="st-sec">📊 기록</div>
+      ${row('퇴치한 원귀', fmt(s.stats ? s.stats.wraith : 0))}
+      ${row('터치로 거둔 혼령', fmt(s.stats ? s.stats.tap : 0))}
+      ${row('명판결', fmt(s.judge ? s.judge.total || 0 : 0) + '건')}
+      ${Board.place() ? row('순위', Board.place() + '위') : ''}
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    previews.push({ c: box.querySelector('#st-por'), kind: s.kind || 'm', pose: 'idle' });
+  }
+
   // ---------- 공지사항 · 전체 우편 ----------
   // 오늘 하루 그만보기: 한국 시간(UTC+9) 다음 날 00시까지 숨김
   const nextKstMidnight = () => { const D = 864e5, K = 9 * 3600e3; return Math.floor((Date.now() + K) / D) * D + D - K; };

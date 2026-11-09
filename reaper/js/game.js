@@ -242,7 +242,7 @@ const Game = (() => {
 
   return {
     get S() { return S; }, lv, load, save, apply, reset,
-    value, valueBase, incomePerSec, walk, spawn, reap, minions, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
+    value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, canTest, testHp, promote, canReborn, reborn, rebornMult,
     collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, iapLeft, sealLeft, offline,
   };
