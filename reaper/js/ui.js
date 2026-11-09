@@ -477,14 +477,14 @@ const UI = (() => {
     box.querySelectorAll('.nt-head').forEach(h => h.onclick = e => { if (e.target.closest('[data-ntdel]')) return; h.parentElement.classList.toggle('open'); });
     box.querySelector('#nt-close').onclick = () => { S().noticeHide = box.querySelector('#nt-today').checked ? nextKstMidnight() : 0; Game.save(); closeModal(); };
     const w = box.querySelector('#nt-write'); if (w) w.onclick = () => { closeModal(); adminNotice(); };
-    box.querySelectorAll('[data-ntdel]').forEach(b => b.onclick = async () => { if (!confirm('이 공지를 삭제할까요?')) return; await Board.delNotice(b.dataset.ntdel); noticeCache = null; closeModal(); noticeModal(false); });
+    box.querySelectorAll('[data-ntdel]').forEach(b => b.onclick = () => { const id = b.dataset.ntdel; closeModal(); confirmBox('<h2>공지 삭제</h2><p>이 공지를 삭제할까요?</p>', async () => { try { await Board.delNotice(id); toast('공지를 삭제했어요'); } catch (e) { toast('삭제하지 못했어요'); } noticeCache = null; noticeModal(false); }, '삭제'); });
   }
   function adminNotice() {
     const box = modal(`<h2>✍️ 공지 쓰기</h2><p class="mute">모든 플레이어에게 보여요</p>
       <div class="ad-form"><input id="an-title" maxlength="40" placeholder="제목"><textarea id="an-body" maxlength="600" rows="6" placeholder="내용"></textarea><label><input type="checkbox" id="an-pin"> 📌 맨 위에 고정</label></div>
       <div class="acts"><button class="btn red" id="an-ok">올리기</button><button class="btn dark" data-act="close">취소</button></div>`);
     box.querySelector('#an-ok').onclick = async () => { const title = box.querySelector('#an-title').value.trim(), body = box.querySelector('#an-body').value.trim(); if (!title) { toast('제목을 입력해 주세요'); return; }
-      try { await Board.postNotice({ title, body, pin: box.querySelector('#an-pin').checked ? 1 : 0 }); noticeCache = null; Sound.play('promote'); toast('공지를 올렸어요'); closeModal(); noticeModal(false); } catch (e) { toast('올리지 못했어요 (운영자만 쓸 수 있어요)'); } };
+      try { await Board.postNotice({ title, body, pin: box.querySelector('#an-pin').checked ? 1 : 0 }); noticeCache = null; Sound.play('promote'); toast('📢 공지를 올렸어요!', 3000); closeModal(); noticeModal(false); } catch (e) { toast(`올리지 못했어요: ${esc(e && (e.message || e.code) || '알 수 없는 오류')}`, 4000); } };
   }
   // 우편: 운영자가 보낸 전체 우편을 한 번씩 받는다 (받은 기록은 내 저장에)
   async function refreshMail() { if (!Board.online()) return; try { mailCache = await Board.mails(); const got = S().mailGot || {}; $('#btn-mail .dot').classList.toggle('on', mailCache.some(m => !got[m.id])); const nl = await loadNotices(); $('#btn-notice .dot').classList.toggle('on', nl.some(n => (n.at || 0) > (S().noticeSeen || 0))); } catch (e) {} }
@@ -507,7 +507,7 @@ const UI = (() => {
     box.querySelectorAll('[data-mg]').forEach(b => b.onclick = () => { const m = list.find(x => x.id === b.dataset.mg); if (m && claimMail(m)) done(1); });
     const all = box.querySelector('#ml-all'); if (all) all.onclick = () => { let n = 0; left.forEach(m => { if (claimMail(m)) n++; }); done(n); };
     const sd = box.querySelector('#ml-send'); if (sd) sd.onclick = () => { closeModal(); adminMail(); };
-    box.querySelectorAll('[data-mdel]').forEach(b => b.onclick = async () => { if (!confirm('이 우편을 삭제할까요? (이미 받은 사람의 보상은 그대로예요)')) return; await Board.delMail(b.dataset.mdel); closeModal(); mailModal(); });
+    box.querySelectorAll('[data-mdel]').forEach(b => b.onclick = () => { const id = b.dataset.mdel; closeModal(); confirmBox('<h2>우편 삭제</h2><p>이 우편을 삭제할까요?<br><span class="mute">이미 받은 사람의 보상은 그대로예요</span></p>', async () => { try { await Board.delMail(id); toast('우편을 삭제했어요'); } catch (e) { toast('삭제하지 못했어요'); } mailModal(); }, '삭제'); });
   }
   function adminMail() {
     const opts = DECOR.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
@@ -519,8 +519,12 @@ const UI = (() => {
     box.querySelector('#am-ok').onclick = async () => {
       const v = q => box.querySelector(q).value, m = { title: v('#am-title').trim(), body: v('#am-body').trim(), jade: Math.max(0, +v('#am-jade') | 0), tickets: Math.max(0, +v('#am-tk') | 0), hours: Math.max(0, +v('#am-hr') || 0), decor: v('#am-decor') || '', until: Date.now() + Math.max(1, +v('#am-days') | 0) * 864e5 };
       if (!m.title) { toast('제목을 입력해 주세요'); return; } if (!m.jade && !m.tickets && !m.hours && !m.decor) { toast('보낼 보상을 하나 이상 넣어 주세요'); return; }
-      if (!confirm(`모든 플레이어에게 보낼까요?\n${rewardChips(m).join(' · ')}`)) return;
-      try { await Board.sendMail(m); Sound.play('promote'); toast('전체 우편을 보냈어요'); closeModal(); refreshMail(); mailModal(); } catch (e) { toast('보내지 못했어요 (운영자만 보낼 수 있어요)'); } };
+      // (브라우저 confirm 창은 claude.ai 화면 안에서 막혀 있어서 게임 안 확인 창을 씀)
+      closeModal();
+      confirmBox(`<h2>📤 전체 우편 보내기</h2><p><b>${esc(m.title)}</b><br>모든 플레이어에게 보낼까요?</p><div class="ml-r" style="justify-content:center">${rewardChips(m).map(c => `<span>${c}</span>`).join('')}</div>`, async () => {
+        try { await Board.sendMail(m); Sound.play('promote'); toast('📮 전체 우편을 보냈어요!', 3000); refreshMail(); mailModal(); }
+        catch (e) { toast(`보내지 못했어요: ${esc(e && (e.message || e.code) || '알 수 없는 오류')}`, 4000); }
+      }, '보내기'); };
   }
 
   // ---------- 순위 ----------
