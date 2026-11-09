@@ -785,3 +785,20 @@ body.deco-t #toasts { top: auto !important; bottom: 150px; }
 .gb-write input:focus { border-color: #ffd34a; } .gb-write .btn { padding: 6px 12px; font-size: 12px; }
 .gb-pick button { font-size: 10px !important; padding: 4px 8px !important; }
 input, textarea { user-select: text !important; -webkit-user-select: text !important; }
+
+/* 공지 · 우편 */
+.hb { position: relative; } .hb .dot { top: -3px; right: -3px; left: auto; }
+.nt-list, .ml-list { max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin: 6px 0; text-align: left; }
+.nt-item { border-radius: 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); }
+.nt-head { display: flex; align-items: center; gap: 6px; padding: 8px 10px; cursor: pointer; } .nt-head em { font-style: normal; } .nt-head b { flex: 1; font-size: 12.5px; color: #ffe08a; } .nt-head small { font-size: 10px; color: #8a82a8; }
+.nt-body { display: none; padding: 0 10px 10px; font-size: 12px; line-height: 1.7; color: #e0dcf0; } .nt-item.open .nt-body { display: block; }
+.nt-del { padding: 2px 6px; border-radius: 6px; font-size: 10px; color: #ff9aa8; background: rgba(255, 90, 110, .12); border: 1px solid rgba(255, 90, 110, .35); }
+.nt-hide { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px 0 0; font-size: 12px; color: #cfc8e6; cursor: pointer; } .nt-hide small { color: #8a82a8; font-size: 10px; } .nt-hide input { width: 16px; height: 16px; }
+.ml-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); }
+.ml-row.got { opacity: .5; } .ml-i { flex: 1; min-width: 0; } .ml-i b { font-size: 12.5px; } .ml-i small { display: block; font-size: 10px; color: #8a82a8; } .ml-i p { margin: 4px 0 !important; font-size: 11px !important; }
+.ml-r { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; } .ml-r span { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: rgba(255, 211, 74, .14); color: #ffe08a; }
+.ml-row .btn { padding: 5px 10px 6px; font-size: 11px; }
+.ad-form { display: flex; flex-direction: column; gap: 6px; text-align: left; } .ad-form input, .ad-form textarea, .ad-form select { width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.35); color: #f1ecf8; font-family: inherit; font-size: 12px; text-align: left; box-shadow: none; }
+.ad-form label { font-size: 11px; color: #cfc8e6; display: flex; flex-direction: column; gap: 3px; } .ad-form label:has(input[type=checkbox]) { flex-direction: row; align-items: center; }
+.ad-form input[type=checkbox] { width: 16px; height: 16px; } .ad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#modal .btn#nt-write, #modal .btn#ml-send { width: 100%; margin-top: 6px; }

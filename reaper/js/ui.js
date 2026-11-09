@@ -29,6 +29,9 @@ const UI = (() => {
     $('#btn-parade').addEventListener('click', paradeAsk);
     $('#btn-office').addEventListener('click', enterOffice);
     $('#btn-rankb').addEventListener('click', rankModal);
+    $('#btn-notice').addEventListener('click', () => noticeModal(false));
+    $('#btn-mail').addEventListener('click', mailModal);
+    setTimeout(noticeStartup, 1500); setInterval(refreshMail, 5 * 60e3); setTimeout(refreshMail, 4000);
     Board.listen(applyPlace); Board.init();
     $('#story-bar').addEventListener('click', storyTap);
     $('#btn-set').addEventListener('click', settings);
@@ -450,6 +453,76 @@ const UI = (() => {
     set('#of-deco', `품격 ${Decor.score()}`, DECOR.some(d => Decor.spare(d.id) > 0) && Decor.ensure().placed.length < Decor.maxPlace());
   }
   function exitOffice() { decoEnd(true); if (visiting) { visiting = null; } Scene.exitOffice(); const bar = $('#office-bar'); if (bar) bar.classList.remove('on'); $('#office-acts') && $('#office-acts').classList.remove('on'); $('#side').style.display = ''; $('#stage').classList.remove('in-office'); document.body.classList.remove('in-office-t'); Sound.play('open'); }
+  // ---------- 공지사항 · 전체 우편 ----------
+  // 오늘 하루 그만보기: 한국 시간(UTC+9) 다음 날 00시까지 숨김
+  const nextKstMidnight = () => { const D = 864e5, K = 9 * 3600e3; return Math.floor((Date.now() + K) / D) * D + D - K; };
+  const DEFAULT_NOTICES = [{ id: 'n_welcome', title: '저승사자 키우기에 오신 걸 환영해요!', body: '떠도는 혼을 거두고 승진해서 염라대왕이 되어 보세요.\n집무실을 꾸미고 이웃 집무실에 놀러 가 방명록도 남겨 보세요.\n매일 출석·의뢰·결재를 챙기면 더 빨리 성장해요!', at: Date.now(), pin: 1 }];
+  let noticeCache = null, mailCache = null;
+  const fmtDate = t => { const d = new Date(t + 9 * 3600e3); return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${String(d.getUTCDate()).padStart(2, '0')}`; };
+  async function loadNotices() { try { const n = Board.online() ? await Board.notices() : null; noticeCache = n && n.length ? n.sort((a, b) => (b.pin || 0) - (a.pin || 0) || b.at - a.at) : (Board.online() ? [] : DEFAULT_NOTICES); } catch (e) { noticeCache = noticeCache || DEFAULT_NOTICES; } return noticeCache; }
+  async function noticeStartup() {
+    if (!S().kind) { setTimeout(noticeStartup, 3000); return; }
+    if ((S().noticeHide || 0) > Date.now()) return;
+    const list = await loadNotices(); if (!list.length) return;
+    const busy = () => $('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut');
+    let tries = 0; const go = () => { if (busy() && tries++ < 40) { setTimeout(go, 1000); return; } if (!busy()) noticeModal(true); }; go();
+  }
+  async function noticeModal(startup) {
+    const list = noticeCache || await loadNotices(), admin = Board.online() && Board.isOwner();
+    const box = modal(`<h2>📢 공지사항</h2><div class="nt-list">${list.length ? list.map((n, i) => `<div class="nt-item ${i === 0 ? 'open' : ''}" data-nt="${esc(n.id)}"><div class="nt-head">${n.pin ? '<em>📌</em>' : ''}<b>${esc(n.title)}</b><small>${fmtDate(n.at)}</small>${admin ? `<button class="nt-del" data-ntdel="${esc(n.id)}">삭제</button>` : ''}</div><div class="nt-body">${esc(n.body || '').replace(/\n/g, '<br>')}</div></div>`).join('') : '<div class="rkload">아직 공지사항이 없어요</div>'}</div>
+      ${admin ? '<button class="btn" id="nt-write">✍️ 공지 쓰기 (운영자)</button>' : ''}
+      <label class="nt-hide"><input type="checkbox" id="nt-today" ${(S().noticeHide || 0) > Date.now() ? 'checked' : ''}> 오늘 하루 그만보기 <small>(한국 시간 00시에 다시 떠요)</small></label>
+      <div class="acts"><button class="btn dark" id="nt-close">닫기</button></div>`);
+    S().noticeSeen = Math.max(S().noticeSeen || 0, ...list.map(n => n.at || 0)); Game.save(); $('#btn-notice .dot').classList.remove('on');
+    box.querySelectorAll('.nt-head').forEach(h => h.onclick = e => { if (e.target.closest('[data-ntdel]')) return; h.parentElement.classList.toggle('open'); });
+    box.querySelector('#nt-close').onclick = () => { S().noticeHide = box.querySelector('#nt-today').checked ? nextKstMidnight() : 0; Game.save(); closeModal(); };
+    const w = box.querySelector('#nt-write'); if (w) w.onclick = () => { closeModal(); adminNotice(); };
+    box.querySelectorAll('[data-ntdel]').forEach(b => b.onclick = async () => { if (!confirm('이 공지를 삭제할까요?')) return; await Board.delNotice(b.dataset.ntdel); noticeCache = null; closeModal(); noticeModal(false); });
+  }
+  function adminNotice() {
+    const box = modal(`<h2>✍️ 공지 쓰기</h2><p class="mute">모든 플레이어에게 보여요</p>
+      <div class="ad-form"><input id="an-title" maxlength="40" placeholder="제목"><textarea id="an-body" maxlength="600" rows="6" placeholder="내용"></textarea><label><input type="checkbox" id="an-pin"> 📌 맨 위에 고정</label></div>
+      <div class="acts"><button class="btn red" id="an-ok">올리기</button><button class="btn dark" data-act="close">취소</button></div>`);
+    box.querySelector('#an-ok').onclick = async () => { const title = box.querySelector('#an-title').value.trim(), body = box.querySelector('#an-body').value.trim(); if (!title) { toast('제목을 입력해 주세요'); return; }
+      try { await Board.postNotice({ title, body, pin: box.querySelector('#an-pin').checked ? 1 : 0 }); noticeCache = null; Sound.play('promote'); toast('공지를 올렸어요'); closeModal(); noticeModal(false); } catch (e) { toast('올리지 못했어요 (운영자만 쓸 수 있어요)'); } };
+  }
+  // 우편: 운영자가 보낸 전체 우편을 한 번씩 받는다 (받은 기록은 내 저장에)
+  async function refreshMail() { if (!Board.online()) return; try { mailCache = await Board.mails(); const got = S().mailGot || {}; $('#btn-mail .dot').classList.toggle('on', mailCache.some(m => !got[m.id])); const nl = await loadNotices(); $('#btn-notice .dot').classList.toggle('on', nl.some(n => (n.at || 0) > (S().noticeSeen || 0))); } catch (e) {} }
+  const rewardChips = m => [m.jade ? `💎 옥 ${m.jade}` : '', m.tickets ? `🎫 소환권 ${m.tickets}` : '', m.hours ? `🔥 ${m.hours}시간치 혼` : '', m.decor && Decor.D(m.decor) ? `🏮 ${Decor.D(m.decor).name}` : ''].filter(Boolean);
+  function claimMail(m) {
+    const s = S(); s.mailGot = s.mailGot || {}; if (s.mailGot[m.id]) return false; s.mailGot[m.id] = Date.now();
+    if (m.jade) s.jade += +m.jade; if (m.tickets) s.tickets = (s.tickets || 0) + (+m.tickets); if (m.hours) Game.gain(Game.incomePerSec(true) * 3600 * m.hours);
+    if (m.decor && Decor.D(m.decor)) { const dc = Decor.ensure(); dc.own[m.decor] = (dc.own[m.decor] || 0) + 1; }
+    Game.save(); return true;
+  }
+  async function mailModal() {
+    const admin = Board.online() && Board.isOwner();
+    if (!Board.online()) { modal(`<h2>📮 우편함</h2><p>운영자 우편은 claude.ai에서 공유된 게임 페이지를 열면 받을 수 있어요.<br><span class="mute">까치 우편은 마을의 까치를 눌러 받아요.</span></p><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
+    let list = []; try { list = mailCache = await Board.mails(); } catch (e) { list = mailCache || []; }
+    const got = S().mailGot || {}, left = list.filter(m => !got[m.id]);
+    const box = modal(`<h2>📮 우편함</h2><div class="ml-list">${list.length ? list.map(m => `<div class="ml-row ${got[m.id] ? 'got' : ''}"><div class="ml-i"><b>${esc(m.title)}</b><small>${fmtDate(m.at)}${m.until ? ` · ${fmtDate(m.until)}까지` : ''}</small>${m.body ? `<p>${esc(m.body)}</p>` : ''}<div class="ml-r">${rewardChips(m).map(c => `<span>${c}</span>`).join('')}</div></div>${got[m.id] ? '<button class="btn dark" disabled>받음</button>' : `<button class="btn red" data-mg="${esc(m.id)}">받기</button>`}${admin ? `<button class="nt-del" data-mdel="${esc(m.id)}">삭제</button>` : ''}</div>`).join('') : '<div class="rkload">받은 우편이 없어요</div>'}</div>
+      ${admin ? '<button class="btn" id="ml-send">📤 전체 우편 보내기 (운영자)</button>' : ''}
+      <div class="acts">${left.length > 1 ? '<button class="btn red" id="ml-all">모두 받기</button>' : ''}<button class="btn dark" data-act="close">닫기</button></div>`);
+    const done = n => { Sound.play('promote'); toast(`우편 ${n}통을 받았어요!`); closeModal(); render(); refreshMail(); mailModal(); };
+    box.querySelectorAll('[data-mg]').forEach(b => b.onclick = () => { const m = list.find(x => x.id === b.dataset.mg); if (m && claimMail(m)) done(1); });
+    const all = box.querySelector('#ml-all'); if (all) all.onclick = () => { let n = 0; left.forEach(m => { if (claimMail(m)) n++; }); done(n); };
+    const sd = box.querySelector('#ml-send'); if (sd) sd.onclick = () => { closeModal(); adminMail(); };
+    box.querySelectorAll('[data-mdel]').forEach(b => b.onclick = async () => { if (!confirm('이 우편을 삭제할까요? (이미 받은 사람의 보상은 그대로예요)')) return; await Board.delMail(b.dataset.mdel); closeModal(); mailModal(); });
+  }
+  function adminMail() {
+    const opts = DECOR.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    const box = modal(`<h2>📤 전체 우편 보내기</h2><p class="mute">모든 플레이어가 한 번씩 받을 수 있어요</p>
+      <div class="ad-form"><input id="am-title" maxlength="40" placeholder="제목 (예: 점검 보상)"><textarea id="am-body" maxlength="300" rows="3" placeholder="내용 (선택)"></textarea>
+        <div class="ad-grid"><label>💎 옥<input type="number" id="am-jade" min="0" value="0"></label><label>🎫 소환권<input type="number" id="am-tk" min="0" value="0"></label><label>🔥 혼(시간치)<input type="number" id="am-hr" min="0" value="0"></label><label>⏳ 받을 기간(일)<input type="number" id="am-days" min="1" value="7"></label></div>
+        <label class="ad-full">🏮 꾸미기 소품<select id="am-decor"><option value="">(없음)</option>${opts}</select></label></div>
+      <div class="acts"><button class="btn red" id="am-ok">보내기</button><button class="btn dark" data-act="close">취소</button></div>`);
+    box.querySelector('#am-ok').onclick = async () => {
+      const v = q => box.querySelector(q).value, m = { title: v('#am-title').trim(), body: v('#am-body').trim(), jade: Math.max(0, +v('#am-jade') | 0), tickets: Math.max(0, +v('#am-tk') | 0), hours: Math.max(0, +v('#am-hr') || 0), decor: v('#am-decor') || '', until: Date.now() + Math.max(1, +v('#am-days') | 0) * 864e5 };
+      if (!m.title) { toast('제목을 입력해 주세요'); return; } if (!m.jade && !m.tickets && !m.hours && !m.decor) { toast('보낼 보상을 하나 이상 넣어 주세요'); return; }
+      if (!confirm(`모든 플레이어에게 보낼까요?\n${rewardChips(m).join(' · ')}`)) return;
+      try { await Board.sendMail(m); Sound.play('promote'); toast('전체 우편을 보냈어요'); closeModal(); refreshMail(); mailModal(); } catch (e) { toast('보내지 못했어요 (운영자만 보낼 수 있어요)'); } };
+  }
+
   // ---------- 순위 ----------
   const TIER = { 1: { name: '저승 제일 차사', icon: '👑', col: '#ffd34a' }, 2: { name: '명예의 차사', icon: '🥈', col: '#dfe8ff' }, 3: { name: '이름난 차사', icon: '🥉', col: '#ffb070' } };
   const RANK_MIN_PLAYERS = 5;

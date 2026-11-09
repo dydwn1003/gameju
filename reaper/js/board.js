@@ -7,7 +7,7 @@ const Board = (() => {
     try {
       if (typeof window.claude === 'undefined' || !window.claude.use) return;
       db = await window.claude.use('db'); user = await window.claude.use('user');
-      if (db && user) { uid = await user.id(); ready = !!uid; }
+      if (db && user) { uid = await user.id(); ready = !!uid; } if (ready) isOwner();
       if (ready) { await push(true); refresh(); setInterval(refresh, 3 * 60e3); myLikes(); }
     } catch (e) { db = null; ready = false; }
   }
@@ -91,11 +91,20 @@ const Board = (() => {
   // 내 집무실이 받은 좋아요 수 (좋아요를 누른 사람 수)
   async function myLikes() { if (!ready) return 0; try { const snap = await timeout(db.collection('visits').where('likedIds', 'array-contains', uid).limit(1000).get()); const n = snap.size; if (Game.S) { Game.S.officeLikes = n; } await pushOffice(); return n; } catch (e) { return Game.S && Game.S.officeLikes || 0; } }
   let total = 0;
+  // ===== 공지사항 · 전체 우편 (운영자만 쓰기) =====
+  let owner = false;
+  async function isOwner() { try { owner = !!(user && await user.isOwner()); } catch (e) { owner = false; } return owner; }
+  async function notices() { if (!ready) return null; const snap = await timeout(db.collection('notices').orderBy('at', 'desc').limit(20).get()); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())); }
+  async function postNotice(n) { const id = 'n' + Date.now(); await db.doc('notices/' + id).set(Object.assign({ at: Date.now() }, n)); return id; }
+  async function delNotice(id) { await db.doc('notices/' + id).delete(); }
+  async function mails() { if (!ready) return null; const snap = await timeout(db.collection('mail').orderBy('at', 'desc').limit(30).get()); const now = Date.now(); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(m => !m.until || m.until > now); }
+  async function sendMail(m) { const id = 'm' + Date.now(); await db.doc('mail/' + id).set(Object.assign({ at: Date.now() }, m)); return id; }
+  async function delMail(id) { await db.doc('mail/' + id).delete(); }
   function setPlace(p, n) { if (n != null) total = n; if (p !== place || n != null) { place = p; onPlace && onPlace(p, total); } }
   // 닉네임 중복 확인
   async function nickTaken(n) { if (!ready) return false; try { const snap = await timeout(db.collection('rank').where('nick', '==', n).limit(3).get()); return snap.docs.some(d => d.id !== uid); } catch (e) { return false; } }
   async function refresh() { try { await top(); } catch (e) {} }
   // 순위 구간: 1 = 1위, 2 = 2~5위, 3 = 6~10위, 0 = 그 밖
   const tierOf = p => (p === 1 ? 1 : p >= 2 && p <= 5 ? 2 : p >= 6 && p <= 10 ? 3 : 0);
-  return { init, push, top, nickTaken, total: () => total, pushOffice, offices, office, like, note, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
+  return { init, push, top, nickTaken, isOwner: () => owner, notices, postNotice, delNotice, mails, sendMail, delMail, total: () => total, pushOffice, offices, office, like, note, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
 })();
