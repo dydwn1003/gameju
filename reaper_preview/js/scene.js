@@ -314,6 +314,19 @@ const Scene = (() => {
     const placed = hooks.decorPlaced ? hooks.decorPlaced() : [];
     return !placed.some((p, i) => i !== ignore && !!Decor.D(p.id).wall === r.wall && hit(r, decoRect(p.id, p.gx, p.gy)));
   }
+  // 앉은 모습: 다리를 감추고 상반신만 엉덩이 높이에 그린 뒤, 의자의 앉는 판을 무릎 위로 다시 그린다
+  function drawSeated(im, x, st) {
+    const d = st.id ? Decor.D(st.id) : null, cut = st.desk ? 6 : 3, h = im.height - cut;
+    let surf;
+    if (st.desk) surf = officeData.desk.y + 1;                              // 책상 뒤: 책상 윗면에 가려진 듯
+    else { const cim = Decor.img(st.id), r = st.r, top = r.y + r.h - cim.height; surf = d && d.chair ? top + cim.height - 11 : top + 4;
+      g.drawImage(im, 0, 0, im.width, h, Math.round(x - im.width / 2), Math.round(surf - h + 1), im.width, h);
+      if (d && d.chair) { const sy = cim.height - 12, cx = Math.round(r.x + (r.w - cim.width) / 2); g.drawImage(cim, 0, sy, cim.width, cim.height - sy, cx, Math.round(top + sy), cim.width, cim.height - sy); }   // 앉는 판·다리를 앞에
+      else { g.fillStyle = '#1a1424'; g.fillRect(Math.round(x - 5), Math.round(surf - 1), 10, 2); }                                                   // 방석: 접은 다리
+      return surf; }
+    g.drawImage(im, 0, 0, im.width, h, Math.round(x - im.width / 2), Math.round(surf - h), im.width, h);
+    return surf;
+  }
   // 내가 앉을 수 있는 자리: 남의 방에서는 주인의 책상 자리는 빼고
   const mySeats = () => visit ? seatSpots().filter(q => !q.desk && !q.atDesk) : seatSpots();
   function seatSpots() {
@@ -494,14 +507,15 @@ const Scene = (() => {
       // 바닥 소품 (깊이 정렬)
       placed.forEach((p, i) => { const d = Decor.D(p.id); if (d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy); list.push({ y: r.y + r.h - 1, f: () => { const im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h - im.height / 2, 10, d.glow, 0.2 + Math.sin(time * 4 + i) * 0.05); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 2); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } } }); });
       // 남의 방: 주인이 책상 의자에 앉아 있다
-      if (visit) { const os = seatSpots().find(q => q.atDesk || q.desk); if (os) list.push({ y: os.desk ? officeData.desk.y - 2 : os.r.y + os.r.h - 0.5, f: () => { drawMagic(g, os.x, os.y, Math.min(visit.rank, 8), time); const im = SP.tinyReaper(visit.kind || 'm', visit.rank, 'down', 'idle', Math.floor(time * 2.5)); g.drawImage(im, Math.round(os.x - im.width / 2), Math.round(os.y - im.height + 1)); } }); }
+      if (visit) { const os = seatSpots().find(q => q.atDesk || q.desk); if (os) list.push({ y: os.desk ? officeData.desk.y - 2 : os.r.y + os.r.h - 0.5, f: () => { drawMagic(g, os.x, os.y, Math.min(visit.rank, 8), time); const im = SP.tinyReaper(visit.kind || 'm', visit.rank, 'down', 'idle', Math.floor(time * 2.5)); drawSeated(im, os.x, os); } }); }
       // 나 (앉아 있거나 걸어 다님)
       if (!visit && me && me.sit && !me.sit.desk && me.sit.r && !seatSpots().some(q => q.r && q.r.x === me.sit.r.x && q.r.y === me.sit.r.y)) me.sit = seatSpots().find(q => q.atDesk || q.desk);
       if (me) { const sit = me.sit, y0 = sit ? sit.y + (sit.desk ? 0 : 1) : me.y; list.push({ y: sit ? (sit.desk ? officeData.desk.y - 2 : sit.r.y + sit.r.h - 0.5) : me.y, f: () => {
         const x = sit ? sit.x : me.x; auraUnder({ x: x + camX, y: y0 + camY }); rankFxUnder({ x: x + camX, y: y0 + camY });
         const moving = me.walk && !sit, im0 = SP.tinyReaper(kind, rank, sit ? 'down' : me.dir, moving ? 'walk' : 'idle', Math.floor((moving ? me.ft * 8 : time * 2.5))), im = me.dir === 'side' && me.face < 0 && !sit ? flipOf(im0) : im0;
         if (!sit) { g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.round(x - 5), Math.round(y0 - 1), 10, 2); }
-        g.drawImage(im, Math.round(x - im.width / 2), Math.round(y0 - im.height + 1)); rankFxOver({ x: x + camX, y: y0 + camY }, im); } }); }
+        if (sit) { const sf = drawSeated(im, x, sit); rankFxOver({ x: x + camX, y: sf + camY - 6 }, im); }
+        else { g.drawImage(im, Math.round(x - im.width / 2), Math.round(y0 - im.height + 1)); rankFxOver({ x: x + camX, y: y0 + camY }, im); } } }); }
       list.sort((a, b) => a.y - b.y).forEach(o => o.f());
       if (edit) { // 격자 + 놓을 자리 미리보기
         g.fillStyle = 'rgba(255,255,255,0.07)'; for (let x = 0; x <= W; x += G) g.fillRect(x, 0, 1, H); for (let y = 0; y <= H; y += G) g.fillRect(0, y, W, 1);
@@ -636,9 +650,9 @@ const Scene = (() => {
       for (let i = placed.length - 1; i >= 0; i--) { const p = placed[i], r = decoRect(p.id, p.gx, p.gy); if (x >= r.x && x < r.x + r.w && y >= r.y - (Decor.D(p.id).wall ? 0 : 10) && y < r.y + r.h) { hooks.decorPick && hooks.decorPick(i); return; } }
       return;
     }
-    const dp = officeData.docs; if (!visit && Math.abs(x - dp.x) < 12 && y > dp.y - 20 && y < dp.y + 6) { hooks.poi && hooks.poi('docs'); return; }
+    // (결재는 아래 '결재' 버튼으로만: 책상을 눌러도 결재 창이 뜨지 않게 해서 의자와 겹치지 않음)
     // 앉을 자리 (책상 · 방석 · 옥좌)
-    for (const st of mySeats()) { const box = st.desk ? { x: st.x - 12, y: st.y - 18, w: 24, h: 26 } : { x: st.r.x - 2, y: st.r.y - 8, w: st.r.w + 4, h: st.r.h + 10 }; if (x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h) { if (me.sit && me.sit.x === st.x && me.sit.y === st.y) return; const from = me.sit; if (from) { me.x = from.x; me.y = from.desk ? officeData.desk.y + 14 : from.y + 4; } me.sit = null; me.walk = true; me.tx = st.x; me.ty = st.desk ? officeData.desk.y + 14 : st.y + 2; me.goSit = st.desk ? { x: st.x, y: st.y, desk: true } : st; if (st.desk) { me.tx = st.x; } Sound.play('open'); return; } }
+    for (const st of mySeats()) { const box = st.desk ? { x: st.x - 12, y: st.y - 18, w: 24, h: 26 } : { x: st.r.x - 2, y: st.r.y - (Decor.D(st.id).chair ? 22 : 8), w: st.r.w + 4, h: st.r.h + (Decor.D(st.id).chair ? 26 : 10) }; if (x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h) { if (me.sit && me.sit.x === st.x && me.sit.y === st.y) return; const from = me.sit; if (from) { me.x = from.x; me.y = from.desk ? officeData.desk.y + 14 : from.y + 4; } me.sit = null; me.walk = true; me.tx = st.x; me.ty = st.desk ? officeData.desk.y + 14 : st.y + 2; me.goSit = st.desk ? { x: st.x, y: st.y, desk: true } : st; if (st.desk) { me.tx = st.x; } Sound.play('open'); return; } }
     // 바닥 걷기
     if (y > officeData.wallH + 6 && y < H - 2) { if (me.sit) { me.x = me.sit.desk ? me.sit.x : me.sit.x; me.y = me.sit.desk ? officeData.desk.y + 14 : me.sit.y + 4; me.sit = null; } me.walk = true; me.goSit = null; me.tx = Math.max(6, Math.min(W - 6, x)); me.ty = y; burst(x, y, '#ffe08a', 4, 12); }
   }
