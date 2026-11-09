@@ -13,7 +13,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function init() {
     Game.load();
-    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => Decor.ensure().placed, decorTap, decorPick, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => Decor.ensure().placed, decorTap, decorPick, decorDrop, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply();
@@ -499,12 +499,14 @@ const UI = (() => {
     const db = $('#deco-bar'); if (!db) return;
     const own = DECOR.filter(d => Decor.owned(d.id) > 0), dc = Decor.ensure(), sc = Decor.score();
     db.innerHTML = `<div class="dk-top"><div><b>🏮 ${Decor.title(sc)}</b><small>품격 ${sc} · 수확량 +${Math.round((Decor.mul() - 1) * 100)}% · 배치 ${dc.placed.length}/${Decor.maxPlace()}</small></div><button class="btn jade" id="dk-shop">상점</button><button class="btn red" id="dk-done">완료</button></div>
-      <div class="dk-tip">${decoSel ? `<b>${Decor.D(decoSel).name}</b>을(를) 놓을 자리를 누르세요 ${decoMove ? '' : '· <a id="dk-cancel">취소</a>'}` : '아래에서 소품을 고르거나, 놓인 소품을 눌러 옮기세요'}</div>
+      <div class="dk-tip">${decoSel ? `<b>${Decor.D(decoSel).name}</b>을(를) 놓을 자리를 누르세요 ${decoMove ? '' : '· <a id="dk-cancel">취소</a>'}` : '소품을 <b>위로 끌어서</b> 놓거나 눌러서 고른 뒤 자리를 누르세요 · 놓인 소품은 끌어서 옮겨요'}</div>
       <div class="dk-list">${own.length ? own.map(d => { const sp = Decor.spare(d.id); return `<button class="dk-it ${decoSel === d.id ? 'on' : ''} ${sp ? '' : 'used'}" data-dk="${d.id}"><img class="px" src="${decoThumb(d.id)}"><span>${d.name}</span><small>${sp ? '남음 ' + sp : '모두 배치'}</small></button>`; }).join('') : '<p class="mute">가진 소품이 없어요. 상점에서 구해 보세요.</p>'}</div>`;
     db.querySelector('#dk-done').onclick = () => decoEnd();
     db.querySelector('#dk-shop').onclick = decoShop;
     const cn = db.querySelector('#dk-cancel'); if (cn) cn.onclick = () => { decoSel = null; Scene.officeGhost(null); decoBar(); };
+    listDragInit(db);
     db.querySelectorAll('[data-dk]').forEach(b => b.onclick = () => {
+      if (performance.now() - listDragDone < 300) return;
       const id = b.dataset.dk; if (Decor.spare(id) <= 0) { toast('모두 놓았어요. 놓인 소품을 눌러 옮기거나 보관할 수 있어요'); return; }
       if (dc.placed.length >= Decor.maxPlace()) { toast(`지금 집무실엔 ${Decor.maxPlace()}개까지 놓을 수 있어요. 승진하면 더 놓을 수 있어요!`, 2800); return; }
       decoSel = decoSel === id ? null : id; Scene.officeGhost(decoSel); Sound.play('open'); decoBar();
@@ -515,6 +517,28 @@ const UI = (() => {
     if (!ok) { Sound.play('no'); toast('여기엔 놓을 수 없어요 (빨간 칸·다른 소품과 겹침)'); return; }
     if (Decor.place(decoSel, gx, gy)) { Sound.play('buy'); Scene.burstAt(gx * DECOR_G * Scene.scale + DECOR_G, gy * DECOR_G * Scene.scale, '#ffe08a', 12); if (Decor.spare(decoSel) <= 0 || decoMove) { decoSel = null; decoMove = null; Scene.officeGhost(null); } decoBar(); officeBar(); }
   }
+  function decorDrop(i, gx, gy, ok) {
+    if (!ok) { Sound.play('no'); toast('여기엔 놓을 수 없어요'); return; }
+    const p = Decor.ensure().placed[i]; if (!p) return; p.gx = gx; p.gy = gy; Game.save(); Sound.play('buy'); decoBar();
+  }
+  // 목록에서 끌어다 놓기
+  let listDrag = null;
+  function listDragInit(db) {
+    db.querySelectorAll('[data-dk]').forEach(b => b.addEventListener('pointerdown', e => { listDrag = { id: b.dataset.dk, x0: e.clientX, y0: e.clientY, on: false }; }));
+  }
+  addEventListener('pointermove', e => {
+    if (!listDrag) return;
+    if (!listDrag.on) { const dy = listDrag.y0 - e.clientY, dx = Math.abs(e.clientX - listDrag.x0); if (dy > 10 && dy > dx) { if (Decor.spare(listDrag.id) <= 0) { toast('모두 놓았어요'); listDrag = null; return; } if (Decor.ensure().placed.length >= Decor.maxPlace()) { toast(`지금 집무실엔 ${Decor.maxPlace()}개까지 놓을 수 있어요. 승진하면 더 놓을 수 있어요!`, 2800); listDrag = null; return; } listDrag.on = true; const im = document.createElement('img'); im.id = 'dk-drag'; im.className = 'px'; im.src = decoThumb(listDrag.id, 4); document.body.appendChild(im); decoSel = null; } else if (dx > 10) { listDrag = null; return; } }
+    if (listDrag && listDrag.on) { const im = $('#dk-drag'); if (im) { im.style.left = e.clientX + 'px'; im.style.top = e.clientY + 'px'; } const r = Scene.officeDragAt(e.clientX, e.clientY, listDrag.id); if (im) im.classList.toggle('over', !!r); }
+  });
+  addEventListener('pointerup', e => {
+    if (!listDrag) return; const d = listDrag; listDrag = null; if (!d.on) return;
+    const im = $('#dk-drag'); if (im) im.remove();
+    const r = Scene.officeDragAt(e.clientX, e.clientY, d.id); Scene.officeDragEnd(); d.dropped = true; listDragDone = performance.now();
+    if (!r) return; if (!r.ok) { Sound.play('no'); toast('여기엔 놓을 수 없어요 (빨간 칸·다른 소품과 겹침)'); return; }
+    if (Decor.place(d.id, r.gx, r.gy)) { Sound.play('buy'); decoBar(); officeBar(); }
+  });
+  let listDragDone = 0;
   function decorPick(i) {
     const p = Decor.ensure().placed[i]; if (!p) return; const d = Decor.D(p.id);
     const box = modal(`<div class="pinfo"><img class="px" src="${decoThumb(p.id, 4)}" style="height:72px"><h2>${d.name}</h2><p class="mute">품격 +${d.pt}${d.seat ? ' · 앉을 수 있어요' : ''}</p></div>
@@ -522,16 +546,20 @@ const UI = (() => {
     box.querySelector('#dp-move').onclick = () => { closeModal(); Decor.remove(i); decoSel = p.id; decoMove = true; Scene.officeGhost(p.id); decoBar(); };
     box.querySelector('#dp-store').onclick = () => { closeModal(); Decor.remove(i); Sound.play('open'); decoBar(); officeBar(); };
   }
+  let shopCat = 'all';
   function decoShop() {
-    const s = S();
-    const card = d => { const n = Decor.owned(d.id); return `<div class="ds-card ${d.cash ? 'cash' : ''}"><img class="px" src="${decoThumb(d.id, 3)}"><b>${d.name}</b><small>품격 +${d.pt}${d.seat ? ' · 앉기' : ''}${d.wall ? ' · 벽' : ''}</small><p>${d.desc}</p>${n ? `<em>보유 ${n}</em>` : ''}
-      ${d.free ? '<button class="btn dark" disabled>무료 지급</button>' : d.cash ? '<button class="btn dark" disabled>패키지 전용</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
-    const box = modal(`<h2>🏮 소품 상점</h2><p class="mute">놓은 소품의 품격만큼 수확량이 올라요 (최대 +40%)</p>
-      <div class="ds-packs">${DECOR_PACKS.map(P => `<div class="ds-pack"><div class="ds-pi">${P.items.map(id => `<img class="px" src="${decoThumb(id, 2)}">`).join('')}</div><div class="ds-pt"><b>${P.name}</b><small>${P.desc}</small></div><button class="btn red" data-dpack="${P.id}">${P.price}</button></div>`).join('')}</div>
-      <div class="ds-grid">${DECOR.filter(d => !d.cash).map(card).join('')}${DECOR.filter(d => d.cash).map(card).join('')}</div>
+    const s = S(), cats = [['all', '전체'], ['set', '세트'], ['floor', '바닥'], ['wall', '벽'], ['seat', '앉기'], ['premium', '귀한 것']];
+    const card = d => { const n = Decor.owned(d.id); return `<div class="ds-card ${d.premium ? 'cash' : ''}"><img class="px" src="${decoThumb(d.id, 3)}"><b>${d.name}</b><small>품격 +${d.pt}${d.seat ? ' · 앉기' : ''}${d.wall ? ' · 벽' : ''}</small><p>${d.desc}</p>${n ? `<em>보유 ${n}</em>` : ''}
+      ${d.free ? '<button class="btn dark" disabled>무료 지급</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
+    const pack = P => { const got = Decor.packBought(P.id); return `<div class="ds-pack ${got ? 'got' : ''}"><div class="ds-pi">${P.items.map(id => `<img class="px" src="${decoThumb(id, 2)}">`).join('')}</div><div class="ds-pt"><b>${P.name}</b><small>${P.items.map(id => Decor.D(id).name).join(' · ')}</small><small><s>옥 ${P.full}</s> → <b class="sale">30% 할인</b></small></div>${got ? '<button class="btn dark" disabled>구매 완료</button>' : `<button class="btn jade" data-dpack="${P.id}" ${s.jade >= P.price ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${P.price}</button>`}</div>`; };
+    const list = shopCat === 'set' ? '' : DECOR.filter(d => shopCat === 'all' || (shopCat === 'floor' && !d.wall) || (shopCat === 'wall' && d.wall) || (shopCat === 'seat' && d.seat) || (shopCat === 'premium' && d.premium)).sort((a, b) => (a.free ? 0 : a.price) - (b.free ? 0 : b.price));
+    const box = modal(`<h2>🏮 소품 상점</h2><p class="mute">옥으로 사요. 놓은 소품의 품격만큼 수확량이 올라요 (최대 +40%) · 보유 옥 <b style="color:var(--jade)">${fmt(s.jade)}</b></p>
+      <div class="ds-cats">${cats.map(([k, n]) => `<button data-dcat="${k}" class="${shopCat === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <div class="ds-scroll">${shopCat === 'all' || shopCat === 'set' ? `<div class="ds-packs">${DECOR_PACKS.map(pack).join('')}</div>` : ''}${list ? `<div class="ds-grid">${list.map(card).join('')}</div>` : ''}</div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    box.querySelectorAll('[data-dbuy]').forEach(b => b.onclick = () => { const d = Decor.D(b.dataset.dbuy); if (Decor.buy(d.id)) { Sound.play('buy'); toast(`${d.name} 구입! 아래 목록에서 골라 놓아 보세요`); closeModal(); decoBar(); decoShop(); } else { Sound.play('no'); toast('옥이 부족해요'); } });
-    box.querySelectorAll('[data-dpack]').forEach(b => b.onclick = () => { const P = DECOR_PACKS.find(x => x.id === b.dataset.dpack); closeModal(); confirmBox(`<h2>${P.name}</h2><p>${P.desc}</p><div class="big" style="color:var(--gold)">${P.price}</div><p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>`, () => { Decor.buyPack(P.id); Sound.play('promote'); toast(`${P.name} 지급 완료!`); decoBar(); decoShop(); }, '구매'); });
+    box.querySelectorAll('[data-dcat]').forEach(b => b.onclick = () => { shopCat = b.dataset.dcat; closeModal(); decoShop(); });
+    box.querySelectorAll('[data-dbuy]').forEach(b => b.onclick = () => { const d = Decor.D(b.dataset.dbuy); if (Decor.buy(d.id)) { Sound.play('buy'); toast(`${d.name} 구입! 아래 목록에서 끌어다 놓아 보세요`); const sc = box.querySelector('.ds-scroll').scrollTop; closeModal(); decoBar(); decoShop(); const ns = $('#modal .ds-scroll'); if (ns) ns.scrollTop = sc; } else { Sound.play('no'); toast('옥이 부족해요'); } });
+    box.querySelectorAll('[data-dpack]').forEach(b => b.onclick = () => { const P = DECOR_PACKS.find(x => x.id === b.dataset.dpack); closeModal(); confirmBox(`<h2>${P.name}</h2><p>${P.items.map(id => Decor.D(id).name).join(', ')}</p><p><s style="color:var(--mute)">옥 ${P.full}</s> → <b style="color:var(--jade)">옥 ${P.price}</b> (30% 할인 · 한 번만)</p>`, () => { if (Decor.buyPack(P.id)) { Sound.play('promote'); toast(`${P.name} 구입 완료!`); decoBar(); } else { Sound.play('no'); toast('옥이 부족해요'); } decoShop(); }, '구매'); });
   }
   function judgeModal() {
     const c = Life.judgeCase();

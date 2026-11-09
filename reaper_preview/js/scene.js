@@ -630,9 +630,19 @@ const Scene = (() => {
     // 바닥 걷기
     if (y > officeData.wallH + 6 && y < H - 2) { if (me.sit) { me.x = me.sit.desk ? me.sit.x : me.sit.x; me.y = me.sit.desk ? officeData.desk.y + 14 : me.sit.y + 4; me.sit = null; } me.walk = true; me.goSit = null; me.tx = Math.max(6, Math.min(W - 6, x)); me.ty = y; burst(x, y, '#ffe08a', 4, 12); }
   }
-  function down(e) { if (office) { const r = cv.getBoundingClientRect(); officeTap((e.clientX - r.left) / S, (e.clientY - r.top) / S); return; } if (arena) { tap(e); return; } drag = { x: e.clientX, y: e.clientY, cx: camX, cy: camY, moved: false }; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); }
-  function move(e) { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!drag.moved && Math.hypot(dx, dy) > 6) drag.moved = true; if (drag.moved) { camX = drag.cx - dx / S; camY = drag.cy - dy / S; follow = false; followAt = time + 6; } }
-  function up(e) { if (arena || office) return; const d = drag; drag = null; if (d && !d.moved) tap(e); }
+  // 꾸미기: 놓인 소품을 눌러 끌면 옮기고, 그냥 누르면 메뉴
+  let press = null;
+  const toOffice = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / S, y: (e.clientY - r.top) / S }; };
+  const cellAt = (id, x, y) => { const d = Decor.D(id); return { gx: Math.round(x / G - d.fw / 2), gy: Math.round(y / G - d.fh / 2) }; };
+  function down(e) { if (office) { const p = toOffice(e);
+      if (edit && !ghost) { const placed = hooks.decorPlaced ? hooks.decorPlaced() : []; for (let i = placed.length - 1; i >= 0; i--) { const q = placed[i], r = decoRect(q.id, q.gx, q.gy); if (p.x >= r.x && p.x < r.x + r.w && p.y >= r.y - (Decor.D(q.id).wall ? 0 : 10) && p.y < r.y + r.h) { press = { i, id: q.id, x0: e.clientX, y0: e.clientY, moved: false }; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); return; } } return; }
+      officeTap(p.x, p.y); return; } if (arena) { tap(e); return; } drag = { x: e.clientX, y: e.clientY, cx: camX, cy: camY, moved: false }; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); }
+  function move(e) {
+    if (office && press) { if (!press.moved && Math.hypot(e.clientX - press.x0, e.clientY - press.y0) > 6) press.moved = true; if (press.moved) { const p = toOffice(e), c = cellAt(press.id, p.x, p.y); ghost = press.id; hover = { gx: c.gx, gy: c.gy, ignore: press.i }; } return; }
+    if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!drag.moved && Math.hypot(dx, dy) > 6) drag.moved = true; if (drag.moved) { camX = drag.cx - dx / S; camY = drag.cy - dy / S; follow = false; followAt = time + 6; } }
+  function up(e) {
+    if (office && press) { const pr = press; press = null; if (pr.moved && hover) { const ok = decoFits(pr.id, hover.gx, hover.gy, pr.i); hooks.decorDrop && hooks.decorDrop(pr.i, hover.gx, hover.gy, ok); } else if (!pr.moved) hooks.decorPick && hooks.decorPick(pr.i); ghost = null; hover = null; return; }
+    if (arena || office) return; const d = drag; drag = null; if (d && !d.moved) tap(e); }
   function tap(e) {
     const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / S + camX, y = (e.clientY - r.top) / S + camY;
     if (arena) { if (wraith && !wraith.dead && Math.abs(x - wraith.x) < 22 && Math.abs(y - wraith.y) < 24) { const sp = scr(x, y); hooks.wraithTap && hooks.wraithTap(sp.x, sp.y); } return; }
@@ -674,6 +684,8 @@ const Scene = (() => {
       staff = officeData.seats.map((p, k) => ({ x: p.x, y: p.y, sx: p.x, sy: p.y, ft: rnd(0, 3), t: rnd(2, 8), walk: false, dir: 'up', judge: officeTier >= 5 && k < 2 }));
       me = { x: officeData.desk.x, y: officeData.desk.y + 16, ft: 0, walk: false, dir: 'down', face: 1, sit: { x: officeData.desk.x, y: officeData.desk.y - 6, desk: true } }; edit = false; ghost = null; },
     exitOffice() { office = false; follow = true; edit = false; ghost = null; },
+    officeDragAt(cx, cy, id) { const r = cv.getBoundingClientRect(); if (!office || !edit || cx < r.left || cx > r.right || cy < r.top || cy > r.bottom || document.elementFromPoint(cx, cy) !== cv) { hover = null; return null; } const x = (cx - r.left) / S, y = (cy - r.top) / S, c = cellAt(id, x, y); ghost = id; hover = { gx: c.gx, gy: c.gy }; return { gx: c.gx, gy: c.gy, ok: decoFits(id, c.gx, c.gy) }; },
+    officeDragEnd() { ghost = null; hover = null; },
     officeEdit(on) { edit = !!on; ghost = null; hover = null; },
     officeGhost(id, ignore) { ghost = id; hover = ignore != null ? { gx: -99, gy: -99, ignore } : null; },
     officeFits: (id, gx, gy, ignore) => decoFits(id, gx, gy, ignore),
