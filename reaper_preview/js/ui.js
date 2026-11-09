@@ -13,7 +13,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function init() {
     Game.load();
-    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply();
@@ -989,7 +989,7 @@ const UI = (() => {
     const pr = S().parade, left = (pr.next - Date.now()) / 1000;
     if (left <= 0) { startParade(); return; }
     const today = new Date().toISOString().slice(0, 10); if (pr.ad.day !== today) pr.ad = { day: today, n: 0 };
-    const box = modal(`<h2>백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 혼령을 마구 터치해 콤보를 쌓으세요.<br>콤보가 높을수록 수확이 커져요 (최대 +400%).</p>
+    const box = modal(`<h2>백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 <b>지나가는 귀신</b>과 혼령을 마구 터치해 콤보를 쌓으세요.<br>금빛 귀신은 5배! 콤보가 높을수록 수확이 커져요 (최대 +400%).</p>
       <p>다음 행렬까지 <b style="color:var(--gold)">${fmtTime(left)}</b></p>
       <div class="acts"><button class="btn red" id="pa-ad" ${pr.ad.n < 3 ? '' : 'disabled'}>광고 보고 바로 부르기<em>${3 - pr.ad.n}/3</em></button><button class="btn jade" id="pa-jade" ${S().jade >= Life.skipCost(left) ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">옥 ${Life.skipCost(left)}개로 바로</button><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelector('#pa-jade').onclick = () => { if (Life.skipJade('parade', 0)) { closeModal(); startParade(); } else { Sound.play('no'); toast('옥이 부족해요'); } };
@@ -997,25 +997,34 @@ const UI = (() => {
   }
   function startParade() {
     if (parade || test) return;
-    parade = { t: 25, combo: 0, comboT: 0, max: 0, gained: 0 };
+    parade = { t: 25, combo: 0, comboT: 0, max: 0, gained: 0, ghosts: 0 };
     S().parade.next = Date.now() + 30 * 60e3; Game.save();
     Scene.config({ parade: true }); Sound.play('wraith'); setTimeout(() => Sound.play('promote'), 300);
     $('#parade-bar').classList.add('on');
-    toast('🏮 백귀야행이 시작됐다! 혼령을 마구 터치하세요!', 2500);
+    if (sheetOpen()) closeSheet(); const bn = document.createElement('div'); bn.className = 'pa-banner'; bn.innerHTML = '<b>백 귀 야 행</b><small>지나가는 귀신과 혼령을 마구 터치!</small>'; $('#stage').appendChild(bn); setTimeout(() => bn.remove(), 2200);
+  }
+  // 백귀야행 귀신 잡기: 잡을수록 콤보가 오르고, 금빛 귀신은 5배
+  function ghostTap(x, y, gold) {
+    if (!parade) return;
+    parade.combo++; parade.comboT = 2; parade.max = Math.max(parade.max, parade.combo); parade.ghosts++;
+    const amt = Game.incomePerSec(true) * (gold ? 20 : 4) * (1 + Math.min(4, parade.combo * 0.1));
+    Game.gain(amt); parade.gained += amt; Life.qEvent('soul', 3);
+    float(x, y, (gold ? '✨+' : '+') + fmt(amt), gold ? 'big' : 't2 tap'); Sound.play(gold ? 'promote' : 'kill');
+    const cb = $('#parade-bar .cb'); if (cb) { cb.classList.remove('pop'); void cb.offsetWidth; cb.classList.add('pop'); }
   }
   function paradeTick(dt) {
     if (!parade) return;
     parade.t -= dt; parade.comboT -= dt; if (parade.comboT <= 0) parade.combo = 0;
-    $('#parade-bar').innerHTML = `🏮 백귀야행 <b>${Math.max(0, parade.t).toFixed(1)}초</b> · 콤보 <b class="cb">${parade.combo}</b> <small>(+${Math.round(Math.min(4, parade.combo * 0.1) * 100)}%)</small>`;
+    const bar = $('#parade-bar'); if (!bar.querySelector('.cb')) bar.innerHTML = '🏮 <b class="pt"></b> · 콤보 <b class="cb"></b> <small class="pg"></small>'; bar.querySelector('.pt').textContent = Math.max(0, parade.t).toFixed(1) + '초'; bar.querySelector('.cb').textContent = parade.combo; bar.querySelector('.pg').textContent = `귀신 ${parade.ghosts} · +${Math.round(Math.min(4, parade.combo * 0.1) * 100)}%`;
     if (parade.t <= 0) endParade();
   }
   function endParade() {
-    const p = parade; parade = null; Scene.config({ parade: false }); Life.qEvent('parade'); $('#parade-bar').classList.remove('on');
+    const p = parade; parade = null; Scene.config({ parade: false }); Life.qEvent('parade'); $('#parade-bar').classList.remove('on'); $('#parade-bar').innerHTML = '';
     const bonus = p.gained * Math.min(1, p.max / 40) * 0.5, jade = p.max >= 60 ? 15 : p.max >= 30 ? 8 : p.max >= 15 ? 3 : 0;
     Game.gain(bonus); S().jade += jade; Game.save(); Sound.play('kill');
     const box = modal(`<h2>백귀야행 끝!</h2><p>행렬이 지나갔어요.</p>
       <div class="big"><img class="px" src="${IC('soul', 3)}">+${fmt(p.gained + bonus)}</div>
-      <p>최고 콤보 <b style="color:var(--gold)">${p.max}</b> · 콤보 보너스 +${fmt(bonus)}${jade ? ` · 옥 +${jade}` : ''}</p>
+      <p>잡은 귀신 <b style="color:var(--gold)">${p.ghosts}</b> · 최고 콤보 <b style="color:var(--gold)">${p.max}</b> · 콤보 보너스 +${fmt(bonus)}${jade ? ` · 옥 +${jade}` : ''}</p>
       <div class="acts"><button class="btn dark" data-act="close">확인</button><button class="btn red" id="pa-x2">광고 보고 보너스 2배<em>AD</em></button></div>`, true);
     box.querySelector('#pa-x2').onclick = () => { closeModal(); ad(() => { Game.gain(p.gained + bonus); toast(`백귀야행 보상 2배! +${fmt(p.gained + bonus)}`); }); };
   }

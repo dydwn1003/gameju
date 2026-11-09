@@ -374,8 +374,8 @@ const Scene = (() => {
       }
     }
     souls = souls.filter(s => s.st !== 'done');
-    if (cfg.parade) { if (Math.random() < dt * 1.2) ghosts.push({ x: camX - 14, y: camY + rnd(30, H - 20), t: 0 }); if (Math.random() < 0.5) parts.push({ x: camX + rnd(0, W), y: camY + rnd(0, H), vx: rnd(4, 10), vy: -rnd(0, 4), life: 1.2, max: 1.2, col: Math.random() < 0.5 ? '#6fb0ff' : '#ff6a8a', g: 0 }); }
-    ghosts.forEach(gh => { gh.t += dt; gh.x += 16 * dt; }); ghosts = ghosts.filter(gh => gh.x < camX + W + 20 && gh.t < 30);
+    if (cfg.parade) { if (Math.random() < dt * 2.6) { const fromL = Math.random() < 0.5; ghosts.push({ x: fromL ? camX - 10 : camX + W + 10, y: camY + rnd(48, H - 30), t: 0, v: (fromL ? 1 : -1) * rnd(16, 26), gold: Math.random() < 0.1 }); } if (Math.random() < 0.5) parts.push({ x: camX + rnd(0, W), y: camY + rnd(0, H), vx: rnd(4, 10), vy: -rnd(0, 4), life: 1.2, max: 1.2, col: Math.random() < 0.5 ? '#6fb0ff' : '#ff6a8a', g: 0 }); }
+    ghosts.forEach(gh => { gh.t += dt; gh.x += (gh.v || 16) * dt; }); ghosts = ghosts.filter(gh => !gh.dead && gh.x > camX - 30 && gh.x < camX + W + 30 && gh.t < 30); if (!cfg.parade && ghosts.length) ghosts = [];
     if (R().id === 'hell' && Math.random() < 0.3) parts.push({ x: camX + rnd(0, W), y: camY + rnd(0, H), vx: rnd(-3, 3), vy: -rnd(6, 14), life: 1.6, max: 1.6, col: Math.random() < 0.5 ? '#ff7a20' : '#ffd040', g: 0 });
     parts.forEach(p => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.g * dt; }); parts = parts.filter(p => p.life > 0);
     if (petData) { if (!pet) pet = { x: reaper.x, y: reaper.y, t: 0, face: 1 }; pet.t += dt; const tx = reaper.x - reaper.face * 12, ty = reaper.y + 2; pet.x += (tx - pet.x) * Math.min(1, dt * 4); pet.y += (ty - pet.y) * Math.min(1, dt * 4); pet.face = tx > pet.x + 0.5 ? 1 : tx < pet.x - 0.5 ? -1 : reaper.face; pet.fly = petData.kind === 'bird' || petData.kind === 'dragon'; } else pet = null;
@@ -541,7 +541,10 @@ const Scene = (() => {
       g.globalAlpha = s.a; const sc = s.scale || 1;
       g.drawImage(img, Math.round(x - camX - img.width * sc / 2), Math.round(fy - camY - img.height * sc / 2), Math.round(img.width * sc), Math.round(img.height * sc)); g.globalAlpha = 1;
     } }); }
-    for (const gh of ghosts) list.push({ y: gh.y, f: () => { g.globalAlpha = 0.4; g.drawImage(SP.wraitht(Math.floor(gh.t * 3)), Math.round(gh.x - camX - 6), Math.round(gh.y - camY - 16 + Math.sin(gh.t * 3) * 2)); g.globalAlpha = 1; } });
+    for (const gh of ghosts) list.push({ y: gh.y, f: () => { const bx = Math.round(gh.x - camX), by = Math.round(gh.y - camY + Math.sin(gh.t * 3) * 2);
+      glow(bx, by - 8, 9, gh.gold ? '#ffd34a' : '#b070ff', gh.gold ? 0.45 : 0.3); g.globalAlpha = 0.92;
+      const im = SP.wraitht(Math.floor(gh.t * 3)); g.drawImage(gh.v < 0 ? flipOf(im) : im, bx - 6, by - 16); g.globalAlpha = 1;
+      if (gh.gold) { g.fillStyle = '#ffd34a'; g.fillRect(bx - 1, by - 20, 3, 1); g.fillRect(bx, by - 21, 1, 3); } } });
     if (wraith) list.push({ y: wraith.y + 20, f: () => {
       const img = SP.wraitht(Math.floor(wraith.t * 3)), y = wraith.y + Math.sin(wraith.t * 2) * 3, wx = wraith.x - camX, wy = y - camY;
       g.globalAlpha = wraith.dead ? Math.max(0, wraith.fade / 0.6) : Math.min(1, wraith.t * 2) * (0.85 + Math.sin(wraith.t * 9) * 0.1);
@@ -575,14 +578,19 @@ const Scene = (() => {
     const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / S + camX, y = (e.clientY - r.top) / S + camY;
     if (arena) { if (wraith && !wraith.dead && Math.abs(x - wraith.x) < 22 && Math.abs(y - wraith.y) < 24) { const sp = scr(x, y); hooks.wraithTap && hooks.wraithTap(sp.x, sp.y); } return; }
     if (wraith && !wraith.dead && Math.abs(x - wraith.x) < 10 && Math.abs(y - wraith.y) < 12) { const sp = scr(x, y); hooks.wraithTap && hooks.wraithTap(sp.x, sp.y); return; }
+    if (cfg.parade) { // 백귀야행: 귀신 → 혼령 순으로 가까운 것을 잡고, 빈 곳을 눌러도 걷지 않는다
+      let gb = null, gd = 15; for (const gh of ghosts) { const d = Math.hypot(gh.x - x, gh.y - 8 - y); if (d < gd) { gd = d; gb = gh; } }
+      if (gb) { gb.dead = true; burst(gb.x, gb.y - 8, gb.gold ? '#ffd34a' : '#c890ff', 22, 45); burst(gb.x, gb.y - 8, '#ffffff', 10, 30); shake = Math.max(shake, 1.2); const sp = scr(gb.x, gb.y - 10); hooks.ghostTap && hooks.ghostTap(sp.x, sp.y, gb.gold); return; }
+    }
     for (const n of NPCS) { if (n.cond === 'merchant' && !cfg.merchant) continue; if (Math.abs(x - n.x) < 7 && y > n.y - 20 && y < n.y + 3) { hooks.poi && hooks.poi(n.id === 'gob' ? 'merchant' : n.id); return; } }
-    let best = null, bd = 10;
+    let best = null, bd = cfg.parade ? 18 : 10;
     for (const s of souls) if (s.st === 'float') { const d = Math.hypot(s.x - x, s.y - s.h - y); if (d < bd) { bd = d; best = s; } }
     if (best) { if (best.who && best.who.target === best) best.who.target = null; const tp = { face: 1, tap: true }; Object.defineProperty(tp, 'x', { get: () => reaper.x }); Object.defineProperty(tp, 'y', { get: () => reaper.y }); best.who = tp; best.st = 'pull'; best.t = 0; best.sx = best.x; best.sy = best.y - best.h; best.dur = 0.35; Sound.play('tap'); return; }
     for (let i = 0; i < PLOTS.length; i++) { const p = PLOTS[i]; if (Math.abs(x - p.x) < 9 && y > p.y - 16 && y < p.y + 2) { hooks.poi && hooks.poi('plot', i); return; } }
     for (const p of POIS) if (p.id !== 'garden' && x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) { if (p.id === 'stall' && cfg.merchant) { hooks.poi && hooks.poi('merchant'); return; } hooks.poi && hooks.poi(p.id); return; }
     { const cl = hooks.clue ? hooks.clue() : -1; if (cl >= 0) { const p = clueSpot(cl); if (Math.abs(x - p.x) < 9 && y > p.y - 14 && y < p.y + 4) { burst(p.x, p.y - 6, '#c8ecff', 24, 40); hooks.poi && hooks.poi('clue'); return; } } }
     for (let k = objs.length - 1; k >= 0; k--) { const o = objs[k]; if (o.prop && x > o.x - 2 && x < o.x + o.img.width + 2 && y > o.y && y < o.base + 4) { const lamps = objs.filter(q => q.prop === 'lamp'); hooks.poi && hooks.poi('prop', { kind: o.prop, key: o.key, x: (o.x + o.img.width / 2 - camX) * S, y: (o.y - camY) * S, wx: o.x + o.img.width / 2, wy: o.base, lampsAll: lamps.length, lampsLit: lamps.filter(q => hooks.propReady && !hooks.propReady(q.key)).length }); if (o.prop === 'tree') { shake = Math.max(shake, 1); for (let i = 0; i < 6; i++) parts.push({ x: o.x + rnd(4, o.img.width - 4), y: o.y + rnd(4, 12), vx: rnd(-6, 6), vy: rnd(-4, 4), life: 0.8, max: 0.8, col: '#6aa84a', g: 30 }); } return; } }
+    if (cfg.parade) { burst(x, y, '#c9b6ff', 4, 14); return; }
     if (walkable(x, y)) { reaper.manual = { x, y }; follow = true; Sound.play('open'); hooks.moved && hooks.moved(); return; }
     burst(x, y, '#c9b6ff', 5, 18);
   }
@@ -616,6 +624,7 @@ const Scene = (() => {
     wraithAlive: () => !!(wraith && !wraith.dead), wraithHp: () => wraith ? wraith.hp : 0, wraithPos: () => wraith ? scr(wraith.x, wraith.y) : null,
     labels: () => arena || office ? [] : POIS.filter(p => ['office', 'stall', 'stele', 'garden'].includes(p.id)).map(p => ({ id: p.id, x: (p.x + p.w / 2 - camX) * S, y: (p.y - 3 - camY) * S, vis: vis(p.x + p.w / 2, p.y, 4) }))
       .concat(NPCS.map(n => ({ id: 'n_' + n.id, x: (n.x - camX) * S, y: (n.y - (n.id === 'kkachi' ? 14 : 24) - camY) * S, vis: vis(n.x, n.y, 4) && !(n.cond === 'merchant' && !cfg.merchant) }))),
+    ghostsOnScreen() { return ghosts.filter(gh => !gh.dead).map(gh => ({ x: (gh.x - camX) * S, y: (gh.y - 8 - camY) * S, gold: gh.gold })); },
     clueScreen(ch) { const p = clueSpot(ch); return { x: (p.x - camX) * S, y: (p.y - 6 - camY) * S }; },
     propsOnScreen() { return objs.filter(o => o.prop && vis(o.x + o.img.width / 2, o.base, 0)).map(o => ({ kind: o.prop, key: o.key, x: (o.x + o.img.width / 2 - camX) * S, y: (o.base - 6 - camY) * S })); },
     focusClue(ch) { const p = clueSpot(ch); camX = p.x - W / 2; camY = p.y - H / 2; follow = false; followAt = time + 8; },
