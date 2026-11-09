@@ -754,3 +754,13 @@ body.deco-t #toasts { top: auto !important; bottom: 150px; }
 .iv-grid .dk-it img { height: 20px !important; }
 .iv-grid .dk-it span { font-size: 7.5px !important; line-height: 1.25; }
 .iv-grid .dk-it small { font-size: 7px !important; line-height: 1.1; }
+
+/* 놀러 가기 */
+#office-acts .of-acts { grid-template-columns: repeat(5, 1fr) !important; } #office-acts .of-acts.v3 { grid-template-columns: repeat(3, 1fr) !important; }
+#office-bar .of-gb { margin-left: auto; padding: 4px 8px 5px; font-size: 11px; white-space: nowrap; }
+.rk-visit { padding: 3px 7px 4px !important; font-size: 12px !important; }
+.gb-list { max-height: 36vh; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin: 6px 0; text-align: left; }
+.gb-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); }
+.gb-row.me { border-color: rgba(255,211,74,.45); } .gb-row b { font-size: 11px; color: #ffe08a; } .gb-row span { flex: 1; font-size: 12px; } .gb-row small { font-size: 9.5px; color: #8a82a8; }
+.gb-pick { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; max-height: 24vh; overflow-y: auto; }
+.gb-pick button { padding: 6px 9px; border-radius: 999px; font-size: 11px; color: #f1ecf8; background: rgba(120, 100, 220, .2); border: 1px solid rgba(170, 150, 255, .35); }

@@ -8,7 +8,7 @@ const Board = (() => {
       if (typeof window.claude === 'undefined' || !window.claude.use) return;
       db = await window.claude.use('db'); user = await window.claude.use('user');
       if (db && user) { uid = await user.id(); ready = !!uid; }
-      if (ready) { await push(true); refresh(); setInterval(refresh, 3 * 60e3); }
+      if (ready) { await push(true); refresh(); setInterval(refresh, 3 * 60e3); myLikes(); }
     } catch (e) { db = null; ready = false; }
   }
   // 내 기록 올리기 (바뀌었을 때만, 최대 1분에 한 번 · 승진 직후엔 바로)
@@ -36,9 +36,53 @@ const Board = (() => {
     })();
     return Promise.race([q, done]);
   }
+  // ===== 집무실 놀러 가기 =====
+  // offices/{내 id}: 내 집무실 모습 · visits/{내 id}: 내가 누른 좋아요와 남긴 방명록 (각자 자기 문서만 씀)
+  let myVisits = null, lastOffice = '';
+  const today = () => new Date().toISOString().slice(0, 10);
+  const timeout = (p, ms = 10000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  async function pushOffice() {
+    if (!ready || !Game.S || !Game.S.kind) return;
+    const s = Game.S, dc = Decor.ensure(), row = { rank: s.rank, kind: s.kind, rb: s.reborn || 0, placed: dc.placed.map(p => ({ id: p.id, gx: p.gx, gy: p.gy })), score: Decor.score(), likes: (s.officeLikes || 0) };
+    const sig = JSON.stringify(row); if (sig === lastOffice) return; lastOffice = sig;
+    try { await db.doc('offices/' + uid).set(Object.assign(row, { at: Date.now() })); } catch (e) { lastOffice = ''; }
+  }
+  async function visitsDoc() { if (myVisits) return myVisits; try { const d = await timeout(db.doc('visits/' + uid).get()); myVisits = d.exists ? d.data() : {}; } catch (e) { myVisits = {}; } myVisits.likedIds = myVisits.likedIds || []; myVisits.likeDay = myVisits.likeDay || {}; myVisits.noteIds = myVisits.noteIds || []; myVisits.notes = myVisits.notes || {}; return myVisits; }
+  const saveVisits = () => db.doc('visits/' + uid).set(Object.assign({}, myVisits, { at: Date.now() }));
+  // 이웃 집무실 목록 (최근에 꾸민 순 · 좋아요 순)
+  async function offices(sortLikes) {
+    if (!ready) return null;
+    await pushOffice();
+    const snap = await timeout(db.collection('offices').orderBy(sortLikes ? 'likes' : 'at', 'desc').limit(40).get());
+    const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    let names = {}; try { names = await user.profiles(rows.map(r => r.id)); } catch (e) {}
+    return rows.map(r => Object.assign(r, { name: (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid }));
+  }
+  // 한 집무실 + 그 방의 방명록
+  async function office(id) {
+    if (!ready) return null;
+    const d = await timeout(db.doc('offices/' + id).get()); if (!d.exists) return null;
+    const o = Object.assign({ id }, d.data());
+    let names = {}; try { names = await user.profiles([id]); } catch (e) {}
+    o.name = (names[id] && names[id].name) || '이름 모를 차사'; o.me = id === uid;
+    o.notes = await guestbook(id);
+    const v = await visitsDoc(); o.likedToday = v.likeDay[id] === today(); o.liked = v.likedIds.includes(id);
+    return o;
+  }
+  async function guestbook(id) {
+    try { const snap = await timeout(db.collection('visits').where('noteIds', 'array-contains', id).limit(30).get());
+      const rows = snap.docs.map(d => ({ by: d.id, n: (d.data().notes || {})[id] })).filter(r => r.n).sort((a, b) => b.n.at - a.n.at);
+      let names = {}; try { names = await user.profiles(rows.map(r => r.by)); } catch (e) {}
+      return rows.map(r => ({ m: r.n.m, at: r.n.at, name: (names[r.by] && names[r.by].name) || '이름 모를 차사', me: r.by === uid }));
+    } catch (e) { return []; }
+  }
+  async function like(id) { const v = await visitsDoc(); if (v.likeDay[id] === today()) return false; v.likeDay[id] = today(); if (!v.likedIds.includes(id)) v.likedIds.push(id); await saveVisits(); return true; }
+  async function note(id, m) { const v = await visitsDoc(); v.notes[id] = { m, at: Date.now() }; if (!v.noteIds.includes(id)) v.noteIds.push(id); await saveVisits(); return true; }
+  // 내 집무실이 받은 좋아요 수 (좋아요를 누른 사람 수)
+  async function myLikes() { if (!ready) return 0; try { const snap = await timeout(db.collection('visits').where('likedIds', 'array-contains', uid).limit(1000).get()); const n = snap.size; if (Game.S) { Game.S.officeLikes = n; } await pushOffice(); return n; } catch (e) { return Game.S && Game.S.officeLikes || 0; } }
   function setPlace(p) { if (p !== place) { place = p; onPlace && onPlace(p); } }
   async function refresh() { try { await top(); } catch (e) {} }
   // 순위 구간: 1 = 1위, 2 = 2~5위, 3 = 6~10위, 0 = 그 밖
   const tierOf = p => (p === 1 ? 1 : p >= 2 && p <= 5 ? 2 : p >= 6 && p <= 10 ? 3 : 0);
-  return { init, push, top, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
+  return { init, push, top, pushOffice, offices, office, like, note, myLikes, guestbook, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
 })();

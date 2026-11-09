@@ -301,7 +301,7 @@ const Scene = (() => {
   }
   let officeData = null;
   // 집무실: 걸어 다니기 · 앉기 · 꾸미기 편집
-  let me = null, edit = false, ghost = null, hover = null;
+  let me = null, edit = false, ghost = null, hover = null, visit = null; // visit: 남의 집무실 {kind, rank}
   const G = DECOR_G;
   // 소품 칸 → 실제 사각형 (바닥은 격자, 벽은 벽 띠 위 격자)
   function decoRect(id, gx, gy) { const d = Decor.D(id); return { x: gx * G, y: gy * G, w: d.fw * G, h: d.fh * G, wall: !!d.wall }; }
@@ -314,6 +314,8 @@ const Scene = (() => {
     const placed = hooks.decorPlaced ? hooks.decorPlaced() : [];
     return !placed.some((p, i) => i !== ignore && !!Decor.D(p.id).wall === r.wall && hit(r, decoRect(p.id, p.gx, p.gy)));
   }
+  // 내가 앉을 수 있는 자리: 남의 방에서는 주인의 책상 자리는 빼고
+  const mySeats = () => visit ? seatSpots().filter(q => !q.desk && !q.atDesk) : seatSpots();
   function seatSpots() {
     const list = [];
     (hooks.decorPlaced ? hooks.decorPlaced() : []).forEach(p => { const d = Decor.D(p.id); if (d.seat) { const r = decoRect(p.id, p.gx, p.gy); list.push({ x: r.x + r.w / 2, y: r.y + r.h - (d.id === 'throne' ? 7 : d.chair ? 3 : 2), id: d.id, r, atDesk: hit(r, officeData.chairB) }); } });
@@ -491,8 +493,10 @@ const Scene = (() => {
       placed.forEach((p, i) => { const d = Decor.D(p.id); if (!d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy), im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h / 2, 10, d.glow, 0.22 + Math.sin(time * 4 + i) * 0.05); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + (r.h - im.height) / 2)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } });
       // 바닥 소품 (깊이 정렬)
       placed.forEach((p, i) => { const d = Decor.D(p.id); if (d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy); list.push({ y: r.y + r.h - 1, f: () => { const im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h - im.height / 2, 10, d.glow, 0.2 + Math.sin(time * 4 + i) * 0.05); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 2); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } } }); });
+      // 남의 방: 주인이 책상 의자에 앉아 있다
+      if (visit) { const os = seatSpots().find(q => q.atDesk || q.desk); if (os) list.push({ y: os.desk ? officeData.desk.y - 2 : os.r.y + os.r.h - 0.5, f: () => { drawMagic(g, os.x, os.y, Math.min(visit.rank, 8), time); const im = SP.tinyReaper(visit.kind || 'm', visit.rank, 'down', 'idle', Math.floor(time * 2.5)); g.drawImage(im, Math.round(os.x - im.width / 2), Math.round(os.y - im.height + 1)); } }); }
       // 나 (앉아 있거나 걸어 다님)
-      if (me && me.sit && !me.sit.desk && me.sit.r && !seatSpots().some(q => q.r && q.r.x === me.sit.r.x && q.r.y === me.sit.r.y)) me.sit = seatSpots().find(q => q.atDesk || q.desk);
+      if (!visit && me && me.sit && !me.sit.desk && me.sit.r && !seatSpots().some(q => q.r && q.r.x === me.sit.r.x && q.r.y === me.sit.r.y)) me.sit = seatSpots().find(q => q.atDesk || q.desk);
       if (me) { const sit = me.sit, y0 = sit ? sit.y + (sit.desk ? 0 : 1) : me.y; list.push({ y: sit ? (sit.desk ? officeData.desk.y - 2 : sit.r.y + sit.r.h - 0.5) : me.y, f: () => {
         const x = sit ? sit.x : me.x; auraUnder({ x: x + camX, y: y0 + camY }); rankFxUnder({ x: x + camX, y: y0 + camY });
         const moving = me.walk && !sit, im0 = SP.tinyReaper(kind, rank, sit ? 'down' : me.dir, moving ? 'walk' : 'idle', Math.floor((moving ? me.ft * 8 : time * 2.5))), im = me.dir === 'side' && me.face < 0 && !sit ? flipOf(im0) : im0;
@@ -632,9 +636,9 @@ const Scene = (() => {
       for (let i = placed.length - 1; i >= 0; i--) { const p = placed[i], r = decoRect(p.id, p.gx, p.gy); if (x >= r.x && x < r.x + r.w && y >= r.y - (Decor.D(p.id).wall ? 0 : 10) && y < r.y + r.h) { hooks.decorPick && hooks.decorPick(i); return; } }
       return;
     }
-    const dp = officeData.docs; if (Math.abs(x - dp.x) < 12 && y > dp.y - 20 && y < dp.y + 6) { hooks.poi && hooks.poi('docs'); return; }
+    const dp = officeData.docs; if (!visit && Math.abs(x - dp.x) < 12 && y > dp.y - 20 && y < dp.y + 6) { hooks.poi && hooks.poi('docs'); return; }
     // 앉을 자리 (책상 · 방석 · 옥좌)
-    for (const st of seatSpots()) { const box = st.desk ? { x: st.x - 12, y: st.y - 18, w: 24, h: 26 } : { x: st.r.x - 2, y: st.r.y - 8, w: st.r.w + 4, h: st.r.h + 10 }; if (x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h) { if (me.sit && me.sit.x === st.x && me.sit.y === st.y) return; const from = me.sit; if (from) { me.x = from.x; me.y = from.desk ? officeData.desk.y + 14 : from.y + 4; } me.sit = null; me.walk = true; me.tx = st.x; me.ty = st.desk ? officeData.desk.y + 14 : st.y + 2; me.goSit = st.desk ? { x: st.x, y: st.y, desk: true } : st; if (st.desk) { me.tx = st.x; } Sound.play('open'); return; } }
+    for (const st of mySeats()) { const box = st.desk ? { x: st.x - 12, y: st.y - 18, w: 24, h: 26 } : { x: st.r.x - 2, y: st.r.y - 8, w: st.r.w + 4, h: st.r.h + 10 }; if (x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h) { if (me.sit && me.sit.x === st.x && me.sit.y === st.y) return; const from = me.sit; if (from) { me.x = from.x; me.y = from.desk ? officeData.desk.y + 14 : from.y + 4; } me.sit = null; me.walk = true; me.tx = st.x; me.ty = st.desk ? officeData.desk.y + 14 : st.y + 2; me.goSit = st.desk ? { x: st.x, y: st.y, desk: true } : st; if (st.desk) { me.tx = st.x; } Sound.play('open'); return; } }
     // 바닥 걷기
     if (y > officeData.wallH + 6 && y < H - 2) { if (me.sit) { me.x = me.sit.desk ? me.sit.x : me.sit.x; me.y = me.sit.desk ? officeData.desk.y + 14 : me.sit.y + 4; me.sit = null; } me.walk = true; me.goSit = null; me.tx = Math.max(6, Math.min(W - 6, x)); me.ty = y; burst(x, y, '#ffe08a', 4, 12); }
   }
@@ -693,10 +697,11 @@ const Scene = (() => {
     enterArena() { arena = true; saved = { x: reaper.x, y: reaper.y }; arenaC = bakeArena(); reaper.x = W / 2; reaper.y = Math.round(H * 0.86); reaper.manual = null; reaper.target = null; if (pet) { pet.x = reaper.x - 16; pet.y = reaper.y; } parts = []; fade = 1; camX = 0; camY = 0; },
     exitArena() { if (!arena) return; arena = false; if (saved) { reaper.x = saved.x; reaper.y = saved.y; } reaper.st = 'idle'; reaper.dir = 'down'; wraith = null; follow = true; camX = reaper.x - W / 2; camY = reaper.y - H / 2; },
     inArena: () => arena || office,
-    enterOffice(t) { office = true; officeTier = Math.max(0, Math.min(8, t)); officeData = bakeOffice(officeTier, W, H); fade = 1; parts = [];
+    enterOffice(t, v) { office = true; visit = v || null; officeTier = Math.max(0, Math.min(8, t)); officeData = bakeOffice(officeTier, W, H); fade = 1; parts = [];
       staff = officeData.seats.map((p, k) => ({ x: p.x, y: p.y, sx: p.x, sy: p.y, ft: rnd(0, 3), t: rnd(2, 8), walk: false, dir: 'up', judge: officeTier >= 5 && k < 2 }));
-      { const ch = seatSpots().find(q => q.atDesk || q.desk); me = { x: officeData.desk.x, y: officeData.desk.y + 16, ft: 0, walk: false, dir: 'down', face: 1, sit: ch }; } edit = false; ghost = null; },
-    exitOffice() { office = false; follow = true; edit = false; ghost = null; },
+      { const ch = visit ? null : seatSpots().find(q => q.atDesk || q.desk); me = { x: officeData.desk.x, y: visit ? H - 26 : officeData.desk.y + 16, ft: 0, walk: false, dir: 'up', face: 1, sit: ch }; } edit = false; ghost = null; },
+    exitOffice() { office = false; follow = true; edit = false; ghost = null; visit = null; },
+    inVisit: () => !!visit,
     officeDragAt(cx, cy, id) { const r = cv.getBoundingClientRect(); if (!office || !edit || cx < r.left || cx > r.right || cy < r.top || cy > r.bottom || document.elementFromPoint(cx, cy) !== cv) { hover = null; return null; } const x = (cx - r.left) / S, y = (cy - r.top) / S, c = cellAt(id, x, y); ghost = id; hover = { gx: c.gx, gy: c.gy }; return { gx: c.gx, gy: c.gy, ok: decoFits(id, c.gx, c.gy) }; },
     officeDragEnd() { ghost = null; hover = null; },
     officePend(id, gx, gy, from) { pend = { id, gx, gy, from: from == null ? null : from }; ghost = null; hover = null; },

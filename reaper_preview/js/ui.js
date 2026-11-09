@@ -13,7 +13,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function init() {
     Game.load();
-    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => Decor.ensure().placed.filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => (visiting ? visiting.placed : Decor.ensure().placed).filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply(); if (S().kind) { Decor.grantRank(S().rank); Decor.grantStory(Math.max(-1, (S().story || {}).ch - 1)); }
@@ -423,20 +423,23 @@ const UI = (() => {
     if (!Scene.inOffice()) { Scene.enterOffice(S().rank); Sound.play('open'); }
     let bar = $('#office-bar'); if (!bar) { bar = document.createElement('div'); bar.id = 'office-bar'; $('#stage').appendChild(bar); }
     const N = Game.nextRank();
-    bar.innerHTML = `<div class="of-top"><button class="btn dark" id="of-out">◀ 나가기</button><div><b>${Scene.officeName(S().rank)}</b><small>${N ? `다음: ${Scene.officeName(S().rank + 1)} (Lv.${N.lv})` : '저승 최고의 집무실'}</small></div></div>`;
+    bar.innerHTML = `<div class="of-top"><button class="btn dark" id="of-out">◀ 나가기</button><div><b>${Scene.officeName(S().rank)}</b><small>${N ? `다음: ${Scene.officeName(S().rank + 1)} (Lv.${N.lv})` : '저승 최고의 집무실'}</small></div>${Board.online() ? `<button class="btn dark of-gb" id="of-gb">👍 ${S().officeLikes || 0} · 📜</button>` : ''}</div>`;
     let acts = $('#office-acts'); if (!acts) { acts = document.createElement('div'); acts.id = 'office-acts'; $('#stage').appendChild(acts); }
-    acts.innerHTML = `<div class="of-acts"><button id="of-docs"><span>📜</span>결재<i></i></button><button id="of-judge"><span>⚖️</span>망자 심판<i></i></button><button id="of-expe"><span>🚣</span>부하 파견<i></i></button><button id="of-deco"><span>🏮</span>꾸미기<i></i></button></div>`;
+    acts.innerHTML = `<div class="of-acts"><button id="of-docs"><span>📜</span>결재<i></i></button><button id="of-judge"><span>⚖️</span>망자 심판<i></i></button><button id="of-expe"><span>🚣</span>부하 파견<i></i></button><button id="of-deco"><span>🏮</span>꾸미기<i></i></button><button id="of-nb"><span>🏘️</span>놀러 가기<i></i></button></div>`;
     bar.classList.add('on'); acts.classList.add('on'); $('#side').style.display = 'none'; $('#stage').classList.add('in-office'); document.body.classList.add('in-office-t');
     bar.querySelector('#of-out').onclick = exitOffice;
+    const gb = bar.querySelector('#of-gb'); if (gb) gb.onclick = () => guestbookModal(Board.myId(), true);
     $('#of-docs').onclick = () => { claimDocs(); tutEv('docs'); };
     $('#of-judge').onclick = () => { judgeModal(); tutEv('judge'); };
     $('#of-expe').onclick = () => { openLife('expe'); tutEv('expe'); };
     $('#of-deco').onclick = () => decoStart();
+    $('#of-nb').onclick = () => neighborsModal();
+    Board.pushOffice();
     officeBar(); tutEv('office');
   }
   // 집무실 버튼의 숫자 갱신
   function officeBar() {
-    const bar = $('#office-bar'); if (!bar || !bar.classList.contains('on')) return;
+    const bar = $('#office-bar'); if (!bar || !bar.classList.contains('on') || visiting) return;
     const d = Life.docsCount(), j = Life.judgeLeft(), e = S().expe || [], ed = e.filter(x => Life.expeLeft(x) <= 0).length;
     const set = (q, txt, hot) => { const b = $(q); if (!b) return; b.querySelector('i').textContent = txt; b.classList.toggle('hot', hot); };
     const dn = Life.docsNext(); set('#of-docs', d ? d + '건' : `${Math.floor(dn / 3600)}:${String(Math.floor(dn % 3600 / 60)).padStart(2, '0')}`, d > 0);
@@ -444,7 +447,7 @@ const UI = (() => {
     set('#of-expe', ed ? '완료!' : `${e.length}/${Life.slots()}`, ed > 0 || e.length < Life.slots());
     set('#of-deco', `품격 ${Decor.score()}`, DECOR.some(d => Decor.spare(d.id) > 0) && Decor.ensure().placed.length < Decor.maxPlace());
   }
-  function exitOffice() { decoEnd(true); Scene.exitOffice(); const bar = $('#office-bar'); if (bar) bar.classList.remove('on'); $('#office-acts') && $('#office-acts').classList.remove('on'); $('#side').style.display = ''; $('#stage').classList.remove('in-office'); document.body.classList.remove('in-office-t'); Sound.play('open'); }
+  function exitOffice() { decoEnd(true); if (visiting) { visiting = null; } Scene.exitOffice(); const bar = $('#office-bar'); if (bar) bar.classList.remove('on'); $('#office-acts') && $('#office-acts').classList.remove('on'); $('#side').style.display = ''; $('#stage').classList.remove('in-office'); document.body.classList.remove('in-office-t'); Sound.play('open'); }
   // ---------- 순위 ----------
   const TIER = { 1: { name: '저승 제일 차사', icon: '👑', col: '#ffd34a' }, 2: { name: '명예의 차사', icon: '🥈', col: '#dfe8ff' }, 3: { name: '이름난 차사', icon: '🥉', col: '#ffb070' } };
   function applyPlace(p) {
@@ -470,7 +473,7 @@ const UI = (() => {
   }
   const rankIcon = (kind, rank) => { const k = 'rk' + kind + rank; return urls[k] || (urls[k] = toURL(SP.tinyReaper(kind || 'm', rank || 0, 'down', 'idle', 0), 2)); };
   function rankRow(r, place) {
-    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}</small></div><span class="rklv">Lv.${r.lv}</span></div>`;
+    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}</small></div><span class="rklv">Lv.${r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
   }
   async function rankModal() {
     const s = S(), mine = { name: '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true };
@@ -482,13 +485,63 @@ const UI = (() => {
       if (!r || !r.rows.length) { L.innerHTML = '<div class="rkload">아직 순위에 오른 차사가 없어요</div>'; return; }
       L.innerHTML = r.rows.map((x, i) => rankRow(x, i + 1)).join('') + (r.rows.some(x => x.me) ? '' : `<div class="rkgap">⋯</div>${rankRow(mine, r.my)}`);
       box.querySelector('h2').insertAdjacentHTML('afterend', `<div class="rkmy">내 순위 <b>${r.my}위</b></div>`);
+      L.querySelectorAll('[data-visit]').forEach(b => b.onclick = () => { closeModal(); visitOffice(b.dataset.visit); });
     } catch (e) { if (document.body.contains(L)) L.innerHTML = rankRow(mine, 0) + '<p class="note">순위를 불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</p>'; }
   }
   const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // ---------- 집무실 놀러 가기 ----------
+  let visiting = null;
+  const GB_PHRASES = ['멋진 집무실이네요! ✨', '품격이 남다르시네요 🏮', '의자가 너무 탐나요 🪑', '자주 놀러 올게요!', '결재 서류 대신 들고 왔어요 📜', '부하들이 참 부지런하네요', '염라대왕 되실 상이에요 👑', '꽃이 참 예뻐요 🌸', '차 한잔 마시고 갑니다 🍵', '다음 백귀야행 같이 해요 👻', '저승 최고의 집무실!', '구경 잘하고 갑니다 🙇'];
+  const ago = t => { const m = Math.floor((Date.now() - t) / 60000); return m < 1 ? '방금' : m < 60 ? m + '분 전' : m < 1440 ? Math.floor(m / 60) + '시간 전' : Math.floor(m / 1440) + '일 전'; };
+  async function neighborsModal(sortLikes) {
+    if (!Board.online()) { modal(`<h2>🏘️ 이웃 집무실</h2><p>다른 차사의 집무실은 claude.ai에서 <b>공유된 게임 페이지</b>를 열면 놀러 갈 수 있어요.<br><span class="mute">지금은 혼자 보는 화면이라 이웃이 없어요.</span></p><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
+    const box = modal(`<h2>🏘️ 이웃 집무실</h2><div class="ds-cats"><button data-nb="0" class="${sortLikes ? '' : 'on'}">최근 꾸민 곳</button><button data-nb="1" class="${sortLikes ? 'on' : ''}">👍 인기 집무실</button></div>
+      <p class="mute" style="font-size:10px">하루 3곳까지 처음 놀러 가면 옥 +5 (오늘 ${visitR().ids.length}/3)</p><div class="rklist" id="nb-list"><div class="rkload">불러오는 중…</div></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelectorAll('[data-nb]').forEach(b => b.onclick = () => { closeModal(); neighborsModal(b.dataset.nb === '1'); });
+    const L = box.querySelector('#nb-list');
+    try {
+      const rows = await Board.offices(!!sortLikes); if (!document.body.contains(L)) return;
+      if (!rows || !rows.length) { L.innerHTML = '<div class="rkload">아직 공개된 집무실이 없어요</div>'; return; }
+      L.innerHTML = rows.map(r => `<div class="rkrow ${r.me ? 'me' : ''}"><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me ? ' <em>나</em>' : ''}</b><small>${Scene.officeName(r.rank)} · 품격 ${r.score || 0} · 👍 ${r.likes || 0}</small></div>${r.me ? '' : `<button class="btn" data-visit="${esc(r.id)}">놀러 가기</button>`}</div>`).join('');
+      L.querySelectorAll('[data-visit]').forEach(b => b.onclick = () => { closeModal(); visitOffice(b.dataset.visit); });
+    } catch (e) { if (document.body.contains(L)) L.innerHTML = '<div class="rkload">불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</div>'; }
+  }
+  function visitR() { const d = new Date().toISOString().slice(0, 10); if (!S().visitR || S().visitR.day !== d) S().visitR = { day: d, ids: [] }; return S().visitR; }
+  async function visitOffice(id) {
+    toast('🏘️ 집무실로 가는 중…', 1200);
+    let o = null; try { o = await Board.office(id); } catch (e) {}
+    if (!o) { toast('집무실을 찾지 못했어요'); return; }
+    if (o.me) { if (!Scene.inOffice()) enterOffice(); return; }
+    if (Scene.inOffice()) { decoEnd(true); Scene.exitOffice(); }
+    visiting = o; Scene.enterOffice(o.rank, { kind: o.kind, rank: o.rank }); Sound.play('open');
+    if (sheetOpen()) closeSheet();
+    let bar = $('#office-bar'); if (!bar) { bar = document.createElement('div'); bar.id = 'office-bar'; $('#stage').appendChild(bar); }
+    let acts = $('#office-acts'); if (!acts) { acts = document.createElement('div'); acts.id = 'office-acts'; $('#stage').appendChild(acts); }
+    bar.innerHTML = `<div class="of-top"><button class="btn dark" id="of-out">◀ 돌아가기</button><div><b>${esc(o.name)}의 ${Scene.officeName(o.rank)}</b><small>${RANKS[Math.min(8, o.rank)].name} · 품격 ${o.score || 0} · ${Decor.title(o.score || 0)}</small></div></div>`;
+    acts.innerHTML = `<div class="of-acts v3"><button id="vs-like" class="${o.likedToday ? '' : 'hot'}"><span>👍</span>좋아요<i>${o.likes || 0}</i></button><button id="vs-gb"><span>📜</span>방명록<i>${o.notes.length}</i></button><button id="vs-nb"><span>🏘️</span>다른 집무실<i></i></button></div>`;
+    bar.classList.add('on'); acts.classList.add('on'); $('#side').style.display = 'none'; $('#stage').classList.add('in-office'); document.body.classList.add('in-office-t');
+    bar.querySelector('#of-out').onclick = exitOffice;
+    $('#vs-like').onclick = async () => { if (!visiting) return; if (visiting.likedToday) { toast('오늘은 이미 좋아요를 눌렀어요. 내일 또 눌러 주세요'); return; } if (await Board.like(visiting.id)) { visiting.likedToday = true; if (!visiting.liked) { visiting.likes = (visiting.likes || 0) + 1; visiting.liked = true; } Sound.play('promote'); Scene.burstAt(innerWidth / 2, 200, '#ff8ab0', 24); toast(`👍 ${visiting.name}님의 집무실에 좋아요!`); const b = $('#vs-like'); b.classList.remove('hot'); b.querySelector('i').textContent = visiting.likes; } };
+    $('#vs-gb').onclick = () => guestbookModal(visiting.id, false);
+    $('#vs-nb').onclick = () => neighborsModal();
+    // 방문 보상: 하루 3곳까지 처음 놀러 간 집무실마다 옥 +5
+    const R = visitR(); if (!R.ids.includes(o.id) && R.ids.length < 3) { R.ids.push(o.id); S().jade += 5; Game.save(); setTimeout(() => toast(`🎁 방문 보상 옥 +5 (오늘 ${R.ids.length}/3)`, 2600), 900); }
+    else setTimeout(() => toast(`${esc(o.name)}님의 집무실에 놀러 왔어요! 빈 의자에 앉아 볼 수 있어요`, 2600), 900);
+  }
+  async function guestbookModal(id, mine) {
+    const notes = visiting && visiting.id === id ? visiting.notes : await Board.guestbook(id);
+    const box = modal(`<h2>📜 방명록</h2>${mine ? `<p class="mute">내 집무실이 받은 좋아요 <b style="color:var(--gold)">👍 ${S().officeLikes || 0}</b></p>` : ''}
+      <div class="gb-list">${notes.length ? notes.map(n => `<div class="gb-row ${n.me ? 'me' : ''}"><b>${esc(n.name)}</b><span>${esc(GB_PHRASES[n.m] || '')}</span><small>${ago(n.at)}</small></div>`).join('') : '<div class="rkload">아직 방명록이 비어 있어요</div>'}</div>
+      ${mine ? '' : `<div class="sec" style="margin-top:8px">한마디 남기기</div><div class="gb-pick">${GB_PHRASES.map((t, i) => `<button data-gb="${i}">${t}</button>`).join('')}</div>`}
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelectorAll('[data-gb]').forEach(b => b.onclick = async () => { await Board.note(id, +b.dataset.gb); Sound.play('buy'); toast('방명록을 남겼어요 ✍️'); if (visiting && visiting.id === id) { visiting.notes = await Board.guestbook(id); const g = $('#vs-gb i'); if (g) g.textContent = visiting.notes.length; } closeModal(); guestbookModal(id, false); });
+  }
+
   // ---------- 집무실 꾸미기 ----------
   let decoSel = null, decoMove = null;
   const decoThumb = (id, sc = 2) => { const k = 'dc' + id + sc; return urls[k] || (urls[k] = toURL(Decor.img(id), sc)); };
   function decoStart() {
+    if (visiting) return;
     if (!Scene.inOffice()) enterOffice();
     if (sheetOpen()) closeSheet();
     Scene.officeEdit(true); decoSel = null; decoMove = null;
@@ -496,7 +549,7 @@ const UI = (() => {
     let inv = $('#deco-inv'); if (!inv) { inv = document.createElement('div'); inv.id = 'deco-inv'; $('#stage').appendChild(inv); } inv.classList.add('on'); inv.classList.remove('min');
     db.classList.add('on'); $('#office-bar').classList.add('editing'); $('#stage').classList.add('deco-edit'); document.body.classList.add('deco-t'); decoBar();
   }
-  function decoEnd(silent) { const db = $('#deco-bar'); if (!db || !db.classList.contains('on')) return; db.classList.remove('on'); $('#deco-inv') && $('#deco-inv').classList.remove('on'); closePendPop(); $('#office-bar') && $('#office-bar').classList.remove('editing'); $('#stage').classList.remove('deco-edit'); document.body.classList.remove('deco-t'); Scene.officeEdit(false); decoSel = null; decoMove = null; if (!silent) { Sound.play('buy'); toast(`꾸미기 완료! 품격 ${Decor.score()} · ${Decor.title(Decor.score())} (수확량 +${Math.round((Decor.mul() - 1) * 100)}%)`, 3000); } officeBar(); }
+  function decoEnd(silent) { const db = $('#deco-bar'); if (!db || !db.classList.contains('on')) return; db.classList.remove('on'); $('#deco-inv') && $('#deco-inv').classList.remove('on'); closePendPop(); $('#office-bar') && $('#office-bar').classList.remove('editing'); $('#stage').classList.remove('deco-edit'); document.body.classList.remove('deco-t'); Scene.officeEdit(false); decoSel = null; decoMove = null; Board.pushOffice(); if (!silent) { Sound.play('buy'); toast(`꾸미기 완료! 품격 ${Decor.score()} · ${Decor.title(Decor.score())} (수확량 +${Math.round((Decor.mul() - 1) * 100)}%)`, 3000); } officeBar(); }
   let invCat = 'all', invPos = null;
   try { invPos = JSON.parse(localStorage.getItem('jeoseung_invpos') || 'null'); } catch (e) {}
   function invPlace(inv) { const st = $('#stage').getBoundingClientRect(), bar = $('#deco-bar'), barH = bar && bar.classList.contains('on') ? bar.offsetHeight : 0, pos = invPos || { x: 8, y: 8 }, w = inv.offsetWidth; const top = Math.max(0, Math.min(st.height - barH - 70, pos.y)); inv.style.left = Math.max(0, Math.min(st.width - w, pos.x)) + 'px'; inv.style.top = top + 'px'; inv.style.maxHeight = Math.max(70, Math.min(st.height * 0.32, st.height - barH - top - 8)) + 'px'; }
