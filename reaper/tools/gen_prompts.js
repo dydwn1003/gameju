@@ -63,21 +63,29 @@ const SOULS1 = [
   'warrior soul: blue soul flame wearing a tiny Joseon soldier helmet with a red tassel',
 ];
 const SOULS2 = [
-  'fisherman soul: teal soul flame with a straw hat',
-  'merchant soul: soul flame carrying a tiny money pouch',
+  'fisherman soul: teal soul flame wearing a straw satgat hat',
+  'merchant soul: soul flame with a tiny red money pouch at its side',
   'monk soul: soul flame with a tiny wooden prayer bead necklace',
-  'dancer soul: soul flame waving a tiny fan',
+  'dancer soul: pink soul flame waving a tiny folding fan',
   'drunk soul: red-cheeked soul flame holding a tiny makgeolli bowl',
-  'cat soul: soul flame with cat ears and whiskers',
-  'dog soul: soul flame with floppy dog ears',
-  'twin souls: two tiny soul flames holding hands',
-  'ancient soul: big purple soul flame with an old wise face and glowing aura',
+  'cat soul: mint soul flame with pointy cat ears',
+  'dog soul: soul flame with floppy brown dog ears',
+  'herbalist soul: mint soul flame with a small green leaf sprouting on its head',
+  'general soul: golden soul flame wearing a tiny golden war helmet with a red jewel',
 ];
-G('soul', '③ 혼령 (거두는 대상)', '1번 장의 1~4번이 게임 속 혼령 등급(파랑·초록·황금·붉음)이에요. 나머지는 나중에 혼령 도감에 써요.', [
+const SOULS3 = [
+  'gisaeng soul: pink soul flame with a golden binyeo hairpin',
+  'dokkaebi soul: mint soul flame with two small yellow horns, mischievous grin',
+  'dragon soul: golden soul flame with tiny dragon horns and long whiskers',
+  'primordial soul: large purple soul flame with an ancient wise face and a glowing aura',
+];
+G('soul', '③ 혼령 (거두는 대상)', '1번 장의 1~4번이 게임 속 혼령 등급(파랑·초록·황금·붉음)이에요. 나머지 18종은 혼령 도감에 들어가요.', [
   { file: 'souls_01.png', name: '혼령 1~9 (등급 4종 + 특별 혼령)', tags: ['게임에 바로 사용'],
     prompt: `9 different cute floating soul spirits (hon-bul, ghost flames of the dead) for a grim reaper game, each small and round with a flame-shaped tail, glowing pixel colors, adorable faces. ${STYLE} ${SHEET(9, 3, 3)}\n${list(SOULS1)}` },
   { file: 'souls_02.png', name: '혼령 10~18 (도감용)', attach: 'souls_01.png 결과 이미지 첨부',
     prompt: `Use the attached sprite sheet as the exact style, size and shape reference. Draw 9 NEW cute floating soul spirits in the same style. ${STYLE} ${SHEET(9, 3, 3)}\n${list(SOULS2)}` },
+  { file: 'souls_03.png', name: '혼령 19~22 (도감용)', attach: 'souls_01.png 결과 이미지 첨부',
+    prompt: `Use the attached sprite sheet as the exact style, size and shape reference. Draw 4 NEW cute floating soul spirits in the same style. ${STYLE} ${SHEET(4, 2, 2)}\n${list(SOULS3)}` },
 ]);
 
 const WRAITHS = [
@@ -126,6 +134,16 @@ G('fx', '⑦ 이펙트 (6프레임 띠)', '가로로 6칸이 이어진 애니메
   { file: 'fx_hit.png', name: '원귀 타격', prompt: `Effect: an impact hit spark, white and red slash cross with small talisman paper shreds flying, then fading. ${STRIP}` },
   { file: 'fx_banish.png', name: '원귀 퇴치 (사라짐)', prompt: `Effect: a ghost being purified, a white smoky spirit shape breaking into pale pink and white pixel particles that float upward and vanish. ${STRIP}` },
   { file: 'fx_promote.png', name: '승진 빛기둥', prompt: `Effect: a tall golden pillar of light rising from the ground with traditional Korean cloud swirl patterns and sparkles, then fading. Each cell is a tall effect. ${STRIP}` },
+]);
+
+const STAGES = 'stage 1: a tiny sprout in a small brown soil mound; stage 2: a short stem with leaves and a closed bud; stage 3: a taller plant with a half-open bud; stage 4: fully bloomed flower, glowing softly';
+G('life', '⑩ 생활 콘텐츠 (꽃밭·주막·파견)', '새로 추가한 꽃밭·주막·파견 화면에 쓰는 그림이에요.', [
+  { file: 'flowers.png', name: '저승 꽃 4종 × 자라는 4단계', note: '가로 줄 = 꽃 한 종류(망각초 · 저승 연꽃 · 혼불꽃 · 생사화), 왼쪽→오른쪽 = 자라는 단계',
+    prompt: `Growth stages of 4 different magical underworld flowers, each planted in the same small brown soil mound at the bottom of its cell. ${STYLE} ${SHEET(16, 4, 4)} Each ROW is one flower and each COLUMN is a growth stage (${STAGES}).\nRow 1: mang-gak-cho (forget-me grass), pale blue feathery flower\nRow 2: jeoseung lotus, pink lotus with a golden center\nRow 3: honbul flower, cyan flower whose petals look like small blue soul flames\nRow 4: saengsa-hwa (flower of life and death), crimson spider-like flower with a gold center` },
+  { file: 'tavern.png', name: '주막 탕약·소품 9종', note: '망각탕 · 연꽃차 · 혼불주 · 생사단 · 약탕기 · 씨앗 주머니 · 꽃바구니 · 빈 밭 · 잠긴 밭',
+    prompt: `${'Game UI icons, each a single bold readable object on its own, front view, thick dark outline, chunky pixels.'} ${STYLE} ${SHEET(9, 3, 3)}\n${list(['a blue celadon bowl of pale blue herbal soup with steam (forgetting soup)', 'a white porcelain teacup with pink lotus tea and a lotus petal', 'a small gourd bottle of glowing cyan soul liquor', 'a single shiny red-and-gold pill on a tiny dish (elixir)', 'a clay herbal medicine pot (yaktanggi) on a small charcoal brazier', 'a small cloth pouch of seeds tied with a red string', 'a woven bamboo basket full of colorful flowers', 'an empty tilled soil plot seen from above at an angle', 'a soil plot covered by a wooden board with a small padlock'])}` },
+  { file: 'expedition.png', name: '파견 순찰지 5곳 표지판', note: '이승 마을 · 서낭당 고갯길 · 삼도천 · 저승문 · 명부전 (아이콘 5개 + 빈칸 4개 무시)',
+    prompt: `${'Game UI icons, each a single bold readable object on its own, front view, thick dark outline, chunky pixels.'} ${STYLE} ${SHEET(9, 3, 3)}\n${list(['a tiny thatched-roof house with a lit window', 'a small sacred tree tied with five-colored cloth strips', 'a small wooden ferry boat on dark water', 'a small red hongsalmun gate', 'a tiny Korean palace hall with a curved tile roof', 'a tiny helper reaper walking with a lantern', 'a tiny helper reaper carrying a sack on its back', 'a rolled map scroll', 'a small wooden signpost'])}` },
 ]);
 
 const ICON = 'Game UI icons, each a single bold readable object on its own, front view, thick dark outline, chunky pixels.';

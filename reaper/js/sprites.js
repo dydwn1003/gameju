@@ -183,6 +183,49 @@ const SP = (() => {
     gear: ['...KK.....', '.K.vvK.K..', 'KvKvvKvvK.', '.KvvvvvK..', 'KvvKKKvvK.', 'KvvK.KvvK.', '.KvvKvvK..', 'KvKvvKvK..', '.K.KvK.K..', '...KK.....'],
     wraith: ['..KKKKK...', '.KAAAAAK..', 'KAAiiiAAK.', 'KAieKiAAK.', 'KAiiiiAAK.', 'KiiiiiiiK.', 'KiijiijiK.', '.KiiiiiK..', '..KjiijK..', '...KKKK...'],
   };
+  // ---------- 꽃밭 (16x16: 흙두둑 + 단계별 식물) ----------
+  const PLANT = [
+    ['..........', '..........', '..........', '..........', '..........', '..........', '...g..g...', '....gg....', '....G.....', '....G.....'],
+    ['..........', '..........', '....pP....', '....PP....', '....G.....', '..g.G.g...', '...gGg....', '....G.....', '....G.....', '....G.....'],
+    ['..........', '...pPPp...', '..pPPPPp..', '...PPPP...', '....G.....', '.gg.G.gg..', '..ggGgg...', '....G.....', '....G.....', '....G.....'],
+    ['..P...P...', '.PPP.PPP..', '..PPyPP...', '.PPyyyPP..', '..PPyPP...', '.PP.G.PP..', '..g.G.g...', '...gGg....', '....G.....', '....G.....'],
+  ];
+  const SOIL = ['................', '..nnnnnnnnnnnn..', '.nxnnxnnnxnnxnn.', 'nxxnxxnxnxxnxxnn', 'xxnxxxxnxxxnxxxx', '.xxxxxxxxxxxxxx.'];
+  function plantFrame(stage, pal) {
+    const parts = [[SOIL, 0, 10]];
+    if (stage >= 0) parts.push([PLANT[stage], 3, 1]);
+    return compose(16, 16, parts, Object.assign({ G: '#2f6a3a', g: '#5ec46a', n: '#6a4a2e', x: '#3e2a1a' }, pal));
+  }
+
+  // ---------- 특별 혼령 (도감, 10x11) ----------
+  const PAD = SOUL_BASE.map(r => '.' + r + '.'); while (PAD.length < 11) PAD.unshift('..........');
+  const SP_ACC = [
+    [5, 1, ['BB', 'B.']], // 아이: 댕기
+    [3, 9, ['iiii', '.ii.']], // 할아버지: 수염
+    [2, 0, ['..KK..', 'KKKKKK']], // 선비: 갓
+    [3, 0, ['y.y.', 'yByy']], // 신부: 족두리
+    [3, 0, ['.B..', 'KKKK']], // 군졸: 전립
+    [1, 1, ['..TTTT..', 'TTttTTTT']], // 어부: 삿갓
+    [8, 7, ['Bb', 'BB']], // 상인: 주머니
+    [2, 9, ['b.b.b.']], // 스님: 염주
+    [0, 4, ['P.', 'PP', 'P.']], // 무희: 부채
+    [8, 8, ['TT', '.T']], // 주정뱅이: 술잔
+    [2, 1, ['q....q', 'qq..qq']], // 고양이: 귀
+    [1, 4, ['n.......n', 'n.......n']], // 강아지: 귀
+    [4, 0, ['g.', 'gg']], // 약초꾼: 잎
+    [2, 0, ['.yyyy.', 'yyByyy']], // 장군: 투구
+    [6, 1, ['y', 'yB']], // 기생: 비녀
+    [2, 1, ['y....y', 'y....y']], // 도깨비: 뿔
+    [1, 2, ['y......y', '.y....y.']], // 용: 뿔·수염
+    [0, 0, []], // 태고: 큰 보랏빛
+  ];
+  const SP_PAL = [0, 0, 0, 3, 0, 1, 2, 0, 3, 3, 1, 0, 1, 2, 3, 1, 2, -1];
+  function specialFrame(i) {
+    const rows = SP_ACC[i][2].length ? patch(PAD, SP_ACC[i][0], SP_ACC[i][1], SP_ACC[i][2]) : PAD;
+    const pal = SP_PAL[i] < 0 ? { q: '#5a2a9a', Q: '#a070ff', z: '#eadcff' } : SOUL_PAL[SP_PAL[i]];
+    return bake(rows, Object.assign({}, pal, { n: '#d8c090' }));
+  }
+
   const cache = {};
   function get(key, fn) { return cache[key] || (cache[key] = fn()); }
   return {
@@ -190,6 +233,8 @@ const SP = (() => {
     LOOKS,
     soul: (tier, i) => get(`s${tier}${i}`, () => bake(SOUL[i % 3], SOUL_PAL[tier])),
     wraith: i => get(`w${i}`, () => bake(i % 2 ? WRAITH2 : WRAITH)),
+    plant: (stage, pal, key) => get(`p${key}${stage}`, () => plantFrame(stage, pal)),
+    special: i => get(`sp${i}`, () => specialFrame(i)),
     mini: (pose, i) => get(`m${pose}${i}`, () => miniFrame(pose, i)),
     lantern: (lit) => get(`l${lit}`, () => bake(LANTERN, lit === 2 ? { B: '#e8b030', c: '#9a6a10', o: '#fff0a0', q: '#c88a10', Q: '#ffd040' } : null)),
     jangseung: () => get('js', () => bake(JANGSEUNG, { E: '#c3313e' })),

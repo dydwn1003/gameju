@@ -175,3 +175,39 @@ img.px, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 .lad .lvreq { font-size: 11px; color: var(--mute); width: 48px; text-align: right; }
 .lad.done canvas { opacity: 0.55; }
 .pick canvas { width: 88px; height: 88px; }
+
+.buffs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+.buffs span { font-size: 10px; color: #ffe08a; background: rgba(60, 30, 10, 0.75); padding: 2px 5px; box-shadow: 0 0 0 1px var(--line); }
+.subtabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.subtabs button { position: relative; flex: 1; font-size: 12px; font-weight: 700; padding: 6px 0; background: #231e3c; color: var(--mute); box-shadow: 0 0 0 2px var(--line); }
+.subtabs button.on { background: var(--gold); color: #2a1606; }
+.subtabs .dot { left: auto; right: -3px; }
+.inv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px 4px; margin-bottom: 12px; text-align: center; }
+.inv div { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; min-width: 0; }
+.inv img { width: 28px; }
+.inv small { font-size: 9px; color: var(--mute); }
+.plots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.plot { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; min-width: 0; }
+.plot img { width: 64px; height: 64px; }
+.plot small { font-size: 11px; }
+.plot .btn { padding: 4px 10px 5px; font-size: 12px; }
+.plot.ready { box-shadow: 0 -2px 0 0 var(--line), 0 2px 0 0 var(--line), -2px 0 0 0 var(--line), 2px 0 0 0 var(--line), inset 0 0 0 2px var(--gold); }
+.plot.locked { opacity: 0.8; }
+.plot .lock { font-size: 26px; height: 64px; display: grid; place-items: center; filter: grayscale(1); }
+.mute { color: var(--mute); }
+.buffbox { padding: 10px; margin-bottom: 12px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+.buffbox b { color: var(--gold); }
+.need { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.need span { font-size: 10px; color: #ff8a9a; display: inline-flex; align-items: center; gap: 2px; }
+.need span.ok { color: var(--jade); }
+.need img { width: 14px; }
+.dex { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.dex > div { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; font-size: 11px; text-align: center; min-width: 0; }
+.dex img { width: 40px; }
+.dex small { font-size: 9px; color: var(--mute); }
+.dex .unk b { color: var(--mute); }
+.seedpick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.seedpick button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; font-size: 12px; }
+.seedpick img { width: 36px; }
+.seedpick small { font-size: 10px; color: var(--mute); }
+#tabs button { font-size: 10px; }

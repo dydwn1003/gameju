@@ -14,7 +14,7 @@ const REGIONS = [
 
 const Scene = (() => {
   let cv, g, W = 130, H = 150, S = 3, GY = 90, bg = null, region = 0, kind = 'm', rank = 0;
-  let hooks = {}, cfg = { spawn: 2, maxSouls: 6, walk: 20, reap: 0.8, minions: 0, mWalk: 12, mReap: 1.4, roll: () => 0, speed: 1 };
+  let hooks = {}, cfg = { spawn: 2, maxSouls: 6, walk: 20, reap: 0.8, minions: 0, mWalk: 12, mReap: 1.4, roll: () => ({ tier: 0, sp: -1 }), speed: 1 };
   const reaper = { x: 60, y: 120, st: 'idle', t: 0, f: 0, face: 1, target: null };
   let minions = [], souls = [], parts = [], flies = [], wraith = null, spawnT = 0, time = 0, stars = [], lanterns = [], shake = 0;
   const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]].map(r => r.map(v => (v + 0.5) / 16));
@@ -246,8 +246,8 @@ const Scene = (() => {
   }
   const clampFeet = y => Math.max(GY + 14, Math.min(H - 3, y));
   function spawnSoul() {
-    const tier = cfg.roll();
-    souls.push({ x: rnd(10, W - 10), y: 0, by: rnd(GY - 8, GY + (H - GY) * 0.5), tier, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0 });
+    const r = cfg.roll();
+    souls.push({ x: rnd(10, W - 10), y: 0, by: rnd(GY - 8, GY + (H - GY) * 0.5), tier: r.tier, sp: r.sp, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0 });
   }
   function pickSoul(who) {
     let best = null, bd = 1e9;
@@ -379,8 +379,8 @@ const Scene = (() => {
     for (const s of souls) if (s.st === 'float') { g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(Math.round(s.x - 2), Math.round(clampFeet(s.by + 17) - 1), 4, 1); }
     list.forEach(drawUnit);
     for (const s of souls) {
-      const img = SP.soul(s.tier, Math.floor(time * 6 + s.ph) % 3);
-      glow(s.x, s.y, s.tier ? 7 : 5, SP.SOUL_PAL[s.tier].Q, 0.25 * s.a);
+      const img = s.sp >= 0 ? SP.special(s.sp) : SP.soul(s.tier, Math.floor(time * 6 + s.ph) % 3);
+      glow(s.x, s.y, s.sp >= 0 ? 9 : s.tier ? 7 : 5, s.sp >= 0 ? '#e0a0ff' : SP.SOUL_PAL[s.tier].Q, (s.sp >= 0 ? 0.4 : 0.25) * s.a);
       g.globalAlpha = s.a;
       const sc = s.scale || 1;
       if (sc < 1) g.drawImage(img, Math.round(s.x - img.width * sc / 2), Math.round(s.y - img.height * sc / 2), Math.round(img.width * sc), Math.round(img.height * sc));

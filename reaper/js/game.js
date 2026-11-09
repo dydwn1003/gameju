@@ -2,14 +2,14 @@
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 3, lv: 80, hp: 17000, region: 0 },
-  { name: '차사', mult: 9, lv: 240, hp: 6.5e06, region: 1 },
-  { name: '선임 차사', mult: 27, lv: 320, hp: 2.4e08, region: 1 },
-  { name: '차사장', mult: 80, lv: 360, hp: 2e09, region: 2 },
-  { name: '판관', mult: 240, lv: 390, hp: 1.5e10, region: 2 },
-  { name: '명부 판관', mult: 720, lv: 420, hp: 5.3e10, region: 3 },
-  { name: '시왕', mult: 2200, lv: 450, hp: 3.8e11, region: 4 },
-  { name: '염라대왕', mult: 6500, lv: 480, hp: 2.7e12, region: 4 },
+  { name: '말단 차사', mult: 3, lv: 95, hp: 21000, region: 0 },
+  { name: '차사', mult: 9, lv: 300, hp: 3e07, region: 1 },
+  { name: '선임 차사', mult: 27, lv: 360, hp: 6.5e08, region: 1 },
+  { name: '차사장', mult: 80, lv: 400, hp: 5.2e09, region: 2 },
+  { name: '판관', mult: 240, lv: 440, hp: 3.9e10, region: 2 },
+  { name: '명부 판관', mult: 720, lv: 470, hp: 2.8e11, region: 3 },
+  { name: '시왕', mult: 2200, lv: 500, hp: 2e12, region: 4 },
+  { name: '염라대왕', mult: 6500, lv: 530, hp: 6.9e12, region: 4 },
 ];
 const UPGRADES = [
   { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.12, max: 999 },
@@ -56,11 +56,11 @@ const Game = (() => {
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
   const penMul = L => (1 + L * 0.45) * Math.pow(2, Math.floor(L / 25));
-  const valueBase = () => penMul(lv('pen')) * RANKS[S.rank].mult * rebornMult() * (S.perm2 ? 2 : 1);
+  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * RANKS[S.rank].mult * rebornMult() * (S.perm2 ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
-  const value = () => valueBase() * (boosting() ? 2 : 1);
-  const walk = () => 18 + lv('step') * 2.2;
-  const spawn = () => Math.max(0.3, 2.4 * Math.pow(0.93, lv('call')));
+  const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1);
+  const walk = () => (18 + lv('step') * 2.2) * Life.mul('spawn');
+  const spawn = () => Math.max(0.3, 2.4 * Math.pow(0.93, lv('call'))) / Life.mul('spawn');
   const reap = () => Math.max(0.18, 0.9 * Math.pow(0.93, lv('hand')));
   const minions = () => lv('minion');
   const mWalk = () => Math.min(36, 11 * (1 + lv('drill') * 0.05));
@@ -90,8 +90,8 @@ const Game = (() => {
     return coll * v * ((1 - shareM) + shareM * scale);
   }
   const tapValue = () => value() * 1.5;
-  const wraithDps = () => incomePerSec() + value() * 2;
-  const tapDmg = () => value() * 3 + incomePerSec() * 0.15;
+  const wraithDps = () => (incomePerSec() + value() * 2) * Life.mul('fight');
+  const tapDmg = () => (value() * 3 + incomePerSec() * 0.15) * Life.mul('fight');
 
   // 업그레이드 효과 표기 (레벨 L 기준)
   function eff(id, L) {
@@ -149,7 +149,8 @@ const Game = (() => {
 
   // ---------- 획득 ----------
   function gain(n) { S.souls += n; S.total += n; }
-  function collect(tier, who) {
+  function roll() { const sp = Life.rollSpecial(RANKS[S.rank].region, lv('luck')); return sp >= 0 ? { tier: 2, sp } : { tier: rollTier(), sp: -1 }; }
+  function collect(tier, who, sp) {
     let v = value() * TIER_MULT[tier];
     if (who === 'minion') { const vis = Math.min(5, minions()); v *= (minions() / Math.max(1, vis)) * drillMul(); }
     if (who === 'tap') { v = tapValue() * TIER_MULT[tier]; S.stats.tap++; }
@@ -158,7 +159,7 @@ const Game = (() => {
   function addBoost(min) { S.boostUntil = Math.max(Date.now(), S.boostUntil) + min * 60000; S.boostUntil = Math.min(S.boostUntil, Date.now() + 180 * 60000); apply(); save(); }
 
   function apply() {
-    Scene.config({ spawn: spawn(), walk: walk(), reap: reap(), minions: minions(), mWalk: mWalk(), mReap: mReap(), roll: rollTier, maxSouls: 6 + Math.min(6, Math.floor(lv('call') / 5)), speed: boosting() ? 1.3 : 1 });
+    Scene.config({ spawn: spawn(), walk: walk(), reap: reap(), minions: minions(), mWalk: mWalk(), mReap: mReap(), roll, maxSouls: 6 + Math.min(6, Math.floor(lv('call') / 5)), speed: boosting() ? 1.3 : 1 });
     Scene.setRegion(RANKS[S.rank].region);
     if (S.kind) Scene.setKind(S.kind);
     Scene.setRank(S.rank);
@@ -212,6 +213,7 @@ const Game = (() => {
   function load() {
     try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
     if (!S) S = fresh();
+    Life.ensure();
   }
   // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 60%)
   function offline() {
@@ -221,7 +223,7 @@ const Game = (() => {
     const amt = incomePerSec(true) * secs * 0.6;
     return { away, secs, amt, capped: away > secs };
   }
-  function reset() { localStorage.removeItem(KEY); S = fresh(); apply(); }
+  function reset() { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); Life.ensure(); apply(); }
 
   return {
     get S() { return S; }, lv, load, save, apply, reset,
