@@ -20,13 +20,36 @@ const EXPEDITIONS = [
   { id: 'e4', name: '명부전 심부름', rank: 7, hrs: 12, minion: 15, seed: { saengsa: 2 }, hours: 3, jade: 20, dex: 1 },
 ];
 const SPECIALS = [
-  ['아이 혼', '댕기를 맨 꼬마 혼령', 0], ['할아버지 혼', '하얀 수염의 혼령', 0], ['선비 혼', '갓을 쓴 글공부 혼령', 0], ['신부 혼', '족두리를 쓴 혼령', 0],
-  ['군졸 혼', '전립을 쓴 병사 혼령', 1], ['어부 혼', '삿갓 쓴 뱃사람 혼령', 1], ['상인 혼', '돈주머니를 찬 혼령', 1], ['스님 혼', '염주를 건 혼령', 1],
-  ['무희 혼', '부채를 든 춤꾼 혼령', 2], ['주정뱅이 혼', '술잔을 든 혼령', 2], ['고양이 혼', '귀가 쫑긋한 혼령', 2], ['강아지 혼', '귀가 늘어진 혼령', 2],
-  ['약초꾼 혼', '머리에 잎이 난 혼령', 3], ['장군 혼', '금빛 투구의 혼령', 3], ['기생 혼', '비녀를 꽂은 혼령', 3],
-  ['도깨비 혼', '뿔 달린 장난꾸러기 혼령', 4], ['용의 혼', '용의 뿔이 난 혼령', 4], ['태고의 혼', '아주 오래된 보랏빛 혼령', 4],
+  ['아이 혼', '댕기를 맨 꼬마 혼령', 0], ['할아버지 혼', '하얀 수염의 혼령', 0], ['선비 혼', '갓을 쓴 글공부 혼령', 1], ['신부 혼', '족두리를 쓴 혼령', 1],
+  ['군졸 혼', '전립을 쓴 병사 혼령', 2], ['어부 혼', '삿갓 쓴 뱃사람 혼령', 4], ['상인 혼', '돈주머니를 찬 혼령', 1], ['스님 혼', '염주를 건 혼령', 2],
+  ['무희 혼', '부채를 든 춤꾼 혼령', 3], ['주정뱅이 혼', '술잔을 든 혼령', 1], ['고양이 혼', '귀가 쫑긋한 혼령', 0], ['강아지 혼', '귀가 늘어진 혼령', 3],
+  ['약초꾼 혼', '머리에 잎이 난 혼령', 5], ['장군 혼', '금빛 투구의 혼령', 6], ['기생 혼', '비녀를 꽂은 혼령', 5],
+  ['도깨비 혼', '뿔 달린 장난꾸러기 혼령', 7], ['용의 혼', '용의 뿔이 난 혼령', 8], ['태고의 혼', '아주 오래된 보랏빛 혼령', 8],
 ].map(([name, desc, region], i) => ({ i, name, desc, region }));
 const PLOT_COST = [0, 0, 0, 100, 200, 400]; // 옥으로 여는 밭
+// 일일 의뢰 (게시판): 하루 4개, 모두 끝내면 보너스
+const QUEST_POOL = [
+  { id: 'soul', name: '혼 거두기', need: [150, 300, 500], jade: 15 },
+  { id: 'tap', name: '혼령을 직접 터치해서 거두기', need: [20, 40], jade: 15 },
+  { id: 'wraith', name: '원귀 퇴치하기', need: [2, 3], jade: 20 },
+  { id: 'harvest', name: '꽃밭에서 꽃 수확하기', need: [2, 3], jade: 20 },
+  { id: 'brew', name: '주막에서 탕약 달이기', need: [1, 2], jade: 20 },
+  { id: 'send', name: '졸개 파견 보내기', need: [1, 2], jade: 20 },
+  { id: 'buy', name: '수련 올리기', need: [15, 30], jade: 15 },
+  { id: 'ad', name: '2배 부적 쓰기', need: [1], jade: 25 },
+];
+const QUEST_BONUS = 60;
+// 도깨비 상인 (가끔 노점에 들름)
+const MERCHANT_POOL = [
+  { id: 'm_honbul', name: '혼불꽃 씨앗 ×2', jade: 35, seed: { honbul: 2 } },
+  { id: 'm_saengsa', name: '생사화 씨앗 ×1', jade: 50, seed: { saengsa: 1 } },
+  { id: 'm_mang', name: '망각초 씨앗 ×5', soul: 200, seed: { mang: 5 } },
+  { id: 'm_lotus', name: '저승 연꽃 씨앗 ×3', soul: 900, seed: { lotus: 3 } },
+  { id: 'm_time', name: '3시간치 혼 보따리', jade: 60, hours: 3 },
+  { id: 'm_jade', name: '옥 15개', soul: 1500, jadeGet: 15 },
+  { id: 'm_honju', name: '혼불주 한 병 (60분 화력 ×3)', jade: 40, buff: ['fight', 60] },
+  { id: 'm_mangtang', name: '망각탕 한 사발 (30분 수확 +50%)', soul: 600, buff: ['value', 30] },
+];
 
 const Life = (() => {
   const S = () => Game.S;
@@ -41,6 +64,54 @@ const Life = (() => {
     s.buffs = s.buffs || {};
     s.expe = s.expe || [];
     s.dex = s.dex || {};
+    s.merchant = s.merchant || { next: now() + 3 * 60e3, until: 0, offers: [], bought: [] };
+    questDay();
+  }
+
+  // ---------- 일일 의뢰 ----------
+  function questDay() {
+    const s = S(), day = new Date().toISOString().slice(0, 10);
+    if (s.quest && s.quest.day === day) return;
+    let seed = [...day].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0;
+    const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const pool = QUEST_POOL.slice(), list = [];
+    while (list.length < 4) { const q = pool.splice(Math.floor(r() * pool.length), 1)[0]; list.push({ id: q.id, need: q.need[Math.floor(r() * q.need.length)], have: 0, claimed: false }); }
+    s.quest = { day, list, bonus: false };
+  }
+  function qEvent(id, n = 1) {
+    const s = S(); if (!s || !s.quest) return; questDay();
+    s.quest.list.forEach(q => { if (q.id === id && q.have < q.need) q.have = Math.min(q.need, q.have + n); });
+  }
+  function qClaim(i) {
+    const s = S(), q = s.quest.list[i]; if (!q || q.claimed || q.have < q.need) return 0;
+    const P = QUEST_POOL.find(x => x.id === q.id); q.claimed = true; s.jade += P.jade; Game.save(); return P.jade;
+  }
+  function qBonus() { const s = S(); if (s.quest.bonus || !s.quest.list.every(q => q.claimed)) return 0; s.quest.bonus = true; s.jade += QUEST_BONUS; Game.save(); return QUEST_BONUS; }
+  const qReady = () => { const s = S(); return !!(s && s.quest) && (s.quest.list.some(q => !q.claimed && q.have >= q.need) || (!s.quest.bonus && s.quest.list.every(q => q.claimed))); };
+
+  // ---------- 도깨비 상인 ----------
+  function merchantTick() {
+    const m = S().merchant, t = now();
+    if (t >= m.next && t >= m.until) {
+      const pool = MERCHANT_POOL.slice(); m.offers = [];
+      while (m.offers.length < 3) m.offers.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0].id);
+      m.until = t + 5 * 60e3; m.next = m.until + (15 + Math.random() * 10) * 60e3; m.bought = []; Game.save();
+      return 'arrive';
+    }
+    return null;
+  }
+  const merchantHere = () => { const m = S() && S().merchant; return !!m && now() < m.until; };
+  const offerPrice = o => o.jade ? { jade: o.jade } : { soul: Math.max(100, Math.ceil(Game.incomePerSec(true) * o.soul)) };
+  function merchantBuy(id) {
+    const s = S(), m = s.merchant, o = MERCHANT_POOL.find(x => x.id === id);
+    if (!merchantHere() || m.bought.includes(id)) return false;
+    const pr = offerPrice(o);
+    if (pr.jade) { if (s.jade < pr.jade) return false; s.jade -= pr.jade; } else { if (s.souls < pr.soul) return false; s.souls -= pr.soul; }
+    if (o.seed) Object.entries(o.seed).forEach(([k, v]) => (s.seeds[k] = (s.seeds[k] || 0) + v));
+    if (o.hours) Game.gain(Game.incomePerSec(true) * 3600 * o.hours);
+    if (o.jadeGet) s.jade += o.jadeGet;
+    if (o.buff) s.buffs[o.buff[0]] = Math.min(now() + 4 * 3600e3, Math.max(now(), s.buffs[o.buff[0]] || 0) + o.buff[1] * 60e3);
+    m.bought.push(id); Game.apply(); Game.save(); return true;
   }
   const F = id => FLOWERS.find(f => f.id === id);
 
@@ -127,5 +198,5 @@ const Life = (() => {
       brew: RECIPES.some(canBrew),
     };
   }
-  return { ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
+  return { qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
 })();

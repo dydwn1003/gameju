@@ -2,14 +2,14 @@
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 3, lv: 95, hp: 21000, region: 0 },
-  { name: '차사', mult: 9, lv: 300, hp: 3e07, region: 1 },
-  { name: '선임 차사', mult: 27, lv: 360, hp: 6.5e08, region: 1 },
-  { name: '차사장', mult: 80, lv: 400, hp: 5.2e09, region: 2 },
-  { name: '판관', mult: 240, lv: 440, hp: 3.9e10, region: 2 },
-  { name: '명부 판관', mult: 720, lv: 470, hp: 2.8e11, region: 3 },
-  { name: '시왕', mult: 2200, lv: 500, hp: 2e12, region: 4 },
-  { name: '염라대왕', mult: 6500, lv: 530, hp: 6.9e12, region: 4 },
+  { name: '말단 차사', mult: 3, lv: 95, hp: 21000, region: 1 },
+  { name: '차사', mult: 9, lv: 300, hp: 3e07, region: 2 },
+  { name: '선임 차사', mult: 27, lv: 360, hp: 6.5e08, region: 3 },
+  { name: '차사장', mult: 80, lv: 400, hp: 5.2e09, region: 4 },
+  { name: '판관', mult: 240, lv: 440, hp: 3.9e10, region: 5 },
+  { name: '명부 판관', mult: 720, lv: 470, hp: 2.8e11, region: 6 },
+  { name: '시왕', mult: 2200, lv: 500, hp: 2e12, region: 7 },
+  { name: '염라대왕', mult: 6500, lv: 530, hp: 6.9e12, region: 8 },
 ];
 const UPGRADES = [
   { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.12, max: 999 },

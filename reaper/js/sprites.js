@@ -226,6 +226,16 @@ const SP = (() => {
     return bake(rows, Object.assign({}, pal, { n: '#d8c090' }));
   }
 
+  // ---------- 주민 · 동물 ----------
+  const NPC = {
+    jumo: { rows: mirror(['..KKK', '.KAAA', '.KAaA', 'KAAAA', 'KASSS', 'KASES', '.KSPS', '..KKK', '.KWWW', 'KWWBB', 'KSKUU', '.KUWW', '.KUWW', 'KUUWW', 'KKKKK']), pal: { U: '#8a3a3a', W: '#efe6d8' } },
+    elder: { rows: mirror(['.....', '..KKK', '.KiSS', '.KiSS', '.KSES', '.KSSS', '..Kii', '..Kii', '.KjjW', 'KjjjW', 'KSKjj', '.Kjjj', '.Kjjj', '.Kjjj', '.KKKK']), pal: { j: '#8a8aa0', i: '#f0f0f0' }, cane: 1 },
+    gob: { rows: mirror(['.y...', '.yK..', '.KOOO', 'KOOOO', 'KOEOO', 'KOOwO', '.KOOO', '..KKK', '.KBBB', 'KBBcB', 'KOKBB', '.KTTT', '.KTTT', '.KTTT', '.KKKK']), pal: { O: '#5ec46a', B: '#3a6ab0', c: '#24447a', T: '#c8a060', w: '#ffffff', E: '#1a1024' } },
+    boat: { rows: mirror(['.KKKK', 'KTTTT', 'KtTTT', '..KKK', '..KSS', '..KSE', '...KK', '..KRR', '.KRRR', '.KSRR', '..KRR', '..KRR', '..KRR', '..KRR', '..KKK']), pal: { R: '#3a4a5a', T: '#c8a860', t: '#9a7a40' } },
+  };
+  const CAT = [['.K..K...', 'KAKKAK..', 'KAEAEK..', 'KAAAAKK.', '.KAAAAAK', '.KKKKKK.'], ['.K..K...', 'KAKKAK..', 'KAKAKK..', 'KAAAAK.K', '.KAAAAAK', '.KKKKKK.']];
+  const CROW = [['..KK..', '.KKEK.', 'KKKKKy', '.KKK..', '..y...'], ['K....K', 'KK..KK', '.KKKK.', '..KEKy', '..KK..']];
+
   const cache = {};
   function get(key, fn) { return cache[key] || (cache[key] = fn()); }
   return {
@@ -235,6 +245,9 @@ const SP = (() => {
     wraith: i => get(`w${i}`, () => bake(i % 2 ? WRAITH2 : WRAITH)),
     plant: (stage, pal, key) => get(`p${key}${stage}`, () => plantFrame(stage, pal)),
     special: i => get(`sp${i}`, () => specialFrame(i)),
+    npc: name => get(`n${name}`, () => { const N = NPC[name]; return compose(12, 16, [[N.rows, 1, 1]].concat(N.cane ? [[['K', 'n', 'n', 'n', 'n', 'n', 'n'], 11, 8]] : []), N.pal); }),
+    cat: i => get(`cat${i}`, () => bake(CAT[i % 2], { A: '#3a3a4a', E: '#ffd34a' })),
+    crow: i => get(`crow${i}`, () => bake(CROW[i % 2], { E: '#ff5a5a' })),
     mini: (pose, i) => get(`m${pose}${i}`, () => miniFrame(pose, i)),
     lantern: (lit) => get(`l${lit}`, () => bake(LANTERN, lit === 2 ? { B: '#e8b030', c: '#9a6a10', o: '#fff0a0', q: '#c88a10', Q: '#ffd040' } : null)),
     jangseung: () => get('js', () => bake(JANGSEUNG, { E: '#c3313e' })),
