@@ -2,24 +2,24 @@
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 3, lv: 95, hp: 21000, region: 1 },
-  { name: '차사', mult: 9, lv: 300, hp: 3e07, region: 2 },
-  { name: '선임 차사', mult: 27, lv: 360, hp: 6.5e08, region: 3 },
-  { name: '차사장', mult: 80, lv: 400, hp: 5.2e09, region: 4 },
-  { name: '판관', mult: 240, lv: 440, hp: 3.9e10, region: 5 },
-  { name: '명부 판관', mult: 720, lv: 470, hp: 2.8e11, region: 6 },
-  { name: '시왕', mult: 2200, lv: 500, hp: 2e12, region: 7 },
-  { name: '염라대왕', mult: 6500, lv: 530, hp: 6.9e12, region: 8 },
+  { name: '말단 차사', mult: 3, lv: 65, hp: 19000, region: 1 },
+  { name: '차사', mult: 9, lv: 300, hp: 9.7e07, region: 2 },
+  { name: '선임 차사', mult: 27, lv: 365, hp: 2.2e09, region: 3 },
+  { name: '차사장', mult: 80, lv: 405, hp: 1.7e10, region: 4 },
+  { name: '판관', mult: 240, lv: 440, hp: 1.3e11, region: 5 },
+  { name: '명부 판관', mult: 720, lv: 475, hp: 9.5e11, region: 6 },
+  { name: '시왕', mult: 2200, lv: 505, hp: 6.7e12, region: 7 },
+  { name: '염라대왕', mult: 6500, lv: 535, hp: 2.3e13, region: 8 },
 ];
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.12, max: 999 },
-  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 20, grow: 1.32, max: 30 },
-  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 35, grow: 1.36, max: 35 },
-  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '혼을 거두는 시간 단축', base: 30, grow: 1.34, max: 30 },
-  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 250, grow: 1.55, max: 25 },
-  { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 120, grow: 2.1, max: 20 },
-  { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 300, grow: 1.3, max: 999 },
-  { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 400, grow: 2.4, max: 10 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 25, grow: 1.12, max: 999 },
+  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 60, grow: 1.32, max: 30 },
+  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 100, grow: 1.36, max: 35 },
+  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 90, grow: 1.34, max: 30 },
+  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.55, max: 25 },
+  { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, max: 20 },
+  { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.3, max: 999 },
+  { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 2.4, max: 10 },
 ];
 const TIER_MULT = [1, 3, 10, 30];
 const TIER_NAME = ['떠도는 혼', '맑은 혼', '황금 혼', '원한 서린 혼'];
@@ -60,7 +60,7 @@ const Game = (() => {
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1);
   const walk = () => (18 + lv('step') * 2.2) * Life.mul('spawn') * Pets.mul('walk');
-  const spawn = () => Math.max(0.3, 2.4 * Math.pow(0.93, lv('call'))) / Life.mul('spawn');
+  const spawn = () => Math.max(0.1, 0.7 * Math.pow(0.93, lv('call'))) / Life.mul('spawn');
   const reap = () => Math.max(0.12, 0.9 * Math.pow(0.93, lv('hand')) / Pets.mul('reap'));
   const minions = () => lv('minion');
   const mWalk = () => Math.min(36, 11 * (1 + lv('drill') * 0.05));
@@ -87,7 +87,8 @@ const Game = (() => {
     const shareM = vis ? (vis * mr) / (main + vis * mr) : 0;
     const scale = vis ? (minions() / vis) * drillMul() : 0;
     const v = (noBoost ? valueBase() : value()) * avgTier();
-    return coll * v * ((1 - shareM) + shareM * scale);
+    const group = 1.25 + 1.5 * (1 - Math.exp(-lv('hand') / 8)); // 주변 혼령 함께 거두기
+    return coll * v * ((1 - shareM) + shareM * scale) * group;
   }
   const tapValue = () => value() * 1.5;
   const wraithDps = () => (incomePerSec() + value() * 2) * Life.mul('fight');
@@ -159,7 +160,7 @@ const Game = (() => {
   function addBoost(min) { S.boostUntil = Math.max(Date.now(), S.boostUntil) + min * 60000; S.boostUntil = Math.min(S.boostUntil, Date.now() + 180 * 60000); apply(); save(); }
 
   function apply() {
-    Scene.config({ spawn: spawn(), walk: walk(), reap: reap(), minions: minions(), mWalk: mWalk(), mReap: mReap(), roll, maxSouls: 6 + Math.min(6, Math.floor(lv('call') / 5)), speed: boosting() ? 1.3 : 1 });
+    Scene.config({ spawn: spawn(), walk: walk(), reap: reap(), minions: minions(), mWalk: mWalk(), mReap: mReap(), roll, maxSouls: 18 + Math.min(18, Math.floor(lv('call') / 2)), reapR: Math.min(26, 14 + lv('hand') * 0.4), reapMax: 3 + Math.floor(lv('hand') / 6), speed: boosting() ? 1.3 : 1 });
     Scene.setRegion(RANKS[S.rank].region);
     if (S.kind) Scene.setKind(S.kind);
     Scene.setRank(S.rank);

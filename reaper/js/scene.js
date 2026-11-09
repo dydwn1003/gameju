@@ -290,10 +290,21 @@ const Scene = (() => {
       if (!s || s.st !== 'float') { u.st = 'idle'; u.t = 0; return; }
       const side = s.x > u.x ? -1 : 1, tx = s.x + side * (isMain ? 7 : 5), ty = clampFeet(s.by + (isMain ? 17 : 13));
       const dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy), v = walk * dt;
-      if (d <= v) { u.x = tx; u.y = ty; u.st = 'reap'; u.t = 0; u.face = s.x > u.x ? 1 : -1; s.st = 'pull'; s.t = 0; s.who = u; s.sx = s.x; s.sy = s.y; s.dur = reap; if (isMain) Sound.play('reap'); }
+      if (d <= v) { u.x = tx; u.y = ty; u.st = 'reap'; u.t = 0; u.face = s.x > u.x ? 1 : -1; s.st = 'pull'; s.t = 0; s.who = u; s.sx = s.x; s.sy = s.y; s.dur = reap; if (isMain) Sound.play('reap'); sweep(u, s, reap, isMain); }
       else { u.x += dx / d * v; u.y += dy / d * v; u.face = dx < 0 ? -1 : 1; }
     } else if (u.st === 'reap') {
       if (u.t >= reap + 0.15) { u.st = 'idle'; u.t = 0; u.target = null; }
+    }
+  }
+  // 한 번 거둘 때 주변 혼령도 함께 빨아들임
+  function sweep(u, s, reap, isMain) {
+    const R = isMain ? (cfg.reapR || 14) : 8, max = isMain ? (cfg.reapMax || 3) : 1;
+    let n = 0;
+    for (const o of souls) {
+      if (n >= max) break;
+      if (o === s || o.st !== 'float' || o.who || o.a < 0.6) continue;
+      if (Math.hypot(o.x - s.x, o.by - s.by) > R) continue;
+      o.st = 'pull'; o.t = -rnd(0, 0.15); o.who = u; o.sx = o.x; o.sy = o.y; o.dur = reap; n++;
     }
   }
   function scrollPos(u) { return u.mini ? { x: u.x + u.face * 3, y: u.y - 8 } : { x: u.x + u.face * 9, y: u.y - 16 }; }

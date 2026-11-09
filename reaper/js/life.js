@@ -29,7 +29,7 @@ const SPECIALS = [
 const PLOT_COST = [0, 0, 0, 100, 200, 400]; // 옥으로 여는 밭
 // 일일 의뢰 (게시판): 하루 4개, 모두 끝내면 보너스
 const QUEST_POOL = [
-  { id: 'soul', name: '혼 거두기', need: [150, 300, 500], jade: 15 },
+  { id: 'soul', name: '혼 거두기', need: [500, 1000, 2000], jade: 15 },
   { id: 'tap', name: '혼령을 직접 터치해서 거두기', need: [20, 40], jade: 15 },
   { id: 'wraith', name: '원귀 퇴치하기', need: [2, 3], jade: 20 },
   { id: 'harvest', name: '꽃밭에서 꽃 수확하기', need: [2, 3], jade: 20 },
