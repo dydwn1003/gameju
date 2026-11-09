@@ -764,3 +764,24 @@ body.deco-t #toasts { top: auto !important; bottom: 150px; }
 .gb-row.me { border-color: rgba(255,211,74,.45); } .gb-row b { font-size: 11px; color: #ffe08a; } .gb-row span { flex: 1; font-size: 12px; } .gb-row small { font-size: 9.5px; color: #8a82a8; }
 .gb-pick { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; max-height: 24vh; overflow-y: auto; }
 .gb-pick button { padding: 6px 9px; border-radius: 999px; font-size: 11px; color: #f1ecf8; background: rgba(120, 100, 220, .2); border: 1px solid rgba(170, 150, 255, .35); }
+
+/* 재화 부족: 빨간 가격 */
+[data-short] { color: #ff6a7a !important; border-color: rgba(255, 90, 110, .7) !important; }
+.btn[data-short] { background: linear-gradient(180deg, #4a1c2a, #2a1018) !important; box-shadow: 0 0 0 1.5px rgba(255, 90, 110, .55) inset !important; }
+[data-short] .c, [data-short] em, [data-short] span { color: #ff6a7a !important; }
+.bp-head { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 8px; } .bp-head b { font-size: 16px; color: #ff8a9a; } .bp-head small { font-size: 11px; color: #cfc8e6; } .bp-head .red { color: #ff6a7a; font-style: normal; font-weight: 700; }
+.bp-ad { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(120, 220, 160, .1); border: 1px solid rgba(120, 220, 160, .35); font-size: 12px; margin-bottom: 6px; }
+.bp-list { display: flex; flex-direction: column; gap: 6px; max-height: 40vh; overflow-y: auto; }
+.bp-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); text-align: left; position: relative; }
+.bp-row img { height: 28px; } .bp-row div { flex: 1; display: flex; flex-direction: column; min-width: 0; } .bp-row b { font-size: 12px; } .bp-row small { font-size: 9.5px; color: #b8b0d8; }
+.bp-row em { position: absolute; top: -5px; left: 8px; font-style: normal; font-size: 9px; background: #ff5a6a; color: #fff; padding: 0 5px; border-radius: 6px; }
+.bp-row .btn { padding: 6px 10px; font-size: 11px; white-space: nowrap; }
+
+.nb-rand { width: 100%; margin: 4px 0 6px; padding: 8px !important; font-size: 13px !important; }
+.nb-like { font-size: 11px; color: #ff9ab8; white-space: nowrap; margin-right: 4px; }
+#office-bar .vs-fr { margin-left: auto; padding: 4px 8px 5px; font-size: 11px; white-space: nowrap; }
+#office-acts .of-acts.v4 { grid-template-columns: repeat(4, 1fr) !important; }
+.gb-write { display: flex; gap: 6px; margin: 6px 0; } .gb-write input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.18); background: rgba(0,0,0,.35); color: #f1ecf8; font-family: inherit; font-size: 12px; outline: none; }
+.gb-write input:focus { border-color: #ffd34a; } .gb-write .btn { padding: 6px 12px; font-size: 12px; }
+.gb-pick button { font-size: 10px !important; padding: 4px 8px !important; }
+input, textarea { user-select: text !important; -webkit-user-select: text !important; }

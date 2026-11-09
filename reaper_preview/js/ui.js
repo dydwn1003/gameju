@@ -277,7 +277,7 @@ const UI = (() => {
         <button class="btn jade" data-act="jadeAd" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>광고 보기<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button></div>
     </div><div class="sec">옥 상점</div><div class="grid2">`;
     h += JADE_SHOP.map(J => `<div class="card pbox"><img class="px" src="${IC(J.hours ? 'scroll' : J.boost ? 'luck' : 'minion', J.hours ? 4 : 3)}"><div class="nm">${J.name}</div><div class="ds">${J.desc}${J.hours ? `<br><b style="color:var(--soul)">+${fmt(Game.incomePerSec(true) * 3600 * J.hours)}</b>` : ''}</div>
-      ${J.day ? `<div class="ds" style="color:var(--gold)">오늘 ${Game.jadeLeft(J.id)}/${J.day}회 남음</div>` : ''}<button class="btn jade" data-jade="${J.id}" ${Game.jadeCost(J.id) != null && s.jade >= Game.jadeCost(J.id) ? '' : 'disabled'}>${Game.jadeCost(J.id) == null ? '내일 다시' : `<img class="px" src="${IC('jade', 2)}">${Game.jadeCost(J.id)}`}</button></div>`).join('');
+      ${J.day ? `<div class="ds" style="color:var(--gold)">오늘 ${Game.jadeLeft(J.id)}/${J.day}회 남음</div>` : ''}<button class="btn jade" data-jade="${J.id}" ${Game.jadeCost(J.id) == null ? 'disabled' : s.jade >= Game.jadeCost(J.id) ? '' : 'data-short="jade"'}>${Game.jadeCost(J.id) == null ? '내일 다시' : `<img class="px" src="${IC('jade', 2)}">${Game.jadeCost(J.id)}`}</button></div>`).join('');
     h += `</div><div class="sec">패키지</div><div class="grid2">`;
     h += SHOP_IAP.map(P => { const own = P.once && s.bought[P.id]; return `<div class="card pbox ${own ? 'owned' : ''}">${P.tag ? `<span class="tag">${P.tag}</span>` : ''}<img class="px" src="${IC(P.icon, P.icon === 'jade' ? 4 : 3)}"><div class="nm">${P.name}</div><div class="ds">${P.desc || '보석함에 바로 지급'}</div>
       <button class="btn red" data-iap="${P.id}" ${own ? 'disabled' : ''}>${own ? '구매 완료' : P.price}</button></div>`; }).join('');
@@ -296,7 +296,7 @@ const UI = (() => {
       $(`#ef-${U.id}`).textContent = maxed ? Game.eff(U.id, L) + ' (최대)' : `${Game.eff(U.id, L)} → ${Game.eff(U.id, L + n)}`;
       $(`#co-${U.id}`).textContent = maxed ? '최대' : fmt(c);
       $(`#bl-${U.id}`).textContent = maxed ? '' : `+${n}`;
-      btn.disabled = maxed || c > s.souls;
+      btn.disabled = maxed; if (!maxed && c > s.souls) btn.dataset.short = 'souls'; else btn.removeAttribute('data-short');
       $(`#row-${U.id}`).classList.toggle('maxed', maxed);
     });
     if (tab === 'rank' && !force) {
@@ -304,7 +304,7 @@ const UI = (() => {
       if (bar && N) { const b = document.querySelector('[data-act="test"]'); const ok = Game.canTest(); if (b && b.disabled === ok) renderRank($('#panel')); }
     }
     if (tab === 'life' && !force) lifeTick();
-    if (tab === 'shop' && !force) document.querySelectorAll('[data-jade]').forEach(b => { const c = Game.jadeCost(b.dataset.jade); b.disabled = c == null || s.jade < c; });
+    if (tab === 'shop' && !force) document.querySelectorAll('[data-jade]').forEach(b => { const c = Game.jadeCost(b.dataset.jade); b.disabled = c == null; b.toggleAttribute('data-short', c != null && s.jade < c); if (c != null && s.jade < c) b.dataset.short = 'jade'; });
   }
   function onPanel(e) {
     const t = e.target.closest('button'); if (!t) return;
@@ -392,8 +392,8 @@ const UI = (() => {
   function offerModal() {
     const o = Life.offerState(), s = S();
     const box = modal(`<h2>산신령 · 공양</h2><p>"혼을 바치면 옥으로 보답하마."</p>
-      <div class="offer pbox"><div class="info"><b>작은 공양</b><div class="mute" style="font-size:10px">10분치 혼 → 옥 10 · 오늘 ${o.small}/3번</div></div><button class="btn" id="of-s" ${o.small > 0 && s.souls >= o.smallCost ? '' : 'disabled'}><img class="px" src="${IC('soul', 2)}">${fmt(o.smallCost)}</button></div>
-      <div class="offer pbox"><div class="info"><b>큰 공양</b><div class="mute" style="font-size:10px">1시간치 혼 → 옥 50 + 소환권 1 · 오늘 ${o.big}/1번</div></div><button class="btn red" id="of-b" ${o.big > 0 && s.souls >= o.bigCost ? '' : 'disabled'}><img class="px" src="${IC('soul', 2)}">${fmt(o.bigCost)}</button></div>
+      <div class="offer pbox"><div class="info"><b>작은 공양</b><div class="mute" style="font-size:10px">10분치 혼 → 옥 10 · 오늘 ${o.small}/3번</div></div><button class="btn" id="of-s" ${o.small <= 0 ? 'disabled' : s.souls >= o.smallCost ? '' : 'data-short="souls"'}><img class="px" src="${IC('soul', 2)}">${fmt(o.smallCost)}</button></div>
+      <div class="offer pbox"><div class="info"><b>큰 공양</b><div class="mute" style="font-size:10px">1시간치 혼 → 옥 50 + 소환권 1 · 오늘 ${o.big}/1번</div></div><button class="btn red" id="of-b" ${o.big <= 0 ? 'disabled' : s.souls >= o.bigCost ? '' : 'data-short="souls"'}><img class="px" src="${IC('soul', 2)}">${fmt(o.bigCost)}</button></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelector('#of-s').onclick = () => { if (Life.offer('small')) { Sound.play('buy'); toast('공양을 올렸다. 옥 +10'); } offerModal(); };
     box.querySelector('#of-b').onclick = () => { if (Life.offer('big')) { Sound.play('promote'); toast('큰 공양! 옥 +50 · 소환권 +1'); } offerModal(); };
@@ -405,7 +405,7 @@ const UI = (() => {
     const c = Life.skipCost(l), al = Game.adLeft('skip');
     const box = modal(`<h2>⏩ 시간 단축</h2><p>${SKIP_NAME[kind]} 시간<br><b class="big" style="color:var(--gold)" id="sk-left">${fmtTime(l)}</b></p>
       <div class="sk-opts"><button class="btn" id="sk-ad" ${al > 0 ? '' : 'disabled'}><span>📺 광고 보고 30분 단축</span><em>오늘 ${al}/${AD_LIMIT.skip}</em></button>
-      <button class="btn jade" id="sk-jade" ${S().jade >= c ? '' : 'disabled'}><span><img class="px" src="${IC('jade', 2)}"> 옥 ${c}개로 바로 완료</span><em>10분당 옥 10개</em></button></div>
+      <button class="btn jade" id="sk-jade" ${S().jade >= c ? '' : 'data-short="jade"'}><span><img class="px" src="${IC('jade', 2)}"> 옥 ${c}개로 바로 완료</span><em>10분당 옥 10개</em></button></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     const done = msg => { closeModal(); Sound.play('promote'); toast(msg); if (tab === 'life') renderLife($('#panel')); officeBar(); after && after(); };
     box.querySelector('#sk-jade').onclick = () => { const r = Life.skipJade(kind, i); if (r) done(`옥 ${r}개로 시간을 건너뛰었어요!`); else { Sound.play('no'); toast('옥이 부족해요'); } };
@@ -492,19 +492,34 @@ const UI = (() => {
   // ---------- 집무실 놀러 가기 ----------
   let visiting = null;
   const GB_PHRASES = ['멋진 집무실이네요! ✨', '품격이 남다르시네요 🏮', '의자가 너무 탐나요 🪑', '자주 놀러 올게요!', '결재 서류 대신 들고 왔어요 📜', '부하들이 참 부지런하네요', '염라대왕 되실 상이에요 👑', '꽃이 참 예뻐요 🌸', '차 한잔 마시고 갑니다 🍵', '다음 백귀야행 같이 해요 👻', '저승 최고의 집무실!', '구경 잘하고 갑니다 🙇'];
+  // 방명록 비속어 가리기 (간단 목록)
+  const BAD = ['시발', '씨발', '씨빨', '시바', 'ㅅㅂ', 'ㅆㅂ', '병신', 'ㅂㅅ', '개새', '좆', '존나', 'ㅈㄴ', '지랄', 'ㅈㄹ', '미친놈', '미친년', '꺼져', '닥쳐', '엿먹', 'fuck', 'shit', 'bitch'];
+  const cleanText = t => BAD.reduce((a, w) => a.split(w).join('♡'.repeat(Math.min(3, w.length))), String(t).replace(/[<>]/g, '')).slice(0, 40);
   const ago = t => { const m = Math.floor((Date.now() - t) / 60000); return m < 1 ? '방금' : m < 60 ? m + '분 전' : m < 1440 ? Math.floor(m / 60) + '시간 전' : Math.floor(m / 1440) + '일 전'; };
-  async function neighborsModal(sortLikes) {
+  let nbTab = 'recent';
+  async function neighborsModal(tabArg) {
+    if (tabArg) nbTab = tabArg;
     if (!Board.online()) { modal(`<h2>🏘️ 이웃 집무실</h2><p>다른 차사의 집무실은 claude.ai에서 <b>공유된 게임 페이지</b>를 열면 놀러 갈 수 있어요.<br><span class="mute">지금은 혼자 보는 화면이라 이웃이 없어요.</span></p><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
-    const box = modal(`<h2>🏘️ 이웃 집무실</h2><div class="ds-cats"><button data-nb="0" class="${sortLikes ? '' : 'on'}">최근 꾸민 곳</button><button data-nb="1" class="${sortLikes ? 'on' : ''}">👍 인기 집무실</button></div>
+    const box = modal(`<h2>🏘️ 이웃 집무실</h2><button class="btn red nb-rand" id="nb-rand">🎲 랜덤으로 놀러 가기</button>
+      <div class="ds-cats"><button data-nbt="recent" class="${nbTab === 'recent' ? 'on' : ''}">최근 꾸민 곳</button><button data-nbt="pop" class="${nbTab === 'pop' ? 'on' : ''}">🏆 인기 순위</button><button data-nbt="friends" class="${nbTab === 'friends' ? 'on' : ''}">👥 내 이웃</button></div>
       <p class="mute" style="font-size:10px">하루 3곳까지 처음 놀러 가면 옥 +5 (오늘 ${visitR().ids.length}/3)</p><div class="rklist" id="nb-list"><div class="rkload">불러오는 중…</div></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    box.querySelectorAll('[data-nb]').forEach(b => b.onclick = () => { closeModal(); neighborsModal(b.dataset.nb === '1'); });
+    box.querySelectorAll('[data-nbt]').forEach(b => b.onclick = () => { closeModal(); neighborsModal(b.dataset.nbt); });
+    box.querySelector('#nb-rand').onclick = () => { closeModal(); randomVisit(); };
     const L = box.querySelector('#nb-list');
     try {
-      const rows = await Board.offices(!!sortLikes); if (!document.body.contains(L)) return;
-      if (!rows || !rows.length) { L.innerHTML = '<div class="rkload">아직 공개된 집무실이 없어요</div>'; return; }
-      L.innerHTML = rows.map(r => `<div class="rkrow ${r.me ? 'me' : ''}"><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me ? ' <em>나</em>' : ''}</b><small>${Scene.officeName(r.rank)} · 품격 ${r.score || 0} · 👍 ${r.likes || 0}</small></div>${r.me ? '' : `<button class="btn" data-visit="${esc(r.id)}">놀러 가기</button>`}</div>`).join('');
+      const fr = await Board.friends();
+      const rows = nbTab === 'friends' ? await Board.officesByIds(fr) : await Board.offices(nbTab === 'pop'); if (!document.body.contains(L)) return;
+      if (!rows || !rows.length) { L.innerHTML = `<div class="rkload">${nbTab === 'friends' ? '아직 이웃이 없어요. 놀러 간 집무실에서 ➕ 이웃 추가를 눌러 보세요' : '아직 공개된 집무실이 없어요'}</div>`; return; }
+      const list = nbTab === 'pop' ? rows : rows;
+      L.innerHTML = list.map((r, i) => { const t = nbTab === 'pop' ? Board.tierOf(i + 1) : 0, fd = fr.includes(r.id); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}">${nbTab === 'pop' ? `<span class="rkn">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span>` : ''}<img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me ? ' <em>나</em>' : ''}${fd ? ' 👥' : ''}</b><small>${Scene.officeName(r.rank)} · 품격 ${r.score || 0}</small></div><span class="nb-like">👍 ${r.likes || 0}</span>${r.me ? '' : `<button class="btn" data-visit="${esc(r.id)}">놀러 가기</button>`}</div>`; }).join('');
       L.querySelectorAll('[data-visit]').forEach(b => b.onclick = () => { closeModal(); visitOffice(b.dataset.visit); });
     } catch (e) { if (document.body.contains(L)) L.innerHTML = '<div class="rkload">불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</div>'; }
+  }
+  async function randomVisit() {
+    let rows = []; try { rows = (await Board.offices(false)) || []; } catch (e) {}
+    const cand = rows.filter(r => !r.me && (!visiting || r.id !== visiting.id));
+    if (!cand.length) { toast('놀러 갈 집무실이 아직 없어요'); return; }
+    visitOffice(cand[Math.floor(Math.random() * cand.length)].id);
   }
   function visitR() { const d = new Date().toISOString().slice(0, 10); if (!S().visitR || S().visitR.day !== d) S().visitR = { day: d, ids: [] }; return S().visitR; }
   async function visitOffice(id) {
@@ -517,13 +532,16 @@ const UI = (() => {
     if (sheetOpen()) closeSheet();
     let bar = $('#office-bar'); if (!bar) { bar = document.createElement('div'); bar.id = 'office-bar'; $('#stage').appendChild(bar); }
     let acts = $('#office-acts'); if (!acts) { acts = document.createElement('div'); acts.id = 'office-acts'; $('#stage').appendChild(acts); }
-    bar.innerHTML = `<div class="of-top"><button class="btn dark" id="of-out">◀ 돌아가기</button><div><b>${esc(o.name)}의 ${Scene.officeName(o.rank)}</b><small>${RANKS[Math.min(8, o.rank)].name} · 품격 ${o.score || 0} · ${Decor.title(o.score || 0)}</small></div></div>`;
-    acts.innerHTML = `<div class="of-acts v3"><button id="vs-like" class="${o.likedToday ? '' : 'hot'}"><span>👍</span>좋아요<i>${o.likes || 0}</i></button><button id="vs-gb"><span>📜</span>방명록<i>${o.notes.length}</i></button><button id="vs-nb"><span>🏘️</span>다른 집무실<i></i></button></div>`;
+    const isFr = (await Board.friends()).includes(o.id);
+    bar.innerHTML = `<div class="of-top"><button class="btn dark" id="of-out">◀ 돌아가기</button><div><b>${esc(o.name)}의 ${Scene.officeName(o.rank)}</b><small>${RANKS[Math.min(8, o.rank)].name} · 품격 ${o.score || 0} · ${Decor.title(o.score || 0)}</small></div><button class="btn ${isFr ? 'dark' : ''} vs-fr" id="vs-fr">${isFr ? '👥 이웃' : '➕ 이웃 추가'}</button></div>`;
+    acts.innerHTML = `<div class="of-acts v4"><button id="vs-like" class="${o.likedToday ? '' : 'hot'}"><span>👍</span>좋아요<i>${o.likes || 0}</i></button><button id="vs-gb"><span>📜</span>방명록<i>${o.notes.length}</i></button><button id="vs-rand"><span>🎲</span>랜덤 방문<i></i></button><button id="vs-nb"><span>🏘️</span>이웃 목록<i></i></button></div>`;
     bar.classList.add('on'); acts.classList.add('on'); $('#side').style.display = 'none'; $('#stage').classList.add('in-office'); document.body.classList.add('in-office-t');
     bar.querySelector('#of-out').onclick = exitOffice;
     $('#vs-like').onclick = async () => { if (!visiting) return; if (visiting.likedToday) { toast('오늘은 이미 좋아요를 눌렀어요. 내일 또 눌러 주세요'); return; } if (await Board.like(visiting.id)) { visiting.likedToday = true; if (!visiting.liked) { visiting.likes = (visiting.likes || 0) + 1; visiting.liked = true; } Sound.play('promote'); Scene.burstAt(innerWidth / 2, 200, '#ff8ab0', 24); toast(`👍 ${visiting.name}님의 집무실에 좋아요!`); const b = $('#vs-like'); b.classList.remove('hot'); b.querySelector('i').textContent = visiting.likes; } };
     $('#vs-gb').onclick = () => guestbookModal(visiting.id, false);
     $('#vs-nb').onclick = () => neighborsModal();
+    $('#vs-rand').onclick = () => randomVisit();
+    $('#vs-fr').onclick = async () => { const added = await Board.toggleFriend(o.id); const b = $('#vs-fr'); b.textContent = added ? '👥 이웃' : '➕ 이웃 추가'; b.classList.toggle('dark', added); Sound.play(added ? 'buy' : 'open'); toast(added ? `${esc(o.name)}님을 이웃으로 추가했어요! 이웃 목록에서 바로 놀러 갈 수 있어요` : '이웃에서 뺐어요'); };
     // 방문 보상: 하루 3곳까지 처음 놀러 간 집무실마다 옥 +5
     const R = visitR(); if (!R.ids.includes(o.id) && R.ids.length < 3) { R.ids.push(o.id); S().jade += 5; Game.save(); setTimeout(() => toast(`🎁 방문 보상 옥 +5 (오늘 ${R.ids.length}/3)`, 2600), 900); }
     else setTimeout(() => toast(`${esc(o.name)}님의 집무실에 놀러 왔어요! 빈 의자에 앉아 볼 수 있어요`, 2600), 900);
@@ -531,10 +549,12 @@ const UI = (() => {
   async function guestbookModal(id, mine) {
     const notes = visiting && visiting.id === id ? visiting.notes : await Board.guestbook(id);
     const box = modal(`<h2>📜 방명록</h2>${mine ? `<p class="mute">내 집무실이 받은 좋아요 <b style="color:var(--gold)">👍 ${S().officeLikes || 0}</b></p>` : ''}
-      <div class="gb-list">${notes.length ? notes.map(n => `<div class="gb-row ${n.me ? 'me' : ''}"><b>${esc(n.name)}</b><span>${esc(GB_PHRASES[n.m] || '')}</span><small>${ago(n.at)}</small></div>`).join('') : '<div class="rkload">아직 방명록이 비어 있어요</div>'}</div>
-      ${mine ? '' : `<div class="sec" style="margin-top:8px">한마디 남기기</div><div class="gb-pick">${GB_PHRASES.map((t, i) => `<button data-gb="${i}">${t}</button>`).join('')}</div>`}
+      <div class="gb-list">${notes.length ? notes.map(n => `<div class="gb-row ${n.me ? 'me' : ''}"><b>${esc(n.name)}</b><span>${esc(n.t != null ? n.t : (GB_PHRASES[n.m] || ''))}</span><small>${ago(n.at)}</small></div>`).join('') : '<div class="rkload">아직 방명록이 비어 있어요</div>'}</div>
+      ${mine ? '' : `<div class="sec" style="margin-top:8px">한마디 남기기</div><div class="gb-write"><input id="gb-in" maxlength="40" placeholder="방명록을 남겨 주세요 (40자)"><button class="btn red" id="gb-send">남기기</button></div><div class="gb-pick">${GB_PHRASES.map((t, i) => `<button data-gb="${i}">${t}</button>`).join('')}</div>`}
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    box.querySelectorAll('[data-gb]').forEach(b => b.onclick = async () => { await Board.note(id, +b.dataset.gb); Sound.play('buy'); toast('방명록을 남겼어요 ✍️'); if (visiting && visiting.id === id) { visiting.notes = await Board.guestbook(id); const g = $('#vs-gb i'); if (g) g.textContent = visiting.notes.length; } closeModal(); guestbookModal(id, false); });
+    box.querySelectorAll('[data-gb]').forEach(b => b.onclick = () => { const i = box.querySelector('#gb-in'); i.value = GB_PHRASES[+b.dataset.gb]; i.focus(); });
+    const send = box.querySelector('#gb-send'); if (send) send.onclick = async () => { const raw = box.querySelector('#gb-in').value.trim(); if (!raw) { toast('내용을 입력해 주세요'); return; } await Board.note(id, cleanText(raw)); Sound.play('buy'); toast('방명록을 남겼어요 ✍️'); if (visiting && visiting.id === id) { visiting.notes = await Board.guestbook(id); const g = $('#vs-gb i'); if (g) g.textContent = visiting.notes.length; } closeModal(); guestbookModal(id, false); };
+    box.querySelectorAll('[data-gb-old]').forEach(b => b.onclick = async () => { await Board.note(id, +b.dataset.gb); Sound.play('buy'); toast('방명록을 남겼어요 ✍️'); if (visiting && visiting.id === id) { visiting.notes = await Board.guestbook(id); const g = $('#vs-gb i'); if (g) g.textContent = visiting.notes.length; } closeModal(); guestbookModal(id, false); });
   }
 
   // ---------- 집무실 꾸미기 ----------
@@ -644,8 +664,8 @@ const UI = (() => {
     const s = S(), cats = [['all', '전체'], ['set', '세트'], ['floor', '바닥'], ['wall', '벽'], ['seat', '앉기'], ['chair', '의자'], ['premium', '귀한 것'], ['ex', '한정']];
     const how = d => d.rank != null ? (d.rank ? `${RANKS[d.rank].name} 승진` : '첫 출근 선물') : d.story != null ? `이야기 ${d.story + 1}장` : '의뢰 보상';
     const card = d => { const n = Decor.owned(d.id), ex = Decor.isEx(d); return `<div class="ds-card ${d.premium ? 'cash' : ''} ${ex ? 'ex' : ''}"><img class="px" src="${decoThumb(d.id, 3)}"><b>${d.name}</b><small>품격 +${d.pt}${d.seat ? ' · 앉기' : ''}${d.wall ? ' · 벽' : ''}</small><p>${d.desc}</p>${n ? `<em>보유 ${n}</em>` : ''}
-      ${ex ? `<button class="btn dark" disabled>${n ? '획득 완료' : '🔒 ' + how(d)}</button>` : d.cash ? (s.rank >= d.rankReq ? `<button class="btn red" data-dcash="${d.id}">${d.cash}</button>` : `<button class="btn dark" disabled>🔒 ${RANKS[d.rankReq].name} 이상</button>`) : d.free ? '<button class="btn dark" disabled>무료 지급</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
-    const pack = P => { const got = Decor.packBought(P.id); return `<div class="ds-pack ${got ? 'got' : ''}"><div class="ds-pi">${P.items.map(id => `<img class="px" src="${decoThumb(id, 2)}">`).join('')}</div><div class="ds-pt"><b>${P.name}</b><small>${P.items.map(id => Decor.D(id).name).join(' · ')}</small><small><s>옥 ${P.full}</s> → <b class="sale">30% 할인</b></small></div>${got ? '<button class="btn dark" disabled>구매 완료</button>' : `<button class="btn jade" data-dpack="${P.id}" ${s.jade >= P.price ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${P.price}</button>`}</div>`; };
+      ${ex ? `<button class="btn dark" disabled>${n ? '획득 완료' : '🔒 ' + how(d)}</button>` : d.cash ? (s.rank >= d.rankReq ? `<button class="btn red" data-dcash="${d.id}">${d.cash}</button>` : `<button class="btn dark" disabled>🔒 ${RANKS[d.rankReq].name} 이상</button>`) : d.free ? '<button class="btn dark" disabled>무료 지급</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
+    const pack = P => { const got = Decor.packBought(P.id); return `<div class="ds-pack ${got ? 'got' : ''}"><div class="ds-pi">${P.items.map(id => `<img class="px" src="${decoThumb(id, 2)}">`).join('')}</div><div class="ds-pt"><b>${P.name}</b><small>${P.items.map(id => Decor.D(id).name).join(' · ')}</small><small><s>옥 ${P.full}</s> → <b class="sale">30% 할인</b></small></div>${got ? '<button class="btn dark" disabled>구매 완료</button>' : `<button class="btn jade" data-dpack="${P.id}" ${s.jade >= P.price ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${P.price}</button>`}</div>`; };
     const list = shopCat === 'set' ? '' : DECOR.filter(d => shopCat === 'all' || (shopCat === 'floor' && !d.wall) || (shopCat === 'wall' && d.wall) || (shopCat === 'seat' && d.seat) || (shopCat === 'premium' && d.premium) || (shopCat === 'ex' && Decor.isEx(d)) || (shopCat === 'chair' && d.chair)).sort((a, b) => (a.free ? 0 : a.price || (a.cash ? 50000 + a.rankReq * 10 : 99999 + (a.rank || 0) * 10 + (a.story != null ? 100 + a.story : 0))) - (b.free ? 0 : b.price || (b.cash ? 50000 + b.rankReq * 10 : 99999 + (b.rank || 0) * 10 + (b.story != null ? 100 + b.story : 0))));
     const box = modal(`<h2>🏮 소품 상점 <small style="font-size:11px;color:var(--mute)">${DECOR.filter(d => Decor.owned(d.id)).length}/${DECOR.length}종 보유</small></h2><p class="mute">옥으로 사요. 놓은 소품의 품격만큼 수확량이 올라요 (최대 +40%) · 보유 옥 <b style="color:var(--jade)">${fmt(s.jade)}</b></p>
       <div class="ds-cats">${cats.map(([k, n]) => `<button data-dcat="${k}" class="${shopCat === k ? 'on' : ''}">${n}</button>`).join('')}</div>
@@ -743,7 +763,7 @@ const UI = (() => {
     const m = S().merchant, left = (m.until - Date.now()) / 1000;
     const box = modal(`<h2>👺 도깨비 상인</h2><p>"헤헤, 좋은 물건 있어! 금방 떠날 거야." <span class="mute">(${fmtTime(left)} 남음)</span></p>
       ${m.offers.map(id => { const o = MERCHANT_POOL.find(x => x.id === id), pr = Life.offerPrice(o), sold = m.bought.includes(id), ok = pr.jade ? S().jade >= pr.jade : S().souls >= pr.soul;
-        return `<div class="offer pbox"><div class="info"><b>${o.name}</b></div><button class="btn ${pr.jade ? 'jade' : ''}" data-buyo="${id}" ${sold || !ok ? 'disabled' : ''}>${sold ? '구매함' : `<img class="px" src="${IC(pr.jade ? 'jade' : 'soul', 2)}">${fmt(pr.jade || pr.soul)}`}</button></div>`; }).join('')}
+        return `<div class="offer pbox"><div class="info"><b>${o.name}</b></div><button class="btn ${pr.jade ? 'jade' : ''}" data-buyo="${id}" ${sold ? 'disabled' : !ok ? `data-short="${pr.jade ? 'jade' : 'souls'}"` : ''}>${sold ? '구매함' : `<img class="px" src="${IC(pr.jade ? 'jade' : 'soul', 2)}">${fmt(pr.jade || pr.soul)}`}</button></div>`; }).join('')}
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelectorAll('[data-buyo]').forEach(b => b.onclick = () => { if (Life.merchantBuy(b.dataset.buyo)) { Sound.play('buy'); toast('거래 완료!'); } merchantModal(); });
   }
@@ -770,7 +790,7 @@ const UI = (() => {
     if (sub === 'garden') {
       h += `<div class="inv pbox">${FLOWERS.map(f => `<div><img class="px" src="${FIC(f.id)}"><span>${f.name}</span><small>씨앗 ${s.seeds[f.id] || 0} · 꽃 ${s.flowers[f.id] || 0}</small></div>`).join('')}</div>`;
       h += `<div class="plots">` + [0, 1, 2, 3, 4, 5].map(i => {
-        if (i >= s.plots) return `<div class="plot pbox locked"><div class="lock">🔒</div><small>밭 ${i + 1}</small>${i === s.plots ? `<button class="btn jade" data-unlock="1" ${s.jade >= PLOT_COST[i] ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${PLOT_COST[i]}</button>` : '<small class="mute">앞 밭 먼저</small>'}</div>`;
+        if (i >= s.plots) return `<div class="plot pbox locked"><div class="lock">🔒</div><small>밭 ${i + 1}</small>${i === s.plots ? `<button class="btn jade" data-unlock="1" ${s.jade >= PLOT_COST[i] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PLOT_COST[i]}</button>` : '<small class="mute">앞 밭 먼저</small>'}</div>`;
         const st = Life.plotState(i);
         if (st.empty) return `<div class="plot pbox"><img class="px" src="${toURL(SP.plant(-1, {}, 'soil'), 4)}"><small>빈 밭</small><button class="btn" data-plantpick="${i}">심기</button></div>`;
         return `<div class="plot pbox ${st.ready ? 'ready' : ''}"><img class="px" src="${FIC(st.f.id, st.stage, 4)}"><small>${st.f.name}</small>${st.ready ? `<button class="btn red" data-harvest="${i}">수확</button>` : `<button class="btn sk" data-skip="plot:${i}"><span data-left-plot="${i}">${fmtTime(st.left)}</span> ⏩</button>`}</div>`;
@@ -778,7 +798,7 @@ const UI = (() => {
       h += `<div class="sec">씨앗 가게</div>` + FLOWERS.map(f => {
         const c = f.soul ? Life.seedSoulCost(f) : f.jade, ok = f.soul ? s.souls >= c : s.jade >= c;
         return `<div class="row pbox"><div class="ic"><img class="px" src="${FIC(f.id, 3, 3)}"></div><div class="info"><div class="nm">${f.name} 씨앗</div><div class="ds">${f.desc} · 자라는 데 <b>${fmtTime(f.grow)}</b> · 꽃 ${f.yield[0]}~${f.yield[1]}송이</div></div>
-          <button class="btn ${f.soul ? '' : 'jade'}" data-seed="${f.id}" ${ok ? '' : 'disabled'}><span class="c"><img class="px" src="${IC(f.soul ? 'soul' : 'jade', 2)}">${fmt(c)}</span><span class="l">1개</span></button></div>`;
+          <button class="btn ${f.soul ? '' : 'jade'}" data-seed="${f.id}" ${ok ? '' : `data-short="${f.soul ? 'souls' : 'jade'}"`}><span class="c"><img class="px" src="${IC(f.soul ? 'soul' : 'jade', 2)}">${fmt(c)}</span><span class="l">1개</span></button></div>`;
       }).join('') + `<p class="note">꽃은 게임을 꺼 둬도 자라요. 혼불꽃·생사화 씨앗은 파견에서도 얻을 수 있어요.</p>`;
     } else if (sub === 'tavern') {
       const bs = ['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0);
@@ -851,6 +871,22 @@ const UI = (() => {
     }, '구매');
   }
 
+  // ---------- 재화가 모자랄 때: 빨간 가격 + 누르면 구매 페이지 ----------
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-short]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); Sound.play('no'); buyPage(b.dataset.short); }, true);
+  function buyPage(kind) {
+    closeOverlay && $('#promo').classList.contains('on') && closeOverlay();
+    const s = S(), jadeKind = kind !== 'souls';
+    const packs = SHOP_IAP.filter(P => jadeKind ? P.jade && !P.perm2 && !P.noAds && !(P.once && s.bought && s.bought[P.id]) : (P.hours || P.boost || P.perm2) && !(P.once && s.bought && s.bought[P.id]));
+    const row = P => `<div class="bp-row"><img class="px" src="${IC(P.icon || 'jade', 3)}"><div><b>${P.name}</b><small>${P.desc || ''}</small></div>${P.tag ? `<em>${P.tag}</em>` : ''}<button class="btn red" data-bp="${P.id}">${P.price}</button></div>`;
+    const jadeOpts = !jadeKind ? JADE_SHOP.filter(J => J.hours || J.boost).map(J => { const c = Game.jadeCost(J.id); return c == null ? '' : `<div class="bp-row"><img class="px" src="${IC(J.hours ? 'scroll' : 'luck', 3)}"><div><b>${J.name}</b><small>${J.desc}${J.hours ? ' · +' + fmt(Game.incomePerSec(true) * 3600 * J.hours) : ''}</small></div><button class="btn jade" data-bj="${J.id}" ${s.jade >= c ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${c}</button></div>`; }).join('') : '';
+    const box = modal(`<div class="bp-head"><b>${jadeKind ? '💎 옥이 부족해요' : '🔥 혼이 부족해요'}</b><small>보유 ${jadeKind ? `옥 <i class="red">${fmt(s.jade)}</i>` : `혼 <i class="red">${fmt(s.souls)}</i>`}</small></div>
+      ${jadeKind ? `<div class="bp-ad"><span>📺 광고 보고 옥 10개</span><button class="btn" id="bp-ad" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>무료<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button></div>` : `<div class="bp-ad"><span>📺 광고 보고 2배 부적</span><button class="btn" id="bp-ad" ${Game.adLeft('boost') > 0 ? '' : 'disabled'}>무료<em>${Game.adLeft('boost')}/${AD_LIMIT.boost}</em></button></div>${jadeOpts}`}
+      <div class="sec">${jadeKind ? '옥 충전' : '빠르게 성장하기'}</div><div class="bp-list">${packs.map(row).join('')}</div>
+      <p class="mute" style="font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelectorAll('[data-bp]').forEach(b => b.onclick = () => { if (Game.iap(b.dataset.bp)) { Sound.play('promote'); toast(`${SHOP_IAP.find(P => P.id === b.dataset.bp).name} 지급 완료!`); closeModal(); render(); } });
+    box.querySelectorAll('[data-bj]').forEach(b => b.onclick = () => { const r = Game.jadeBuy(b.dataset.bj); if (r) { Sound.play('buy'); toast(typeof r === 'number' ? `+${fmt(r)} 혼` : '사용!'); closeModal(); render(); } });
+    const ad0 = box.querySelector('#bp-ad'); if (ad0) ad0.onclick = () => { closeModal(); if (jadeKind) act('jadeAd'); else boostAd(); };
+  }
   // ---------- 모달 ----------
   function modal(html, noClose) {
     const m = $('#modal'), opened = performance.now(); m.innerHTML = `<div class="mbox pbox">${html}</div>`; m.classList.add('on');
@@ -1114,8 +1150,8 @@ const UI = (() => {
       <div class="gacha pbox"><div class="gt">영물 소환</div><div class="gd">C 50% · B 30% · A 13% · S 5% · SS 1.7% · <b style="color:${PET_GRADES.SSS.col}">SSS 0.3%</b><br>SS 이상 확정까지 <b>${PITY - s.pity}</b>회 · 같은 영물은 <b>여분</b>으로 쌓여요</div>
         ${s.tickets ? `<button class="btn red ticket" data-pull="ticket">소환권으로 1회 <em>${s.tickets}장</em></button>` : ''}
         <div class="gb3"><button class="btn" data-pull="ad" ${Pets.adLeft() > 0 ? '' : 'disabled'}>무료 1회<em>AD ${Pets.adLeft()}/2</em></button>
-        <button class="btn jade" data-pull="1" ${s.jade >= PULL_COST[1] ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[1]} · 1회</button>
-        <button class="btn red" data-pull="10" ${s.jade >= PULL_COST[10] ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[10]} · 10회</button></div><div class="gd">10회 소환은 A등급 이상 1마리 확정</div></div>
+        <button class="btn jade" data-pull="1" ${s.jade >= PULL_COST[1] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[1]} · 1회</button>
+        <button class="btn red" data-pull="10" ${s.jade >= PULL_COST[10] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[10]} · 10회</button></div><div class="gd">10회 소환은 A등급 이상 1마리 확정</div></div>
       <div class="ph"><h3>영물 도감</h3><span class="sub">${own}/${PETS.length}종 · 수확량 +${own}%</span></div><div class="petgrid">`;
     h += PETS.map(p => { const st = s.pets[p.id], inv = s.petInv[p.id] || 0, canUp = st && st < 5 && inv >= Pets.starCost(p.id); return `<button class="pcell pbox ${st ? '' : 'unk'} ${s.petEq === p.id ? 'eq' : ''}" data-pet="${p.id}" style="--gc:${PET_GRADES[p.g].col}"><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span>${inv ? `<span class="pinv ${canUp ? 'up' : ''}">×${inv}</span>` : ''}<img class="px" src="${petIcon(p, !!st)}"><b>${st ? p.name : '???'}</b><small>${st ? '★'.repeat(st) : ''}${s.petEq === p.id ? ' 데리는 중' : ''}</small></button>`; }).join('');
     h += '</div><div class="ph"><h3>영물 합성</h3><span class="sub">같은 등급 여분 3마리 → 1마리</span></div><div class="fuse pbox">';
@@ -1160,8 +1196,8 @@ const UI = (() => {
     if (opt.fuse) { const again = Math.floor(Pets.spares(opt.fuse) / Pets.FUSE_N); o.querySelector('#gs-one').innerHTML = `더 합성<em>여분 ${Pets.spares(opt.fuse)}</em>`; o.querySelector('#gs-one').disabled = !again; o.querySelector('#gs-ten').remove(); o.querySelector('#gs-one').onclick = () => { closeOverlay(); const r = Pets.fuse(opt.fuse, 1); if (r) gachaShow(r, opt); render(); }; return; }
     o.querySelector('#gs-one').onclick = () => { closeOverlay(); doPull(S().tickets ? 'ticket' : '1'); };
     o.querySelector('#gs-ten').onclick = () => { closeOverlay(); doPull('10'); };
-    if (!S().tickets && S().jade < PULL_COST[1]) o.querySelector('#gs-one').disabled = true;
-    if (S().jade < PULL_COST[10]) o.querySelector('#gs-ten').disabled = true;
+    if (!S().tickets && S().jade < PULL_COST[1]) o.querySelector('#gs-one').dataset.short = 'jade';
+    if (S().jade < PULL_COST[10]) o.querySelector('#gs-ten').dataset.short = 'jade';
   }
   // ---------- 백귀야행 ----------
   function paradeAsk() {
@@ -1171,7 +1207,7 @@ const UI = (() => {
     const today = new Date().toISOString().slice(0, 10); if (pr.ad.day !== today) pr.ad = { day: today, n: 0 };
     const box = modal(`<h2>백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 <b>지나가는 귀신</b>과 혼령을 마구 터치해 콤보를 쌓으세요.<br>금빛 귀신은 5배! 콤보가 높을수록 수확이 커져요 (최대 +400%).</p>
       <p>다음 행렬까지 <b style="color:var(--gold)">${fmtTime(left)}</b></p>
-      <div class="acts"><button class="btn red" id="pa-ad" ${pr.ad.n < 3 ? '' : 'disabled'}>광고 보고 바로 부르기<em>${3 - pr.ad.n}/3</em></button><button class="btn jade" id="pa-jade" ${S().jade >= Life.skipCost(left) ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">옥 ${Life.skipCost(left)}개로 바로</button><button class="btn dark" data-act="close">닫기</button></div>`);
+      <div class="acts"><button class="btn red" id="pa-ad" ${pr.ad.n < 3 ? '' : 'disabled'}>광고 보고 바로 부르기<em>${3 - pr.ad.n}/3</em></button><button class="btn jade" id="pa-jade" ${S().jade >= Life.skipCost(left) ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">옥 ${Life.skipCost(left)}개로 바로</button><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelector('#pa-jade').onclick = () => { if (Life.skipJade('parade', 0)) { closeModal(); startParade(); } else { Sound.play('no'); toast('옥이 부족해요'); } };
     box.querySelector('#pa-ad').onclick = () => { closeModal(); ad(() => { pr.ad.n++; startParade(); }); };
   }
