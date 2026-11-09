@@ -6,7 +6,7 @@ const Native = (() => {
   const isApp = () => !!(C() && C().isNativePlatform && C().isNativePlatform());
   const platform = () => (isApp() ? C().getPlatform() : 'web');
   const P = name => (C() && C().Plugins ? C().Plugins[name] : null);
-  let onBack = null, onPause = null;
+  let onBack = null, onPause = null, onResume = null;
   const urlHandlers = [];
 
   async function init() {
@@ -17,6 +17,7 @@ const Native = (() => {
       App.addListener('appUrlOpen', e => urlHandlers.forEach(f => f(e.url)));
       App.addListener('backButton', () => { if (!onBack || !onBack()) confirmExit(); });
       App.addListener('pause', () => onPause && onPause());
+      App.addListener('resume', () => onResume && onResume());
       try { const l = await App.getLaunchUrl(); if (l && l.url) setTimeout(() => urlHandlers.forEach(f => f(l.url)), 0); } catch (e) {}
     }
     initAds().catch(() => {});
@@ -31,6 +32,24 @@ const Native = (() => {
   const hideSplash = () => { const S = P('SplashScreen'); if (S) S.hide().catch(() => {}); };
   async function openUrl(url) { const B = P('Browser'); if (B) await B.open({ url, presentationStyle: 'popover' }); else location.href = url; }
   async function closeBrowser() { const B = P('Browser'); if (B) try { await B.close(); } catch (e) {} }
+
+  // ---------- 로컬 알림 ----------
+  const LN = () => P('LocalNotifications');
+  let chan = false;
+  async function notifyPerm() { const L = LN(); if (!L) return 'none'; try { return (await L.checkPermissions()).display; } catch (e) { return 'none'; } }
+  async function notifyAsk() { const L = LN(); if (!L) return false; try { return (await L.requestPermissions()).display === 'granted'; } catch (e) { return false; } }
+  async function notifyClear() {
+    const L = LN(); if (!L) return;
+    const p = await L.getPending(); if (p.notifications && p.notifications.length) await L.cancel({ notifications: p.notifications.map(n => ({ id: n.id })) });
+    try { await L.removeAllDeliveredNotifications(); } catch (e) {}
+  }
+  async function notifySchedule(list) {
+    const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return;
+    if (!chan && platform() === 'android') { try { await L.createChannel({ id: 'reaper', name: '게임 알림', description: '보상 · 파견 · 출석 알림', importance: 4, visibility: 1 }); } catch (e) {} chan = true; }
+    await notifyClear();
+    if (!list.length) return;
+    await L.schedule({ notifications: list.map(n => ({ id: n.id, title: n.title, body: n.body, channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true } })) });
+  }
 
   // ---------- 보상형 광고 (AdMob) ----------
   let adReady = false, adBusy = false;
@@ -119,7 +138,8 @@ const Native = (() => {
 
   return {
     isApp, platform, init, hideSplash, openUrl, closeBrowser, rewardAd, price, buy, restore, payOn,
-    onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f),
+    onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
+    notifyPerm, notifyAsk, notifyClear, notifySchedule,
     setPay: (grant, owned, priceChange) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; },
   };
 })();

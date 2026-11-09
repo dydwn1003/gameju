@@ -21,7 +21,16 @@ const UI = (() => {
     box.querySelectorAll('[data-lg]').forEach(b => b.onclick = () => { S().pendingLink = !!S().kind; Game.save(); toast('로그인 화면으로 이동해요…', 2000); Promise.resolve(Cloud.signIn(b.dataset.lg)).catch(() => toast('로그인을 시작하지 못했어요. 인터넷 연결을 확인해 주세요', 2600)); });
     const g = box.querySelector('#lg-guest'); if (g) g.onclick = () => { S().guest = true; Game.save(); closeModal(); charSelect(true); };
   }
-  function afterLoad() { checkOffline(); if (!Story.cur().end && !Story.cur().intro) setTimeout(storyIntro, 600); }
+  function afterLoad() { checkOffline(); if (!Story.cur().end && !Story.cur().intro) setTimeout(storyIntro, 600); else setTimeout(askPush, 4000); }
+  // 앱 알림 허락 받기: 튜토리얼이 끝난 뒤, 게임 안 안내창으로 먼저 물어보고 OK 하면 휴대폰 권한 창
+  async function askPush() {
+    const s = S(); if (!Native.isApp() || s.pushAsked || s.tut !== 'done' || $('#modal').classList.contains('on') || $('#promo').classList.contains('on')) return;
+    if ((await Native.notifyPerm()) === 'granted') { s.pushAsked = true; Game.save(); return; }
+    s.pushAsked = true; Game.save();
+    confirmBox('<h2>🔔 알림을 받을까요?</h2><p>저승 장부가 가득 차거나, 파견이 끝나거나, 꽃이 피면 알려 드려요.<br><small class="mute">밤 11시 ~ 아침 8시에는 울리지 않아요 · 설정에서 언제든 끌 수 있어요</small></p>', async () => {
+      const ok = await Native.notifyAsk(); s.push = ok; Game.save(); toast(ok ? '🔔 알림을 켰어요' : '알림이 꺼져 있어요. 설정에서 다시 켤 수 있어요', 2400);
+    }, '알림 받기');
+  }
   // 로그인 직후: 서버 기록과 이 기기 기록 맞추기
   const saveSummary = d => d && d.kind ? `${esc(d.name || '')} · ${RANKS[Math.min(8, d.rank || 0)].name}${d.reborn ? ` · 윤회 ${d.reborn}` : ''}` : '기록 없음';
   async function cloudSync() {
@@ -96,7 +105,9 @@ const UI = (() => {
     window.addEventListener('pagehide', () => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
-    Native.setPause(() => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
+    Native.setPause(() => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
+    Native.setResume(() => Push.back());
+    Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
     Native.setPay(gid => grantPaid(gid), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); });
     render(); hud();
     if (!S().kind) { if (Cloud.enabled() && Cloud.signedIn()) { /* cloudSync 가 정함 */ } else if (Cloud.ready() && !S().guest) loginScreen(); else charSelect(true); }
@@ -1027,7 +1038,7 @@ const UI = (() => {
     if (d.harvest) { const n = Life.harvest(+d.harvest); if (n) { Sound.play('collect', 2); Life.qEvent('harvest'); toast(`꽃 ${n}송이 수확!`); } renderLife($('#panel')); return true; }
     if (d.seed) { if (Life.buySeed(d.seed, 1)) Sound.play('buy'); else Sound.play('no'); renderLife($('#panel')); return true; }
     if (d.brew) { const r = Life.brew(d.brew); if (r) { Sound.play('promote'); Life.qEvent('brew'); const R = RECIPES.find(x => x.id === d.brew); toast(typeof r === 'number' ? `${R.name}! +${fmt(r)} 혼 · 옥 +${R.instant.jade}` : `${R.name}을 마셨다! ${R.desc}`); } renderLife($('#panel')); return true; }
-    if (d.send) { if (Life.send(d.send)) { Sound.play('buy'); Life.qEvent('send'); toast('졸개를 순찰 보냈어요'); } renderLife($('#panel')); return true; }
+    if (d.send) { if (Life.send(d.send)) { Sound.play('buy'); Life.qEvent('send'); toast('졸개를 순찰 보냈어요'); setTimeout(askPush, 1200); } renderLife($('#panel')); return true; }
     if (d.skip) { const [k, i] = d.skip.split(':'); speedUp(k, +i); return true; }
     if (d.claim) { const r = Life.claim(+d.claim); if (r) { Sound.play('promote'); toast(`파견 보상: +${fmt(r.souls)} 혼${r.jade ? ` · 옥 +${r.jade}` : ''} · ${Object.entries(r.seeds).map(([k, v]) => fname(k) + ' 씨앗 ' + v).join(', ')}${r.dex ? ` · 📖 ${r.dex.name}` : ''}`, 4000); } renderLife($('#panel')); return true; }
     if (d.plantpick) {
@@ -1184,6 +1195,7 @@ const UI = (() => {
       <div class="set-row"><span>${esc(s.name)} · ${s.kind === 'f' ? '여자' : '남자'} 차사</span><button class="btn dark" id="s-look">모습 바꾸기</button></div>${Board.online() ? `<div class="set-row"><span>닉네임 ${s.nickSet ? '「' + esc(s.name) + '」' : '(아직 없음)'}</span><button class="btn dark" id="s-nick">${s.nickSet ? '바꾸기' : '정하기'}</button></div>` : ''}
       <div class="set-row"><span>효과음</span><button class="btn ${s.sound ? '' : 'dark'}" id="s-snd">${s.sound ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>배경음</span><button class="btn ${s.bgm ? '' : 'dark'}" id="s-bgm">${s.bgm ? '켜짐' : '꺼짐'}</button></div>
+      ${Native.isApp() ? `<div class="set-row"><span>알림 <small class="set-sub">장부 가득 · 파견 완료 · 꽃 · 출석 (밤 11시~아침 8시 제외)</small></span><button class="btn ${s.push !== false && s.pushAsked ? '' : 'dark'}" id="s-push">${s.push !== false && s.pushAsked ? '켜짐' : '꺼짐'}</button></div>` : ''}
       <div class="set-row"><span>퇴치한 원귀 / 터치 수확</span><span>${s.stats.wraith} / ${s.stats.tap}</span></div>
       <div class="set-sec">고객 지원</div>
       <div class="set-links"><button class="btn dark" id="s-ask">💬 1:1 문의</button><button class="btn dark" id="s-priv">개인정보처리방침</button>${Native.isApp() ? '<button class="btn dark" id="s-restore">구매 복원</button>' : ''}<span id="s-adm"></span></div>
@@ -1210,6 +1222,11 @@ const UI = (() => {
     on('#s-priv', () => { closeModal(); privacyModal(); });
     on('#s-restore', async () => { toast('구매 내역을 확인하는 중…', 1500); const ok = await Native.restore(); toast(ok ? '구매 내역을 복원했어요' : '스토어에 연결하지 못했어요', 2200); render(); });
     on('#s-look', () => charSelect(false));
+    on('#s-push', async () => {
+      if (s.push !== false && s.pushAsked) { s.push = false; Game.save(); settings(); return; }
+      s.pushAsked = true; const ok = (await Native.notifyPerm()) === 'granted' || (await Native.notifyAsk());
+      s.push = ok; Game.save(); if (!ok) toast('휴대폰 설정 → 앱 → 저승사자 키우기 → 알림을 켜 주세요', 3000); settings();
+    });
     on('#s-snd', () => { s.sound = !s.sound; Sound.set(s.sound, s.bgm); Game.save(); settings(); });
     on('#s-bgm', () => { s.bgm = !s.bgm; Sound.set(s.sound, s.bgm); Game.save(); settings(); });
     on('#s-reset', () => confirmBox(`<h2>${inn ? '이 기기 기록 지우기' : '처음부터'}</h2><p>${inn ? '이 기기의 기록만 지워요. 계정에 저장된 기록은 남아 있어요.' : '모든 진행이 지워집니다. 정말 할까요?'}</p>`, () => { if (inn) { Game.reset(); location.reload(); return; } Game.reset(); render(); charSelect(true); }));

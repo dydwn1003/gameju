@@ -3,10 +3,34 @@
   "appName": "저승사자 키우기",
   "webDir": "www",
   "backgroundColor": "#0b0a1c",
-  "android": { "allowMixedContent": false },
-  "ios": { "contentInset": "never", "scheme": "App" },
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "never",
+    "scheme": "App"
+  },
   "plugins": {
-    "SplashScreen": { "launchShowDuration": 600, "backgroundColor": "#0b0a1c", "showSpinner": false, "androidScaleType": "CENTER_CROP" },
-    "StatusBar": { "style": "DARK", "backgroundColor": "#0b0a1c", "overlaysWebView": false }
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#0b0a1c",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0b0a1c",
+      "overlaysWebView": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_reaper",
+      "iconColor": "#E8424F",
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "banner",
+        "list"
+      ]
+    }
   }
 }
