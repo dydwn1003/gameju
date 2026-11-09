@@ -304,3 +304,22 @@ img.px, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 .ga-acts { position: absolute; left: 0; right: 0; bottom: 12%; text-align: center; animation: fadein 0.3s 1.9s both; }
 .ga-acts .btn { min-width: 140px; }
 @media (prefers-reduced-motion: reduce) { .pr-rays { animation: none; } }
+
+#story-bar { pointer-events: auto; display: block; margin-top: 6px; max-width: 62%; text-align: left; font-size: 11px; line-height: 1.4; color: #f1ecf8; background: rgba(15, 12, 24, 0.82); padding: 4px 7px 5px; box-shadow: 0 0 0 2px var(--line), inset 0 0 0 1px #3d3560; }
+#story-bar span { color: var(--gold); font-weight: 700; margin-right: 3px; }
+#story-bar b { color: #c8f0ff; margin-left: 3px; }
+#story-bar.done { background: var(--gold); color: #2a1606; animation: blink 1s steps(2) infinite; }
+#story-bar.done span, #story-bar.done b { color: #7e1f2a; }
+#story-bar.done::after { content: ' · 보상 받기!'; font-weight: 700; }
+.tk-bg { position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(4, 3, 12, 0.85)); }
+.tk-box { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 6%; width: min(440px, 94vw); display: flex; gap: 10px; align-items: flex-end; padding: 12px; background: #1b1730; box-shadow: 0 0 0 3px var(--line), inset 0 0 0 2px #e8b84a; cursor: pointer; animation: pop 0.18s steps(3); }
+.tk-por { width: 80px; height: auto; flex: 0 0 80px; margin-top: -40px; filter: drop-shadow(2px 2px 0 #000); }
+.tk-por.flip { transform: scaleX(-1); }
+.tk-txt { flex: 1; min-width: 0; }
+.tk-txt b { color: var(--gold); font-size: 13px; }
+.tk-txt p { margin: 6px 0 4px; font-size: 13px; line-height: 1.7; color: #f1ecf8; min-height: 44px; }
+.tk-txt small { color: var(--mute); font-size: 10px; animation: blink 1s steps(2) infinite; }
+.ch-card { position: absolute; left: 0; right: 0; top: 36%; text-align: center; animation: stamp 0.4s cubic-bezier(.2, 1.4, .5, 1) both; }
+.ch-card small { display: block; font-size: 13px; color: var(--mute); letter-spacing: 4px; }
+.ch-card b { display: block; font-size: 28px; color: #ffe08a; margin-top: 6px; text-shadow: 3px 3px 0 #7e1f2a, -2px -2px 0 #000; }
+.btn.ticket { width: 100%; margin-top: 8px; }

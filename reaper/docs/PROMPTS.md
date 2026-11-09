@@ -5,7 +5,7 @@
 - 결과는 **파일 이름 그대로** 저장해서 대화창에 올려주세요. 마젠타(분홍) 배경 그대로 OK, 잘라서 넣는 건 제가 합니다.
 - 칸이 삐뚤거나 글자가 들어가면 같은 프롬프트로 다시 뽑으면 돼요.
 
-총 37장
+총 38장
 
 ## ① 주인공 저승사자
 
@@ -389,6 +389,24 @@ Use the attached sprite sheet as the exact style and size reference. Draw 3 NEW 
 1. a golden qilin (girin) with a single horn and flame-like mane, glowing (SS rank)
 2. a red-and-gold fenghuang phoenix with long rainbow tail feathers, glowing (SS rank)
 3. a baby golden yellow dragon, the most majestic, radiant golden aura (SSS rank)
+```
+
+## ⑫ 스토리 인물 초상
+
+> 스토리 대화창에 나오는 얼굴이에요. 한 장에 6명.
+
+### `story_portraits.png` 스토리 인물 6명 (상반신)
+첨부: reaper_m_sheet.png 결과 이미지 첨부
+메모: 강림 차사 · 염라대왕 · 주모 · 게시판 할아버지 · 도깨비 상인 · 뱃사공
+
+```
+Use the attached sprite sheet as the style reference. 6 bust portraits (head and shoulders, facing slightly left) of characters for story dialogue in the same tiny pixel game, expressive faces. Tiny super-deformed chibi (2 heads tall, very small and adorable), very low-resolution pixel sprite as if drawn on a 16x20 pixel canvas and scaled up with nearest-neighbor so every pixel is a big visible square block, minimal details, cute chibi pixel art for a Korean folklore idle mobile game about a Joseon-era grim reaper (jeoseung-saja) collecting wandering souls, eerie but adorable moonlit-night mood, traditional Korean motifs (black gat hats, hanbok robes, hanji paper scrolls, dancheong colors, cheongsachorong lanterns), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited palette of deep indigo, black, bone white, soul blue and accent red/gold, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes. Sprite sheet: exactly 6 images arranged in a 3x2 grid of equal square cells (3 columns, 2 rows), one per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, all at the same pixel size and scale, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. Gangrim, a cool veteran grim reaper with a confident grin, black gat hat with amber beads, navy robe with gold trim
+2. King Yeomra of the underworld, stern but kind old king, crimson-gold dragon robe, myeonryugwan crown with hanging beads
+3. a cheerful middle-aged jumo tavern keeper woman with a hair bun and apron
+4. a wise old man with long white beard and grey hanbok
+5. a mischievous green dokkaebi merchant with small horns and a big grin
+6. a sleepy ferryman of the Samdocheon river in a straw hat
 ```
 
 ## ⑧ UI 아이콘

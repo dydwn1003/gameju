@@ -79,7 +79,8 @@ const Life = (() => {
     s.quest = { day, list, bonus: false };
   }
   function qEvent(id, n = 1) {
-    const s = S(); if (!s || !s.quest) return; questDay();
+    const s = S(); if (!s) return; s.cnt = s.cnt || {}; s.cnt[id] = (s.cnt[id] || 0) + n;
+    if (!s.quest) return; questDay();
     s.quest.list.forEach(q => { if (q.id === id && q.have < q.need) q.have = Math.min(q.need, q.have + n); });
   }
   function qClaim(i) {

@@ -24,6 +24,7 @@ const UI = (() => {
     $('#btn-attend').addEventListener('click', attendModal);
     $('#btn-quest').addEventListener('click', questModal);
     $('#btn-parade').addEventListener('click', paradeAsk);
+    $('#story-bar').addEventListener('click', storyTap);
     $('#btn-set').addEventListener('click', settings);
     $('#cur-jade').addEventListener('click', () => { tab = 'shop'; render(); });
     $('#panel').addEventListener('click', onPanel);
@@ -34,7 +35,7 @@ const UI = (() => {
     window.addEventListener('pagehide', () => Game.save());
     render(); hud();
     if (!S().kind) charSelect(true);
-    else checkOffline();
+    else { checkOffline(); if (!Story.cur().end && !Story.cur().intro) setTimeout(storyIntro, 600); }
   }
 
   // ---------- 수확 / 원귀 ----------
@@ -133,7 +134,8 @@ const UI = (() => {
     $('#v-lv').textContent = 'Lv.' + Game.level();
     if (Game.canTest() && S().notified !== S().rank) { S().notified = S().rank; toast(`📜 레벨 ${Game.nextRank().lv} 달성! 승진 시험을 볼 수 있어요 (승진 탭)`, 3500); }
     dot('shop', Game.adLeft('jade') > 0);
-    dot('pet', Pets.adLeft() > 0 || S().jade >= PULL_COST[1]);
+    dot('pet', Pets.adLeft() > 0 || S().jade >= PULL_COST[1] || S().tickets > 0);
+    storyBar();
     const pr = S().parade || (S().parade = { next: Date.now() + 3 * 60e3, ad: { day: '', n: 0 } }), pl = (pr.next - Date.now()) / 1000;
     $('#parade-t').textContent = parade ? '진행 중' : pl > 0 ? fmtClock(pl) : '';
     $('#btn-parade .dot').classList.toggle('on', !parade && pl <= 0);
@@ -499,7 +501,7 @@ const UI = (() => {
     box.querySelector('#go').onclick = () => {
       S().kind = kind; S().name = (box.querySelector('#nm').value || '').trim().slice(0, 6) || (kind === 'f' ? '월하' : '흑립');
       Game.apply(); Game.save(); closeModal();
-      if (first) { S().created = Date.now(); toast(`${S().name} 차사, 첫 근무를 시작한다!`, 2500); setTimeout(() => toast('떠도는 혼령을 터치하면 바로 거둘 수 있어요', 3000), 2600); }
+      if (first) { S().created = Date.now(); setTimeout(storyIntro, 400); }
       hud();
     };
   }
@@ -522,6 +524,57 @@ const UI = (() => {
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0">${ATTEND.map((r, i) => `<div class="pbox" style="padding:6px 2px;font-size:10px;${i < cur ? 'opacity:.45' : ''}${st.can && i === st.streak ? ';box-shadow:0 0 0 2px var(--gold)' : ''}">${i + 1}일<br><img class="px" src="${IC('jade', 3)}" style="width:20px;margin:3px 0"><br>${r}${i < cur ? '<br>✔' : ''}</div>`).join('')}</div>
       <div class="acts"><button class="btn red" id="a-go" ${st.can ? '' : 'disabled'}>${st.can ? '출석하기' : '내일 또 만나요'}</button></div>`);
     box.querySelector('#a-go').onclick = () => { const r = Game.attend(); if (r) { Sound.play('buy'); toast(`출석 보상 옥 +${r}`); closeModal(); } };
+  }
+
+  // ---------- 스토리 ----------
+  const nameFill = t => t.replace(/\{name\}/g, S().name || '차사');
+  function portrait(sp) {
+    const k = 'por' + sp + (sp === 'me' ? S().kind + S().rank : '');
+    if (urls[k]) return urls[k];
+    const c = sp === 'me' ? SP.reaper(S().kind || 'm', S().rank, 'idle', 0) : sp === 'gangrim' ? SP.reaper('m', 4, 'idle', 0) : sp === 'yeomra' ? SP.reaper('m', 8, 'idle', 0) : sp === 'wraith' ? SP.wraith(0) : SP.npc(sp);
+    return (urls[k] = toURL(c, 5));
+  }
+  function talk(lines, done) {
+    let i = 0;
+    const o = overlay(`<div class="tk-bg"></div><div class="tk-box"><img class="px tk-por" id="tk-por"><div class="tk-txt"><b id="tk-name"></b><p id="tk-line"></p><small>터치해서 계속 ▶</small></div></div>`);
+    const show = () => {
+      const [sp, txt] = lines[i];
+      $('#tk-por').src = portrait(sp); $('#tk-por').classList.toggle('flip', sp !== 'me');
+      $('#tk-name').textContent = nameFill(SPEAKERS[sp]); $('#tk-line').textContent = nameFill(txt);
+      Sound.play('open');
+    };
+    show();
+    o.onclick = () => { i++; if (i >= lines.length) { o.onclick = null; closeOverlay(); done && done(); } else show(); };
+  }
+  function storyIntro() {
+    const c = Story.cur(); if (c.end || c.intro) return;
+    const o = overlay(`<div class="tk-bg"></div><div class="ch-card"><small>제 ${c.ch + 1}장</small><b>${c.C.title}</b></div>`); Sound.play('promote');
+    setTimeout(() => talk(c.C.intro, () => { Story.seenIntro(); toast(`📜 새 퀘스트: ${Story.cur().Q.t}`, 3000); }), 1600);
+  }
+  function storyBar() {
+    const c = Story.cur(), e = $('#story-bar');
+    if (c.end) { e.innerHTML = '📜 이야기 완결 · 윤회로 새 생을'; e.classList.remove('done'); return; }
+    e.innerHTML = `<span>📜 ${c.ch + 1}장</span> ${c.Q.t} <b>${fmt(c.have)}/${fmt(c.need)}</b>`;
+    e.classList.toggle('done', c.done);
+  }
+  function storyTap() {
+    const c = Story.cur(); if (c.end) return;
+    if (!c.intro) { storyIntro(); return; }
+    if (c.done) {
+      const R = c.Q.r, res = Story.claim(); if (!res) return;
+      Sound.play('promote');
+      toast(`퀘스트 완료! ${Story.rewardText(R)}${res.got.souls ? ` (+${fmt(res.got.souls)})` : ''}`, 3000);
+      if (res.chapterDone) talk(res.outro, () => setTimeout(storyIntro, 300));
+      storyBar(); return;
+    }
+    storyModal();
+  }
+  function storyModal() {
+    const c = Story.cur();
+    const box = modal(`<h2>제 ${c.ch + 1}장 · ${c.C.title}</h2>
+      ${c.C.quests.map((q, i) => `<div class="qrow pbox ${i < c.q ? 'mute' : ''}"><div class="info"><b>${i < c.q ? '✔ ' : i === c.q ? '▶ ' : ''}${q.t}</b>${i === c.q ? ` <span class="mute">${fmt(c.have)}/${fmt(c.need)}</span><div class="bar"><i style="width:${Math.min(100, (c.have / c.need) * 100)}%"></i></div>` : ''}<div class="mute" style="font-size:10px;margin-top:3px">보상: ${Story.rewardText(q.r)}</div></div></div>`).join('')}
+      <div class="acts"><button class="btn dark" id="st-replay">이야기 다시 보기</button><button class="btn red" data-act="close">닫기</button></div>`);
+    box.querySelector('#st-replay').onclick = () => { closeModal(); talk(c.C.intro); };
   }
   // ---------- 승진 연출 ----------
   function overlay(html) { const o = $('#promo'); o.innerHTML = html; o.className = 'on'; return o; }
@@ -549,6 +602,7 @@ const UI = (() => {
     const stTxt = id => { const st = Pets.stats(id); return `수확량 +${Math.round(st[0] * 100)}% · 이동 +${Math.round(st[1] * 100)}% · 수확속도 +${Math.round(st[2] * 100)}%`; };
     let h = `<div class="petmain pbox">${eq ? `<canvas id="pet-big" width="12" height="11"></canvas><div class="info"><div class="nm"><span class="gb" style="background:${PET_GRADES[eq.g].col}">${eq.g}</span> ${eq.name} <span class="stars">${'★'.repeat(s.pets[eq.id])}</span></div><div class="ds">${eq.desc}</div><div class="ds st">${stTxt(eq.id)}</div></div>` : '<div class="info"><div class="nm">함께할 영물이 없어요</div><div class="ds">아래에서 영물을 소환해 보세요. 데리고 다니면 수확을 도와줘요.</div></div>'}</div>
       <div class="gacha pbox"><div class="gt">영물 소환</div><div class="gd">C 50% · B 30% · A 13% · S 5% · SS 1.7% · <b style="color:${PET_GRADES.SSS.col}">SSS 0.3%</b><br>SS 이상 확정까지 <b>${PITY - s.pity}</b>회 · 같은 영물은 별 +1 (최대 ★5)</div>
+        ${s.tickets ? `<button class="btn red ticket" data-pull="ticket">소환권으로 1회 <em>${s.tickets}장</em></button>` : ''}
         <div class="gb3"><button class="btn" data-pull="ad" ${Pets.adLeft() > 0 ? '' : 'disabled'}>무료 1회<em>AD ${Pets.adLeft()}/2</em></button>
         <button class="btn jade" data-pull="1" ${s.jade >= PULL_COST[1] ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[1]} · 1회</button>
         <button class="btn red" data-pull="10" ${s.jade >= PULL_COST[10] ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[10]} · 10회</button></div><div class="gd">10회 소환은 A등급 이상 1마리 확정</div></div>
@@ -560,6 +614,7 @@ const UI = (() => {
   function petIcon(p, known) { const k = 'pi' + p.id + known; if (urls[k]) return urls[k]; let c = SP.pet(p, 0); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, 4)); }
   function doPull(kind) {
     if (kind === 'ad') { ad(() => { const r = Pets.adPull(); if (r) gachaShow(r); render(); }); return; }
+    if (kind === 'ticket') { if (S().tickets <= 0) return; S().tickets--; const r = Pets.pull(1, true); gachaShow(r); render(); return; }
     const r = Pets.pull(+kind); if (!r) { Sound.play('no'); toast('옥이 부족해요'); return; }
     gachaShow(r); render();
   }
@@ -601,7 +656,7 @@ const UI = (() => {
     if (parade.t <= 0) endParade();
   }
   function endParade() {
-    const p = parade; parade = null; Scene.config({ parade: false }); $('#parade-bar').classList.remove('on');
+    const p = parade; parade = null; Scene.config({ parade: false }); Life.qEvent('parade'); $('#parade-bar').classList.remove('on');
     const bonus = p.gained * Math.min(1, p.max / 40) * 0.5, jade = p.max >= 60 ? 15 : p.max >= 30 ? 8 : p.max >= 15 ? 3 : 0;
     Game.gain(bonus); S().jade += jade; Game.save(); Sound.play('kill');
     const box = modal(`<h2>백귀야행 끝!</h2><p>행렬이 지나갔어요.</p>

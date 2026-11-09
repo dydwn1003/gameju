@@ -249,6 +249,7 @@ const SP = (() => {
     crest: [5, 0, ['.yy', 'y..']], stripe: [4, 5, ['b.b.']], fire: [0, 3, ['y', 'oy']],
   };
   function petFrame(pet, i) {
+    if (typeof PET_ART !== 'undefined' && PET_ART[pet.id]) { const A = PET_ART[pet.id]; return compose(16, 14, [[A.rows, 1, i % 2 ? 1 : 0]], Object.assign({ E: '#1a1024', w: '#ffffff', P: '#ff9ab0' }, A.pal)); }
     let rows = PET_BODY[pet.kind].slice();
     if (pet.acc && PET_ACC[pet.acc]) { const [x, y, r] = PET_ACC[pet.acc]; rows = patch(rows, x, y, r); }
     if (i % 2) rows = pet.kind === 'bird' || pet.kind === 'dragon' ? patch(rows, 0, 4, [pet.kind === 'bird' ? '.KbbbBBK..' : '.KBBKKBBK.']) : rows;

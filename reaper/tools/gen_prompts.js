@@ -172,6 +172,11 @@ G('pet', '⑪ 영물 펫 21종 (뽑기)', '저승사자를 따라다니는 펫�
     prompt: `Use the attached sprite sheet as the exact style and size reference. Draw 3 NEW legendary tiny companion pets in the same style, very magical and radiant with sparkling auras. ${STYLE} ${SHEET(3, 1, 3)}\n${list(PETP.slice(18).map(p => p[1]))}` },
 ]);
 
+G('story', '⑫ 스토리 인물 초상', '스토리 대화창에 나오는 얼굴이에요. 한 장에 6명.', [
+  { file: 'story_portraits.png', name: '스토리 인물 6명 (상반신)', attach: 'reaper_m_sheet.png 결과 이미지 첨부', note: '강림 차사 · 염라대왕 · 주모 · 게시판 할아버지 · 도깨비 상인 · 뱃사공',
+    prompt: `Use the attached sprite sheet as the style reference. 6 bust portraits (head and shoulders, facing slightly left) of characters for story dialogue in the same tiny pixel game, expressive faces. ${STYLE} ${SHEET(6, 2, 3)}\n${list(['Gangrim, a cool veteran grim reaper with a confident grin, black gat hat with amber beads, navy robe with gold trim', 'King Yeomra of the underworld, stern but kind old king, crimson-gold dragon robe, myeonryugwan crown with hanging beads', 'a cheerful middle-aged jumo tavern keeper woman with a hair bun and apron', 'a wise old man with long white beard and grey hanbok', 'a mischievous green dokkaebi merchant with small horns and a big grin', 'a sleepy ferryman of the Samdocheon river in a straw hat'])}` },
+]);
+
 const ICON = 'Game UI icons, each a single bold readable object on its own, front view, thick dark outline, chunky pixels.';
 G('icon', '⑧ UI 아이콘', '메뉴 버튼·재화·상점에 쓰는 아이콘이에요.', [
   { file: 'icons_01.png', name: '성장 메뉴 아이콘 9종', note: '명부 필력 · 혼불 부르기 · 거둠의 손길 · 축지법 · 귀한 인연 · 저승 장부 · 졸개 고용 · 졸개 훈련 · 승진',

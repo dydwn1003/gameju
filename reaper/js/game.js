@@ -214,7 +214,7 @@ const Game = (() => {
   function load() {
     try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
     if (!S) S = fresh();
-    Life.ensure(); Pets.ensure();
+    Life.ensure(); Pets.ensure(); Story.ensure();
   }
   // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 60%)
   function offline() {
@@ -224,7 +224,7 @@ const Game = (() => {
     const amt = incomePerSec(true) * secs * 0.6;
     return { away, secs, amt, capped: away > secs };
   }
-  function reset() { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); Life.ensure(); Pets.ensure(); apply(); }
+  function reset() { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); Life.ensure(); Pets.ensure(); Story.ensure(); apply(); }
 
   return {
     get S() { return S; }, lv, load, save, apply, reset,
