@@ -1,0 +1,149 @@
+# 저승사자 키우기 — 안드로이드 AAB 빌드 → Play Console 업로드 (+ 바로 설치용 APK)
+#
+# 실행: GitHub → Actions → "저승사자 Android 출시" → Run workflow
+#       또는 reaper-v1.0.0 같은 태그를 push 하면 자동 실행
+# reaper/ 를 고쳐서 push 하면 "빌드 확인"만 자동으로 돌아요 (서명 · 업로드 없음)
+# 필요한 Secrets 는 reaper/docs/APP_RELEASE.md 참고
+name: 저승사자 Android 출시
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Play 트랙 (internal / alpha / beta / production)'
+        default: internal
+        required: true
+      status:
+        description: '출시 상태 (completed / draft) — 앱을 처음 올릴 땐 draft'
+        default: completed
+        required: true
+      check_only:
+        description: '빌드만 확인 (서명 키 없이, 업로드 안 함)'
+        type: boolean
+        default: false
+  push:
+    tags: ['reaper-v*']
+    branches-ignore: [main]
+    paths: ['reaper/**', '.github/workflows/reaper-android.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reaper-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  aab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: reaper/app
+    env:
+      # 태그가 아닌 브랜치 push 는 빌드 확인만
+      CHECK_ONLY: ${{ github.event.inputs.check_only == 'true' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')) }}
+      HAS_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: reaper/app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: 버전 정하기 (빌드 번호는 매 실행마다 +1)
+        id: ver
+        run: |
+          name=$(grep -o "version: '[0-9.]*'" ../js/config.js | head -1 | grep -o "[0-9.]*")
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "build=$(( 100 + GITHUB_RUN_NUMBER ))" >> "$GITHUB_OUTPUT"
+
+      - name: 서명 키 복원
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ "$CHECK_ONLY" = "true" ]; then
+            echo "빌드 확인 모드: 서명 키 없이 빌드해요 (업로드 안 함)"; exit 0
+          fi
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 secret 이 없어요 (reaper/docs/APP_RELEASE.md 참고)"; exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}
+          keyAlias=$KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+
+      - run: npm ci
+
+      - name: 게임 파일 → 앱 (www) → 안드로이드 프로젝트
+        run: node build-www.js && npx cap sync android
+
+      - name: AAB · APK 빌드
+        working-directory: reaper/app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon bundleRelease assembleRelease \
+            -PversionCode=${{ steps.ver.outputs.build }} -PversionName=${{ steps.ver.outputs.name }}
+          f="reaper-${{ steps.ver.outputs.name }}-${{ steps.ver.outputs.build }}"
+          cp app/build/outputs/bundle/release/app-release.aab "$GITHUB_WORKSPACE/$f.aab"
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/$f.apk"
+          echo "FILE=$f" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE }}-aab
+          path: ${{ env.FILE }}.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE }}-apk
+          path: ${{ env.FILE }}.apk
+
+      # 폰에서 바로 받을 수 있게 GitHub Release 에도 올린다 (미리보기 출시)
+      - name: APK Release
+        if: env.CHECK_ONLY != 'true'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "reaper-apk-$FILE" "$FILE.apk" "$FILE.aab" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "저승사자 키우기 $FILE (APK · AAB)" \
+            --notes "커밋 ${GITHUB_SHA::7} 에서 만든 APK" \
+            --prerelease --target "$GITHUB_SHA" || echo "::warning::APK Release 를 만들지 못했어요"
+
+      - name: Play Console 업로드
+        if: env.HAS_PLAY == 'true' && env.CHECK_ONLY != 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.jeoseungsaja.idle
+          releaseFiles: ${{ env.FILE }}.aab
+          track: ${{ github.event.inputs.track || 'internal' }}
+          status: ${{ github.event.inputs.status || 'completed' }}
+          releaseName: ${{ steps.ver.outputs.name }} (${{ steps.ver.outputs.build }})
+
+      - name: 결과
+        working-directory: .
+        run: |
+          echo "### 저승사자 안드로이드 ${{ steps.ver.outputs.name }} (${{ steps.ver.outputs.build }})" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CHECK_ONLY" = "true" ]; then
+            echo "빌드 확인만 했어요 (디버그 키로 서명된 APK 는 위 Artifacts 에 있어요)." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$HAS_PLAY" = "true" ]; then
+            echo "Play Console **${{ github.event.inputs.track || 'internal' }}** 트랙에 올렸어요." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "PLAY_SERVICE_ACCOUNT_JSON 이 없어 업로드는 건너뛰었어요. Artifacts / Releases 에서 aab 를 받아 직접 올려주세요." >> "$GITHUB_STEP_SUMMARY"
+          fi
