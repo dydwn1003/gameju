@@ -10,8 +10,56 @@ const UI = (() => {
   let tab = 'grow', mult = 1, nextWraith = 45, test = null, autoAcc = 0, hitSnd = 0, sndT = 0, stuckT = 0, previews = [];
   const rnd = (a, b) => a + Math.random() * (b - a);
 
+  // ---------- 로그인 (Supabase) ----------
+  const PROV = { google: ['G', '구글로 시작', 'pv-google'], kakao: ['💬', '카카오로 시작', 'pv-kakao'], naver: ['N', '네이버로 시작', 'pv-naver'], apple: ['', 'Apple로 시작', 'pv-apple'] };
+  function loginScreen(fromSettings) {
+    const box = modal(`${fromSettings ? '<h2>계정 연동</h2><p class="mute">지금까지의 기록을 계정에 저장해 다른 기기에서도 이어 해요</p>' : '<div class="title-logo">저승사자 키우기</div><div class="title-sub">로그인하면 기록이 서버에 저장돼 기기를 바꿔도 이어 할 수 있어요</div>'}
+      <div class="lg-list">${CLOUD.providers.map(p => `<button class="lg-btn ${PROV[p][2]}" data-lg="${p}"><i>${PROV[p][0]}</i><span>${PROV[p][1]}</span></button>`).join('')}</div>
+      ${fromSettings ? '<div class="acts"><button class="btn dark" data-act="close">닫기</button></div>' : '<button class="lg-guest" id="lg-guest">게스트로 시작 <small>(이 기기에만 저장돼요)</small></button>'}`, !fromSettings);
+    box.querySelectorAll('[data-lg]').forEach(b => b.onclick = () => { S().pendingLink = !!S().kind; Game.save(); toast('로그인 화면으로 이동해요…', 2000); Cloud.signIn(b.dataset.lg); });
+    const g = box.querySelector('#lg-guest'); if (g) g.onclick = () => { S().guest = true; Game.save(); closeModal(); charSelect(true); };
+  }
+  function afterLoad() { checkOffline(); if (!Story.cur().end && !Story.cur().intro) setTimeout(storyIntro, 600); }
+  // 로그인 직후: 서버 기록과 이 기기 기록 맞추기
+  const saveSummary = d => d && d.kind ? `${esc(d.name || '')} · ${RANKS[Math.min(8, d.rank || 0)].name}${d.reborn ? ` · 윤회 ${d.reborn}` : ''}` : '기록 없음';
+  async function cloudSync() {
+    let cloud = null; try { cloud = await Cloud.pullSave(); } catch (e) {}
+    const local = S(), hasLocal = !!local.kind, hasCloud = !!(cloud && cloud.data && cloud.data.kind);
+    const useCloud = () => { Game.replace(cloud.data); closeModal(); render(); hud(); Board.init(); toast('☁️ 서버에 저장된 기록을 불러왔어요', 2600); afterLoad(); };
+    const useLocal = () => { Cloud.pushSave(S(), true); closeModal(); Board.init(); toast('☁️ 이 기기 기록을 계정에 저장했어요', 2600); afterLoad(); };
+    if (hasCloud && !hasLocal) return useCloud();
+    if (!hasCloud && hasLocal) return useLocal();
+    if (!hasCloud && !hasLocal) { closeModal(); charSelect(true); return; }
+    if (Math.abs((cloud.data.last || 0) - (local.last || 0)) < 60e3 && cloud.data.rank === local.rank) return useLocal();
+    const box = modal(`<h2>☁️ 어떤 기록으로 할까요?</h2><p>계정과 이 기기에 서로 다른 기록이 있어요.</p>
+      <div class="sv-pick"><button id="sv-cloud"><b>계정(서버) 기록</b><span>${saveSummary(cloud.data)}</span><small>${fmtDate(cloud.at)} 저장</small></button><button id="sv-local"><b>이 기기 기록</b><span>${saveSummary(local)}</span><small>${fmtDate(local.last || Date.now())} 저장</small></button></div>
+      <p class="mute" style="font-size:10px">고르지 않은 쪽 기록은 사라져요</p>`, true);
+    box.querySelector('#sv-cloud').onclick = useCloud; box.querySelector('#sv-local').onclick = useLocal;
+  }
+  // ---------- 로딩 화면 ----------
+  const TIPS = ['혼령은 직접 터치하면 더 많이 거둬요', '승진할 때마다 발밑 마법진이 화려해져요', '집무실 결재 서류는 2시간마다 한 건씩 쌓여요', '백귀야행 때 금빛 귀신을 잡으면 5배!', '이웃 집무실에 하루 3곳 놀러 가면 옥을 받아요', '지도의 반짝이는 나무와 소품을 눌러 보세요', '망자 심판을 모두 맞히면 보너스 옥!', '같은 등급 영물 3마리로 합성할 수 있어요', '책상 뒤 파란 칸에 의자를 놓으면 앉아서 근무해요'];
+  async function init() {
+    const L = $('#loading'), fill = $('#ld-fill'), msg = $('#ld-msg'), t0 = performance.now();
+    if (!L) { initGame(); return; }
+    $('#ld-tip').textContent = '💡 ' + TIPS[Math.floor(Math.random() * TIPS.length)];
+    // 걷는 꼬마 저승사자
+    const wc = $('#ld-walker'), wg = wc.getContext('2d'); wg.imageSmoothingEnabled = false; let wf = 0;
+    const walk = setInterval(() => { wg.clearRect(0, 0, 16, 20); try { wg.drawImage(SP.tinyReaper('m', 0, 'side', 'walk', wf++), 0, 0); } catch (e) {} }, 110);
+    const step = async (p, text, fn) => { msg.textContent = text; fill.style.width = p + '%'; wc.style.left = `calc(${p}% - 8px)`; await new Promise(r => setTimeout(r, 30)); try { await fn(); } catch (e) {} };
+    await step(10, '글꼴을 불러오는 중…', () => Promise.race([document.fonts ? document.fonts.ready : 0, new Promise(r => setTimeout(r, 1500))]));
+    await step(30, '저승사자 옷을 입히는 중…', () => { for (const k of ['m', 'f']) for (let r = 0; r <= 8; r++) { SP.reaper(k, r, 'idle', 0); for (const d of ['down', 'up', 'side']) SP.tinyReaper(k, r, d, 'walk', 0); } });
+    await step(55, '혼령을 불러 모으는 중…', () => { for (let t = 0; t < 4; t++) for (let i = 0; i < 3; i++) SP.soult(t, i); });
+    await step(75, '집무실 소품을 닦는 중…', async () => { for (let i = 0; i < DECOR.length; i += 20) { DECOR.slice(i, i + 20).forEach(d => Decor.img(d.id)); await new Promise(r => setTimeout(r, 0)); } });
+    await step(82, '저승 서버에 접속하는 중…', () => Cloud.init());
+    await step(90, '명부를 펼치는 중…', () => initGame());
+    if (Cloud.signedIn()) await step(96, '내 기록을 불러오는 중…', () => cloudSync());
+    const wait = Math.max(0, 1200 - (performance.now() - t0)); await new Promise(r => setTimeout(r, wait));
+    fill.style.width = '100%'; wc.style.left = 'calc(100% - 8px)'; msg.textContent = '근무 시작!';
+    await new Promise(r => setTimeout(r, 250)); clearInterval(walk);
+    L.classList.add('out'); setTimeout(() => L.remove(), 600);
+  }
   // ---------- 시작 ----------
-  function init() {
+  function initGame() {
     Game.load();
     Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => (visiting ? visiting.placed : Decor.ensure().placed).filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
@@ -39,13 +87,13 @@ const UI = (() => {
     $('#cur-jade').addEventListener('click', () => { goTab('shop'); });
     $('#panel').addEventListener('click', onPanel);
     setInterval(hud, 200);
-    setInterval(() => { if (!document.hidden) { Game.save(); Board.push(); } }, 5000);
+    setInterval(() => { if (!document.hidden) { Game.save(); Board.push(); if (S().kind) Cloud.pushSave(S()); } }, 5000);
     setInterval(drawPreviews, 160);
-    document.addEventListener('visibilitychange', () => { if (document.hidden) Game.save(); else checkOffline(); });
-    window.addEventListener('pagehide', () => Game.save());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { Game.save(); if (S().kind) Cloud.pushSave(S(), true); } else checkOffline(); });
+    window.addEventListener('pagehide', () => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
     render(); hud();
-    if (!S().kind) charSelect(true);
-    else { checkOffline(); if (!Story.cur().end && !Story.cur().intro) setTimeout(storyIntro, 600); }
+    if (!S().kind) { if (Cloud.enabled() && Cloud.signedIn()) { /* cloudSync 가 정함 */ } else if (Cloud.ready() && !S().guest) loginScreen(); else charSelect(true); }
+    else if (!Cloud.signedIn()) afterLoad(); // 로그인했으면 서버 기록을 맞춘 뒤에
   }
 
   // ---------- 수확 / 원귀 ----------
@@ -1112,6 +1160,9 @@ const UI = (() => {
       <div class="set-row"><span>퇴치한 원귀 / 터치 수확</span><span>${s.stats.wraith} / ${s.stats.tap}</span></div>
       <div class="acts"><button class="btn dark" id="s-reset">처음부터</button><button class="btn red" data-act="close">닫기</button></div>`);
     const sn = box.querySelector('#s-nick'); if (sn) sn.onclick = () => { closeModal(); nickModal(); };
+    if (Cloud.ready()) { const h = box.querySelector('h2'); h.insertAdjacentHTML('afterend', Cloud.signedIn() ? `<div class="set-row"><span>☁️ ${{ google: '구글', kakao: '카카오', naver: '네이버', apple: 'Apple', email: '네이버' }[Cloud.provider()] || ''} 계정으로 저장 중</span><button class="btn dark" id="s-out">로그아웃</button></div>` : '<div class="set-row"><span>👤 게스트 (이 기기에만 저장)</span><button class="btn" id="s-link">계정 연동</button></div>');
+      const so = box.querySelector('#s-out'); if (so) so.onclick = async () => { await Cloud.pushSave(S(), true); await Cloud.signOut(); toast('로그아웃했어요'); closeModal(); };
+      const sl = box.querySelector('#s-link'); if (sl) sl.onclick = () => { closeModal(); loginScreen(true); }; }
     if (Board.online()) Board.checkOwner().then(o => { const h = box.querySelector('h2'); if (o && h && document.body.contains(h)) h.insertAdjacentHTML('afterend', '<p class="adm-badge">🛡️ 운영자 모드 · 📢 공지 쓰기 / 📮 전체 우편 보내기를 쓸 수 있어요</p>'); });
     box.querySelector('#s-look').onclick = () => charSelect(false);
     box.querySelector('#s-snd').onclick = () => { s.sound = !s.sound; Sound.set(s.sound, s.bgm); Game.save(); settings(); };

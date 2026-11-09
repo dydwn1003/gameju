@@ -4,9 +4,11 @@ const Board = (() => {
   let db = null, user = null, uid = null, ready = false, lastSent = '', lastAt = 0, place = 0, onPlace = null;
   const score = s => (s.reborn || 0) * 10000 + Game.level();
   async function init() {
+    if (ready) { push(true); pushOffice(); return; }
     try {
-      if (typeof window.claude === 'undefined' || !window.claude.use) return;
-      db = await window.claude.use('db'); user = await window.claude.use('user');
+      if (window.claude && window.claude.use) { db = await window.claude.use('db'); user = await window.claude.use('user'); }
+      else if (typeof Cloud !== 'undefined' && Cloud.signedIn()) { db = Cloud.db; user = Cloud.user; } // 우리 서버(Supabase)
+      else return;
       if (db && user) { uid = await user.id(); ready = !!uid; } if (ready) isOwner();
       if (ready) { await push(true); refresh(); setInterval(refresh, 3 * 60e3); myLikes(); }
     } catch (e) { db = null; ready = false; }

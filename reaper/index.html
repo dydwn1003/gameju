@@ -8,6 +8,13 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <div id="loading">
+    <div class="ld-sky"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="ld-moon"></div>
+    <div class="ld-logo"><small>도트 방치형 저승 근무기</small><b>저승사자 키우기</b></div>
+    <div class="ld-souls"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="ld-bottom"><div class="ld-bar"><i id="ld-fill"></i><canvas id="ld-walker" width="16" height="20"></canvas></div><p id="ld-msg">저승 문을 여는 중…</p><p class="ld-tip" id="ld-tip"></p></div>
+  </div>
   <div id="app">
     <section id="stage">
       <canvas id="cv"></canvas>
@@ -73,6 +80,8 @@
   <script src="js/pets.js"></script>
   <script src="js/petart.js"></script>
   <script src="js/story.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cloud.js"></script>
   <script src="js/board.js"></script>
   <script src="js/ui.js"></script>
   <script>UI.init();</script>
