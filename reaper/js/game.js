@@ -56,12 +56,12 @@ const Game = (() => {
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
   const penMul = L => (1 + L * 0.45) * Math.pow(2, Math.floor(L / 25));
-  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * RANKS[S.rank].mult * rebornMult() * (S.perm2 ? 2 : 1);
+  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * RANKS[S.rank].mult * rebornMult() * (S.perm2 ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1);
-  const walk = () => (18 + lv('step') * 2.2) * Life.mul('spawn');
+  const walk = () => (18 + lv('step') * 2.2) * Life.mul('spawn') * Pets.mul('walk');
   const spawn = () => Math.max(0.3, 2.4 * Math.pow(0.93, lv('call'))) / Life.mul('spawn');
-  const reap = () => Math.max(0.18, 0.9 * Math.pow(0.93, lv('hand')));
+  const reap = () => Math.max(0.12, 0.9 * Math.pow(0.93, lv('hand')) / Pets.mul('reap'));
   const minions = () => lv('minion');
   const mWalk = () => Math.min(36, 11 * (1 + lv('drill') * 0.05));
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.965, lv('drill')));
@@ -163,6 +163,7 @@ const Game = (() => {
     Scene.setRegion(RANKS[S.rank].region);
     if (S.kind) Scene.setKind(S.kind);
     Scene.setRank(S.rank);
+    Scene.setPet(S.petEq && S.pets && S.pets[S.petEq] ? Pets.P(S.petEq) : null);
   }
 
   // ---------- 광고 ----------
@@ -213,7 +214,7 @@ const Game = (() => {
   function load() {
     try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
     if (!S) S = fresh();
-    Life.ensure();
+    Life.ensure(); Pets.ensure();
   }
   // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 60%)
   function offline() {
@@ -223,7 +224,7 @@ const Game = (() => {
     const amt = incomePerSec(true) * secs * 0.6;
     return { away, secs, amt, capped: away > secs };
   }
-  function reset() { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); Life.ensure(); apply(); }
+  function reset() { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); Life.ensure(); Pets.ensure(); apply(); }
 
   return {
     get S() { return S; }, lv, load, save, apply, reset,

@@ -27,11 +27,13 @@
       <div id="side">
         <button id="btn-boost" class="sbtn"><img class="px" data-ui="luck"><span>2배 부적</span><em>AD</em><small id="boost-t"></small></button>
         <button id="btn-attend" class="sbtn"><img class="px" data-ui="ledger"><span>출석</span><i class="dot"></i></button>
+        <button id="btn-parade" class="sbtn parade"><img class="px" data-ui="wraith"><span>백귀야행</span><small id="parade-t"></small><i class="dot"></i></button>
         <button id="btn-quest" class="sbtn"><img class="px" data-ic="scroll"><span>의뢰</span><i class="dot"></i></button>
       </div>
       <div id="labels"></div>
       <canvas id="minimap"></canvas>
       <div id="test-bar"></div>
+      <div id="parade-bar"></div>
       <div id="floats"></div>
     </section>
     <section id="menu">
@@ -40,12 +42,14 @@
         <button data-tab="grow" class="on"><img class="px" data-ui="pen">성장<i class="dot"></i></button>
         <button data-tab="minion"><img class="px" data-ui="minion">졸개<i class="dot"></i></button>
         <button data-tab="life"><img class="px" data-ui="flower">생활<i class="dot"></i></button>
+        <button data-tab="pet"><img class="px" data-ui="petic">펫<i class="dot"></i></button>
         <button data-tab="rank"><img class="px" data-ui="gate">승진<i class="dot"></i></button>
         <button data-tab="shop"><img class="px" data-ui="luck">상점<i class="dot"></i></button>
       </nav>
     </section>
   </div>
   <div id="modal"></div>
+  <div id="promo"></div>
   <div id="toasts"></div>
 
   <script src="js/pixel.js"></script>
@@ -54,6 +58,7 @@
   <script src="js/scene.js"></script>
   <script src="js/game.js"></script>
   <script src="js/life.js"></script>
+  <script src="js/pets.js"></script>
   <script src="js/ui.js"></script>
   <script>UI.init();</script>
 </body>

@@ -5,7 +5,7 @@
 - 결과는 **파일 이름 그대로** 저장해서 대화창에 올려주세요. 마젠타(분홍) 배경 그대로 OK, 잘라서 넣는 건 제가 합니다.
 - 칸이 삐뚤거나 글자가 들어가면 같은 프롬프트로 다시 뽑으면 돼요.
 
-총 34장
+총 37장
 
 ## ① 주인공 저승사자
 
@@ -340,6 +340,55 @@ Game UI icons, each a single bold readable object on its own, front view, thick 
 7. a tiny helper reaper carrying a sack on its back
 8. a rolled map scroll
 9. a small wooden signpost
+```
+
+## ⑪ 영물 펫 21종 (뽑기)
+
+> 저승사자를 따라다니는 펫이에요. 칸 순서는 게임 속 등급 순서(C → SSS)예요. 주인공보다 작게(약 절반).
+
+### `pets_01.png` 펫 1~9 (C 6종 + B 3종)
+첨부: reaper_m_sheet.png 결과 이미지 첨부
+메모: 1.아기 까치 · 2.다람쥐 · 3.반딧불이 · 4.새끼 두꺼비 · 5.달토끼 · 6.병아리 · 7.너구리 · 8.삽살개 · 9.검은 고양이
+
+```
+Use the attached sprite sheet as the style reference. Draw 9 tiny cute companion pet animals from Korean folklore that follow a grim reaper, each about half the height of the reaper, full body, facing right in 3/4 view, sitting or hovering. Tiny super-deformed chibi (2 heads tall, very small and adorable), very low-resolution pixel sprite as if drawn on a 16x20 pixel canvas and scaled up with nearest-neighbor so every pixel is a big visible square block, minimal details, cute chibi pixel art for a Korean folklore idle mobile game about a Joseon-era grim reaper (jeoseung-saja) collecting wandering souls, eerie but adorable moonlit-night mood, traditional Korean motifs (black gat hats, hanbok robes, hanji paper scrolls, dancheong colors, cheongsachorong lanterns), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited palette of deep indigo, black, bone white, soul blue and accent red/gold, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes. Sprite sheet: exactly 9 images arranged in a 3x3 grid of equal square cells (3 columns, 3 rows), one per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, all at the same pixel size and scale, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a baby magpie, black and white
+2. a chipmunk with a striped back
+3. a round glowing firefly with a yellow light belly
+4. a chubby green baby toad
+5. a white moon rabbit with long ears
+6. a yellow fluffy chick
+7. a raccoon dog (neoguri) with a dark eye mask
+8. a shaggy cream-colored sapsali dog
+9. a black cat with glowing yellow eyes
+```
+
+### `pets_02.png` 펫 10~18 (B 2종 + A 4종 + S 3종)
+첨부: pets_01.png 결과 이미지 첨부
+메모: 10.부엉이 · 11.아기 거북 · 12.아기 해치 · 13.여우 · 14.학 · 15.아기 백호 · 16.삼족오 · 17.불여우 · 18.아기 청룡
+
+```
+Use the attached sprite sheet as the exact style and size reference. Draw 9 NEW tiny companion pets in the same style, higher ranks look more magical with small glowing auras. Tiny super-deformed chibi (2 heads tall, very small and adorable), very low-resolution pixel sprite as if drawn on a 16x20 pixel canvas and scaled up with nearest-neighbor so every pixel is a big visible square block, minimal details, cute chibi pixel art for a Korean folklore idle mobile game about a Joseon-era grim reaper (jeoseung-saja) collecting wandering souls, eerie but adorable moonlit-night mood, traditional Korean motifs (black gat hats, hanbok robes, hanji paper scrolls, dancheong colors, cheongsachorong lanterns), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited palette of deep indigo, black, bone white, soul blue and accent red/gold, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes. Sprite sheet: exactly 9 images arranged in a 3x3 grid of equal square cells (3 columns, 3 rows), one per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, all at the same pixel size and scale, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a brown horned owl with big yellow eyes
+2. a baby green turtle
+3. a baby haetae lion-dog, golden with green mane and a small horn
+4. an orange fox with a white tail tip
+5. a white red-crowned crane
+6. a baby white tiger with black stripes
+7. a three-legged black sun crow with golden feathers and a golden aura (S rank)
+8. a red fox with flaming tails and foxfire (S rank)
+9. a baby blue dragon with golden horns (S rank)
+```
+
+### `pets_03.png` 펫 19~21 (SS 2종 + SSS 1종)
+첨부: pets_01.png 결과 이미지 첨부
+메모: 19.기린 · 20.봉황 · 21.아기 황룡
+
+```
+Use the attached sprite sheet as the exact style and size reference. Draw 3 NEW legendary tiny companion pets in the same style, very magical and radiant with sparkling auras. Tiny super-deformed chibi (2 heads tall, very small and adorable), very low-resolution pixel sprite as if drawn on a 16x20 pixel canvas and scaled up with nearest-neighbor so every pixel is a big visible square block, minimal details, cute chibi pixel art for a Korean folklore idle mobile game about a Joseon-era grim reaper (jeoseung-saja) collecting wandering souls, eerie but adorable moonlit-night mood, traditional Korean motifs (black gat hats, hanbok robes, hanji paper scrolls, dancheong colors, cheongsachorong lanterns), 16-bit retro SNES style, crisp hard pixel edges, every pixel clearly visible, no anti-aliasing, no blur, no gradients, limited palette of deep indigo, black, bone white, soul blue and accent red/gold, dark 1-pixel outline, soft cel shading with 2-3 tones, big expressive eyes. Sprite sheet: exactly 3 images arranged in a 3x1 grid of equal square cells (3 columns, 1 rows), one per cell, each centered in its own cell with empty margin around it, nothing crossing into other cells, all at the same pixel size and scale, no grid lines, no frames, no labels, no numbers, no text anywhere, the entire background is one flat solid magenta color #FF00FF. Order: left to right, top to bottom.
+1. a golden qilin (girin) with a single horn and flame-like mane, glowing (SS rank)
+2. a red-and-gold fenghuang phoenix with long rainbow tail feathers, glowing (SS rank)
+3. a baby golden yellow dragon, the most majestic, radiant golden aura (SSS rank)
 ```
 
 ## ⑧ UI 아이콘

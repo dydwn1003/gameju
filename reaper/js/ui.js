@@ -2,10 +2,10 @@
 const UI = (() => {
   const $ = s => document.querySelector(s);
   const urls = {};
-  const IC = (name, sc = 3) => urls[name + sc] || (urls[name + sc] = toURL(name === 'flower' ? SP.plant(3, FLOWERS[1].pal, 'lotus') : ['soul', 'jade', 'scroll'].includes(name) ? SP.icon(name) : SP.ui(name), sc));
+  const IC = (name, sc = 3) => urls[name + sc] || (urls[name + sc] = toURL(name === 'petic' ? SP.pet(PETS.find(p => p.id === 'heukmyo'), 0) : name === 'flower' ? SP.plant(3, FLOWERS[1].pal, 'lotus') : ['soul', 'jade', 'scroll'].includes(name) ? SP.icon(name) : SP.ui(name), sc));
   const FIC = (fid, stage = 3, sc = 2) => { const k = 'f' + fid + stage + sc; return urls[k] || (urls[k] = toURL(SP.plant(stage, FLOWERS.find(f => f.id === fid).pal, fid), sc)); };
   const SPIC = (i, known, sc = 4) => { const k = 'sp' + i + known + sc; if (urls[k]) return urls[k]; let c = SP.special(i); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, sc)); };
-  let sub = 'garden', lifeSig = '', lifeT = 0, buffSig = '';
+  let sub = 'garden', lifeSig = '', lifeT = 0, buffSig = '', parade = null;
   const S = () => Game.S;
   let tab = 'grow', mult = 1, nextWraith = 45, test = null, autoAcc = 0, hitSnd = 0, sndT = 0, stuckT = 0, previews = [];
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -23,6 +23,7 @@ const UI = (() => {
     $('#btn-boost').addEventListener('click', boostAd);
     $('#btn-attend').addEventListener('click', attendModal);
     $('#btn-quest').addEventListener('click', questModal);
+    $('#btn-parade').addEventListener('click', paradeAsk);
     $('#btn-set').addEventListener('click', settings);
     $('#cur-jade').addEventListener('click', () => { tab = 'shop'; render(); });
     $('#panel').addEventListener('click', onPanel);
@@ -41,7 +42,9 @@ const UI = (() => {
     const v = Game.collect(s.tier, who);
     Life.qEvent('soul'); if (who === 'tap') Life.qEvent('tap');
     if (s.sp >= 0) { const first = Life.catchSpecial(s.sp); toast(`${first ? '📖 도감 등록! ' : '✨ '}${SPECIALS[s.sp].name}을 거뒀다${first ? ' (혼 수확 +3%)' : ''}`, 3000); }
-    if (who !== 'minion' || Math.random() < 0.7) float(x, y, '+' + fmt(v), 't' + s.tier + (who === 'tap' ? ' tap' : ''));
+    let shown = v;
+    if (parade) { parade.gained += v; if (who === 'tap') { parade.combo++; parade.comboT = 1.6; parade.max = Math.max(parade.max, parade.combo); const bonus = v * Math.min(4, parade.combo * 0.1); Game.gain(bonus); parade.gained += bonus; shown += bonus; } }
+    if (who !== 'minion' || Math.random() < 0.7) float(x, y, '+' + fmt(shown), 't' + s.tier + (who === 'tap' ? ' tap' : ''));
     const now = performance.now();
     if (who !== 'minion' || now - sndT > 400) { Sound.play('collect', s.tier); sndT = now; }
     if (s.tier >= 2) toast(`${s.tier === 3 ? '🔥' : '✨'} ${TIER_NAME[s.tier]}을 거뒀다! <b>+${fmt(v)}</b>`, 1800);
@@ -61,7 +64,7 @@ const UI = (() => {
     if (test) {
       test = null; $('#test-bar').classList.remove('on');
       const R0 = RANKS[S().rank].region;
-      if (Game.promote()) { Sound.play('promote'); promoted(RANKS[S().rank].region !== R0); }
+      const oldRank = S().rank; if (Game.promote()) { Scene.pillar(); promoted(RANKS[S().rank].region !== R0, oldRank); }
       render(); return;
     }
     S().stats.wraith++; Life.qEvent('wraith');
@@ -78,6 +81,7 @@ const UI = (() => {
   }
   function tick(dt) {
     placeLabels();
+    paradeTick(dt);
     if (!S().kind) return;
     if (Scene.wraithAlive()) {
       autoAcc += dt;
@@ -129,6 +133,11 @@ const UI = (() => {
     $('#v-lv').textContent = 'Lv.' + Game.level();
     if (Game.canTest() && S().notified !== S().rank) { S().notified = S().rank; toast(`📜 레벨 ${Game.nextRank().lv} 달성! 승진 시험을 볼 수 있어요 (승진 탭)`, 3500); }
     dot('shop', Game.adLeft('jade') > 0);
+    dot('pet', Pets.adLeft() > 0 || S().jade >= PULL_COST[1]);
+    const pr = S().parade || (S().parade = { next: Date.now() + 3 * 60e3, ad: { day: '', n: 0 } }), pl = (pr.next - Date.now()) / 1000;
+    $('#parade-t').textContent = parade ? '진행 중' : pl > 0 ? fmtClock(pl) : '';
+    $('#btn-parade .dot').classList.toggle('on', !parade && pl <= 0);
+    $('#btn-parade').classList.toggle('active', !!parade);
     const al = Life.alerts(); dot('life', al.garden || al.expe);
     $('#btn-quest .dot').classList.toggle('on', Life.qReady());
     if (Life.merchantTick() === 'arrive' && S().kind) toast('👺 도깨비 상인이 노점에 왔어요! (5분)', 5000, [{ label: '보러 가기', cls: '', fn: () => { Scene.focus('stall'); merchantModal(); } }]);
@@ -159,7 +168,7 @@ const UI = (() => {
   }
   function render() {
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-    const P = $('#panel'); previews = [];
+    const P = $('#panel'); previews = previews.filter(p => p.keep && document.body.contains(p.c));
     const seg = `<div class="seg">${[1, 10, 'max'].map(m => `<button data-mult="${m}" class="${mult === m ? 'on' : ''}">${m === 'max' ? 'MAX' : '×' + m}</button>`).join('')}</div>`;
     if (tab === 'grow') {
       P.innerHTML = `<div class="ph"><h3>저승사자 수련</h3>${seg}</div>` + ['pen', 'call', 'hand', 'step', 'luck', 'ledger'].map(id => upRow(UPGRADES.find(u => u.id === id))).join('');
@@ -175,6 +184,8 @@ const UI = (() => {
       renderRank(P);
     } else if (tab === 'shop') {
       renderShop(P);
+    } else if (tab === 'pet') {
+      renderPet(P);
     } else if (tab === 'life') {
       renderLife(P);
     }
@@ -269,6 +280,8 @@ const UI = (() => {
       return;
     }
     if (t.dataset.iap) { iapBox(t.dataset.iap); return; }
+    if (t.dataset.pull) { doPull(t.dataset.pull); return; }
+    if (t.dataset.eq) { if (Pets.equip(t.dataset.eq)) { Sound.play('buy'); toast(`${Pets.P(t.dataset.eq).name}을(를) 데리고 다녀요`); render(); } else toast('아직 만나지 못한 영물이에요'); return; }
     if (lifeClick(t)) return;
     act(t.dataset.act);
   }
@@ -467,7 +480,7 @@ const UI = (() => {
       if (!document.body.contains(p.c)) return;
       const g = p.c.getContext('2d'); g.clearRect(0, 0, p.c.width, p.c.height); g.imageSmoothingEnabled = false;
       const f = Math.floor(t * 3 + (p.ph || 0));
-      const img = p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.rank != null ? p.rank : S().rank, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4);
+      const img = p.pet ? SP.pet(p.pet, f) : p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.rank != null ? p.rank : S().rank, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4);
       g.drawImage(img, 0, 0, p.c.width, p.c.height);
     });
   }
@@ -510,13 +523,92 @@ const UI = (() => {
       <div class="acts"><button class="btn red" id="a-go" ${st.can ? '' : 'disabled'}>${st.can ? '출석하기' : '내일 또 만나요'}</button></div>`);
     box.querySelector('#a-go').onclick = () => { const r = Game.attend(); if (r) { Sound.play('buy'); toast(`출석 보상 옥 +${r}`); closeModal(); } };
   }
-  function promoted(newRegion) {
-    const R = RANKS[S().rank];
-    const box = modal(`<h2>승진!</h2><canvas width="22" height="22" style="width:110px"></canvas>
-      <div class="big" style="color:var(--gold)">${R.name}</div>
-      <p>수확량이 <b style="color:var(--gold)">×${fmt(R.mult)}</b>가 되었다.${newRegion ? `<br>새 근무지 <b style="color:var(--gold)">${REGIONS[R.region].name}</b>(으)로 발령!` : ''}</p>
-      <div class="acts"><button class="btn red" data-act="close">근무 시작</button></div>`, true);
-    previews.push({ c: box.querySelector('canvas'), kind: S().kind, rank: S().rank, pose: 'reap' });
+  // ---------- 승진 연출 ----------
+  function overlay(html) { const o = $('#promo'); o.innerHTML = html; o.className = 'on'; return o; }
+  function closeOverlay() { const o = $('#promo'); o.className = ''; o.innerHTML = ''; previews = previews.filter(p => document.body.contains(p.c)); }
+  const sparks = (n, col) => Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, d = 90 + Math.random() * 120; return `<i style="--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d}px;--d:${(Math.random() * 0.3).toFixed(2)}s;background:${Array.isArray(col) ? col[i % col.length] : col}"></i>`; }).join('');
+  function promoted(newRegion, oldRank) {
+    const R = RANKS[S().rank], O = RANKS[oldRank != null ? oldRank : S().rank - 1];
+    Sound.play('promote');
+    const o = overlay(`<div class="pr-bg"></div><div class="pr-rays"></div><div class="pr-sparks">${sparks(40, ['#ffd34a', '#ffffff', '#ff8a5a'])}</div>
+      <div class="pr-box"><div class="pr-title">승 진</div>
+        <div class="pr-char"><canvas id="pr-old" width="22" height="22"></canvas><canvas id="pr-new" width="22" height="22"></canvas><div class="pr-flash"></div></div>
+        <div class="pr-rank">${R.name}</div><div class="pr-sub">${O.name} → ${R.name}</div>
+        <div class="pr-info">수확량 <b>×${fmt(R.mult)}</b>${newRegion ? `<br>새 근무지 <b>${REGIONS[R.region].name}</b>(으)로 발령!` : ''}<br><span>옷차림이 바뀌었어요</span></div>
+        <button class="btn red" id="pr-go">근무 시작</button></div>`);
+    previews.push({ c: o.querySelector('#pr-old'), kind: S().kind, rank: O === R ? S().rank : oldRank, pose: 'idle', keep: 1 });
+    previews.push({ c: o.querySelector('#pr-new'), kind: S().kind, rank: S().rank, pose: 'reap', keep: 1 });
+    setTimeout(() => Sound.play('kill'), 1100);
+    o.querySelector('#pr-go').onclick = () => { closeOverlay(); Sound.play('open'); };
+  }
+
+  // ---------- 펫 ----------
+  function renderPet(P) {
+    Pets.ensure();
+    const s = S(), eq = s.petEq && s.pets[s.petEq] ? Pets.P(s.petEq) : null, own = Object.keys(s.pets).length;
+    const stTxt = id => { const st = Pets.stats(id); return `수확량 +${Math.round(st[0] * 100)}% · 이동 +${Math.round(st[1] * 100)}% · 수확속도 +${Math.round(st[2] * 100)}%`; };
+    let h = `<div class="petmain pbox">${eq ? `<canvas id="pet-big" width="12" height="11"></canvas><div class="info"><div class="nm"><span class="gb" style="background:${PET_GRADES[eq.g].col}">${eq.g}</span> ${eq.name} <span class="stars">${'★'.repeat(s.pets[eq.id])}</span></div><div class="ds">${eq.desc}</div><div class="ds st">${stTxt(eq.id)}</div></div>` : '<div class="info"><div class="nm">함께할 영물이 없어요</div><div class="ds">아래에서 영물을 소환해 보세요. 데리고 다니면 수확을 도와줘요.</div></div>'}</div>
+      <div class="gacha pbox"><div class="gt">영물 소환</div><div class="gd">C 50% · B 30% · A 13% · S 5% · SS 1.7% · <b style="color:${PET_GRADES.SSS.col}">SSS 0.3%</b><br>SS 이상 확정까지 <b>${PITY - s.pity}</b>회 · 같은 영물은 별 +1 (최대 ★5)</div>
+        <div class="gb3"><button class="btn" data-pull="ad" ${Pets.adLeft() > 0 ? '' : 'disabled'}>무료 1회<em>AD ${Pets.adLeft()}/2</em></button>
+        <button class="btn jade" data-pull="1" ${s.jade >= PULL_COST[1] ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[1]} · 1회</button>
+        <button class="btn red" data-pull="10" ${s.jade >= PULL_COST[10] ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[10]} · 10회</button></div><div class="gd">10회 소환은 A등급 이상 1마리 확정</div></div>
+      <div class="ph"><h3>영물 도감</h3><span class="sub">${own}/${PETS.length}종 · 수확량 +${own}%</span></div><div class="petgrid">`;
+    h += PETS.map(p => { const st = s.pets[p.id]; return `<button class="pcell pbox ${st ? '' : 'unk'} ${s.petEq === p.id ? 'eq' : ''}" data-eq="${p.id}" style="--gc:${PET_GRADES[p.g].col}"><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span><img class="px" src="${petIcon(p, !!st)}"><b>${st ? p.name : '???'}</b><small>${st ? '★'.repeat(st) : ''}${s.petEq === p.id ? ' 데리는 중' : ''}</small></button>`; }).join('');
+    P.innerHTML = h + '</div><p class="note">영물 하나를 데리고 다닐 수 있어요. 칸을 누르면 바꿔요. 별 5개인 영물이 또 나오면 옥으로 돌려받아요.</p>';
+    if (eq) previews.push({ c: $('#pet-big'), pet: eq });
+  }
+  function petIcon(p, known) { const k = 'pi' + p.id + known; if (urls[k]) return urls[k]; let c = SP.pet(p, 0); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, 4)); }
+  function doPull(kind) {
+    if (kind === 'ad') { ad(() => { const r = Pets.adPull(); if (r) gachaShow(r); render(); }); return; }
+    const r = Pets.pull(+kind); if (!r) { Sound.play('no'); toast('옥이 부족해요'); return; }
+    gachaShow(r); render();
+  }
+  function gachaShow(res) {
+    const best = res.reduce((m, r) => Math.max(m, PET_ORDER.indexOf(Pets.P(r.id).g)), 0), bg = PET_ORDER[best], col = PET_GRADES[bg].col;
+    Sound.play('open');
+    const o = overlay(`<div class="pr-bg"></div>${best >= 4 ? '<div class="pr-rays rainbow"></div>' : best >= 3 ? '<div class="pr-rays"></div>' : ''}
+      <div class="ga-orb" style="--c:${col}"><span></span></div><div class="pr-sparks late">${sparks(best >= 4 ? 50 : 24, [col, '#ffffff'])}</div>
+      <div class="ga-cards n${res.length}">${res.map((r, i) => { const p = Pets.P(r.id); return `<div class="ga-card g${p.g}" style="--c:${PET_GRADES[p.g].col};--i:${i}"><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span><canvas width="12" height="11" data-gp="${r.id}"></canvas><b>${p.name}</b><small>${r.isNew ? 'NEW!' : r.refund ? `옥 +${r.refund}` : '★' + r.star}</small></div>`; }).join('')}</div>
+      <div class="ga-acts"><button class="btn dark" id="ga-close">확인</button></div>`);
+    o.querySelectorAll('[data-gp]').forEach(c => previews.push({ c, pet: Pets.P(c.dataset.gp), keep: 1 }));
+    setTimeout(() => { Sound.play(best >= 4 ? 'promote' : best >= 2 ? 'kill' : 'buy'); }, 900);
+    o.querySelector('#ga-close').onclick = () => { closeOverlay(); render(); };
+  }
+
+  // ---------- 백귀야행 ----------
+  function paradeAsk() {
+    if (parade) return;
+    const pr = S().parade, left = (pr.next - Date.now()) / 1000;
+    if (left <= 0) { startParade(); return; }
+    const today = new Date().toISOString().slice(0, 10); if (pr.ad.day !== today) pr.ad = { day: today, n: 0 };
+    const box = modal(`<h2>백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 혼령을 마구 터치해 콤보를 쌓으세요.<br>콤보가 높을수록 수확이 커져요 (최대 +400%).</p>
+      <p>다음 행렬까지 <b style="color:var(--gold)">${fmtTime(left)}</b></p>
+      <div class="acts"><button class="btn red" id="pa-ad" ${pr.ad.n < 3 ? '' : 'disabled'}>광고 보고 바로 부르기<em>${3 - pr.ad.n}/3</em></button><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelector('#pa-ad').onclick = () => { closeModal(); ad(() => { pr.ad.n++; startParade(); }); };
+  }
+  function startParade() {
+    if (parade || test) return;
+    parade = { t: 25, combo: 0, comboT: 0, max: 0, gained: 0 };
+    S().parade.next = Date.now() + 30 * 60e3; Game.save();
+    Scene.config({ parade: true }); Sound.play('wraith'); setTimeout(() => Sound.play('promote'), 300);
+    $('#parade-bar').classList.add('on');
+    toast('🏮 백귀야행이 시작됐다! 혼령을 마구 터치하세요!', 2500);
+  }
+  function paradeTick(dt) {
+    if (!parade) return;
+    parade.t -= dt; parade.comboT -= dt; if (parade.comboT <= 0) parade.combo = 0;
+    $('#parade-bar').innerHTML = `🏮 백귀야행 <b>${Math.max(0, parade.t).toFixed(1)}초</b> · 콤보 <b class="cb">${parade.combo}</b> <small>(+${Math.round(Math.min(4, parade.combo * 0.1) * 100)}%)</small>`;
+    if (parade.t <= 0) endParade();
+  }
+  function endParade() {
+    const p = parade; parade = null; Scene.config({ parade: false }); $('#parade-bar').classList.remove('on');
+    const bonus = p.gained * Math.min(1, p.max / 40) * 0.5, jade = p.max >= 60 ? 15 : p.max >= 30 ? 8 : p.max >= 15 ? 3 : 0;
+    Game.gain(bonus); S().jade += jade; Game.save(); Sound.play('kill');
+    const box = modal(`<h2>백귀야행 끝!</h2><p>행렬이 지나갔어요.</p>
+      <div class="big"><img class="px" src="${IC('soul', 3)}">+${fmt(p.gained + bonus)}</div>
+      <p>최고 콤보 <b style="color:var(--gold)">${p.max}</b> · 콤보 보너스 +${fmt(bonus)}${jade ? ` · 옥 +${jade}` : ''}</p>
+      <div class="acts"><button class="btn dark" data-act="close">확인</button><button class="btn red" id="pa-x2">광고 보고 보너스 2배<em>AD</em></button></div>`, true);
+    box.querySelector('#pa-x2').onclick = () => { closeModal(); ad(() => { Game.gain(p.gained + bonus); toast(`백귀야행 보상 2배! +${fmt(p.gained + bonus)}`); }); };
   }
   function checkOffline() {
     const o = Game.offline(); if (!o || o.amt <= 0) { Game.save(); return; }

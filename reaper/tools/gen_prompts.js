@@ -154,6 +154,24 @@ G('life', '⑩ 생활 콘텐츠 (꽃밭·주막·파견)', '새로 추가한 꽃
     prompt: `${'Game UI icons, each a single bold readable object on its own, front view, thick dark outline, chunky pixels.'} ${STYLE} ${SHEET(9, 3, 3)}\n${list(['a tiny thatched-roof house with a lit window', 'a small sacred tree tied with five-colored cloth strips', 'a small wooden ferry boat on dark water', 'a small red hongsalmun gate', 'a tiny Korean palace hall with a curved tile roof', 'a tiny helper reaper walking with a lantern', 'a tiny helper reaper carrying a sack on its back', 'a rolled map scroll', 'a small wooden signpost'])}` },
 ]);
 
+const PETP = [
+  ['아기 까치', 'a baby magpie, black and white'], ['다람쥐', 'a chipmunk with a striped back'], ['반딧불이', 'a round glowing firefly with a yellow light belly'],
+  ['새끼 두꺼비', 'a chubby green baby toad'], ['달토끼', 'a white moon rabbit with long ears'], ['병아리', 'a yellow fluffy chick'],
+  ['너구리', 'a raccoon dog (neoguri) with a dark eye mask'], ['삽살개', 'a shaggy cream-colored sapsali dog'], ['검은 고양이', 'a black cat with glowing yellow eyes'],
+  ['부엉이', 'a brown horned owl with big yellow eyes'], ['아기 거북', 'a baby green turtle'], ['아기 해치', 'a baby haetae lion-dog, golden with green mane and a small horn'],
+  ['여우', 'an orange fox with a white tail tip'], ['학', 'a white red-crowned crane'], ['아기 백호', 'a baby white tiger with black stripes'],
+  ['삼족오', 'a three-legged black sun crow with golden feathers and a golden aura (S rank)'], ['불여우', 'a red fox with flaming tails and foxfire (S rank)'], ['아기 청룡', 'a baby blue dragon with golden horns (S rank)'],
+  ['기린', 'a golden qilin (girin) with a single horn and flame-like mane, glowing (SS rank)'], ['봉황', 'a red-and-gold fenghuang phoenix with long rainbow tail feathers, glowing (SS rank)'], ['아기 황룡', 'a baby golden yellow dragon, the most majestic, radiant golden aura (SSS rank)'],
+];
+G('pet', '⑪ 영물 펫 21종 (뽑기)', '저승사자를 따라다니는 펫이에요. 칸 순서는 게임 속 등급 순서(C → SSS)예요. 주인공보다 작게(약 절반).', [
+  { file: 'pets_01.png', name: '펫 1~9 (C 6종 + B 3종)', attach: 'reaper_m_sheet.png 결과 이미지 첨부', note: PETP.slice(0, 9).map((p, i) => `${i + 1}.${p[0]}`).join(' · '),
+    prompt: `Use the attached sprite sheet as the style reference. Draw 9 tiny cute companion pet animals from Korean folklore that follow a grim reaper, each about half the height of the reaper, full body, facing right in 3/4 view, sitting or hovering. ${STYLE} ${SHEET(9, 3, 3)}\n${list(PETP.slice(0, 9).map(p => p[1]))}` },
+  { file: 'pets_02.png', name: '펫 10~18 (B 2종 + A 4종 + S 3종)', attach: 'pets_01.png 결과 이미지 첨부', note: PETP.slice(9, 18).map((p, i) => `${i + 10}.${p[0]}`).join(' · '),
+    prompt: `Use the attached sprite sheet as the exact style and size reference. Draw 9 NEW tiny companion pets in the same style, higher ranks look more magical with small glowing auras. ${STYLE} ${SHEET(9, 3, 3)}\n${list(PETP.slice(9, 18).map(p => p[1]))}` },
+  { file: 'pets_03.png', name: '펫 19~21 (SS 2종 + SSS 1종)', attach: 'pets_01.png 결과 이미지 첨부', note: PETP.slice(18).map((p, i) => `${i + 19}.${p[0]}`).join(' · '),
+    prompt: `Use the attached sprite sheet as the exact style and size reference. Draw 3 NEW legendary tiny companion pets in the same style, very magical and radiant with sparkling auras. ${STYLE} ${SHEET(3, 1, 3)}\n${list(PETP.slice(18).map(p => p[1]))}` },
+]);
+
 const ICON = 'Game UI icons, each a single bold readable object on its own, front view, thick dark outline, chunky pixels.';
 G('icon', '⑧ UI 아이콘', '메뉴 버튼·재화·상점에 쓰는 아이콘이에요.', [
   { file: 'icons_01.png', name: '성장 메뉴 아이콘 9종', note: '명부 필력 · 혼불 부르기 · 거둠의 손길 · 축지법 · 귀한 인연 · 저승 장부 · 졸개 고용 · 졸개 훈련 · 승진',

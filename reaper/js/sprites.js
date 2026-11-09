@@ -236,6 +236,25 @@ const SP = (() => {
   const CAT = [['.K..K...', 'KAKKAK..', 'KAEAEK..', 'KAAAAKK.', '.KAAAAAK', '.KKKKKK.'], ['.K..K...', 'KAKKAK..', 'KAKAKK..', 'KAAAAK.K', '.KAAAAAK', '.KKKKKK.']];
   const CROW = [['..KK..', '.KKEK.', 'KKKKKy', '.KKK..', '..y...'], ['K....K', 'KK..KK', '.KKKK.', '..KEKy', '..KK..']];
 
+  // ---------- 펫 (10x9 몸통 4종 + 장식) ----------
+  const PET_BODY = {
+    bird: ['....KKKK..', '...KHHHHK.', '...KHHEHKy', '..KBBHHHK.', '.KBBBbBBK.', 'KBBBbbBBK.', 'KBBBBBBK..', '.KKbbKK...', '...y.y....'],
+    quad: ['......K.K.', '.....KHKHK', '.....KHHHK', 'K....KHHEK', 'BK..KBBHHK', '.BKKBBBBK.', '..KBBbBBK.', '..KBbbBBK.', '..KK.KK...'],
+    round: ['..........', '...KKKK...', '..KBBBBK..', '.KBEBBEBK.', '.KBBBBBBK.', 'KBBbbbbBBK', 'KBbbbbbbBK', '.KBBBBBBK.', '..KK..KK..'],
+    dragon: ['.......y.y', '......KHHK', '.....KHHEK', '..KK.KHHHy', '.KBBKKBBK.', 'KBbBBBBbK.', 'KBBK.KbBBK', '.KK...KBBK', '........KK'],
+  };
+  const PET_ACC = {
+    wing: [2, 0, ['.yy.yy', 'y..y..']], longear: [5, 0, ['.K.K', 'KHKH']], beak: [8, 3, ['y']], mask: [6, 2, ['bbbb']],
+    shag: [4, 3, ['b.b.b']], tuft: [3, 0, ['K....K']], shell: [2, 2, ['.bbbb.', 'bBbbBb']], horn: [7, 0, ['y']],
+    crest: [5, 0, ['.yy', 'y..']], stripe: [4, 5, ['b.b.']], fire: [0, 3, ['y', 'oy']],
+  };
+  function petFrame(pet, i) {
+    let rows = PET_BODY[pet.kind].slice();
+    if (pet.acc && PET_ACC[pet.acc]) { const [x, y, r] = PET_ACC[pet.acc]; rows = patch(rows, x, y, r); }
+    if (i % 2) rows = pet.kind === 'bird' || pet.kind === 'dragon' ? patch(rows, 0, 4, [pet.kind === 'bird' ? '.KbbbBBK..' : '.KBBKKBBK.']) : rows;
+    return compose(12, 11, [[rows, 1, i % 2 ? 1 : 2]], Object.assign({ E: '#1a1024', o: '#ff7a30' }, pet.pal));
+  }
+
   const cache = {};
   function get(key, fn) { return cache[key] || (cache[key] = fn()); }
   return {
@@ -248,6 +267,7 @@ const SP = (() => {
     npc: name => get(`n${name}`, () => { const N = NPC[name]; return compose(12, 16, [[N.rows, 1, 1]].concat(N.cane ? [[['K', 'n', 'n', 'n', 'n', 'n', 'n'], 11, 8]] : []), N.pal); }),
     cat: i => get(`cat${i}`, () => bake(CAT[i % 2], { A: '#3a3a4a', E: '#ffd34a' })),
     crow: i => get(`crow${i}`, () => bake(CROW[i % 2], { E: '#ff5a5a' })),
+    pet: (pet, i) => get(`pet${pet.id}${i % 2}`, () => petFrame(pet, i)),
     mini: (pose, i) => get(`m${pose}${i}`, () => miniFrame(pose, i)),
     lantern: (lit) => get(`l${lit}`, () => bake(LANTERN, lit === 2 ? { B: '#e8b030', c: '#9a6a10', o: '#fff0a0', q: '#c88a10', Q: '#ffd040' } : null)),
     jangseung: () => get('js', () => bake(JANGSEUNG, { E: '#c3313e' })),

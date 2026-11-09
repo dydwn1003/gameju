@@ -28,7 +28,7 @@ const Scene = (() => {
   let hooks = {}, cfg = { spawn: 2, maxSouls: 6, walk: 20, reap: 0.8, minions: 0, mWalk: 12, mReap: 1.4, roll: () => ({ tier: 0, sp: -1 }), speed: 1, merchant: false };
   const reaper = { x: 195, y: 120, st: 'idle', t: 0, f: 0, face: 1, target: null };
   let minions = [], souls = [], parts = [], flies = [], wraith = null, spawnT = 0, time = 0, stars = [], lanterns = [], shake = 0;
-  let POIS = [], PLOTS = [], critters = [];
+  let POIS = [], PLOTS = [], critters = [], pet = null, petData = null, ghosts = [];
   const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]].map(r => r.map(v => (v + 0.5) / 16));
   const rnd = (a, b) => a + Math.random() * (b - a);
   const hex = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));
@@ -266,7 +266,8 @@ const Scene = (() => {
   }
   function spawnSoul() {
     const r = cfg.roll(), units = [reaper, ...minions], u = units[Math.floor(Math.random() * units.length)];
-    const x = Math.max(8, Math.min(WW - 8, u.x + rnd(-55, 55)));
+    const x = cfg.parade ? camX + rnd(8, W - 8) : Math.max(8, Math.min(WW - 8, u.x + rnd(-55, 55)));
+    if (cfg.parade && r.sp < 0 && Math.random() < 0.15) r.tier = 2;
     souls.push({ x, y: 0, by: rnd(GY - 8, GY + (H - GY) * 0.5), tier: r.tier, sp: r.sp, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0 });
   }
   function pickSoul(who) {
@@ -303,7 +304,10 @@ const Scene = (() => {
     const sd = dt * cfg.speed;
     spawnT += sd;
     const vis = Math.min(5, cfg.minions);
-    if (spawnT >= cfg.spawn) { spawnT = 0; if (souls.filter(s => s.st === 'float').length < cfg.maxSouls + vis * 2) spawnSoul(); }
+    if (spawnT >= (cfg.parade ? 0.09 : cfg.spawn)) { spawnT = 0; if (souls.filter(s => s.st === 'float').length < (cfg.parade ? 45 : cfg.maxSouls + vis * 2)) spawnSoul(); }
+    if (cfg.parade) { if (Math.random() < dt * 1.2) ghosts.push({ x: camX - 16, y: GY - 2 + rnd(-3, 3), t: 0, k: Math.random() < 0.5 }); if (Math.random() < 0.5) parts.push({ x: camX + rnd(0, W), y: rnd(GY - 30, GY + 10), vx: rnd(4, 10), vy: -rnd(0, 4), life: 1.2, max: 1.2, col: Math.random() < 0.5 ? '#6fb0ff' : '#ff6a8a', g: 0 }); }
+    ghosts.forEach(gh => { gh.t += dt; gh.x += 14 * dt; }); ghosts = ghosts.filter(gh => gh.x < camX + W + 20 && gh.t < 30);
+    if (petData) { if (!pet) pet = { x: reaper.x, y: reaper.y, t: 0 }; pet.t += dt; const fly = petData.kind === 'bird' || petData.kind === 'dragon'; const tx = reaper.x - reaper.face * 11, ty = reaper.y - (fly ? 12 : 0); pet.x += (tx - pet.x) * Math.min(1, dt * 4); pet.y += (ty - pet.y) * Math.min(1, dt * 4); pet.face = tx > pet.x + 0.5 ? 1 : tx < pet.x - 0.5 ? -1 : reaper.face; pet.fly = fly; } else pet = null;
     think(reaper, sd, cfg.walk, cfg.reap, true);
     while (minions.length < vis) minions.push({ x: rnd(FIELD0(), FIELD1()), y: clampFeet(rnd(GY + 14, H - 3)), st: 'idle', t: 0, face: 1, mini: true });
     while (minions.length > vis) minions.pop();
@@ -406,7 +410,18 @@ const Scene = (() => {
       g.drawImage(c.k === 'cat' && c.vx < 0 ? flipOf(img) : img, Math.round(c.x - camX - img.width / 2), Math.round(c.y - img.height));
     }
     for (const s of souls) if (s.st === 'float' && onScreen(s.x)) { g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(Math.round(s.x - camX - 2), Math.round(clampFeet(s.by + 17) - 1), 4, 1); }
-    [reaper, ...minions].sort((a, b) => a.y - b.y).forEach(drawUnit);
+    for (const gh of ghosts) { if (!onScreen(gh.x)) continue; g.globalAlpha = 0.35; const im = SP.wraith(Math.floor(gh.t * 3) % 2); g.drawImage(gh.k ? flipOf(im) : im, Math.round(gh.x - camX - 7), Math.round(gh.y - 17 + Math.sin(gh.t * 3) * 2)); g.globalAlpha = 1; glow(gh.x - camX + 6, gh.y - 12, 3, gh.k ? '#6fb0ff' : '#ff6a8a', 0.5); }
+    const units = [reaper, ...minions]; if (pet) units.push(Object.assign(pet, { isPet: 1 }));
+    units.sort((a, b) => a.y - b.y).forEach(u => {
+      if (!u.isPet) return drawUnit(u);
+      if (!onScreen(u.x)) return;
+      let im = SP.pet(petData, Math.floor(u.t * (u.fly ? 6 : 3))); if (u.face < 0) im = flipOf(im);
+      const hop = u.fly ? Math.sin(u.t * 4) * 1.5 : -Math.abs(Math.sin(u.t * 6)) * (Math.abs(reaper.x - u.x) > 12 ? 2 : 0.4);
+      if (petData.aura) glow(u.x - camX, u.y - 5 + hop, 6, petData.aura, 0.25);
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.round(u.x - camX - 3), Math.round((u.fly ? u.y + 12 : u.y) - 1), 6, 1);
+      g.drawImage(im, Math.round(u.x - camX - im.width / 2), Math.round(u.y - im.height + 1 + hop));
+    });
+    if (cfg.parade) { g.fillStyle = 'rgba(90,30,140,0.12)'; g.fillRect(0, 0, W, H); }
     for (const s of souls) {
       if (!onScreen(s.x)) continue;
       const img = s.sp >= 0 ? SP.special(s.sp) : SP.soul(s.tier, Math.floor(time * 6 + s.ph) % 3), sx = s.x - camX;
@@ -492,6 +507,8 @@ const Scene = (() => {
     setRegion(i) { const n = Math.max(0, Math.min(REGIONS.length - 1, i)); if (n !== region || !groundC) { region = n; lanterns = []; bake(); } },
     setKind(k) { kind = k; },
     setRank(r) { rank = r; },
+    setPet(p) { petData = p; },
+    pillar() { for (let i = 0; i < 60; i++) parts.push({ x: reaper.x + rnd(-6, 6), y: reaper.y - rnd(0, 40), vx: rnd(-4, 4), vy: -rnd(20, 50), life: rnd(0.8, 1.6), max: 1.6, col: Math.random() < 0.6 ? '#ffd34a' : '#ffffff', g: 0 }); follow = true; },
     config(c) { Object.assign(cfg, c); },
     spawnWraith(hp, life) { wraith = { x: Math.max(20, Math.min(WW - 20, reaper.x + rnd(-30, 30))), y: GY * 0.85, hp, max: hp, t: 0, life, flash: 0 }; follow = true; Sound.play('wraith'); },
     hitWraith(dmg) {
