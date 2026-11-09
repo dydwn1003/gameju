@@ -16,7 +16,7 @@ const UI = (() => {
     Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => Decor.ensure().placed, decorTap, decorPick, decorDrop, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
-    Game.apply();
+    Game.apply(); if (S().kind) { Decor.grantRank(S().rank); Decor.grantStory(Math.max(-1, (S().story || {}).ch - 1)); }
     Sound.set(S().sound, S().bgm); Sound.init();
     document.querySelectorAll('img[data-ic]').forEach(i => (i.src = IC(i.dataset.ic, 3)));
     document.querySelectorAll('img[data-ui]').forEach(i => (i.src = IC(i.dataset.ui, 3)));
@@ -548,12 +548,13 @@ const UI = (() => {
   }
   let shopCat = 'all';
   function decoShop() {
-    const s = S(), cats = [['all', '전체'], ['set', '세트'], ['floor', '바닥'], ['wall', '벽'], ['seat', '앉기'], ['premium', '귀한 것']];
-    const card = d => { const n = Decor.owned(d.id); return `<div class="ds-card ${d.premium ? 'cash' : ''}"><img class="px" src="${decoThumb(d.id, 3)}"><b>${d.name}</b><small>품격 +${d.pt}${d.seat ? ' · 앉기' : ''}${d.wall ? ' · 벽' : ''}</small><p>${d.desc}</p>${n ? `<em>보유 ${n}</em>` : ''}
-      ${d.free ? '<button class="btn dark" disabled>무료 지급</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
+    const s = S(), cats = [['all', '전체'], ['set', '세트'], ['floor', '바닥'], ['wall', '벽'], ['seat', '앉기'], ['premium', '귀한 것'], ['ex', '한정']];
+    const how = d => d.rank ? `${RANKS[d.rank].name} 승진` : d.story != null ? `이야기 ${d.story + 1}장` : '의뢰 보상';
+    const card = d => { const n = Decor.owned(d.id), ex = d.rank || d.story != null || d.quest; return `<div class="ds-card ${d.premium ? 'cash' : ''} ${ex ? 'ex' : ''}"><img class="px" src="${decoThumb(d.id, 3)}"><b>${d.name}</b><small>품격 +${d.pt}${d.seat ? ' · 앉기' : ''}${d.wall ? ' · 벽' : ''}</small><p>${d.desc}</p>${n ? `<em>보유 ${n}</em>` : ''}
+      ${ex ? `<button class="btn dark" disabled>${n ? '획득 완료' : '🔒 ' + how(d)}</button>` : d.free ? '<button class="btn dark" disabled>무료 지급</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
     const pack = P => { const got = Decor.packBought(P.id); return `<div class="ds-pack ${got ? 'got' : ''}"><div class="ds-pi">${P.items.map(id => `<img class="px" src="${decoThumb(id, 2)}">`).join('')}</div><div class="ds-pt"><b>${P.name}</b><small>${P.items.map(id => Decor.D(id).name).join(' · ')}</small><small><s>옥 ${P.full}</s> → <b class="sale">30% 할인</b></small></div>${got ? '<button class="btn dark" disabled>구매 완료</button>' : `<button class="btn jade" data-dpack="${P.id}" ${s.jade >= P.price ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${P.price}</button>`}</div>`; };
-    const list = shopCat === 'set' ? '' : DECOR.filter(d => shopCat === 'all' || (shopCat === 'floor' && !d.wall) || (shopCat === 'wall' && d.wall) || (shopCat === 'seat' && d.seat) || (shopCat === 'premium' && d.premium)).sort((a, b) => (a.free ? 0 : a.price) - (b.free ? 0 : b.price));
-    const box = modal(`<h2>🏮 소품 상점</h2><p class="mute">옥으로 사요. 놓은 소품의 품격만큼 수확량이 올라요 (최대 +40%) · 보유 옥 <b style="color:var(--jade)">${fmt(s.jade)}</b></p>
+    const list = shopCat === 'set' ? '' : DECOR.filter(d => shopCat === 'all' || (shopCat === 'floor' && !d.wall) || (shopCat === 'wall' && d.wall) || (shopCat === 'seat' && d.seat) || (shopCat === 'premium' && d.premium) || (shopCat === 'ex' && (d.rank || d.story != null || d.quest))).sort((a, b) => ((a.free ? 0 : a.price || 99999 + (a.rank || 0) * 10 + (a.story != null ? 100 + a.story : 0))) - ((b.free ? 0 : b.price || 99999 + (b.rank || 0) * 10 + (b.story != null ? 100 + b.story : 0))));
+    const box = modal(`<h2>🏮 소품 상점 <small style="font-size:11px;color:var(--mute)">${DECOR.filter(d => Decor.owned(d.id)).length}/${DECOR.length}종 보유</small></h2><p class="mute">옥으로 사요. 놓은 소품의 품격만큼 수확량이 올라요 (최대 +40%) · 보유 옥 <b style="color:var(--jade)">${fmt(s.jade)}</b></p>
       <div class="ds-cats">${cats.map(([k, n]) => `<button data-dcat="${k}" class="${shopCat === k ? 'on' : ''}">${n}</button>`).join('')}</div>
       <div class="ds-scroll">${shopCat === 'all' || shopCat === 'set' ? `<div class="ds-packs">${DECOR_PACKS.map(pack).join('')}</div>` : ''}${list ? `<div class="ds-grid">${list.map(card).join('')}</div>` : ''}</div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
@@ -639,7 +640,7 @@ const UI = (() => {
       <div class="qrow pbox"><div class="info"><b>모든 의뢰 완료 보너스</b></div><button class="btn red" data-qb="1" ${all && !q.bonus ? '' : 'disabled'}>${q.bonus ? '받음' : `옥 ${QUEST_BONUS}`}</button></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const j = Life.qClaim(+b.dataset.q); if (j) { Sound.play('buy'); toast(`의뢰 완료! 옥 +${j}`); } questModal(); });
-    const bb = box.querySelector('[data-qb]'); if (bb) bb.onclick = () => { const j = Life.qBonus(); if (j) { Sound.play('promote'); toast(`오늘 의뢰를 모두 끝냈다! 옥 +${j}`); } questModal(); };
+    const bb = box.querySelector('[data-qb]'); if (bb) bb.onclick = () => { const j = Life.qBonus(); if (j) { Sound.play('promote'); const qd = Decor.grantQuest(); toast(`오늘 의뢰를 모두 끝냈다! 옥 +${j}${qd ? ` · 🏮 의뢰 보상 소품 「${qd.name}」` : ''}`, 3800); } questModal(); };
   }
   function merchantModal() {
     if (!Life.merchantHere()) { toast('도깨비 상인은 지금 없어요. 가끔 노점에 들러요'); return; }
@@ -888,6 +889,7 @@ const UI = (() => {
       const R = c.Q.r, res = Story.claim(); if (!res) return;
       Sound.play('promote');
       toast(`퀘스트 완료! ${Story.rewardText(R)}${res.got.souls ? ` (+${fmt(res.got.souls)})` : ''}`, 3000);
+      if (res.chapterDone) { const gd = Decor.grantStory(res.doneCh); if (gd.length) setTimeout(() => toast(`🏮 이야기 기념 소품 「${gd.map(d => d.name).join(', ')}」을(를) 받았어요! 집무실을 꾸며 보세요`, 4200), 400); }
       if (res.chapterDone) talk(res.outro, () => res.mem ? memoryCard(res.mem, Story.memories().length, () => setTimeout(storyIntro, 300)) : setTimeout(storyIntro, 300));
       storyBar(); return;
     }
@@ -990,13 +992,14 @@ const UI = (() => {
   function closeOverlay() { const o = $('#promo'); o.className = ''; o.innerHTML = ''; previews = previews.filter(p => document.body.contains(p.c)); }
   const sparks = (n, col) => Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, d = 90 + Math.random() * 120; return `<i style="--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d}px;--d:${(Math.random() * 0.3).toFixed(2)}s;background:${Array.isArray(col) ? col[i % col.length] : col}"></i>`; }).join('');
   function promoted(newRegion, oldRank) {
-    const R = RANKS[S().rank], O = RANKS[oldRank != null ? oldRank : S().rank - 1];
+    const R = RANKS[S().rank], O = RANKS[oldRank != null ? oldRank : S().rank - 1], gifts = Decor.grantRank(S().rank);
     Sound.play('promote');
     const o = overlay(`<div class="pr-bg"></div><div class="pr-rays"></div><div class="pr-sparks">${sparks(40, ['#ffd34a', '#ffffff', '#ff8a5a'])}</div>
       <div class="pr-box"><div class="pr-title">승 진</div>
         <div class="pr-char"><canvas class="pr-magic" id="pr-mg" width="48" height="24"></canvas><canvas id="pr-old" width="44" height="51"></canvas><canvas id="pr-new" width="44" height="51"></canvas><div class="pr-flash"></div></div>
         <div class="pr-rank">${R.name}</div><div class="pr-sub">${O.name} → ${R.name}</div>
         <div class="pr-info">수확량 <b>×${fmt(R.mult)}</b>${newRegion ? `<br>새 근무지 <b>${REGIONS[R.region].name}</b>(으)로 발령!` : ''}<br><span>옷차림이 바뀌었어요</span></div>
+        ${gifts.length ? `<div class="pr-gift"><img class="px" src="${decoThumb(gifts[0].id, 3)}"><div><small>승진 기념 소품</small><b>${gifts[0].name}</b><span>집무실 꾸미기에서 놓을 수 있어요</span></div></div>` : ''}
         <div class="pr-mgcmp"><div><canvas id="pr-mg0" width="48" height="20"></canvas><small>${O.name}</small></div><b>▶</b><div><canvas id="pr-mg1" width="48" height="20"></canvas><small>새 마법진</small></div></div>
         <button class="btn red" id="pr-go">근무 시작</button></div>`);
     previews.push({ c: o.querySelector('#pr-old'), kind: S().kind, rank: O === R ? S().rank : oldRank, pose: 'idle', keep: 1 });

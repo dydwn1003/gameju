@@ -712,3 +712,8 @@ img { -webkit-user-drag: none; user-select: none; }
 #dk-drag.over { opacity: .35; }
 .dk-list { touch-action: pan-x; } .dk-it { touch-action: pan-x; } #stage.deco-edit #cv { touch-action: none; }
 .ds-pi { flex: 0 0 92px; flex-wrap: wrap; align-items: flex-end; gap: 3px !important; } .ds-pi img { height: 20px !important; max-width: 28px; object-fit: contain; } .ds-pt { flex: 1 1 auto; }
+
+.pr-gift { display: flex; align-items: center; gap: 10px; margin: 6px auto 8px; padding: 8px 12px; max-width: 280px; border-radius: 12px; background: rgba(255, 211, 74, .12); border: 1px solid rgba(255, 211, 74, .45); text-align: left; animation: gsIn .5s 1.8s both; }
+.pr-gift img { height: 44px; } .pr-gift div { display: flex; flex-direction: column; } .pr-gift small { font-size: 10px; color: #ffd34a; } .pr-gift b { font-size: 14px; color: #fff; } .pr-gift span { font-size: 10px; color: #cfc8e6; }
+.ds-card.ex { border-color: rgba(160, 200, 255, .4); background: rgba(120, 160, 255, .07); }
+.ds-card.ex .btn { font-size: 9.5px; padding: 4px 6px 5px; }

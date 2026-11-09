@@ -197,7 +197,7 @@ const Story = (() => {
     st.q++;
     if (st.q >= c.C.quests.length) { st.ch++; st.q = 0; st.intro = false; chapterDone = true; }
     Game.save();
-    return { got, chapterDone, outro: chapterDone ? c.C.outro : null, mem: chapterDone ? c.C.mem : null };
+    return { got, chapterDone, doneCh: c.ch, outro: chapterDone ? c.C.outro : null, mem: chapterDone ? c.C.mem : null };
   }
   function seenIntro() { S().story.intro = true; Game.save(); }
   // 지금 지도에 단서(✦)를 띄워야 하면 그 장 번호, 아니면 -1

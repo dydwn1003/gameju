@@ -180,12 +180,17 @@ const Decor = (() => {
   const S = () => Game.S;
   const D = id => DECOR.find(d => d.id === id);
   function ensure() { const s = S(); if (!s.decor) s.decor = { own: {}, placed: [], gift: 0 }; if (!s.decor.gift) { DECOR.filter(d => d.free).forEach(d => (s.decor.own[d.id] = (s.decor.own[d.id] || 0) + 1)); s.decor.gift = 1; } return s.decor; }
+  // 한정 소품 지급: 승진·이야기·의뢰 (중복 지급 방지)
+  function grant(d) { const dc = ensure(); dc.got = dc.got || {}; if (dc.got[d.id]) return null; dc.got[d.id] = 1; dc.own[d.id] = (dc.own[d.id] || 0) + 1; return d; }
+  function grantRank(rank) { const out = DECOR.filter(d => d.rank && d.rank <= rank).map(grant).filter(Boolean); if (out.length) Game.save(); return out; }
+  function grantStory(ch) { const out = DECOR.filter(d => d.story != null && d.story <= ch).map(grant).filter(Boolean); if (out.length) Game.save(); return out; }
+  function grantQuest() { const dc = ensure(); dc.got = dc.got || {}; const pool = DECOR.filter(d => d.quest && !dc.got[d.id]); if (!pool.length) return null; const d = grant(pool[Math.floor(Math.random() * pool.length)]); Game.save(); return d; }
   const img = id => { const d = D(id); return d.img || (d.img = d.draw()); };
   const owned = id => ensure().own[id] || 0;
   const placedCount = id => ensure().placed.filter(p => p.id === id).length;
   const spare = id => owned(id) - placedCount(id);
   const maxPlace = () => 4 + Math.min(8, S().rank) * 2; // 승진할수록 놓을 수 있는 칸 증가 (4~20)
-  function buy(id) { const d = D(id), s = S(); if (!d || !d.price || s.jade < d.price) return false; s.jade -= d.price; ensure().own[id] = owned(id) + 1; Game.save(); return true; }
+  function buy(id) { const d = D(id), s = S(); if (!d || !d.price || d.rank || d.story != null || d.quest || s.jade < d.price) return false; s.jade -= d.price; ensure().own[id] = owned(id) + 1; Game.save(); return true; }
   function buyPack(pid) { const P = DECOR_PACKS.find(p => p.id === pid), s = S(); ensure(); s.decor.packs = s.decor.packs || {}; if (s.decor.packs[pid] || s.jade < P.price) return false; s.jade -= P.price; P.items.forEach(id => (s.decor.own[id] = owned(id) + 1)); s.decor.packs[pid] = 1; Game.save(); return true; }
   const packBought = pid => !!((ensure().packs || {})[pid]);
   function place(id, gx, gy) { const dc = ensure(); if (spare(id) <= 0 || dc.placed.length >= maxPlace()) return false; dc.placed.push({ id, gx, gy }); Game.apply(); Game.save(); return true; }
@@ -194,5 +199,5 @@ const Decor = (() => {
   const score = () => ensure().placed.reduce((a, p) => a + (D(p.id) ? D(p.id).pt : 0), 0);
   const mul = () => (S() && S().decor ? 1 + Math.min(0.4, score() * 0.0025) : 1);
   const title = sc => sc >= 160 ? '저승 제일의 집무실' : sc >= 100 ? '화려한 집무실' : sc >= 50 ? '품위 있는 집무실' : sc >= 20 ? '아늑한 집무실' : '소박한 집무실';
-  return { D, ensure, img, packBought, owned, spare, placedCount, maxPlace, buy, buyPack, place, remove, score, mul, title };
+  return { D, ensure, grantRank, grantStory, grantQuest, img, packBought, owned, spare, placedCount, maxPlace, buy, buyPack, place, remove, score, mul, title };
 })();
