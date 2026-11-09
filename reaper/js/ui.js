@@ -1,5 +1,7 @@
 // ===== 화면 UI: HUD · 메뉴 탭 · 모달 · 광고/결제(테스트) =====
 const UI = (() => {
+  // 받침 있으면 '을', 없으면 '를'
+  const eul = w => { const c = String(w).charCodeAt(String(w).length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 ? '을' : '를'; };
   const $ = s => document.querySelector(s);
   const urls = {};
   const IC = (name, sc = 3) => urls[name + sc] || (urls[name + sc] = toURL(name === 'petic' ? SP.pet(PETS.find(p => p.id === 'heukmyo'), 0) : name === 'flower' ? SP.plant(3, FLOWERS[1].pal, 'lotus') : ['soul', 'jade', 'scroll'].includes(name) ? SP.icon(name) : SP.ui(name), sc));
@@ -21,7 +23,13 @@ const UI = (() => {
     box.querySelectorAll('[data-lg]').forEach(b => b.onclick = () => { S().pendingLink = !!S().kind; Game.save(); toast('로그인 화면으로 이동해요…', 2000); Promise.resolve(Cloud.signIn(b.dataset.lg)).catch(() => toast('로그인을 시작하지 못했어요. 인터넷 연결을 확인해 주세요', 2600)); });
     const g = box.querySelector('#lg-guest'); if (g) g.onclick = () => { S().guest = true; Game.save(); closeModal(); charSelect(true); };
   }
-  function afterLoad() { checkOffline(); if (!Story.cur().end && !Story.cur().intro) setTimeout(storyIntro, 600); else setTimeout(askPush, 4000); }
+  function afterLoad() {
+    checkOffline();
+    if (!Story.cur().end && !Story.cur().intro) setTimeout(storyIntro, 600);
+    // 튜토리얼 도중에 앱을 껐다 켰으면 그 단계부터 이어서
+    else if (typeof S().tut === 'number') setTimeout(() => { if (!tutEl && typeof S().tut === 'number') { TL = TUT; TK = 'tut'; tutShow(); } }, 1500);
+    else setTimeout(askPush, 4000);
+  }
   // 앱 알림 허락 받기: 튜토리얼이 끝난 뒤, 게임 안 안내창으로 먼저 물어보고 OK 하면 휴대폰 권한 창
   async function askPush() {
     const s = S(); if (!Native.isApp() || s.pushAsked || s.tut !== 'done' || $('#modal').classList.contains('on') || $('#promo').classList.contains('on')) return;
@@ -571,8 +579,9 @@ const UI = (() => {
     if (!S().kind) { setTimeout(noticeStartup, 3000); return; }
     if ((S().noticeHide || 0) > Date.now()) return;
     const list = await loadNotices(); if (!list.length) return;
-    const busy = () => $('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut');
-    let tries = 0; const go = () => { if (busy() && tries++ < 40) { setTimeout(go, 1000); return; } if (!busy()) noticeModal(true); }; go();
+    // 창 · 안내 · 집무실 · 꾸미기 · 아래 메뉴가 열려 있으면 기다렸다가 마을 화면으로 돌아왔을 때 띄움 (최대 3분)
+    const busy = () => $('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut') || Scene.inOffice() || sheetOpen() || parade;
+    let tries = 0; const go = () => { if (busy() && tries++ < 180) { setTimeout(go, 1000); return; } if (!busy()) noticeModal(true); }; go();
   }
   async function noticeModal(startup) {
     const list = noticeCache || await loadNotices(), admin = Board.online() && await Board.checkOwner();
@@ -604,7 +613,7 @@ const UI = (() => {
   }
   async function mailModal() {
     const admin = Board.online() && await Board.checkOwner();
-    if (!Board.online()) { modal(`<h2>📮 우편함</h2><p>운영자 우편은 claude.ai에서 공유된 게임 페이지를 열면 받을 수 있어요.<br><span class="mute">까치 우편은 마을의 까치를 눌러 받아요.</span></p><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
+    if (!Board.online()) { modal(`<h2>📮 우편함</h2><p>운영자 우편은 <b>로그인</b>하면 받을 수 있어요.<br><span class="mute">까치 우편은 마을의 까치를 눌러 받아요.</span></p><div class="acts">${loginBtn()}<button class="btn dark" data-act="close">닫기</button></div>`); bindLogin(); return; }
     let list = []; try { list = mailCache = await Board.mails(); } catch (e) { list = mailCache || []; }
     const got = S().mailGot || {}, left = list.filter(m => !got[m.id]);
     const box = modal(`<h2>📮 우편함</h2><div class="ml-list">${list.length ? list.map(m => `<div class="ml-row ${got[m.id] ? 'got' : ''}"><div class="ml-i"><b>${esc(m.title)}</b><small>${fmtDate(m.at)}${m.until ? ` · ${fmtDate(m.until)}까지` : ''}</small>${m.body ? `<p>${esc(m.body)}</p>` : ''}<div class="ml-r">${rewardChips(m).map(c => `<span>${c}</span>`).join('')}</div></div>${got[m.id] ? '<button class="btn dark" disabled>받음</button>' : `<button class="btn red" data-mg="${esc(m.id)}">받기</button>`}${admin ? `<button class="nt-del" data-mdel="${esc(m.id)}">삭제</button>` : ''}</div>`).join('') : '<div class="rkload">받은 우편이 없어요</div>'}</div>
@@ -683,7 +692,7 @@ const UI = (() => {
     const s = S(), mine = { name: s.nickSet ? s.name : '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true };
     const box = modal(`<h2>🏆 저승 명예의 전당</h2><p class="mute">레벨 순위 · 윤회한 차사가 먼저예요</p><div class="rklist" id="rk-list"><div class="rkload">순위를 불러오는 중…</div></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     const L = box.querySelector('#rk-list');
-    if (!Board.online()) { L.innerHTML = rankRow(mine, 0) + '<p class="note">다른 플레이어와의 순위는 claude.ai에서 게임을 열면 보여요. 지금은 내 기록만 보여요.</p>'; return; }
+    if (!Board.online()) { setTimeout(bindLogin, 0); L.innerHTML = rankRow(mine, 0) + `<p class="note">로그인하면 다른 차사들과 순위를 겨룰 수 있어요. 지금은 내 기록만 보여요.</p>${Cloud.ready() ? `<div class="acts">${loginBtn()}</div>` : ''}`; return; }
     try {
       const r = await Board.top(); if (!document.body.contains(L)) return;
       if (!r || !r.rows.length) { L.innerHTML = '<div class="rkload">아직 순위에 오른 차사가 없어요</div>'; return; }
@@ -704,7 +713,7 @@ const UI = (() => {
   async function neighborsModal(tabArg) {
     if (tabArg) nbTab = tabArg;
     if (Board.online() && !S().nickSet) { nickModal(() => neighborsModal()); return; }
-    if (!Board.online()) { modal(`<h2>🏘️ 이웃 집무실</h2><p>다른 차사의 집무실은 claude.ai에서 <b>공유된 게임 페이지</b>를 열면 놀러 갈 수 있어요.<br><span class="mute">지금은 혼자 보는 화면이라 이웃이 없어요.</span></p><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
+    if (!Board.online()) { modal(`<h2>🏘️ 이웃 집무실</h2><p>다른 차사의 집무실은 <b>로그인</b>하면 놀러 갈 수 있어요.<br><span class="mute">지금은 이 기기에만 저장 중이라 이웃이 없어요.</span></p><div class="acts">${loginBtn()}<button class="btn dark" data-act="close">닫기</button></div>`); bindLogin(); return; }
     const box = modal(`<h2>🏘️ 이웃 집무실</h2><button class="btn red nb-rand" id="nb-rand">🎲 랜덤으로 놀러 가기</button>
       <div class="ds-cats"><button data-nbt="recent" class="${nbTab === 'recent' ? 'on' : ''}">최근 꾸민 곳</button><button data-nbt="pop" class="${nbTab === 'pop' ? 'on' : ''}">🏆 인기 순위</button><button data-nbt="friends" class="${nbTab === 'friends' ? 'on' : ''}">👥 내 이웃</button></div>
       <p class="mute" style="font-size:10px">하루 3곳까지 처음 놀러 가면 옥 +5 (오늘 ${visitR().ids.length}/3)</p><div class="rklist" id="nb-list"><div class="rkload">불러오는 중…</div></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
@@ -1037,7 +1046,7 @@ const UI = (() => {
     if (d.unlock) { if (Life.unlockPlot()) { Sound.play('buy'); toast('새 밭을 일궜어요!'); } renderLife($('#panel')); return true; }
     if (d.harvest) { const n = Life.harvest(+d.harvest); if (n) { Sound.play('collect', 2); Life.qEvent('harvest'); toast(`꽃 ${n}송이 수확!`); } renderLife($('#panel')); return true; }
     if (d.seed) { if (Life.buySeed(d.seed, 1)) Sound.play('buy'); else Sound.play('no'); renderLife($('#panel')); return true; }
-    if (d.brew) { const r = Life.brew(d.brew); if (r) { Sound.play('promote'); Life.qEvent('brew'); const R = RECIPES.find(x => x.id === d.brew); toast(typeof r === 'number' ? `${R.name}! +${fmt(r)} 혼 · 옥 +${R.instant.jade}` : `${R.name}을 마셨다! ${R.desc}`); } renderLife($('#panel')); return true; }
+    if (d.brew) { const r = Life.brew(d.brew); if (r) { Sound.play('promote'); Life.qEvent('brew'); const R = RECIPES.find(x => x.id === d.brew); toast(typeof r === 'number' ? `${R.name}! +${fmt(r)} 혼 · 옥 +${R.instant.jade}` : `${R.name}${eul(R.name)} 마셨다! ${R.desc}`); } renderLife($('#panel')); return true; }
     if (d.send) { if (Life.send(d.send)) { Sound.play('buy'); Life.qEvent('send'); toast('졸개를 순찰 보냈어요'); setTimeout(askPush, 1200); } renderLife($('#panel')); return true; }
     if (d.skip) { const [k, i] = d.skip.split(':'); speedUp(k, +i); return true; }
     if (d.claim) { const r = Life.claim(+d.claim); if (r) { Sound.play('promote'); toast(`파견 보상: +${fmt(r.souls)} 혼${r.jade ? ` · 옥 +${r.jade}` : ''} · ${Object.entries(r.seeds).map(([k, v]) => fname(k) + ' 씨앗 ' + v).join(', ')}${r.dex ? ` · 📖 ${r.dex.name}` : ''}`, 4000); } renderLife($('#panel')); return true; }
@@ -1045,7 +1054,7 @@ const UI = (() => {
       const i = +d.plantpick, s = S(), have = FLOWERS.filter(f => s.seeds[f.id] > 0);
       const box = modal(`<h2>무엇을 심을까요?</h2>${have.length ? `<div class="seedpick">${have.map(f => `<button class="pbox" data-pf="${f.id}"><img class="px" src="${FIC(f.id, 3, 3)}"><b>${f.name}</b><small>${fmtTime(f.grow)} · 씨앗 ${s.seeds[f.id]}</small></button>`).join('')}</div>` : '<p>씨앗이 없어요. 씨앗 가게에서 사거나 파견으로 얻어 보세요.</p>'}
         <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-      box.querySelectorAll('[data-pf]').forEach(b => b.onclick = () => { if (Life.plant(i, b.dataset.pf)) { Sound.play('buy'); toast(`${fname(b.dataset.pf)}을 심었어요`); } closeModal(); renderLife($('#panel')); });
+      box.querySelectorAll('[data-pf]').forEach(b => b.onclick = () => { if (Life.plant(i, b.dataset.pf)) { Sound.play('buy'); toast(`${fname(b.dataset.pf)}${eul(fname(b.dataset.pf))} 심었어요`); } closeModal(); renderLife($('#panel')); });
       return true;
     }
     return false;
@@ -1108,14 +1117,18 @@ const UI = (() => {
   }
   // ---------- 모달 ----------
   function modal(html, noClose) {
-    const m = $('#modal'), opened = performance.now(); m.innerHTML = `<div class="mbox pbox">${html}</div>`; m.classList.add('on');
+    // 안내(튜토리얼)가 떠 있으면 창이 닫힐 때까지 잠깐 숨김 (안내 상자가 창의 버튼을 가리지 않게)
+    if (tutEl) tutEl.classList.add('under');
+    const m = $('#modal'), opened = performance.now(); m.innerHTML = `<div class="mbox pbox">${noClose ? '' : '<button class="m-x" aria-label="닫기">✕</button>'}${html}</div>`; m.classList.add('on');
     m.onclick = e => {
+      // 오른쪽 위 ✕: 창의 원래 닫기(취소) 버튼이 있으면 그걸 눌러 주고, 없으면 그냥 닫기
+      if (e.target.closest('.m-x')) { const c = [...m.querySelectorAll('[data-act="close"], #nt-close')].pop(); if (c) c.click(); else closeModal(); return; }
       if (e.target === m && !noClose && performance.now() - opened > 400) closeModal();
       const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act);
     };
     return m.firstChild;
   }
-  function closeModal() { $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; previews = previews.filter(p => document.body.contains(p.c)); }
+  function closeModal() { if (tutEl) { tutEl.classList.remove('under'); setTimeout(() => tutEl && tutPlace(), 50); } $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; previews = previews.filter(p => document.body.contains(p.c)); }
   function confirmBox(html, ok, label) {
     const box = modal(html + `<div class="acts"><button class="btn red" id="m-ok">${label || '확인'}</button><button class="btn dark" data-act="close">취소</button></div>`);
     box.querySelector('#m-ok').onclick = () => { closeModal(); ok(); };
@@ -1184,6 +1197,9 @@ const UI = (() => {
     };
   }
   const hrsLabel = h => { const m = Math.round(h * 60), H = Math.floor(m / 60), M = m % 60; return H ? `${H}시간${M ? ' ' + M + '분' : ''}` : `${M}분`; };
+  // 로그인 안 했을 때 안내창에 넣는 로그인 버튼 (서버가 연결돼 있을 때만)
+  const loginBtn = () => Cloud.ready() && !Cloud.signedIn() ? '<button class="btn" data-login="1">로그인</button>' : '';
+  const bindLogin = () => { const b = $('#modal [data-login]'); if (b) b.onclick = () => { closeModal(); loginScreen(true); }; };
   function settings() {
     const s = S(), cloud = Cloud.ready(), inn = cloud && Cloud.signedIn();
     const PN = { google: '구글', kakao: '카카오', naver: '네이버', apple: 'Apple', email: '네이버' };
@@ -1388,9 +1404,11 @@ const UI = (() => {
   let tutEl = null, TL = TUT, TK = 'tut';
   function tutStart() { TL = TUT; TK = 'tut'; S().tut = 0; Game.save(); tutShow(); }
   function officeTutCheck() {
-    const s = S(); if (!s.kind || tutEl || s.tut !== 'done' || s.otut != null || s.rank < 1) return;
+    const s = S(); if (!s.kind || tutEl || s.tut !== 'done' || s.otut === 'done' || s.rank < 1) return;
     if ($('#modal').classList.contains('on') || $('#promo').classList.contains('on') || parade) return;
-    TL = OTUT; TK = 'otut'; s.otut = Scene.inOffice() ? 1 : 0; if (Scene.inOffice()) enterOffice(); Game.save(); tutShow();
+    // 처음이면 0단계부터, 앱을 껐다 켜서 중간에 끊겼으면 이어서 (집무실 밖이면 '들어가기'부터 다시)
+    const was = typeof s.otut === 'number' ? s.otut : 0;
+    TL = OTUT; TK = 'otut'; s.otut = Scene.inOffice() ? Math.max(1, was) : 0; if (Scene.inOffice()) enterOffice(); Game.save(); tutShow();
   }
   function tutShow() {
     const st = TL[S()[TK]]; if (!st) return tutEnd();

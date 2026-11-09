@@ -224,11 +224,12 @@ const Game = (() => {
 
   // ---------- 저장 ----------
   // 다른 저장(클라우드)으로 통째로 바꾸기
-  function replace(obj) { S = Object.assign(fresh(), obj || {}); Life.ensure(); Pets.ensure(); Story.ensure(); if (typeof Decor !== 'undefined') Decor.ensure(); migrate(); save(); apply(); }
+  function replace(obj) { S = Object.assign(fresh(), obj || {}); awayFrom = S.last || 0; Life.ensure(); Pets.ensure(); Story.ensure(); if (typeof Decor !== 'undefined') Decor.ensure(); migrate(); save(); apply(); }
   function save() { if (!S) return; S.last = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
   function load() {
     try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
     if (!S) S = fresh();
+    awayFrom = S.last || 0; // 켜자마자 다른 곳에서 저장해도 자리 비운 시간이 사라지지 않게 미리 기억
     Life.ensure(); Pets.ensure(); Story.ensure(); if (typeof Decor !== 'undefined') Decor.ensure();
     migrate();
   }
@@ -237,8 +238,10 @@ const Game = (() => {
     if (S.perm2) { S.perm2 = false; S.sealUntil = Math.max(S.sealUntil || 0, Date.now() + 7 * 86400e3); } // 영구 인장 → 7일 인장으로 바뀜
   }
   // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 60%)
+  let awayFrom = 0;
   function offline() {
-    const away = Math.max(0, (Date.now() - S.last) / 1000);
+    const from = awayFrom || S.last; awayFrom = 0;
+    const away = Math.max(0, (Date.now() - from) / 1000);
     if (!S.kind || away < 60) return null;
     const secs = Math.min(away, offHours() * 3600);
     const amt = incomePerSec(true) * secs * 0.6;

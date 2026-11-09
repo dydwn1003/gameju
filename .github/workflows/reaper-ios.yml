@@ -91,6 +91,16 @@ jobs:
             # base64 안에 BOM(EF BB BF) 이 섞여 있으면 떼기
             sed -i '' '1s/^\xEF\xBB\xBF//' "$f" 2>/dev/null || true
           fi
+          # 그래도 키 모양이 아니면: (1) 두 번 base64 된 경우 한 번 더 풀기 (2) UTF-16 이면 0 바이트 지우기 (3) 머리줄 없는 DER 이면 감싸기
+          if ! grep -q "BEGIN PRIVATE KEY" "$f"; then
+            if tr -d ' \r\n\t' < "$f" | base64 -d > "$f.2" 2>/dev/null && grep -q "BEGIN PRIVATE KEY" "$f.2"; then mv "$f.2" "$f"; echo "두 번 base64 된 값이라 한 번 더 풀었어요";
+            elif tr -d '\000' < "$f" > "$f.2" && grep -q "BEGIN PRIVATE KEY" "$f.2"; then mv "$f.2" "$f"; echo "UTF-16 글자라 바꿨어요";
+            elif [ "$(head -c1 "$f" | xxd -p)" = "30" ]; then { echo "-----BEGIN PRIVATE KEY-----"; base64 -i "$f" | fold -w 64; echo "-----END PRIVATE KEY-----"; } > "$f.2" && mv "$f.2" "$f"; echo "머리줄 없는 키라 감쌌어요";
+            fi
+            rm -f "$f.2"
+          fi
+          # 모양 진단 (키 내용은 출력하지 않음)
+          echo "키 파일: $(wc -l < "$f" | tr -d ' ')줄, 첫 줄 $(head -1 "$f" | wc -c | tr -d ' ')글자, 머리줄 $(grep -c 'BEGIN PRIVATE KEY' "$f")개"
           echo "ASC_KEY_PATH=$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
 
       - name: API 키 · 앱 등록 확인

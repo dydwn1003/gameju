@@ -885,3 +885,10 @@ html.native, html.native body { overscroll-behavior: none; -webkit-touch-callout
 .gs-skip2 { position: absolute; left: 50%; bottom: 10%; transform: translateX(-50%); z-index: 3; font: inherit; font-size: 13px; color: #fff; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 999px; padding: 10px 26px; min-width: 150px; }
 .gs-skip2:disabled { opacity: .4; }
 .set-sub { display: block; font-size: 9px; color: var(--mute); margin-top: 2px; }
+
+/* 모든 창 오른쪽 위 닫기 ✕ (긴 창도 바로 닫을 수 있게) */
+.mbox { position: relative; }
+.m-x { position: sticky; top: -12px; float: right; margin: -10px -6px -30px 0; z-index: 5; width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(10, 8, 24, 0.75); color: #e9e2ff; font: inherit; font-size: 13px; line-height: 1; cursor: pointer; }
+.m-x:active { transform: scale(0.92); }
+/* 창이 열려 있는 동안 안내는 숨김 */
+#tut.under { display: none; }
