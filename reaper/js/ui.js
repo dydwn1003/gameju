@@ -12,11 +12,13 @@ const UI = (() => {
 
   // ---------- 로그인 (Supabase) ----------
   const PROV = { google: ['G', '구글로 시작', 'pv-google'], kakao: ['💬', '카카오로 시작', 'pv-kakao'], naver: ['N', '네이버로 시작', 'pv-naver'], apple: ['', 'Apple로 시작', 'pv-apple'] };
+  // iOS 앱은 다른 소셜 로그인이 있으면 Apple 로그인도 꼭 있어야 함 (App Store 심사 4.8)
+  const loginProviders = () => { const l = CLOUD.providers.slice(); if (Native.platform() === 'ios' && !l.includes('apple')) l.push('apple'); return l; };
   function loginScreen(fromSettings) {
     const box = modal(`${fromSettings ? '<h2>계정 연동</h2><p class="mute">지금까지의 기록을 계정에 저장해 다른 기기에서도 이어 해요</p>' : '<div class="title-logo">저승사자 키우기</div><div class="title-sub">로그인하면 기록이 서버에 저장돼 기기를 바꿔도 이어 할 수 있어요</div>'}
-      <div class="lg-list">${CLOUD.providers.map(p => `<button class="lg-btn ${PROV[p][2]}" data-lg="${p}"><i>${PROV[p][0]}</i><span>${PROV[p][1]}</span></button>`).join('')}</div>
+      <div class="lg-list">${loginProviders().map(p => `<button class="lg-btn ${PROV[p][2]}" data-lg="${p}"><i>${PROV[p][0]}</i><span>${PROV[p][1]}</span></button>`).join('')}</div>
       ${fromSettings ? '<div class="acts"><button class="btn dark" data-act="close">닫기</button></div>' : '<button class="lg-guest" id="lg-guest">게스트로 시작 <small>(이 기기에만 저장돼요)</small></button>'}`, !fromSettings);
-    box.querySelectorAll('[data-lg]').forEach(b => b.onclick = () => { S().pendingLink = !!S().kind; Game.save(); toast('로그인 화면으로 이동해요…', 2000); Cloud.signIn(b.dataset.lg); });
+    box.querySelectorAll('[data-lg]').forEach(b => b.onclick = () => { S().pendingLink = !!S().kind; Game.save(); toast('로그인 화면으로 이동해요…', 2000); Promise.resolve(Cloud.signIn(b.dataset.lg)).catch(() => toast('로그인을 시작하지 못했어요. 인터넷 연결을 확인해 주세요', 2600)); });
     const g = box.querySelector('#lg-guest'); if (g) g.onclick = () => { S().guest = true; Game.save(); closeModal(); charSelect(true); };
   }
   function afterLoad() { checkOffline(); if (!Story.cur().end && !Story.cur().intro) setTimeout(storyIntro, 600); }
@@ -50,6 +52,7 @@ const UI = (() => {
     await step(30, '저승사자 옷을 입히는 중…', () => { for (const k of ['m', 'f']) for (let r = 0; r <= 8; r++) { SP.reaper(k, r, 'idle', 0); for (const d of ['down', 'up', 'side']) SP.tinyReaper(k, r, d, 'walk', 0); } });
     await step(55, '혼령을 불러 모으는 중…', () => { for (let t = 0; t < 4; t++) for (let i = 0; i < 3; i++) SP.soult(t, i); });
     await step(75, '집무실 소품을 닦는 중…', async () => { for (let i = 0; i < DECOR.length; i += 20) { DECOR.slice(i, i + 20).forEach(d => Decor.img(d.id)); await new Promise(r => setTimeout(r, 0)); } });
+    await step(80, '저승 문을 여는 중…', async () => { await Native.init(); Native.hideSplash(); });
     await step(82, '저승 서버에 접속하는 중…', () => Cloud.init());
     await step(90, '명부를 펼치는 중…', () => initGame());
     if (Cloud.signedIn()) await step(96, '내 기록을 불러오는 중…', () => cloudSync());
@@ -91,6 +94,10 @@ const UI = (() => {
     setInterval(drawPreviews, 160);
     document.addEventListener('visibilitychange', () => { if (document.hidden) { Game.save(); if (S().kind) Cloud.pushSave(S(), true); } else checkOffline(); });
     window.addEventListener('pagehide', () => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
+    // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
+    Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
+    Native.setPause(() => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
+    Native.setPay(gid => grantPaid(gid), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); });
     render(); hud();
     if (!S().kind) { if (Cloud.enabled() && Cloud.signedIn()) { /* cloudSync 가 정함 */ } else if (Cloud.ready() && !S().guest) loginScreen(); else charSelect(true); }
     else if (!Cloud.signedIn()) afterLoad(); // 로그인했으면 서버 기록을 맞춘 뒤에
@@ -337,7 +344,7 @@ const UI = (() => {
     h += `</div><div class="sec">패키지</div><div class="grid2">`;
     h += SHOP_IAP.map(P => { const left = Game.iapLeft(P.id), own = left <= 0, sl = P.seal ? Game.sealLeft() : 0; return `<div class="card pbox ${own ? 'owned' : ''}">${P.tag ? `<span class="tag">${P.tag}</span>` : ''}<img class="px" src="${IC(P.icon, P.icon === 'jade' ? 4 : 3)}"><div class="nm">${P.name}</div><div class="ds">${P.desc || '보석함에 바로 지급'}</div>
       ${P.daily ? `<div class="ds" style="color:var(--gold)">하루 ${P.daily}번 · 오늘 ${Math.max(0, left)}번 남음</div>` : ''}${sl > 0 ? `<div class="ds" style="color:var(--jade)">효과 남은 기간 ${fmtDays(sl)}</div>` : ''}
-      <button class="btn red" data-iap="${P.id}" ${own ? 'disabled' : ''}>${own ? (P.daily ? '내일 다시' : '구매 완료') : P.price}</button></div>`; }).join('');
+      <button class="btn red" data-iap="${P.id}" ${own ? 'disabled' : ''}>${own ? (P.daily ? '내일 다시' : '구매 완료') : priceOf(P.id)}</button></div>`; }).join('');
     h += `</div><p class="note">테스트 버전: 실제 결제·광고 없이 바로 지급됩니다.</p>`;
     P.innerHTML = h;
   }
@@ -851,7 +858,7 @@ const UI = (() => {
     const s = S(), cats = [['all', '전체'], ['set', '세트'], ['floor', '바닥'], ['wall', '벽'], ['seat', '앉기'], ['chair', '의자'], ['premium', '귀한 것'], ['ex', '한정']];
     const how = d => d.rank != null ? (d.rank ? `${RANKS[d.rank].name} 승진` : '첫 출근 선물') : d.story != null ? `이야기 ${d.story + 1}장` : '의뢰 보상';
     const card = d => { const n = Decor.owned(d.id), ex = Decor.isEx(d); return `<div class="ds-card ${d.premium ? 'cash' : ''} ${ex ? 'ex' : ''}"><img class="px" src="${decoThumb(d.id, 3)}"><b>${d.name}</b><small>품격 +${d.pt}${d.seat ? ' · 앉기' : ''}${d.wall ? ' · 벽' : ''}</small><p>${d.desc}</p>${n ? `<em>보유 ${n}</em>` : ''}
-      ${ex ? `<button class="btn dark" disabled>${n ? '획득 완료' : '🔒 ' + how(d)}</button>` : d.cash ? (s.rank >= d.rankReq ? `<button class="btn red" data-dcash="${d.id}">${d.cash}</button>` : `<button class="btn dark" disabled>🔒 ${RANKS[d.rankReq].name} 이상</button>`) : d.free ? '<button class="btn dark" disabled>무료 지급</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
+      ${ex ? `<button class="btn dark" disabled>${n ? '획득 완료' : '🔒 ' + how(d)}</button>` : d.cash ? (s.rank >= d.rankReq ? `<button class="btn red" data-dcash="${d.id}">${priceOf('decor:' + d.id)}</button>` : `<button class="btn dark" disabled>🔒 ${RANKS[d.rankReq].name} 이상</button>`) : d.free ? '<button class="btn dark" disabled>무료 지급</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
     const pack = P => { const got = Decor.packBought(P.id); return `<div class="ds-pack ${got ? 'got' : ''}"><div class="ds-pi">${P.items.map(id => `<img class="px" src="${decoThumb(id, 2)}">`).join('')}</div><div class="ds-pt"><b>${P.name}</b><small>${P.items.map(id => Decor.D(id).name).join(' · ')}</small><small><s>옥 ${P.full}</s> → <b class="sale">30% 할인</b></small></div>${got ? '<button class="btn dark" disabled>구매 완료</button>' : `<button class="btn jade" data-dpack="${P.id}" ${s.jade >= P.price ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${P.price}</button>`}</div>`; };
     const list = shopCat === 'set' ? '' : DECOR.filter(d => shopCat === 'all' || (shopCat === 'floor' && !d.wall) || (shopCat === 'wall' && d.wall) || (shopCat === 'seat' && d.seat) || (shopCat === 'premium' && d.premium) || (shopCat === 'ex' && Decor.isEx(d)) || (shopCat === 'chair' && d.chair)).sort((a, b) => (a.free ? 0 : a.price || (a.cash ? 50000 + a.rankReq * 10 : 99999 + (a.rank || 0) * 10 + (a.story != null ? 100 + a.story : 0))) - (b.free ? 0 : b.price || (b.cash ? 50000 + b.rankReq * 10 : 99999 + (b.rank || 0) * 10 + (b.story != null ? 100 + b.story : 0))));
     const box = modal(`<h2>🏮 소품 상점 <small style="font-size:11px;color:var(--mute)">${DECOR.filter(d => Decor.owned(d.id)).length}/${DECOR.length}종 보유</small></h2><p class="mute">옥으로 사요. 놓은 소품의 품격만큼 수확량이 올라요 (최대 +40%) · 보유 옥 <b style="color:var(--jade)">${fmt(s.jade)}</b></p>
@@ -860,7 +867,7 @@ const UI = (() => {
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelectorAll('[data-dcat]').forEach(b => b.onclick = () => { shopCat = b.dataset.dcat; closeModal(); decoShop(); });
     const askOwned = (d, go) => { const n = Decor.owned(d.id); if (!n) { go(); return; } const sc0 = box.querySelector('.ds-scroll').scrollTop; closeModal(); confirmBox(`<h2>${d.name}</h2><p>이미 <b style="color:var(--gold)">${n}개</b> 갖고 있어요.<br>하나 더 살까요?</p>`, () => { go(); }, '더 사기'); const cancel = $('#modal [data-act="close"]'); if (cancel) cancel.onclick = () => { closeModal(); decoShop(); const ns = $('#modal .ds-scroll'); if (ns) ns.scrollTop = sc0; }; };
-    box.querySelectorAll('[data-dcash]').forEach(b => b.onclick = () => { const d = Decor.D(b.dataset.dcash); askOwned(d, () => { closeModal(); confirmBox(`<h2>${d.name}</h2><p>${d.desc}</p><div class="big" style="color:var(--gold)">${d.cash}</div><p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>`, () => { if (Decor.buyCash(d.id)) { Sound.play('promote'); toast(`${d.name} 구입! 책상 뒤에 놓아 보세요`); decoBar(); } decoShop(); }, '구매'); }); });
+    box.querySelectorAll('[data-dcash]').forEach(b => b.onclick = () => { const d = Decor.D(b.dataset.dcash); askOwned(d, () => { closeModal(); confirmBox(`<h2>${d.name}</h2><p>${d.desc}</p><div class="big" style="color:var(--gold)">${priceOf('decor:' + d.id)}</div>${payNote()}`, () => pay('decor:' + d.id), '구매'); }); });
     box.querySelectorAll('[data-dbuy]').forEach(b => b.onclick = () => { const d = Decor.D(b.dataset.dbuy); askOwned(d, () => buyIt(d)); });
     const buyIt = d => { const scEl = $('#modal .ds-scroll'); if (Decor.buy(d.id)) { Sound.play('buy'); toast(`${d.name} 구입! 아래 목록에서 끌어다 놓아 보세요`); const sc = scEl ? scEl.scrollTop : 0; closeModal(); decoBar(); decoShop(); const ns = $('#modal .ds-scroll'); if (ns) ns.scrollTop = sc; } else { Sound.play('no'); toast('옥이 부족해요'); } };
     box.querySelectorAll('[data-dpack]').forEach(b => b.onclick = () => { const P = DECOR_PACKS.find(x => x.id === b.dataset.dpack); closeModal(); confirmBox(`<h2>${P.name}</h2><p>${P.items.map(id => Decor.D(id).name).join(', ')}</p><p><s style="color:var(--mute)">옥 ${P.full}</s> → <b style="color:var(--jade)">옥 ${P.price}</b> (30% 할인 · 한 번만)</p>`, () => { if (Decor.buyPack(P.id)) { Sound.play('promote'); toast(`${P.name} 구입 완료!`); decoBar(); } else { Sound.play('no'); toast('옥이 부족해요'); } decoShop(); }, '구매'); });
@@ -1000,7 +1007,7 @@ const UI = (() => {
         ${l > 0 ? `<button class="btn sk" data-skip="expe:${i}">⏩ 단축</button>` : `<button class="btn red" data-claim="${i}">보상 받기</button>`}</div>`; }).join('');
       h += `<div class="sec">순찰지</div>` + EXPEDITIONS.map(E => {
         const lockR = s.rank < E.rank, lockM = Game.minions() < E.minion, full = s.expe.length >= Life.slots();
-        const rw = [...Object.entries(E.seed).map(([k, v]) => `${fname(k)} 씨앗 ${v}`), E.jade ? `옥 ${E.jade}` : '', `${E.hours >= 1 ? E.hours + '시간' : Math.round(E.hours * 60) + '분'}치 혼`, E.dex ? '희귀 혼령 기록' : ''].filter(Boolean).join(' · ');
+        const rw = [...Object.entries(E.seed).map(([k, v]) => `${fname(k)} 씨앗 ${v}`), E.jade ? `옥 ${E.jade}` : '', `${hrsLabel(E.hours)}치 혼`, E.dex ? '희귀 혼령 기록' : ''].filter(Boolean).join(' · ');
         return `<div class="row pbox ${lockR ? 'maxed' : ''}"><div class="ic"><img class="px" src="${IC('gate', 3)}"></div><div class="info"><div class="nm">${E.name}<small>${fmtTime(E.hrs * 3600)}</small></div><div class="ds">졸개 ${E.minion}명 필요 · <b>${rw}</b></div></div>
           <button class="btn" data-send="${E.id}" ${lockR || lockM || full ? 'disabled' : ''}>${lockR ? RANKS[E.rank].name + '부터' : lockM ? '졸개 부족' : full ? '칸 없음' : '보내기'}</button></div>`;
       }).join('') + `<p class="note">파견을 보내도 졸개는 계속 혼을 거둬요. 선임 차사·명부 판관이 되면 파견 칸이 늘어나요.</p>`;
@@ -1036,6 +1043,7 @@ const UI = (() => {
   // ---------- 광고 (테스트: 3초 대기) ----------
   function ad(onReward) {
     if (S().noAds) { onReward(); return; }
+    if (Native.isApp()) { Native.rewardAd(onReward, m => m && toast(m, 2400)); return; }
     if (window.adBreak && window.H5_ADS) {
       window.adBreak({ type: 'reward', name: 'reward', beforeReward: show => show(), adViewed: onReward, adDismissed: () => toast('끝까지 보면 보상을 받아요') });
       return;
@@ -1050,12 +1058,25 @@ const UI = (() => {
     ad(() => { Game.useAd('boost'); Game.addBoost(min); Life.qEvent('ad'); Sound.play('promote'); toast(`2배 부적 ${min}분! 수확·화력 2배`); render(); });
   }
 
-  // ---------- 결제 (테스트) ----------
+  // ---------- 결제 ----------
+  // 앱: 구글 플레이 결제 / App Store 결제 → 완료되면 grantPaid. 웹: 서버가 없는 시험판(claude.ai 등)에서만 테스트 결제.
+  // gid: SHOP_IAP 의 id, 또는 현금 의자는 'decor:<소품 id>'
+  const testPay = () => !Native.isApp() && (!!window.claude || !Cloud.enabled());
+  const priceOf = gid => Native.price(gid) || (gid.startsWith('decor:') ? Decor.D(gid.slice(6)).cash : SHOP_IAP.find(p => p.id === gid).price);
+  const payNote = () => testPay() ? '<p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>' : Native.isApp() ? `<p style="color:var(--mute);font-size:10px">${Native.platform() === 'ios' ? 'App Store' : 'Google Play'} 계정으로 결제돼요.</p>` : '';
+  function grantPaid(gid) {
+    if (gid.startsWith('decor:')) { const d = Decor.D(gid.slice(6)); if (d && Decor.buyCash(d.id)) { Sound.play('promote'); toast(`${d.name} 구입! 책상 뒤에 놓아 보세요`); decoBar(); } }
+    else { const P = SHOP_IAP.find(p => p.id === gid); if (P && Game.iap(gid)) { Sound.play('promote'); toast(`${P.name} 지급 완료!`); } }
+    Game.save(); if (S().kind) Cloud.pushSave(S(), true); render();
+  }
+  async function pay(gid) {
+    if (testPay()) { grantPaid(gid); return; }
+    if (!Native.isApp()) { toast('결제는 앱(구글 플레이 · 앱스토어)에서 할 수 있어요', 2600); return; }
+    const err = await Native.buy(gid); if (err) toast(err, 2400);
+  }
   function iapBox(id) {
     const P = SHOP_IAP.find(p => p.id === id);
-    confirmBox(`<h2>${P.name}</h2><p>${P.desc || ''}</p><div class="big" style="color:var(--gold)">${P.price}</div><p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>`, () => {
-      if (Game.iap(id)) { Sound.play('promote'); toast(`${P.name} 지급 완료!`); render(); }
-    }, '구매');
+    confirmBox(`<h2>${P.name}</h2><p>${P.desc || ''}</p><div class="big" style="color:var(--gold)">${priceOf(id)}</div>${payNote()}`, () => pay(id), '구매');
   }
 
   // ---------- 재화가 모자랄 때: 빨간 가격 + 누르면 구매 페이지 ----------
@@ -1064,13 +1085,13 @@ const UI = (() => {
     closeOverlay && $('#promo').classList.contains('on') && closeOverlay();
     const s = S(), jadeKind = kind !== 'souls';
     const packs = SHOP_IAP.filter(P => Game.iapLeft(P.id) > 0 && (jadeKind ? P.jade && !P.seal && !P.noAds : (P.hours || P.boost || P.seal)));
-    const row = P => `<div class="bp-row"><img class="px" src="${IC(P.icon || 'jade', 3)}"><div><b>${P.name}</b><small>${P.desc || ''}</small></div>${P.tag ? `<em>${P.tag}</em>` : ''}<button class="btn red" data-bp="${P.id}">${P.price}</button></div>`;
+    const row = P => `<div class="bp-row"><img class="px" src="${IC(P.icon || 'jade', 3)}"><div><b>${P.name}</b><small>${P.desc || ''}</small></div>${P.tag ? `<em>${P.tag}</em>` : ''}<button class="btn red" data-bp="${P.id}">${priceOf(P.id)}</button></div>`;
     const jadeOpts = !jadeKind ? JADE_SHOP.filter(J => J.hours || J.boost).map(J => { const c = Game.jadeCost(J.id); return c == null ? '' : `<div class="bp-row"><img class="px" src="${IC(J.hours ? 'scroll' : 'luck', 3)}"><div><b>${J.name}</b><small>${J.desc}${J.hours ? ' · +' + fmt(Game.incomePerSec(true) * 3600 * J.hours) : ''}</small></div><button class="btn jade" data-bj="${J.id}" ${s.jade >= c ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${c}</button></div>`; }).join('') : '';
     const box = modal(`<div class="bp-head"><b>${jadeKind ? '💎 옥이 부족해요' : '🔥 혼이 부족해요'}</b><small>보유 ${jadeKind ? `옥 <i class="red">${fmt(s.jade)}</i>` : `혼 <i class="red">${fmt(s.souls)}</i>`}</small></div>
       ${jadeKind ? `<div class="bp-ad"><span>📺 광고 보고 옥 10개</span><button class="btn" id="bp-ad" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>무료<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button></div>` : `<div class="bp-ad"><span>📺 광고 보고 2배 부적</span><button class="btn" id="bp-ad" ${Game.adLeft('boost') > 0 ? '' : 'disabled'}>무료<em>${Game.adLeft('boost')}/${AD_LIMIT.boost}</em></button></div>${jadeOpts}`}
       <div class="sec">${jadeKind ? '옥 충전' : '빠르게 성장하기'}</div><div class="bp-list">${packs.map(row).join('')}</div>
-      <p class="mute" style="font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    box.querySelectorAll('[data-bp]').forEach(b => b.onclick = () => { if (Game.iap(b.dataset.bp)) { Sound.play('promote'); toast(`${SHOP_IAP.find(P => P.id === b.dataset.bp).name} 지급 완료!`); closeModal(); render(); } });
+      ${payNote()}<div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelectorAll('[data-bp]').forEach(b => b.onclick = () => { closeModal(); pay(b.dataset.bp); });
     box.querySelectorAll('[data-bj]').forEach(b => b.onclick = () => { const r = Game.jadeBuy(b.dataset.bj); if (r) { Sound.play('buy'); toast(typeof r === 'number' ? `+${fmt(r)} 혼` : '사용!'); closeModal(); render(); } });
     const ad0 = box.querySelector('#bp-ad'); if (ad0) ad0.onclick = () => { closeModal(); if (jadeKind) act('jadeAd'); else boostAd(); };
   }
@@ -1151,23 +1172,101 @@ const UI = (() => {
       hud();
     };
   }
+  const hrsLabel = h => { const m = Math.round(h * 60), H = Math.floor(m / 60), M = m % 60; return H ? `${H}시간${M ? ' ' + M + '분' : ''}` : `${M}분`; };
   function settings() {
-    const s = S();
+    const s = S(), cloud = Cloud.ready(), inn = cloud && Cloud.signedIn();
+    const PN = { google: '구글', kakao: '카카오', naver: '네이버', apple: 'Apple', email: '네이버' };
     const box = modal(`<h2>설정</h2>
+      ${cloud ? `<div class="set-sec">계정</div>${inn ? `<div class="set-row"><span>☁️ ${PN[Cloud.provider()] || ''} 계정으로 저장 중</span><button class="btn dark" id="s-out">로그아웃</button></div>` : '<div class="set-row"><span>👤 게스트 (이 기기에만 저장)</span><button class="btn" id="s-link">계정 연동</button></div>'}` : ''}
+      <div class="set-sec">게임</div>
       <div class="set-row"><span>${esc(s.name)} · ${s.kind === 'f' ? '여자' : '남자'} 차사</span><button class="btn dark" id="s-look">모습 바꾸기</button></div>${Board.online() ? `<div class="set-row"><span>닉네임 ${s.nickSet ? '「' + esc(s.name) + '」' : '(아직 없음)'}</span><button class="btn dark" id="s-nick">${s.nickSet ? '바꾸기' : '정하기'}</button></div>` : ''}
       <div class="set-row"><span>효과음</span><button class="btn ${s.sound ? '' : 'dark'}" id="s-snd">${s.sound ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>배경음</span><button class="btn ${s.bgm ? '' : 'dark'}" id="s-bgm">${s.bgm ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>퇴치한 원귀 / 터치 수확</span><span>${s.stats.wraith} / ${s.stats.tap}</span></div>
-      <div class="acts"><button class="btn dark" id="s-reset">처음부터</button><button class="btn red" data-act="close">닫기</button></div>`);
-    const sn = box.querySelector('#s-nick'); if (sn) sn.onclick = () => { closeModal(); nickModal(); };
-    if (Cloud.ready()) { const h = box.querySelector('h2'); h.insertAdjacentHTML('afterend', Cloud.signedIn() ? `<div class="set-row"><span>☁️ ${{ google: '구글', kakao: '카카오', naver: '네이버', apple: 'Apple', email: '네이버' }[Cloud.provider()] || ''} 계정으로 저장 중</span><button class="btn dark" id="s-out">로그아웃</button></div>` : '<div class="set-row"><span>👤 게스트 (이 기기에만 저장)</span><button class="btn" id="s-link">계정 연동</button></div>');
-      const so = box.querySelector('#s-out'); if (so) so.onclick = async () => { await Cloud.pushSave(S(), true); await Cloud.signOut(); toast('로그아웃했어요'); closeModal(); };
-      const sl = box.querySelector('#s-link'); if (sl) sl.onclick = () => { closeModal(); loginScreen(true); }; }
-    if (Board.online()) Board.checkOwner().then(o => { const h = box.querySelector('h2'); if (o && h && document.body.contains(h)) h.insertAdjacentHTML('afterend', '<p class="adm-badge">🛡️ 운영자 모드 · 📢 공지 쓰기 / 📮 전체 우편 보내기를 쓸 수 있어요</p>'); });
-    box.querySelector('#s-look').onclick = () => charSelect(false);
-    box.querySelector('#s-snd').onclick = () => { s.sound = !s.sound; Sound.set(s.sound, s.bgm); Game.save(); settings(); };
-    box.querySelector('#s-bgm').onclick = () => { s.bgm = !s.bgm; Sound.set(s.sound, s.bgm); Game.save(); settings(); };
-    box.querySelector('#s-reset').onclick = () => confirmBox('<h2>처음부터</h2><p>모든 진행이 지워집니다. 정말 할까요?</p>', () => { Game.reset(); render(); charSelect(true); });
+      <div class="set-sec">고객 지원</div>
+      <div class="set-links"><button class="btn dark" id="s-ask">💬 1:1 문의</button><button class="btn dark" id="s-priv">개인정보처리방침</button>${Native.isApp() ? '<button class="btn dark" id="s-restore">구매 복원</button>' : ''}<span id="s-adm"></span></div>
+      <div class="set-sec">데이터</div>
+      <div class="set-links">${inn ? '<button class="btn dark" id="s-del">계정 삭제</button>' : ''}<button class="btn dark" id="s-reset">${inn ? '이 기기 기록 지우기' : '처음부터'}</button></div>
+      <p class="set-ver">저승사자 키우기 v${APP.version}${inn ? ` · ID ${String(Cloud.uid()).slice(0, 8)}` : ''}</p>
+      <div class="acts"><button class="btn red" data-act="close">닫기</button></div>`);
+    const on = (id, f) => { const b = box.querySelector(id); if (b) b.onclick = f; };
+    on('#s-nick', () => { closeModal(); nickModal(); });
+    on('#s-link', () => { closeModal(); loginScreen(true); });
+    on('#s-out', () => confirmBox('<h2>로그아웃</h2><p>기록은 계정에 저장돼요.<br>다시 로그인하면 이어서 할 수 있어요.</p>', async () => {
+      toast('저장하는 중…', 1500);
+      const ok = await Cloud.pushSave(S(), true);
+      if (!ok) { toast('서버에 저장하지 못했어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요', 3000); return; }
+      await Cloud.signOut(); Game.reset(); location.reload();
+    }, '로그아웃'));
+    on('#s-del', () => confirmBox('<h2>계정 삭제</h2><p>계정과 <b style="color:var(--red)">모든 게임 기록 · 순위 · 집무실 · 방명록 · 문의 내역</b>이 영구히 지워져요.<br>구매한 상품도 되돌릴 수 없어요.</p>', () => setTimeout(() =>
+      confirmBox('<h2>정말 삭제할까요?</h2><p>삭제하면 복구할 수 없어요.</p>', async () => {
+        toast('계정을 삭제하는 중…', 2000);
+        try { await Cloud.deleteAccount(); } catch (e) { toast('삭제하지 못했어요. 잠시 후 다시 시도하거나 1:1 문의로 알려 주세요', 3200); return; }
+        Game.reset(); toast('계정을 삭제했어요', 2000); setTimeout(() => location.reload(), 1200);
+      }, '영구 삭제'), 50), '계속'));
+    on('#s-ask', () => { closeModal(); askModal(); });
+    on('#s-priv', () => { closeModal(); privacyModal(); });
+    on('#s-restore', async () => { toast('구매 내역을 확인하는 중…', 1500); const ok = await Native.restore(); toast(ok ? '구매 내역을 복원했어요' : '스토어에 연결하지 못했어요', 2200); render(); });
+    on('#s-look', () => charSelect(false));
+    on('#s-snd', () => { s.sound = !s.sound; Sound.set(s.sound, s.bgm); Game.save(); settings(); });
+    on('#s-bgm', () => { s.bgm = !s.bgm; Sound.set(s.sound, s.bgm); Game.save(); settings(); });
+    on('#s-reset', () => confirmBox(`<h2>${inn ? '이 기기 기록 지우기' : '처음부터'}</h2><p>${inn ? '이 기기의 기록만 지워요. 계정에 저장된 기록은 남아 있어요.' : '모든 진행이 지워집니다. 정말 할까요?'}</p>`, () => { if (inn) { Game.reset(); location.reload(); return; } Game.reset(); render(); charSelect(true); }));
+    if (Board.online()) Board.checkOwner().then(o => {
+      const h = box.querySelector('h2'); if (!o || !h || !document.body.contains(h)) return;
+      h.insertAdjacentHTML('afterend', '<p class="adm-badge">🛡️ 운영자 모드 · 📢 공지 쓰기 / 📮 전체 우편 보내기를 쓸 수 있어요</p>');
+      const a = box.querySelector('#s-adm'); if (a && inn) { a.outerHTML = '<button class="btn" id="s-inq">📨 문의 답변</button>'; on('#s-inq', () => { closeModal(); inquiryAdmin(); }); }
+    });
+  }
+  // ---------- 개인정보처리방침 ----------
+  function privacyModal() {
+    modal(`<h2>개인정보처리방침</h2><iframe class="priv-frame" src="${APP.privacyUrl}" title="개인정보처리방침"></iframe><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+  }
+  // ---------- 1:1 문의 ----------
+  const ASK_CAT = ['결제', '오류 · 버그', '계정 · 로그인', '제안', '기타'];
+  const agoT = t => ago(new Date(t).getTime());
+  async function askModal() {
+    if (!(Cloud.ready() && Cloud.signedIn())) {
+      const mail = APP.supportEmail;
+      const box = modal(`<h2>💬 1:1 문의</h2><p>로그인하면 게임 안에서 문의하고 답변을 받을 수 있어요.</p>${mail ? `<p class="mute">또는 이메일로 보내 주세요<br><b style="color:var(--gold)">${esc(mail)}</b></p>` : ''}
+        <div class="acts">${mail ? '<button class="btn dark" id="ak-mail">이메일 보내기</button>' : ''}${Cloud.ready() ? '<button class="btn" id="ak-login">로그인</button>' : ''}<button class="btn dark" data-act="close">닫기</button></div>`);
+      const m = box.querySelector('#ak-mail'); if (m) m.onclick = () => { location.href = `mailto:${mail}?subject=${encodeURIComponent('[저승사자 키우기] 문의')}&body=${encodeURIComponent(`\n\n---\n닉네임: ${S().name}\n버전: ${APP.version} (${Native.platform()})`)}`; };
+      const l = box.querySelector('#ak-login'); if (l) l.onclick = () => { closeModal(); loginScreen(true); };
+      return;
+    }
+    let cat = ASK_CAT[0];
+    const box = modal(`<h2>💬 1:1 문의</h2><p class="mute">운영자가 확인하고 이곳에 답변을 남겨요.</p>
+      <div class="ask-cats">${ASK_CAT.map(c => `<button data-cat="${c}" class="${c === cat ? 'on' : ''}">${c}</button>`).join('')}</div>
+      <textarea id="ak-body" maxlength="1000" rows="5" placeholder="어떤 일이 있었는지 자세히 적어 주세요.&#10;결제 문의는 주문 번호(영수증)를 함께 적어 주시면 빨라요."></textarea>
+      <div class="acts"><button class="btn red" id="ak-send">보내기</button></div>
+      <div class="set-sec">내 문의</div><div class="ask-list" id="ak-list"><p class="mute">불러오는 중…</p></div>
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelectorAll('[data-cat]').forEach(b => b.onclick = () => { cat = b.dataset.cat; box.querySelectorAll('[data-cat]').forEach(x => x.classList.toggle('on', x === b)); });
+    const load = async () => {
+      const el = box.querySelector('#ak-list'); if (!el) return;
+      try { const rows = await Cloud.inquiry.mine(); el.innerHTML = rows.length ? rows.map(r => `<div class="ask-item"><div class="ask-h"><em>${esc(r.category)}</em><small>${agoT(r.created_at)}</small><b class="${r.reply ? 'done' : ''}">${r.reply ? '답변 완료' : '확인 중'}</b></div><p>${esc(r.body)}</p>${r.reply ? `<div class="ask-reply"><b>운영자</b><p>${esc(r.reply)}</p></div>` : ''}</div>`).join('') : '<p class="mute">아직 보낸 문의가 없어요</p>'; }
+      catch (e) { el.innerHTML = '<p class="mute">불러오지 못했어요</p>'; }
+    };
+    box.querySelector('#ak-send').onclick = async e => {
+      const t = box.querySelector('#ak-body').value.trim(); if (t.length < 5) { toast('내용을 5자 이상 적어 주세요'); return; }
+      e.target.disabled = true;
+      try { await Cloud.inquiry.send(cat, t, S().name, `${Native.platform()} · v${APP.version} · 계급 ${S().rank} · ${navigator.userAgent.slice(0, 150)}`); box.querySelector('#ak-body').value = ''; toast('문의를 보냈어요. 답변이 오면 여기에서 볼 수 있어요', 2600); load(); }
+      catch (err) { toast('보내지 못했어요. 잠시 후 다시 시도해 주세요', 2400); }
+      e.target.disabled = false;
+    };
+    load();
+  }
+  async function inquiryAdmin(all) {
+    const box = modal(`<h2>📨 문의 답변</h2><div class="ask-cats"><button id="ia-open" class="${all ? '' : 'on'}">답변 대기</button><button id="ia-all" class="${all ? 'on' : ''}">전체</button></div><div class="ask-list" id="ia-list"><p class="mute">불러오는 중…</p></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelector('#ia-open').onclick = () => { closeModal(); inquiryAdmin(false); };
+    box.querySelector('#ia-all').onclick = () => { closeModal(); inquiryAdmin(true); };
+    const el = box.querySelector('#ia-list');
+    let rows = []; try { rows = await Cloud.inquiry.all(!all); } catch (e) { el.innerHTML = '<p class="mute">불러오지 못했어요</p>'; return; }
+    el.innerHTML = rows.length ? rows.map(r => `<div class="ask-item"><div class="ask-h"><em>${esc(r.category)}</em><small>${esc(r.nick || '')} · ${agoT(r.created_at)}</small><b class="${r.reply ? 'done' : ''}">${r.reply ? '답변 완료' : '대기'}</b></div><p>${esc(r.body)}</p><small class="mute ask-info">${esc(r.info || '')} · ${esc(String(r.user_id).slice(0, 8))}</small>
+      <textarea data-rid="${r.id}" rows="3" maxlength="1000" placeholder="답변 쓰기">${esc(r.reply || '')}</textarea><div class="acts"><button class="btn" data-reply="${r.id}">답변 ${r.reply ? '고치기' : '보내기'}</button></div></div>`).join('') : '<p class="mute">답변할 문의가 없어요 👍</p>';
+    el.querySelectorAll('[data-reply]').forEach(b => b.onclick = async () => {
+      const t = el.querySelector(`[data-rid="${b.dataset.reply}"]`).value.trim(); if (!t) return;
+      try { await Cloud.inquiry.reply(+b.dataset.reply, t); toast('답변을 보냈어요'); closeModal(); inquiryAdmin(all); } catch (e) { toast('보내지 못했어요'); }
+    });
   }
   function attendModal() {
     const st = Game.attendState(), cur = st.can ? st.streak : S().attend.streak;
@@ -1344,7 +1443,7 @@ const UI = (() => {
     const s = S(), eq = s.petEq && s.pets[s.petEq] ? Pets.P(s.petEq) : null, own = Object.keys(s.pets).length;
     const stTxt = id => { const st = Pets.stats(id); return `수확량 +${Math.round(st[0] * 100)}% · 이동 +${Math.round(st[1] * 100)}% · 수확속도 +${Math.round(st[2] * 100)}%`; };
     let h = `<div class="petmain pbox">${eq ? `<canvas id="pet-big" width="12" height="11"></canvas><div class="info"><div class="nm"><span class="gb" style="background:${PET_GRADES[eq.g].col}">${eq.g}</span> ${eq.name} <span class="stars">${'★'.repeat(s.pets[eq.id])}</span></div><div class="ds">${eq.desc}</div><div class="ds st">${stTxt(eq.id)}</div></div>` : '<div class="info"><div class="nm">소환한 영물이 없어요</div><div class="ds">아래에서 영물을 소환해 보세요. 소환하면 수확을 도와줘요.</div></div>'}</div>
-      <div class="gacha pbox"><div class="gt">영물 소환</div><div class="gd">C 50% · B 30% · A 13% · S 5% · SS 1.7% · <b style="color:${PET_GRADES.SSS.col}">SSS 0.3%</b><br>SS 이상 확정까지 <b>${PITY - s.pity}</b>회 · 같은 영물은 <b>여분</b>으로 쌓여요</div>
+      <div class="gacha pbox"><div class="gt">영물 소환</div><div class="gd">${PET_ORDER.slice(0, 5).map(g => `${g} ${+(PET_GRADES[g].rate * 100).toFixed(1)}%`).join(' · ')} · <b style="color:${PET_GRADES.SSS.col}">SSS ${+(PET_GRADES.SSS.rate * 100).toFixed(1)}%</b><br>SS 이상 확정까지 <b>${PITY - s.pity}</b>회 · 같은 영물은 <b>여분</b>으로 쌓여요</div>
         ${s.tickets ? `<button class="btn red ticket" data-pull="ticket">소환권으로 1회 <em>${s.tickets}장</em></button>` : ''}
         <div class="gb3"><button class="btn" data-pull="ad" ${Pets.adLeft() > 0 ? '' : 'disabled'}>무료 1회<em>AD ${Pets.adLeft()}/2</em></button>
         <button class="btn jade" data-pull="1" ${s.jade >= PULL_COST[1] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[1]} · 1회</button>
@@ -1383,13 +1482,17 @@ const UI = (() => {
     const o = overlay(`<div class="gs-bg" style="--c:${col}"></div><div class="gs-motes">${motes}</div>
       <div class="gs-stage" style="--c:${col}">${ring}<div class="gs-talisman"><b>召</b><span></span></div><div class="gs-pillar ${best >= 4 ? 'rainbow' : ''}"></div><div class="gs-flash"></div></div>
       <div class="gs-cards n${res.length} ${res.length > 10 ? 'many' : ''}" style="${res.length > 1 && res.length !== 10 ? `grid-template-columns:repeat(${Math.min(5, res.length)},1fr)` : ''}">${res.map((r, i) => { const p = Pets.P(r.id), c = PET_GRADES[p.g].col; return `<div class="gs-card g${p.g}" style="--c:${c};--i:${i}"><div class="gs-in"><div class="gs-back"><b>靈</b></div><div class="gs-front"><span class="gb" style="background:${c}">${p.g}</span><canvas width="12" height="11" data-gp="${r.id}"></canvas><b>${p.name}</b><small>${r.up ? (r.isNew ? '등급UP·NEW' : '등급 UP!') : r.isNew ? 'NEW!' : '여분 +1'}</small></div></div></div>`; }).join('')}</div>
-      <button class="gs-skip" id="gs-skip">건너뛰기 ▶▶</button>${opt.fuse ? `<div class="gs-fuse">${res.some(r => r.up) ? '✨ 등급 상승 성공!' : '영물 합성 완료'}</div>` : ''}
+      <button class="gs-skip2" id="gs-skip">건너뛰기 ▶▶</button>${opt.fuse ? `<div class="gs-fuse">${res.some(r => r.up) ? '✨ 등급 상승 성공!' : '영물 합성 완료'}</div>` : ''}
       <div class="gs-acts ${opt.fuse ? 'fz' : ''}"><button class="btn jade" id="gs-one">1회 더<em>${S().tickets ? '소환권' : '옥 ' + PULL_COST[1]}</em></button><button class="btn red" id="gs-ten">10회 더<em>옥 ${PULL_COST[10]}</em></button><button class="btn dark" id="ga-close">확인</button></div>`);
     o.querySelectorAll('[data-gp]').forEach(c => previews.push({ c, pet: Pets.P(c.dataset.gp), keep: 1 }));
     setTimeout(() => Sound.play('wraith'), 500);
     setTimeout(() => Sound.play(best >= 4 ? 'promote' : best >= 2 ? 'kill' : 'buy'), 1500);
     o.querySelector('#ga-close').onclick = () => { closeOverlay(); render(); };
-    o.querySelector('#gs-skip').onclick = () => { o.classList.add('skip'); o.querySelector('#gs-skip').remove(); };
+    // 연출이 끝나야 아래 버튼이 눌림 (연타로 다음 뽑기가 바로 시작되지 않게). 건너뛰기는 같은 자리에 있다가 버튼으로 바뀜
+    let shown = false; const tok = o.dataset.gs = String(Math.random());
+    const showActs = delay => setTimeout(() => { if (shown || o.dataset.gs !== tok || !o.querySelector('.gs-acts')) return; shown = true; const sk = o.querySelector('#gs-skip'); if (sk) sk.remove(); o.classList.add('acts-on'); }, delay);
+    showActs(2900);
+    o.querySelector('#gs-skip').onclick = () => { if (o.classList.contains('skip')) return; o.classList.add('skip'); o.querySelector('#gs-skip').disabled = true; showActs(700); };
     if (opt.fuse) { const again = Math.floor(Pets.spares(opt.fuse) / Pets.FUSE_N); o.querySelector('#gs-one').innerHTML = `더 합성<em>여분 ${Pets.spares(opt.fuse)}</em>`; o.querySelector('#gs-one').disabled = !again; o.querySelector('#gs-ten').remove(); o.querySelector('#gs-one').onclick = () => { closeOverlay(); const r = Pets.fuse(opt.fuse, 1); if (r) gachaShow(r, opt); render(); }; return; }
     o.querySelector('#gs-one').onclick = () => { closeOverlay(); doPull(S().tickets ? 'ticket' : '1'); };
     o.querySelector('#gs-ten').onclick = () => { closeOverlay(); doPull('10'); };

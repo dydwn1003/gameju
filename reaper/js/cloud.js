@@ -16,7 +16,9 @@ const Cloud = (() => {
     if (!enabled()) return false;
     try {
       await Promise.race([loadSdk(), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
-      sb = window.__sbClient || window.supabase.createClient(CLOUD.url, CLOUD.anonKey, { auth: { persistSession: true, detectSessionInUrl: true, autoRefreshToken: true } });
+      const app = Native.isApp(); // 앱: 로그인 후 딥링크로 돌아와서 code 를 세션으로 바꿈 (PKCE)
+      sb = window.__sbClient || window.supabase.createClient(CLOUD.url, CLOUD.anonKey, { auth: { persistSession: true, detectSessionInUrl: !app, autoRefreshToken: true, flowType: app ? 'pkce' : 'implicit' } });
+      if (app) Native.onUrl(handleAuthUrl);
       const { data } = await sb.auth.getSession(); session = data.session;
       sb.auth.onAuthStateChange((_e, s) => { session = s; listeners.forEach(f => f(s)); });
       return true;
@@ -25,10 +27,44 @@ const Cloud = (() => {
   // ---------- 로그인 ----------
   async function signIn(p) {
     if (!sb) return;
+    if (Native.isApp()) {
+      const back = APP.authRedirect;
+      if (p === 'naver') return Native.openUrl(`${CLOUD.url}/functions/v1/${CLOUD.naverFunction}/start?redirect=${encodeURIComponent(back)}`);
+      const { data, error } = await sb.auth.signInWithOAuth({ provider: p, options: { redirectTo: back, skipBrowserRedirect: true } });
+      if (error || !data || !data.url) throw error || new Error('login');
+      return Native.openUrl(data.url);
+    }
     const back = location.origin + location.pathname;
     if (p === 'naver') { location.href = `${CLOUD.url}/functions/v1/${CLOUD.naverFunction}/start?redirect=${encodeURIComponent(back)}`; return; }
     await sb.auth.signInWithOAuth({ provider: p, options: { redirectTo: back } });
   }
+  // 앱으로 돌아온 로그인 주소 처리: ?code=… (구글·카카오·애플) 또는 #access_token=… (네이버 매직 링크)
+  async function handleAuthUrl(url) {
+    const scheme = APP.authRedirect.split('://')[0] + '://';
+    if (!url || !url.startsWith(scheme)) return;
+    Native.closeBrowser();
+    const q = new URLSearchParams((url.split('?')[1] || '').split('#')[0]), h = new URLSearchParams(url.split('#')[1] || '');
+    try {
+      if (q.get('code')) { const { error } = await sb.auth.exchangeCodeForSession(q.get('code')); if (error) throw error; }
+      else if (h.get('access_token')) { const { error } = await sb.auth.setSession({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token') }); if (error) throw error; }
+      else return;
+      location.reload(); // 처음 켤 때와 똑같이 클라우드 저장을 맞춰 봄
+    } catch (e) { if (typeof toast === 'function') toast('로그인에 실패했어요. 다시 시도해 주세요'); }
+  }
+  // 계정 삭제 (구글 플레이 · 앱스토어 필수): 서버의 delete-account 함수가 계정과 모든 데이터를 지움
+  async function deleteAccount() {
+    if (!sb || !uid()) return false;
+    const { error } = await sb.functions.invoke(CLOUD.deleteFunction, { method: 'POST', body: {} });
+    if (error) throw error;
+    await sb.auth.signOut().catch(() => {}); session = null; return true;
+  }
+  // ---------- 1:1 문의 ----------
+  const inquiry = {
+    async send(category, body, nick, info) { const { error } = await sb.from('inquiries').insert({ category, body, nick, info }); if (error) throw error; },
+    async mine() { const { data, error } = await sb.from('inquiries').select('*').eq('user_id', uid()).order('created_at', { ascending: false }).limit(30); if (error) throw error; return data || []; },
+    async all(open) { let q = sb.from('inquiries').select('*').order('created_at', { ascending: false }).limit(50); if (open) q = q.is('reply', null); const { data, error } = await q; if (error) throw error; return data || []; },
+    async reply(id, text) { const { error } = await sb.from('inquiries').update({ reply: text, replied_at: new Date().toISOString() }).eq('id', id); if (error) throw error; },
+  };
   async function signOut() { if (sb) await sb.auth.signOut(); session = null; }
 
   // ---------- 게임 저장 ----------
@@ -81,5 +117,5 @@ const Cloud = (() => {
     profiles: async () => ({}), // 표시 이름은 게임 닉네임을 씀
     isOwner: async () => { try { const { data } = await sb.rpc('is_admin'); return !!data; } catch (e) { return false; } },
   };
-  return { enabled, init, ready: () => !!sb, signedIn: () => !!uid(), uid, provider, signIn, signOut, pullSave, pushSave, db, user, onChange: f => listeners.push(f) };
+  return { enabled, init, ready: () => !!sb, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, db, user, onChange: f => listeners.push(f) };
 })();

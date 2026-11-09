@@ -1,14 +1,15 @@
 // ===== 펫(저승사자를 보좌하는 영물) 뽑기: C ~ SSS =====
 // 펫은 하나 데리고 다니며 수확량 · 이동속도 · 수확속도를 올려준다. 모은 펫 종류마다 수확량 +1%.
 const PET_GRADES = {
-  C: { rate: 0.50, col: '#a0a6b8', total: 0.08, dup: 3 },
-  B: { rate: 0.30, col: '#5ac06a', total: 0.15, dup: 5 },
-  A: { rate: 0.13, col: '#4a9aff', total: 0.28, dup: 10 },
-  S: { rate: 0.05, col: '#c070ff', total: 0.50, dup: 30 },
-  SS: { rate: 0.017, col: '#ffb030', total: 0.85, dup: 60 },
-  SSS: { rate: 0.003, col: '#ff4a6a', total: 1.5, dup: 120 },
+  C: { rate: 0.58, col: '#a0a6b8', total: 0.08, dup: 3 },
+  B: { rate: 0.28, col: '#5ac06a', total: 0.15, dup: 5 },
+  A: { rate: 0.10, col: '#4a9aff', total: 0.28, dup: 10 },
+  S: { rate: 0.03, col: '#c070ff', total: 0.50, dup: 30 },
+  SS: { rate: 0.008, col: '#ffb030', total: 0.85, dup: 60 },
+  SSS: { rate: 0.002, col: '#ff4a6a', total: 1.5, dup: 120 },
 };
 const PET_ORDER = ['C', 'B', 'A', 'S', 'SS', 'SSS'];
+// 등급이 높을수록 확률이 가파르게 낮아짐: C 58 · B 28 · A 10 · S 3 · SS 0.8 · SSS 0.2 (%)
 const EMPH = { v: [0.7, 0.15, 0.15], w: [0.2, 0.6, 0.2], r: [0.2, 0.2, 0.6], all: [0.34, 0.33, 0.33] };
 const PETS = [
   { id: 'kkachi', name: '아기 까치', g: 'C', kind: 'bird', e: 'v', pal: { H: '#2a2a3a', B: '#2a2a3a', b: '#f0f0f0', y: '#e0a030' }, desc: '반가운 소식을 물어오는 까치' },
@@ -63,7 +64,7 @@ const Pets = (() => {
   function pullOne(forceMin) {
     const s = S(); s.pity++;
     let g = rollGrade(forceMin);
-    if (s.pity >= PITY && PET_ORDER.indexOf(g) < 4) g = Math.random() < 0.15 ? 'SSS' : 'SS';
+    if (s.pity >= PITY && PET_ORDER.indexOf(g) < 4) g = Math.random() < 0.1 ? 'SSS' : 'SS';
     if (PET_ORDER.indexOf(g) >= 4) s.pity = 0;
     const pool = PETS.filter(p => p.g === g), p = pool[Math.floor(Math.random() * pool.length)];
     return give(p.id);
@@ -83,7 +84,7 @@ const Pets = (() => {
     s.petInv[id] -= c; s.pets[id] = st + 1; Game.apply(); Game.save(); return true;
   }
   // 합성: 같은 등급 여분 3마리 → 1마리 (낮은 확률로 한 등급 위, 아니면 같은 등급 중 무작위)
-  const FUSE_N = 3, FUSE_UP = { C: 0.15, B: 0.10, A: 0.06, S: 0.03, SS: 0.01 };
+  const FUSE_N = 3, FUSE_UP = { C: 0.12, B: 0.08, A: 0.04, S: 0.02, SS: 0.005 };
   const spares = g => PETS.filter(p => p.g === g).reduce((a, p) => a + (S().petInv[p.id] || 0), 0);
   function fuse(g, times) {
     const s = S(); ensure(); if (!(g in FUSE_UP)) return null;

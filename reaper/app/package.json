@@ -1,0 +1,29 @@
+{
+  "name": "jeoseung-reaper-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "저승사자 키우기 - 구글 플레이 / 앱스토어용 앱 (Capacitor)",
+  "scripts": {
+    "build": "node build-www.js",
+    "sync": "node build-www.js && npx cap sync",
+    "android": "node build-www.js && npx cap sync android && npx cap open android",
+    "ios": "node build-www.js && npx cap sync ios && npx cap open ios",
+    "assets": "npx @capacitor/assets generate --iconBackgroundColor '#0b0a1c' --iconBackgroundColorDark '#0b0a1c' --splashBackgroundColor '#0b0a1c' --splashBackgroundColorDark '#0b0a1c'"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "8.3.0",
+    "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/ios": "8.6.0",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4",
+    "@supabase/supabase-js": "2.45.4",
+    "cordova-plugin-purchase": "13.20.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "4.0.0",
+    "@capacitor/cli": "8.6.0"
+  }
+}

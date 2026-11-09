@@ -851,3 +851,36 @@ input, textarea { user-select: text !important; -webkit-user-select: text !impor
 .sv-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
 .sv-pick button { display: flex; flex-direction: column; gap: 4px; padding: 12px 8px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1.5px solid rgba(255, 210, 110, .35); color: #f1ecf8; }
 .sv-pick b { font-size: 13px; color: #ffe08a; } .sv-pick span { font-size: 11.5px; } .sv-pick small { font-size: 10px; color: #8a82a8; }
+
+/* ===== 설정: 계정 · 고객 지원 · 1:1 문의 ===== */
+.set-sec { margin: 12px 0 2px; font-size: 11px; color: var(--gold); letter-spacing: 1px; }
+.set-links { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0; }
+.set-links .btn { font-size: 11px; padding: 6px 10px; }
+.set-ver { text-align: center; font-size: 10px; color: var(--mute); margin: 10px 0 0; }
+.priv-frame { width: 100%; height: 60vh; border: 0; border-radius: 8px; background: #fff; }
+.ask-cats { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.ask-cats button { font: inherit; font-size: 11px; padding: 5px 9px; border-radius: 999px; border: 1px solid #3a3360; background: #1a1630; color: var(--text); }
+.ask-cats button.on { background: var(--gold); color: #1a1020; border-color: var(--gold); }
+#ak-body, .ask-item textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 12px; padding: 8px; border-radius: 8px; border: 1px solid #3a3360; background: #0f0c22; color: var(--text); resize: vertical; user-select: text; -webkit-user-select: text; }
+.ask-list { max-height: 34vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.ask-item { background: #15122b; border: 1px solid #2a2444; border-radius: 8px; padding: 8px; font-size: 12px; text-align: left; }
+.ask-item p { margin: 6px 0; white-space: pre-wrap; word-break: break-all; }
+.ask-h { display: flex; align-items: center; gap: 6px; }
+.ask-h em { font-style: normal; font-size: 10px; background: #2a2444; padding: 2px 6px; border-radius: 4px; }
+.ask-h small { color: var(--mute); font-size: 10px; flex: 1; }
+.ask-h b { font-size: 10px; color: var(--mute); }
+.ask-h b.done { color: var(--jade); }
+.ask-reply { border-left: 3px solid var(--gold); padding-left: 8px; margin-top: 6px; }
+.ask-reply b { font-size: 10px; color: var(--gold); }
+.ask-info { display: block; font-size: 9px; margin-bottom: 4px; word-break: break-all; }
+
+/* ===== 앱(안드로이드 · iOS): 노치·홈 바 영역 피하기 ===== */
+html.native #app { height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); margin-top: env(safe-area-inset-top, 0px); }
+html.native #modal { padding-top: max(16px, env(safe-area-inset-top, 0px)); padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
+html.native, html.native body { overscroll-behavior: none; -webkit-touch-callout: none; }
+
+/* 영물 소환: 결과 버튼은 연출이 끝난 뒤에만 보이고 눌림 · 건너뛰기는 같은 아래 자리 */
+.gs-acts, #promo.skip .gs-acts { animation: none !important; opacity: 0; pointer-events: none; transition: opacity .35s ease-out; }
+#promo.acts-on .gs-acts { opacity: 1; pointer-events: auto; }
+.gs-skip2 { position: absolute; left: 50%; bottom: 10%; transform: translateX(-50%); z-index: 3; font: inherit; font-size: 13px; color: #fff; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 999px; padding: 10px 26px; min-width: 150px; }
+.gs-skip2:disabled { opacity: .4; }

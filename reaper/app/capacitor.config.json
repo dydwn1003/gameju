@@ -1,0 +1,12 @@
+{
+  "appId": "com.jeoseungsaja.idle",
+  "appName": "저승사자 키우기",
+  "webDir": "www",
+  "backgroundColor": "#0b0a1c",
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "never", "scheme": "App" },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 600, "backgroundColor": "#0b0a1c", "showSpinner": false, "androidScaleType": "CENTER_CROP" },
+    "StatusBar": { "style": "DARK", "backgroundColor": "#0b0a1c", "overlaysWebView": false }
+  }
+}

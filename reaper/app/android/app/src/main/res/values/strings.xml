@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">저승사자 키우기</string>
+    <string name="title_activity_main">저승사자 키우기</string>
+    <string name="package_name">com.jeoseungsaja.idle</string>
+    <string name="custom_url_scheme">com.jeoseungsaja.idle</string>
+</resources>

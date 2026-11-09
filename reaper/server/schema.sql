@@ -69,6 +69,29 @@ create policy docs_delete on public.docs for delete to authenticated
 drop policy if exists admins_read on public.admins;
 create policy admins_read on public.admins for select to authenticated using (public.is_admin());
 
+-- 4) 1:1 문의: 내가 쓴 것만 보이고, 운영자는 모두 보고 답변
+create table if not exists public.inquiries (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  nick       text,
+  category   text not null default '기타',
+  body       text not null check (char_length(body) between 2 and 1000),
+  info       text,                         -- 기기 · 앱 정보 (문제 확인용)
+  reply      text,
+  created_at timestamptz not null default now(),
+  replied_at timestamptz
+);
+create index if not exists inquiries_user on public.inquiries (user_id, created_at desc);
+alter table public.inquiries enable row level security;
+drop policy if exists inq_insert on public.inquiries;
+create policy inq_insert on public.inquiries for insert to authenticated with check (user_id = auth.uid() and reply is null);
+drop policy if exists inq_read on public.inquiries;
+create policy inq_read on public.inquiries for select to authenticated using (user_id = auth.uid() or public.is_admin());
+drop policy if exists inq_reply on public.inquiries;
+create policy inq_reply on public.inquiries for update to authenticated using (public.is_admin()) with check (public.is_admin());
+drop policy if exists inq_delete on public.inquiries;
+create policy inq_delete on public.inquiries for delete to authenticated using (user_id = auth.uid() or public.is_admin());
+
 -- updated_at 자동 갱신
 create or replace function public.touch() returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end $$;
 drop trigger if exists docs_touch on public.docs;
