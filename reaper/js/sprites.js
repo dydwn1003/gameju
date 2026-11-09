@@ -250,8 +250,8 @@ const SP = (() => {
     shag: [4, 3, ['b.b.b']], tuft: [3, 0, ['K....K']], shell: [2, 2, ['.bbbb.', 'bBbbBb']], horn: [7, 0, ['y']],
     crest: [5, 0, ['.yy', 'y..']], stripe: [4, 5, ['b.b.']], fire: [0, 3, ['y', 'oy']],
   };
-  function petFrame(pet, i) {
-    if (typeof PET_ART !== 'undefined' && PET_ART[pet.id]) { const A = PET_ART[pet.id]; return compose(16, 14, [[A.rows, 1, i % 2 ? 1 : 0]], Object.assign({ E: '#1a1024', w: '#ffffff', P: '#ff9ab0' }, A.pal)); }
+  function petFrame(pet, i, small) {
+    if (!small && typeof PET_ART !== 'undefined' && PET_ART[pet.id]) { const A = PET_ART[pet.id]; return compose(16, 14, [[A.rows, 1, i % 2 ? 1 : 0]], Object.assign({ E: '#1a1024', w: '#ffffff', P: '#ff9ab0' }, A.pal)); }
     let rows = PET_BODY[pet.kind].slice();
     if (pet.acc && PET_ACC[pet.acc]) { const [x, y, r] = PET_ACC[pet.acc]; rows = patch(rows, x, y, r); }
     if (i % 2) rows = pet.kind === 'bird' || pet.kind === 'dragon' ? patch(rows, 0, 4, [pet.kind === 'bird' ? '.KbbbBBK..' : '.KBBKKBBK.']) : rows;
@@ -261,17 +261,23 @@ const SP = (() => {
   const cache = {};
   function get(key, fn) { return cache[key] || (cache[key] = fn()); }
   return {
-    reaper: (kind, rank, pose, i) => get(`r${kind}${rank}${pose}${i}`, () => reaperFrame(kind, rank, pose, i)),
+    reaper: (kind, rank, pose, i) => get(`r${kind}${rank}${pose}${i % 4}`, () => Art3.reaper(kind, rank, pose, i)),
     LOOKS,
-    soul: (tier, i) => get(`s${tier}${i}`, () => bake(SOUL[i % 3], SOUL_PAL[tier])),
-    wraith: i => get(`w${i}`, () => bake(i % 2 ? WRAITH2 : WRAITH)),
+    soul: (tier, i) => get(`s${tier}${i % 3}`, () => Art3.soul(SOUL_PAL[tier], i)),
+    wraith: i => get(`w${i % 2}`, () => Art3.wraith(i)),
     plant: (stage, pal, key) => get(`p${key}${stage}`, () => plantFrame(stage, pal)),
     special: i => get(`sp${i}`, () => specialFrame(i)),
-    npc: name => get(`n${name}`, () => { const N = NPC[name]; return compose(12, 16, [[N.rows, 1, 1]].concat(N.cane ? [[['K', 'n', 'n', 'n', 'n', 'n', 'n'], 11, 8]] : []), N.pal); }),
+    npc: name => get(`n${name}`, () => Art3.npc(name)),
     cat: i => get(`cat${i}`, () => bake(CAT[i % 2], { A: '#3a3a4a', E: '#ffd34a' })),
     crow: i => get(`crow${i}`, () => bake(CROW[i % 2], { E: '#ff5a5a' })),
-    pet: (pet, i) => get(`pet${pet.id}${i % 2}`, () => petFrame(pet, i)),
-    mini: (pose, i) => get(`m${pose}${i}`, () => miniFrame(pose, i)),
+    pet: (pet, i) => get(`pet${pet.id}${i % 2}`, () => petArt3(pet.id, i) || petFrame(pet, i)),
+    tinyReaper: (kind, rank, dir, pose, i) => get(`tr${kind}${rank}${dir}${pose}${i % 4}`, () => Tiny.reaper(kind, rank, dir, pose, i)),
+    minit: (dir, pose, i) => get(`tm${dir}${pose}${i % 4}`, () => Tiny.mini(dir, pose, i)),
+    npct: (name, i) => get(`tn${name}${i % 4}`, () => Tiny.npc(name, i)),
+    soult: (tier, i) => get(`ts${tier}${i % 3}`, () => Tiny.soul(SOUL_PAL[tier], i)),
+    wraitht: i => get(`tw${i % 2}`, () => Tiny.wraith(i)),
+    petTiny: (pet, i) => get(`pt${pet.id}${i % 2}`, () => petFrame(pet, i, true)),
+    mini: (pose, i) => get(`m${pose}${i % 4}`, () => Art3.mini(pose, i)),
     lantern: (lit) => get(`l${lit}`, () => bake(LANTERN, lit === 2 ? { B: '#e8b030', c: '#9a6a10', o: '#fff0a0', q: '#c88a10', Q: '#ffd040' } : null)),
     jangseung: () => get('js', () => bake(JANGSEUNG, { E: '#c3313e' })),
     boat: () => get('boat', () => bake(BOAT)),

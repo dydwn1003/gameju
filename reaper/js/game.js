@@ -2,17 +2,17 @@
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 3, lv: 115, hp: 110000, region: 1 },
-  { name: '차사', mult: 9, lv: 320, hp: 1.2e08, region: 2 },
-  { name: '선임 차사', mult: 27, lv: 380, hp: 2.4e09, region: 3 },
-  { name: '차사장', mult: 80, lv: 420, hp: 1.9e10, region: 4 },
-  { name: '판관', mult: 240, lv: 455, hp: 1.4e11, region: 5 },
-  { name: '명부 판관', mult: 720, lv: 490, hp: 1e12, region: 6 },
-  { name: '시왕', mult: 2200, lv: 520, hp: 7.1e12, region: 7 },
-  { name: '염라대왕', mult: 6500, lv: 550, hp: 4.9e13, region: 8 },
+  { name: '말단 차사', mult: 3, lv: 110, hp: 110000, region: 1 },
+  { name: '차사', mult: 9, lv: 336, hp: 1.2e08, region: 2 },
+  { name: '선임 차사', mult: 27, lv: 424, hp: 2.4e09, region: 3 },
+  { name: '차사장', mult: 80, lv: 461, hp: 1.9e10, region: 4 },
+  { name: '판관', mult: 240, lv: 491, hp: 1.4e11, region: 5 },
+  { name: '명부 판관', mult: 720, lv: 518, hp: 1e12, region: 6 },
+  { name: '시왕', mult: 2200, lv: 548, hp: 7.1e12, region: 7 },
+  { name: '염라대왕', mult: 6500, lv: 577, hp: 4.9e13, region: 8 },
 ];
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 10, grow: 1.12, max: 999 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.125, max: 999 },
   { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.32, max: 30 },
   { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.36, max: 35 },
   { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.34, max: 30 },
@@ -28,18 +28,19 @@ const SHOP_IAP = [
   { id: 'jade550', name: '옥 550개', price: '₩5,900', jade: 550, icon: 'jade', tag: '+10%' },
   { id: 'jade1200', name: '옥 1,200개', price: '₩12,000', jade: 1200, icon: 'jade', tag: '+20%' },
   { id: 'starter', name: '신입 차사 패키지', price: '₩1,200', once: true, jade: 200, minion: 2, icon: 'minion', desc: '옥 200 + 졸개 2명 즉시 고용', tag: '1회 한정' },
-  { id: 'promo', name: '승진 응원 패키지', price: '₩3,300', jade: 300, hours: 4, boost: 60, icon: 'luck', desc: '옥 300 + 4시간치 혼 + 2배 부적 60분', tag: '추천' },
-  { id: 'perm2', name: '염라의 인장', price: '₩9,900', once: true, perm2: true, icon: 'ledger', desc: '영구적으로 모든 혼 수확 2배', tag: '영구' },
+  { id: 'promo', name: '승진 응원 패키지', price: '₩3,300', daily: 1, jade: 300, hours: 4, boost: 60, icon: 'luck', desc: '옥 300 + 4시간치 혼 + 2배 부적 60분', tag: '추천' },
+  { id: 'perm2', name: '염라의 인장', price: '₩9,900', seal: 7, icon: 'ledger', desc: '7일 동안 모든 혼 수확 2배 (다시 사면 7일 연장)', tag: '7일' },
   { id: 'noads', name: '광고 제거', price: '₩6,900', once: true, noAds: true, icon: 'scroll', desc: '광고 없이 광고 보상 즉시 받기' },
 ];
 const JADE_SHOP = [
-  { id: 'j_time2', name: '시간의 두루마리', cost: 50, hours: 2, desc: '2시간치 혼 즉시 획득' },
-  { id: 'j_time8', name: '큰 시간의 두루마리', cost: 160, hours: 8, desc: '8시간치 혼 즉시 획득' },
+  // 시간 두루마리는 하루 구매 횟수 제한 + 두 번째부터 비싸짐 (한 달 진행 밸런스 보호)
+  { id: 'j_time2', name: '시간의 두루마리', cost: 60, prices: [60, 100], day: 2, hours: 2, desc: '2시간치 혼 즉시 획득' },
+  { id: 'j_time8', name: '큰 시간의 두루마리', cost: 250, prices: [250, 400], day: 2, hours: 5, desc: '5시간치 혼 즉시 획득' },
   { id: 'j_boost', name: '2배 부적 30분', cost: 60, boost: 30, desc: '30분간 혼 수확 2배' },
   { id: 'j_minion', name: '특급 졸개', cost: 300, minion: 1, desc: '졸개 1명 즉시 고용 (비용 없이)' },
 ];
 const ATTEND = [20, 30, 40, 50, 60, 80, 150];
-const AD_LIMIT = { boost: 8, jade: 5 };
+const AD_LIMIT = { boost: 8, jade: 5, skip: 12 };
 
 const Game = (() => {
   const KEY = 'jeoseung_v1';
@@ -56,14 +57,14 @@ const Game = (() => {
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
   const penMul = L => (1 + L * 0.45) * Math.pow(2, Math.floor(L / 25));
-  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * RANKS[S.rank].mult * rebornMult() * (S.perm2 ? 2 : 1);
+  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
-  const walk = () => (18 + lv('step') * 2.2) * Life.mul('spawn') * Pets.mul('walk');
+  const walk = () => (30 + lv('step') * 3) * Life.mul('spawn') * Pets.mul('walk');
   const spawn = () => Math.max(0.1, 0.7 * Math.pow(0.93, lv('call'))) / Life.mul('spawn');
   const reap = () => Math.max(0.12, 0.9 * Math.pow(0.93, lv('hand')) / Pets.mul('reap'));
   const minions = () => lv('minion');
-  const mWalk = () => Math.min(36, 11 * (1 + lv('drill') * 0.05));
+  const mWalk = () => Math.min(56, 18 * (1 + lv('drill') * 0.05));
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.965, lv('drill')));
   const drillMul = () => 1 + lv('drill') * 0.08;
   const offHours = () => 2 + lv('ledger');
@@ -169,8 +170,8 @@ const Game = (() => {
 
   // ---------- 광고 ----------
   function adsToday() { if (S.ads.day !== today()) S.ads = { day: today(), boost: 0, jade: 0 }; return S.ads; }
-  const adLeft = k => AD_LIMIT[k] - adsToday()[k];
-  function useAd(k) { adsToday()[k]++; save(); }
+  const adLeft = k => AD_LIMIT[k] - (adsToday()[k] || 0);
+  function useAd(k) { const a = adsToday(); a[k] = (a[k] || 0) + 1; save(); }
 
   // ---------- 출석 ----------
   function attendState() {
@@ -186,9 +187,15 @@ const Game = (() => {
   }
 
   // ---------- 상점 ----------
+  // 하루 구매 제한(daily)이 있는 상품: 오늘 몇 번 더 살 수 있는지
+  function iapDay() { const d = new Date().toISOString().slice(0, 10); if (!S.iapDay || S.iapDay.day !== d) S.iapDay = { day: d, n: {} }; return S.iapDay; }
+  function iapLeft(id) { const P = SHOP_IAP.find(p => p.id === id); if (P.once) return S.bought[id] ? 0 : 1; return P.daily ? P.daily - (iapDay().n[id] || 0) : Infinity; }
+  const sealLeft = () => Math.max(0, ((S.sealUntil || 0) - Date.now()) / 1000);
   function iap(id) {
     const P = SHOP_IAP.find(p => p.id === id);
-    if (P.once && S.bought[id]) return false;
+    if (iapLeft(id) <= 0) return false;
+    if (P.daily) { const d = iapDay(); d.n[id] = (d.n[id] || 0) + 1; }
+    if (P.seal) S.sealUntil = Math.max(Date.now(), S.sealUntil || 0) + P.seal * 86400e3;
     S.bought[id] = (S.bought[id] || 0) + 1;
     if (P.jade) S.jade += P.jade;
     if (P.minion) S.upg.minion = Math.min(20, lv('minion') + P.minion);
@@ -198,11 +205,15 @@ const Game = (() => {
     if (P.noAds) S.noAds = true;
     apply(); save(); return true;
   }
+  function jbuyDay() { const d = new Date().toISOString().slice(0, 10); if (!S.jbuy || S.jbuy.day !== d) S.jbuy = { day: d, n: {} }; return S.jbuy; }
+  // 오늘 남은 구매 횟수 (제한 없으면 Infinity) · 지금 가격 (다 샀으면 null)
+  function jadeLeft(id) { const J = JADE_SHOP.find(j => j.id === id); return J.day ? J.day - (jbuyDay().n[id] || 0) : Infinity; }
+  function jadeCost(id) { const J = JADE_SHOP.find(j => j.id === id); if (!J.prices) return J.cost; const k = jbuyDay().n[id] || 0; return k < J.prices.length ? J.prices[k] : null; }
   function jadeBuy(id) {
-    const J = JADE_SHOP.find(j => j.id === id);
-    if (S.jade < J.cost) return false;
+    const J = JADE_SHOP.find(j => j.id === id), cost = jadeCost(id);
+    if (cost == null || jadeLeft(id) <= 0 || S.jade < cost) return false;
     if (J.minion && lv('minion') >= 20) return false;
-    S.jade -= J.cost;
+    S.jade -= cost; if (J.day) { const b = jbuyDay(); b.n[id] = (b.n[id] || 0) + 1; }
     let got = 0;
     if (J.hours) { got = incomePerSec(true) * 3600 * J.hours; gain(got); }
     if (J.boost) addBoost(J.boost);
@@ -215,7 +226,9 @@ const Game = (() => {
   function load() {
     try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
     if (!S) S = fresh();
-    Life.ensure(); Pets.ensure(); Story.ensure();
+    Life.ensure(); Pets.ensure(); Story.ensure(); if (typeof Decor !== 'undefined') Decor.ensure();
+    if (S.kind && S.name && !S.nickSet) S.nickSet = true; // 예전에 만든 캐릭터: 처음 정한 이름을 닉네임으로
+    if (S.perm2) { S.perm2 = false; S.sealUntil = Math.max(S.sealUntil || 0, Date.now() + 7 * 86400e3); } // 영구 인장 → 7일 인장으로 바뀜
   }
   // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 60%)
   function offline() {
@@ -231,7 +244,7 @@ const Game = (() => {
     get S() { return S; }, lv, load, save, apply, reset,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, canTest, testHp, promote, canReborn, reborn, rebornMult,
-    collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, offline,
+    collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, iapLeft, sealLeft, offline,
   };
 })();
 

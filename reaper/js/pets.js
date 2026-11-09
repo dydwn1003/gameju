@@ -39,7 +39,7 @@ const PITY = 80; // 80번 안에 SS 이상 확정
 const Pets = (() => {
   const S = () => Game.S;
   const P = id => PETS.find(p => p.id === id);
-  function ensure() { const s = S(); s.pets = s.pets || {}; s.petEq = s.petEq || null; s.pity = s.pity || 0; s.petAd = s.petAd || { day: '', n: 0 }; }
+  function ensure() { const s = S(); s.pets = s.pets || {}; s.petEq = s.petEq || null; s.pity = s.pity || 0; s.petAd = s.petAd || { day: '', n: 0 }; s.petInv = s.petInv || {}; }
   // 펫 능력치: [수확량, 이동속도, 수확속도] (별 하나당 +20%)
   function stats(id) {
     const p = P(id), st = (S().pets || {})[id] || 1, t = PET_GRADES[p.g].total * (1 + 0.2 * (st - 1));
@@ -66,10 +66,40 @@ const Pets = (() => {
     if (s.pity >= PITY && PET_ORDER.indexOf(g) < 4) g = Math.random() < 0.15 ? 'SSS' : 'SS';
     if (PET_ORDER.indexOf(g) >= 4) s.pity = 0;
     const pool = PETS.filter(p => p.g === g), p = pool[Math.floor(Math.random() * pool.length)];
-    const had = s.pets[p.id] || 0; let refund = 0;
-    if (!had) s.pets[p.id] = 1; else if (had < 5) s.pets[p.id] = had + 1; else { refund = PET_GRADES[g].dup; s.jade += refund; }
-    if (!s.petEq) s.petEq = p.id;
-    return { id: p.id, isNew: !had, star: s.pets[p.id], refund };
+    return give(p.id);
+  }
+  // 얻은 영물: 처음이면 도감 등록, 이미 있으면 여분(보관함)에 쌓임 → 별 올리기 · 합성 재료
+  function give(id, up) {
+    const s = S(), had = s.pets[id] || 0;
+    if (!had) s.pets[id] = 1; else s.petInv[id] = (s.petInv[id] || 0) + 1;
+    if (!s.petEq) s.petEq = id;
+    return { id, isNew: !had, star: s.pets[id], up: !!up };
+  }
+  // 별 올리기: ★2←1마리, ★3←2, ★4←3, ★5←4
+  const starCost = id => (S().pets[id] || 1);
+  function starUp(id) {
+    const s = S(), st = s.pets[id]; if (!st || st >= 5) return false;
+    const c = starCost(id); if ((s.petInv[id] || 0) < c) return false;
+    s.petInv[id] -= c; s.pets[id] = st + 1; Game.apply(); Game.save(); return true;
+  }
+  // 합성: 같은 등급 여분 3마리 → 1마리 (낮은 확률로 한 등급 위, 아니면 같은 등급 중 무작위)
+  const FUSE_N = 3, FUSE_UP = { C: 0.15, B: 0.10, A: 0.06, S: 0.03, SS: 0.01 };
+  const spares = g => PETS.filter(p => p.g === g).reduce((a, p) => a + (S().petInv[p.id] || 0), 0);
+  function fuse(g, times) {
+    const s = S(); ensure(); if (!(g in FUSE_UP)) return null;
+    const n = Math.min(times, Math.floor(spares(g) / FUSE_N)); if (n <= 0) return null;
+    const res = [];
+    for (let k = 0; k < n; k++) {
+      for (let j = 0; j < FUSE_N; j++) {
+        // ★5라 더 쓸 데 없는 여분부터, 그다음 많이 쌓인 것부터 사용
+        const pool = PETS.filter(p => p.g === g && (s.petInv[p.id] || 0) > 0).sort((a, b) => ((s.pets[b.id] >= 5) - (s.pets[a.id] >= 5)) || (s.petInv[b.id] - s.petInv[a.id]));
+        s.petInv[pool[0].id]--;
+      }
+      const up = Math.random() < FUSE_UP[g], ng = up ? PET_ORDER[PET_ORDER.indexOf(g) + 1] : g;
+      const cand = PETS.filter(p => p.g === ng), p = cand[Math.floor(Math.random() * cand.length)];
+      res.push(give(p.id, up));
+    }
+    Game.apply(); Game.save(); return res;
   }
   // n=1 · 10 (10회는 A 이상 1마리 확정), free=광고
   function pull(n, free) {
@@ -83,5 +113,5 @@ const Pets = (() => {
   const adLeft = () => { const a = S().petAd; if (a.day !== today()) { a.day = today(); a.n = 0; } return 2 - a.n; };
   function adPull() { if (adLeft() <= 0) return null; S().petAd.n++; return pull(1, true); }
   function equip(id) { if (!S().pets[id]) return false; S().petEq = id; Game.apply(); Game.save(); return true; }
-  return { P, ensure, stats, mul, pull, adPull, adLeft, equip };
+  return { P, ensure, stats, mul, pull, adPull, adLeft, equip, starUp, starCost, fuse, spares, FUSE_N, FUSE_UP };
 })();

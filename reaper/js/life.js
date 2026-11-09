@@ -8,7 +8,7 @@ const FLOWERS = [
 const RECIPES = [
   { id: 'mangtang', name: '망각탕', need: { mang: 3 }, buff: 'value', min: 30, desc: '30분간 혼 수확 +50%' },
   { id: 'lotustea', name: '연꽃차', need: { lotus: 2, mang: 2 }, buff: 'spawn', min: 30, desc: '30분간 혼령 출현·걸음 +40%' },
-  { id: 'honju', name: '혼불주', need: { honbul: 2 }, buff: 'fight', min: 60, desc: '60분간 원귀·승진 시험 화력 ×3' },
+  { id: 'honju', name: '혼불주', need: { honbul: 2 }, buff: 'fight', min: 60, desc: '60분간 원귀 퇴치 화력 ×3' },
   { id: 'saengdan', name: '생사단', need: { saengsa: 1, lotus: 2 }, instant: { hours: 4, jade: 20 }, desc: '4시간치 혼 + 옥 20 즉시 획득' },
 ];
 const BUFF_NAME = { value: '망각탕', spawn: '연꽃차', fight: '혼불주' };
@@ -37,6 +37,8 @@ const QUEST_POOL = [
   { id: 'send', name: '졸개 파견 보내기', need: [1, 2], jade: 20 },
   { id: 'buy', name: '수련 올리기', need: [15, 30], jade: 15 },
   { id: 'ad', name: '2배 부적 쓰기', need: [1], jade: 25 },
+  { id: 'judge', name: '집무실에서 망자 심판하기', need: [2, 3], jade: 20 },
+  { id: 'docs', name: '집무실 결재 서류 처리하기', need: [1], jade: 20 },
 ];
 const QUEST_BONUS = 60;
 // 무당 운세 (하루 1번 무료 + 광고로 1번 더)
@@ -60,6 +62,37 @@ const MERCHANT_POOL = [
   { id: 'm_mangtang', name: '망각탕 한 사발 (30분 수확 +50%)', soul: 600, buff: ['value', 30] },
 ];
 
+
+// ===== 망자 심판: 하루 5명, 생전 기록을 보고 극락/지옥을 가린다 =====
+const JUDGE_CASES = [
+  ['나루터 김 영감', 72, '평생 나룻배로 사람들을 건네주며 뱃삯을 한 번도 받지 않았다.', 1],
+  ['장터 박 서방', 45, '저울 밑에 돌을 붙여 30년 동안 손님을 속였다.', 0],
+  ['이 총각', 30, '불난 초가에 뛰어들어 아이 둘을 구하고 숨을 거뒀다.', 1],
+  ['최 부자', 60, '병든 부모를 헛간에 내쫓고 곳간 열쇠만 챙겼다.', 0],
+  ['정 할머니', 80, '혼자 마을 우물을 파고 누구든 물을 길어 가게 했다.', 1],
+  ['강 씨', 38, '남의 논물을 몰래 끌어다 쓰고 들키자 이웃에게 뒤집어씌웠다.', 0],
+  ['윤 진사', 55, '흉년이 들자 곳간을 열어 마을 사람들에게 쌀을 나눴다.', 1],
+  ['장 한량', 41, '노름으로 집을 날리고 아내의 혼수 패물까지 들고 나갔다.', 0],
+  ['한 훈장', 66, '가난한 집 아이들을 서당에 공짜로 받아 글을 가르쳤다.', 1],
+  ['오 대감', 50, '비싼 이자로 돈을 빌려주고 과부의 집을 빼앗았다.', 0],
+  ['서 소녀', 19, '병든 어머니에게 드릴 약초를 캐러 벼랑에 올랐다가 떨어졌다.', 1],
+  ['신 아전', 47, '뇌물을 받고 죄 없는 사람을 옥에 가뒀다.', 0],
+  ['권 노인', 70, '길 잃은 강아지와 고아를 가리지 않고 거둬 키웠다.', 1],
+  ['황 씨', 35, '이웃집 소를 훔쳐 팔고는 도둑이 들었다며 함께 울어 줬다.', 0],
+  ['안 보살', 58, '마을 개울에 돌다리를 놓으려고 전 재산을 내놓았다.', 1],
+  ['송 씨', 44, '친구를 보증 세워 큰돈을 빌린 뒤 밤에 몰래 달아났다.', 0],
+  ['류 의원', 63, '역병이 돌 때 모두 떠난 마을에 남아 끝까지 환자를 돌봤다.', 1],
+  ['가짜 박수', 52, '무당 행세를 하며 굿값으로 아픈 사람들의 돈을 뜯었다.', 0],
+  ['전 효자', 29, '아버지 무덤 옆에 움막을 짓고 3년 동안 시묘살이를 했다.', 1],
+  ['고 씨', 39, '담뱃불로 산불을 내고 모른 척 도망쳤다.', 0],
+  ['문 할아버지', 75, '평생 짚신을 삼아 지나가는 길손에게 나눠 줬다.', 1],
+  ['양 도굴꾼', 48, '남의 조상 묘를 파헤쳐 부장품을 훔쳐 팔았다.', 0],
+  ['허 서방', 51, '저승사자에게 "노잣돈을 두 배로 줄 테니 극락으로 보내 달라"고 속삭였다.', 0],
+  ['남 주모', 57, '돈 없는 나그네에게도 국밥 한 그릇은 꼭 말아 줬다.', 1],
+  ['배 장군', 46, '전쟁터에서 부하들을 먼저 피신시키고 마지막까지 성문을 지켰다.', 1],
+  ['구 씨', 33, '물에 빠진 사람을 보고도 옷이 젖는다며 그냥 지나쳤다.', 0],
+];
+
 const Life = (() => {
   const S = () => Game.S;
   const now = () => Date.now();
@@ -78,6 +111,7 @@ const Life = (() => {
     s.fortune = s.fortune || { day: '', n: 0, mul: 1, until: 0, last: '' };
     s.offer = s.offer || { day: '', small: 0, big: 0 };
     s.mail = s.mail || { last: now() - MAIL_EVERY };
+    s.docs = s.docs || { last: now() - 2 * 3600e3 };
   }
   const dayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -118,7 +152,111 @@ const Life = (() => {
     if (n >= MAIL_MAX) s.mail.last = now();
     Game.save(); return gifts;
   }
+  // ---------- 집무실 결재함: 2시간마다 서류 1건 (최대 3건), 계급이 높을수록 보상 큼 ----------
+  const DOC_EVERY = 2 * 3600e3;
+  const docsCount = () => { const d = S() && S().docs; return d ? Math.min(3, Math.floor((now() - d.last) / DOC_EVERY)) : 0; };
+  function claimDocs() {
+    const n = docsCount(); if (!n) return null;
+    const s = S(), souls = Game.incomePerSec(true) * 900 * (1 + s.rank * 0.3) * n, jade = (2 + s.rank) * n;
+    Game.gain(souls); s.jade += jade;
+    s.docs.last = n >= 3 ? now() : s.docs.last + n * DOC_EVERY; Game.save(); return { n, souls, jade };
+  }
+  const docsNext = () => Math.max(0, DOC_EVERY - ((now() - S().docs.last) % DOC_EVERY)) / 1000;
   const mailNext = () => { const m = S().mail; return Math.max(0, MAIL_EVERY - ((now() - m.last) % MAIL_EVERY)) / 1000; };
+
+  // ---------- 지도 소품 살펴보기: 나무·항아리·장승·돌탑·석상·석등·가마솥·나룻배 ----------
+  const PROP = {
+    tree: { cd: 15 * 60, name: '나무' }, jars: { cd: 30 * 60, name: '항아리' }, jangseung: { cd: 4 * 3600, name: '장승' },
+    cairn: { cd: 6 * 3600, name: '돌탑' }, statue: { cd: 2 * 3600, name: '망각의 석상' }, lamp: { cd: 3600, name: '석등' },
+    cauldron: { cd: 3600, name: '가마솥' }, boat: { cd: 3600, name: '빈 나룻배' },
+  };
+  const STATUE_LINES = ['"…이름을 잃은 혼이 여기 서서 오래 울었지…"', '"…먹물이 번지는 밤엔 혼들이 사라진다…"', '"…기다림도 미련이다. 그러나 다정한 미련이다…"', '"…강 건너에서 누군가 아직 네 이름을 부른다…"', '"…가장 무거운 짐은 내려놓은 기억이다…"'];
+  const propReady = key => now() >= ((S().props || {})[key] || 0);
+  const propLeft = key => Math.max(0, (((S().props || {})[key] || 0) - now()) / 1000);
+  // 결과: { msg, souls, jade, ticket, seed, buff, wraith, lit }
+  function useProp(kind, key, lampsLit, lampsAll) {
+    const s = S(), P = PROP[kind]; if (!P || !propReady(key)) return null;
+    s.props = s.props || {}; s.props[key] = now() + P.cd * 1000;
+    const inc = Game.incomePerSec(true), r = Math.random(), out = { msg: '' };
+    const souls = sec => { out.souls = inc * sec; Game.gain(out.souls); };
+    const jade = n => { out.jade = n; s.jade += n; };
+    const seed = (f, n) => { s.seeds[f] = (s.seeds[f] || 0) + n; out.seed = `${FLOWERS.find(x => x.id === f).name} 씨앗 ${n}`; };
+    const buff = (k, min) => { s.buffs[k] = Math.min(now() + 4 * 3600e3, Math.max(now(), s.buffs[k] || 0) + min * 60e3); out.buff = k; };
+    if (kind === 'tree') {
+      if (r < 0.03) { souls(300); out.msg = '✨ 황금 열매가 떨어졌다!'; }
+      else if (r < 0.13) { jade(1 + (Math.random() < 0.4 ? 1 : 0)); out.msg = '나뭇가지에 옥이 걸려 있었다'; }
+      else if (r < 0.33) { seed(Math.random() < 0.8 ? 'mang' : 'lotus', 1); out.msg = '씨앗이 툭 떨어졌다'; }
+      else { souls(45); out.msg = '숨어 있던 혼령들이 우수수!'; }
+    } else if (kind === 'jars') {
+      if (r < 0.02) { s.tickets = (s.tickets || 0) + 1; out.ticket = 1; out.msg = '🎉 항아리 속에 소환권이!'; }
+      else if (r < 0.22) { jade(3); out.msg = '항아리 바닥에 옥이 있었다'; }
+      else if (r < 0.3) out.msg = '텅 비었다… 도깨비가 먼저 다녀갔나 보다';
+      else { souls(120); out.msg = '항아리에 갇힌 혼령들을 풀어 줬다'; }
+    } else if (kind === 'jangseung') { buff('spawn', 10); out.msg = '장승에게 절했다. 10분 동안 혼령이 더 자주 나타난다'; }
+    else if (kind === 'cairn') {
+      if (r < 0.1) { s.tickets = (s.tickets || 0) + 1; out.ticket = 1; out.msg = '돌탑에 소원을 빌었다… 소원이 이루어졌다!'; }
+      else if (r < 0.5) { jade(5); out.msg = '돌탑 사이에서 옥을 찾았다'; }
+      else { souls(300); out.msg = '돌을 하나 얹자 혼령들이 모여들었다'; }
+    } else if (kind === 'statue') { jade(2); out.msg = '석상이 속삭인다. ' + STATUE_LINES[Math.floor(Math.random() * STATUE_LINES.length)]; }
+    else if (kind === 'lamp') {
+      out.lit = true;
+      if (lampsLit + 1 >= lampsAll) { buff('spawn', 15); jade(5); out.msg = `🏮 석등 ${lampsAll}개에 모두 불이 켜졌다! 15분 동안 혼령이 더 자주 나타난다`; }
+      else out.msg = `석등에 불을 밝혔다 (${lampsLit + 1}/${lampsAll}) · 모두 켜면 축복이 내린다`;
+    } else if (kind === 'cauldron') { out.wraith = true; out.msg = '가마솥에서 갇혀 있던 원귀가 튀어나왔다!'; }
+    else if (kind === 'boat') {
+      if (r < 0.3) { seed('honbul', 1); out.msg = '배 안에서 유실물을 건졌다'; }
+      else if (r < 0.6) { jade(3); out.msg = '뱃삯으로 남겨진 옥을 찾았다'; }
+      else { souls(180); out.msg = '배에 남아 있던 혼령들을 거뒀다'; }
+    }
+    qEvent('prop'); Game.save(); return out;
+  }
+
+  // ---------- 시간 단축 (옥: 10분당 10개 · 광고: 30분 단축) ----------
+  // kind: plot(밭 i) · expe(파견 i) · docs(결재) · mail(까치 우편) · parade(백귀야행)
+  function timerLeft(kind, i) {
+    const s = S();
+    if (kind === 'plot') { const st = plotState(i); return st.empty ? 0 : st.left; }
+    if (kind === 'expe') return s.expe[i] ? expeLeft(s.expe[i]) : 0;
+    if (kind === 'docs') return docsCount() >= 3 ? 0 : docsNext();
+    if (kind === 'mail') return mailCount() >= MAIL_MAX ? 0 : mailNext();
+    if (kind === 'parade') return s.parade ? Math.max(0, (s.parade.next - now()) / 1000) : 0;
+    return 0;
+  }
+  function shiftTimer(kind, i, secs) {
+    const s = S(), ms = secs * 1000;
+    if (kind === 'plot' && s.garden[i]) s.garden[i].t -= ms;
+    else if (kind === 'expe' && s.expe[i]) s.expe[i].t -= ms;
+    else if (kind === 'docs') s.docs.last -= ms;
+    else if (kind === 'mail') s.mail.last -= ms;
+    else if (kind === 'parade') s.parade.next -= ms;
+    Game.save();
+  }
+  const skipCost = secs => Math.max(10, Math.ceil(secs / 600) * 10); // 10분당 옥 10개
+  function skipJade(kind, i) {
+    const l = timerLeft(kind, i), c = skipCost(l); if (l <= 0 || S().jade < c) return false;
+    S().jade -= c; shiftTimer(kind, i, l + 1); return c;
+  }
+  const SKIP_AD = 30 * 60;
+  function skipAd(kind, i) { const l = timerLeft(kind, i); if (l <= 0) return false; shiftTimer(kind, i, Math.min(l + 1, SKIP_AD)); return true; }
+
+  // ---------- 망자 심판 ----------
+  const JUDGE_MAX = 5;
+  function judgeDay() { const s = S(), day = new Date().toISOString().slice(0, 10); if (!s.judge || s.judge.day !== day) s.judge = { day, n: 0, ok: 0, total: (s.judge && s.judge.total) || 0, seen: (s.judge && s.judge.seen) || [] }; return s.judge; }
+  const judgeLeft = () => S() ? JUDGE_MAX - judgeDay().n : 0;
+  function judgeCase() {
+    const j = judgeDay(); if (j.n >= JUDGE_MAX) return null;
+    if (j.cur == null && typeof JUDGE_STORY !== 'undefined') { const ch = S().story ? S().story.ch : 0, k = JUDGE_STORY.findIndex(x => ch >= x.ch && !j.seen.includes('s' + JUDGE_STORY.indexOf(x))); if (k >= 0) j.cur = 's' + k; }
+    if (j.cur == null) { let pool = JUDGE_CASES.map((_, i) => i).filter(i => !j.seen.includes(i)); if (!pool.length) { j.seen = j.seen.filter(x => typeof x === 'string'); pool = JUDGE_CASES.map((_, i) => i); } j.cur = pool[Math.floor(Math.random() * pool.length)]; }
+    const st = typeof j.cur === 'string', c = st ? JUDGE_STORY[+j.cur.slice(1)].c : JUDGE_CASES[j.cur]; return { i: j.cur, name: c[0], age: c[1], text: c[2], ans: c[3], story: st };
+  }
+  function judge(choice) {
+    const j = judgeDay(), c = judgeCase(); if (!c) return null;
+    const ok = choice === c.ans, s = S();
+    const souls = Game.incomePerSec(true) * (ok ? 300 : 60) * (1 + s.rank * 0.2), jade = ok ? 3 : 0;
+    Game.gain(souls); s.jade += jade; j.n++; if (ok) { j.ok++; j.total++; } j.seen.push(c.i); j.cur = null;
+    let bonus = 0; if (j.n >= JUDGE_MAX && j.ok >= JUDGE_MAX) { bonus = 15; s.jade += bonus; }
+    Game.save(); return { ok, souls, jade, bonus, ans: c.ans, left: JUDGE_MAX - j.n, streak: j.ok };
+  }
 
   // ---------- 일일 의뢰 ----------
   function questDay() {
@@ -208,7 +346,7 @@ const Life = (() => {
   const buffLeft = k => Math.max(0, ((S().buffs || {})[k] || 0) - now()) / 1000;
 
   // ---------- 파견 ----------
-  const slots = () => 1 + (S().rank >= 3 ? 1 : 0) + (S().rank >= 6 ? 1 : 0);
+  const slots = () => 1 + Math.floor(S().rank / 2); // 집무실 부하가 늘수록 파견 칸 증가 (1~5)
   function send(id) {
     const E = EXPEDITIONS.find(e => e.id === id), s = S();
     if (s.expe.length >= slots() || s.rank < E.rank || Game.minions() < E.minion) return false;
@@ -251,5 +389,5 @@ const Life = (() => {
       brew: RECIPES.some(canBrew),
     };
   }
-  return { fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
+  return { PROP, propReady, propLeft, useProp, timerLeft, skipCost, skipJade, skipAd, SKIP_AD, judgeLeft, judgeCase, judge, JUDGE_MAX, docsCount, claimDocs, docsNext, fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
 })();

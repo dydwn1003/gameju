@@ -15,11 +15,12 @@
         <div class="bar">
           <div class="cur"><img class="px" data-ic="soul"><b id="v-soul">0</b></div>
           <div class="cur jade" id="cur-jade"><img class="px" data-ic="jade"><b id="v-jade">0</b><i>+</i></div>
+          <button class="hb" id="btn-rankb" aria-label="순위"><b class="emo-s">🏆</b></button>
           <button class="hb" id="btn-set" aria-label="설정"><img class="px" data-ui="gear" style="width:18px"></button>
         </div>
         <div class="rankline">
           <span id="v-lv" class="lvtag">Lv.1</span><span id="rank-badge" class="badge"></span>
-          <span id="region" class="region"></span>
+          <span id="region" class="region"></span><span id="rk-chip" class="rkchip"></span>
         </div>
         <div class="rate">초당 <b id="v-rate">0</b><span id="boost-on" class="boost-on">×2</span></div>
         <div class="buffs" id="buffs"></div>
@@ -30,17 +31,18 @@
         <button id="btn-attend" class="sbtn"><img class="px" data-ui="ledger"><span>출석</span><i class="dot"></i></button>
         <button id="btn-parade" class="sbtn parade"><img class="px" data-ui="wraith"><span>백귀야행</span><small id="parade-t"></small><i class="dot"></i></button>
         <button id="btn-quest" class="sbtn"><img class="px" data-ic="scroll"><span>의뢰</span><i class="dot"></i></button>
+        <button id="btn-office" class="sbtn"><b class="emo">🏯</b><span>집무실</span><i class="dot"></i></button>
       </div>
       <div id="labels"></div>
-      <canvas id="minimap"></canvas>
+      <div id="drag-hint">◀ 화면을 끌어서 둘러보기 ▶</div>
       <div id="test-bar"></div>
       <div id="parade-bar"></div>
       <div id="floats"></div>
     </section>
     <section id="menu">
-      <div id="panel"></div>
+      <div id="sheet"><button id="sheet-h" aria-label="메뉴 닫기"><i></i></button><div id="panel"></div></div>
       <nav id="tabs">
-        <button data-tab="grow" class="on"><img class="px" data-ui="pen">성장<i class="dot"></i></button>
+        <button data-tab="grow"><img class="px" data-ui="pen">성장<i class="dot"></i></button>
         <button data-tab="minion"><img class="px" data-ui="minion">졸개<i class="dot"></i></button>
         <button data-tab="life"><img class="px" data-ui="flower">생활<i class="dot"></i></button>
         <button data-tab="pet"><img class="px" data-ui="petic">펫<i class="dot"></i></button>
@@ -55,13 +57,21 @@
 
   <script src="js/pixel.js"></script>
   <script src="js/sprites.js"></script>
+  <script src="js/reaper2.js"></script>
+  <script src="js/art3.js"></script>
+  <script src="js/petart3.js"></script>
+  <script src="js/tiny.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/magic.js"></script>
+  <script src="js/decor.js"></script>
+  <script src="js/decor2.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/game.js"></script>
   <script src="js/life.js"></script>
   <script src="js/pets.js"></script>
   <script src="js/petart.js"></script>
   <script src="js/story.js"></script>
+  <script src="js/board.js"></script>
   <script src="js/ui.js"></script>
   <script>UI.init();</script>
 </body>
