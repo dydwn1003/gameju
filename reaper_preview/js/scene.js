@@ -625,7 +625,7 @@ const Scene = (() => {
     const placed = hooks.decorPlaced ? hooks.decorPlaced() : [];
     if (edit) {
       const gx = Math.floor(x / G), gy = Math.floor(y / G);
-      if (ghost) { const d = Decor.D(ghost), cx = Math.round(gx - (d.fw - 1) / 2), cy = d.wall ? Math.round(gy - (d.fh - 1) / 2) : gy - d.fh + 1; hover = { gx: cx, gy: cy, ignore: hover && hover.ignore }; hooks.decorTap && hooks.decorTap(cx, cy, decoFits(ghost, cx, cy, hover.ignore)); return; }
+      if (ghost) { const d = Decor.D(ghost), sn = snapChair(ghost, { gx: Math.round(gx - (d.fw - 1) / 2), gy: d.wall ? Math.round(gy - (d.fh - 1) / 2) : gy - d.fh + 1 }), cx = sn.gx, cy = sn.gy; hover = { gx: cx, gy: cy, ignore: hover && hover.ignore }; hooks.decorTap && hooks.decorTap(cx, cy, decoFits(ghost, cx, cy, hover.ignore)); return; }
       for (let i = placed.length - 1; i >= 0; i--) { const p = placed[i], r = decoRect(p.id, p.gx, p.gy); if (x >= r.x && x < r.x + r.w && y >= r.y - (Decor.D(p.id).wall ? 0 : 10) && y < r.y + r.h) { hooks.decorPick && hooks.decorPick(i); return; } }
       return;
     }
@@ -638,7 +638,9 @@ const Scene = (() => {
   // 꾸미기: 놓인 소품을 눌러 끌면 옮기고, 그냥 누르면 메뉴
   let press = null;
   const toOffice = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / S, y: (e.clientY - r.top) / S }; };
-  const cellAt = (id, x, y) => { const d = Decor.D(id); return { gx: Math.round(x / G - d.fw / 2), gy: Math.round(y / G - d.fh / 2) }; };
+  // 책상 뒤(파란 칸)에 놓는 의자는 책상 가운데에 딱 맞춘다
+  function snapChair(id, c) { const d = Decor.D(id); if (!d.seat || !officeData) return c; const r = decoRect(id, c.gx, c.gy), b = officeData.chairB; if (!hit(r, { x: b.x, y: b.y - 6, w: b.w, h: b.h + 10 })) return c; return { gx: (officeData.desk.x - d.fw * G / 2) / G, gy: (b.y + b.h - d.fh * G) / G }; }
+  const cellAt = (id, x, y) => { const d = Decor.D(id); return snapChair(id, { gx: Math.round(x / G - d.fw / 2), gy: Math.round(y / G - d.fh / 2) }); };
   function down(e) { if (office) { const p = toOffice(e);
       if (edit && !ghost) { const placed = hooks.decorPlaced ? hooks.decorPlaced() : []; for (let i = placed.length - 1; i >= 0; i--) { const q = placed[i], r = decoRect(q.id, q.gx, q.gy); if (p.x >= r.x && p.x < r.x + r.w && p.y >= r.y - (Decor.D(q.id).wall ? 0 : 10) && p.y < r.y + r.h) { press = { i, id: q.id, x0: e.clientX, y0: e.clientY, moved: false }; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); return; } } return; }
       officeTap(p.x, p.y); return; } if (arena) { tap(e); return; } drag = { x: e.clientX, y: e.clientY, cx: camX, cy: camY, moved: false }; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); }

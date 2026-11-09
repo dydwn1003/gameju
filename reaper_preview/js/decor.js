@@ -85,9 +85,6 @@ const DECOR = (() => {
       box(r, 3, 24, 14, 3, '#3a2a40', '#5a4a62'); r(9, 18, 2, 6, '#5a4a62'); r(5, 18, 10, 2, O); r(6, 18, 8, 1, '#c89a30');
       r(4, 1, 12, 1, O); r(2, 2, 16, 15, O); r(4, 17, 12, 1, O); r(3, 2, 14, 15, '#c89a30'); r(5, 4, 10, 11, '#3a5a8a'); r(6, 5, 8, 9, '#6a9ad0'); r(7, 6, 3, 4, '#c8ecff'); r(11, 10, 2, 2, '#9fd6ff');
       r(1, 6, 1, 6, '#e83a3a'); r(18, 6, 1, 6, '#e83a3a'); r(9, 0, 2, 2, '#ffd34a'); }) },
-    { id: 'throne', price: 1500, premium: 1, name: '황금 옥좌', fw: 2, fh: 1, pt: 40, seat: 1, desc: '앉으면 저승이 내 것 같은 옥좌', glow: '#ffd34a', draw: () => mk(22, 26, r => {
-      r(2, 0, 18, 1, O); r(1, 1, 20, 15, O); r(2, 1, 18, 14, '#c89a30'); r(4, 3, 14, 12, '#a01a2a'); r(5, 4, 12, 10, '#c82a3a'); r(10, 6, 2, 4, '#ffd34a'); r(8, 7, 6, 2, '#ffd34a');
-      r(0, 13, 22, 1, O); r(0, 14, 4, 8, O); r(18, 14, 4, 8, O); r(1, 14, 2, 7, '#e0b040'); r(19, 14, 2, 7, '#e0b040'); box(r, 4, 15, 14, 4, '#a01a2a', '#c82a3a'); r(4, 19, 14, 3, O); r(5, 19, 12, 2, '#c89a30'); r(3, 22, 2, 3, '#8a6a20'); r(17, 22, 2, 3, '#8a6a20'); r(10, 0, 2, 1, '#fff3b0'); }) },
     { id: 'dragonjar', price: 800, premium: 1, name: '청화백자 용항아리', fw: 1, fh: 1, pt: 28, desc: '푸른 용이 휘감은 왕실 항아리', draw: () => mk(14, 20, r => {
       r(4, 0, 6, 1, O); r(3, 1, 8, 2, O); r(1, 3, 12, 12, O); r(3, 15, 8, 3, O); r(4, 1, 6, 2, '#e8e8f0'); r(2, 3, 10, 12, '#f4f4f8'); r(4, 15, 6, 2, '#dcdce4');
       [[3, 5], [5, 6], [7, 5], [9, 6], [10, 8], [8, 9], [6, 10], [4, 11], [3, 9]].forEach(([x, y]) => r(x, y, 2, 1, '#2a4aa0')); r(10, 7, 1, 1, '#c83a3a'); r(2, 4, 10, 1, '#5a7ac0'); r(2, 13, 10, 1, '#5a7ac0'); }) },
@@ -173,16 +170,19 @@ const DECOR_PACKS = [
   { id: 'p_salim', name: '정겨운 살림 세트', items: ['jangdok', 'bandaji', 'brazier', 'mat', 'fan'] },
   { id: 'p_jeoseung', name: '저승 관아 세트', items: ['mokeo', 'gatrack', 'bujeok', 'jeoseungmap', 'drum'] },
   { id: 'p_royal', name: '왕실 집무실 세트', items: ['irwol', 'goldhaechi', 'dragonjar'] },
-  { id: 'p_yeomra', name: '염라의 옥좌 세트', items: ['throne', 'mirror', 'taenghwa'] },
+  { id: 'p_yeomra', name: '염라의 업경대 세트', items: ['mirror', 'taenghwa', 'jagae'] },
 ];
 DECOR_PACKS.forEach(P => { P.full = P.items.reduce((a, id) => a + DECOR.find(d => d.id === id).price, 0); P.price = Math.round(P.full * 0.7 / 10) * 10; });
 const Decor = (() => {
   const S = () => Game.S;
   const D = id => DECOR.find(d => d.id === id);
   function ensure() { const s = S(); if (!s.decor) s.decor = { own: {}, placed: [], gift: 0 }; if (!s.decor.gift) { DECOR.filter(d => d.free).forEach(d => (s.decor.own[d.id] = (s.decor.own[d.id] || 0) + 1)); s.decor.gift = 1; } return s.decor; }
+  const isEx = d => d.rank != null || d.story != null || !!d.quest; // 승진·이야기·의뢰로만 얻는 소품
+  // 유료 특제 의자 (테스트 결제): 그 직급에 오르면 살 수 있다
+  function buyCash(id) { const d = D(id), s = S(); if (!d || !d.cash || s.rank < (d.rankReq || 0)) return false; ensure().own[id] = owned(id) + 1; Game.save(); return true; }
   // 한정 소품 지급: 승진·이야기·의뢰 (중복 지급 방지)
   function grant(d) { const dc = ensure(); dc.got = dc.got || {}; if (dc.got[d.id]) return null; dc.got[d.id] = 1; dc.own[d.id] = (dc.own[d.id] || 0) + 1; return d; }
-  function grantRank(rank) { const out = DECOR.filter(d => d.rank && d.rank <= rank).map(grant).filter(Boolean); if (out.length) Game.save(); return out; }
+  function grantRank(rank) { const out = DECOR.filter(d => d.rank != null && d.rank <= rank).map(grant).filter(Boolean); if (out.length) Game.save(); return out; }
   function grantStory(ch) { const out = DECOR.filter(d => d.story != null && d.story <= ch).map(grant).filter(Boolean); if (out.length) Game.save(); return out; }
   function grantQuest() { const dc = ensure(); dc.got = dc.got || {}; const pool = DECOR.filter(d => d.quest && !dc.got[d.id]); if (!pool.length) return null; const d = grant(pool[Math.floor(Math.random() * pool.length)]); Game.save(); return d; }
   const img = id => { const d = D(id); return d.img || (d.img = d.draw()); };
@@ -190,7 +190,7 @@ const Decor = (() => {
   const placedCount = id => ensure().placed.filter(p => p.id === id).length;
   const spare = id => owned(id) - placedCount(id);
   const maxPlace = () => Infinity; // 배치 개수 제한 없음 (빈자리만 있으면 얼마든지)
-  function buy(id) { const d = D(id), s = S(); if (!d || !d.price || d.rank || d.story != null || d.quest || s.jade < d.price) return false; s.jade -= d.price; ensure().own[id] = owned(id) + 1; Game.save(); return true; }
+  function buy(id) { const d = D(id), s = S(); if (!d || !d.price || isEx(d) || d.cash || s.jade < d.price) return false; s.jade -= d.price; ensure().own[id] = owned(id) + 1; Game.save(); return true; }
   function buyPack(pid) { const P = DECOR_PACKS.find(p => p.id === pid), s = S(); if (!P) return false; ensure(); s.decor.packs = s.decor.packs || {}; if (s.decor.packs[pid] || s.jade < P.price) return false; s.jade -= P.price; P.items.forEach(id => (s.decor.own[id] = owned(id) + 1)); s.decor.packs[pid] = 1; Game.save(); return true; }
   const packBought = pid => !!((ensure().packs || {})[pid]);
   function place(id, gx, gy) { const dc = ensure(); if (spare(id) <= 0 || dc.placed.length >= maxPlace()) return false; dc.placed.push({ id, gx, gy }); Game.apply(); Game.save(); return true; }
@@ -199,5 +199,5 @@ const Decor = (() => {
   const score = () => ensure().placed.reduce((a, p) => a + (D(p.id) ? D(p.id).pt : 0), 0);
   const mul = () => (S() && S().decor ? 1 + Math.min(0.4, score() * 0.0025) : 1);
   const title = sc => sc >= 160 ? '저승 제일의 집무실' : sc >= 100 ? '화려한 집무실' : sc >= 50 ? '품위 있는 집무실' : sc >= 20 ? '아늑한 집무실' : '소박한 집무실';
-  return { D, ensure, grantRank, grantStory, grantQuest, img, packBought, owned, spare, placedCount, maxPlace, buy, buyPack, place, remove, score, mul, title };
+  return { D, isEx, buyCash, ensure, grantRank, grantStory, grantQuest, img, packBought, owned, spare, placedCount, maxPlace, buy, buyPack, place, remove, score, mul, title };
 })();
