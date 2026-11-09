@@ -13,7 +13,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function init() {
     Game.load();
-    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => Decor.ensure().placed.filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => Decor.ensure().placed.filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply(); if (S().kind) { Decor.grantRank(S().rank); Decor.grantStory(Math.max(-1, (S().story || {}).ch - 1)); }
@@ -496,37 +496,66 @@ const UI = (() => {
     let inv = $('#deco-inv'); if (!inv) { inv = document.createElement('div'); inv.id = 'deco-inv'; $('#stage').appendChild(inv); } inv.classList.add('on'); inv.classList.remove('min');
     db.classList.add('on'); $('#office-bar').classList.add('editing'); $('#stage').classList.add('deco-edit'); document.body.classList.add('deco-t'); decoBar();
   }
-  function decoEnd(silent) { const db = $('#deco-bar'); if (!db || !db.classList.contains('on')) return; db.classList.remove('on'); $('#deco-inv') && $('#deco-inv').classList.remove('on'); $('#office-bar') && $('#office-bar').classList.remove('editing'); $('#stage').classList.remove('deco-edit'); document.body.classList.remove('deco-t'); Scene.officeEdit(false); decoSel = null; decoMove = null; if (!silent) { Sound.play('buy'); toast(`꾸미기 완료! 품격 ${Decor.score()} · ${Decor.title(Decor.score())} (수확량 +${Math.round((Decor.mul() - 1) * 100)}%)`, 3000); } officeBar(); }
-  let invCat = 'all';
+  function decoEnd(silent) { const db = $('#deco-bar'); if (!db || !db.classList.contains('on')) return; db.classList.remove('on'); $('#deco-inv') && $('#deco-inv').classList.remove('on'); closePendPop(); $('#office-bar') && $('#office-bar').classList.remove('editing'); $('#stage').classList.remove('deco-edit'); document.body.classList.remove('deco-t'); Scene.officeEdit(false); decoSel = null; decoMove = null; if (!silent) { Sound.play('buy'); toast(`꾸미기 완료! 품격 ${Decor.score()} · ${Decor.title(Decor.score())} (수확량 +${Math.round((Decor.mul() - 1) * 100)}%)`, 3000); } officeBar(); }
+  let invCat = 'all', invPos = null;
+  try { invPos = JSON.parse(localStorage.getItem('jeoseung_invpos') || 'null'); } catch (e) {}
+  function invPlace(inv) { const st = $('#stage').getBoundingClientRect(), bar = $('#deco-bar'), barH = bar && bar.classList.contains('on') ? bar.offsetHeight : 0, pos = invPos || { x: 8, y: 8 }, w = inv.offsetWidth; const top = Math.max(0, Math.min(st.height - barH - 70, pos.y)); inv.style.left = Math.max(0, Math.min(st.width - w, pos.x)) + 'px'; inv.style.top = top + 'px'; inv.style.maxHeight = Math.max(70, Math.min(st.height * 0.56, st.height - barH - top - 8)) + 'px'; }
+  // 보관함 창: 제목 줄을 잡고 끌면 어디로든 옮겨진다
+  function invDragInit(inv) {
+    invPlace(inv);
+    const hd = inv.querySelector('.iv-head'); if (!hd) return;
+    hd.onpointerdown = e => { if (e.target.closest('button')) return; const st = $('#stage').getBoundingClientRect(), r = inv.getBoundingClientRect(), d = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      hd.setPointerCapture && hd.setPointerCapture(e.pointerId); inv.classList.add('moving');
+      hd.onpointermove = ev => { invPos = { x: ev.clientX - st.left - d.dx, y: ev.clientY - st.top - d.dy }; invPlace(inv); };
+      hd.onpointerup = hd.onpointercancel = () => { hd.onpointermove = null; hd.onpointerup = null; inv.classList.remove('moving'); try { localStorage.setItem('jeoseung_invpos', JSON.stringify(invPos)); } catch (e2) {} }; };
+  }
+  let invCatInit = 0;
   const INV_CATS = [['all', '전체'], ['floor', '바닥'], ['wall', '벽'], ['chair', '의자'], ['plant', '화초'], ['ex', '한정']];
   const invMatch = (d, c) => c === 'all' || (c === 'floor' && !d.wall && !d.seat) || (c === 'wall' && d.wall) || (c === 'chair' && d.seat) || (c === 'plant' && /화분|분재|난초|연꽃|매화|대나무|피안화/.test(d.name)) || (c === 'ex' && (Decor.isEx(d) || d.cash));
   function decoBar() {
     const db = $('#deco-bar'), inv = $('#deco-inv'); if (!db) return;
     const own = DECOR.filter(d => Decor.owned(d.id) > 0), dc = Decor.ensure(), sc = Decor.score();
     db.innerHTML = `<div class="dk-top"><div><b>🏮 ${Decor.title(sc)}</b><small>품격 ${sc} · 수확량 +${Math.round((Decor.mul() - 1) * 100)}% · 배치 ${dc.placed.length}개</small></div><button class="btn jade" id="dk-shop">상점</button><button class="btn red" id="dk-done">완료</button></div>
-      <div class="dk-tip">${decoSel ? `<b>${Decor.D(decoSel).name}</b>을(를) 놓을 자리를 누르세요 ${decoMove ? '' : '· <a id="dk-cancel">취소</a>'}` : '왼쪽 위 <b>보관함</b>에서 소품을 <b>끌어내어</b> 놓으세요 · 놓인 소품은 끌어서 옮겨요 · 책상 뒤 <b style="color:#9fd6ff">파란 칸</b>은 의자 자리'}</div>`;
+      <div class="dk-tip">${decoSel ? `<b>${Decor.D(decoSel).name}</b>을(를) 놓을 자리를 누르세요 ${decoMove ? '' : '· <a id="dk-cancel">취소</a>'}` : '<b>보관함</b>에서 소품을 끌어내거나 눌러서 꺼내고, 끌어서 자리를 고른 뒤 <b>한 번 더 눌러</b> 확인해요 · 책상 뒤 <b style="color:#9fd6ff">파란 칸</b>은 의자 자리'}</div>`;
     db.querySelector('#dk-done').onclick = () => decoEnd();
     db.querySelector('#dk-shop').onclick = decoShop;
     const cn = db.querySelector('#dk-cancel'); if (cn) cn.onclick = () => { decoSel = null; Scene.officeGhost(null); decoBar(); };
     if (!inv) return;
     const keep = inv.querySelector('.iv-grid') ? inv.querySelector('.iv-grid').scrollTop : 0, list = own.filter(d => invMatch(d, invCat));
-    inv.innerHTML = `<div class="iv-head"><b>📦 보관함</b><small>${own.length}종</small><button id="iv-min">${inv.classList.contains('min') ? '▼' : '▲'}</button></div>
+    inv.innerHTML = `<div class="iv-head"><span class="iv-grip">⠿</span><b>📦 보관함</b><small>${own.length}종</small><button id="iv-min">${inv.classList.contains('min') ? '▼' : '▲'}</button></div>
       <div class="iv-cats">${INV_CATS.map(([k, n]) => `<button data-ivc="${k}" class="${invCat === k ? 'on' : ''}">${n}<i>${own.filter(d => invMatch(d, k)).length}</i></button>`).join('')}</div>
       <div class="iv-grid">${list.length ? list.map(d => { const sp = Decor.spare(d.id); return `<button class="dk-it ${decoSel === d.id ? 'on' : ''} ${sp ? '' : 'used'}" data-dk="${d.id}" title="${d.name}"><img class="px" src="${decoThumb(d.id)}"><span>${d.name}</span><small>${sp ? '×' + sp : '배치됨'}</small></button>`; }).join('') : '<p class="mute">이 분류의 소품이 없어요</p>'}</div>`;
     const gr = inv.querySelector('.iv-grid'); if (gr) gr.scrollTop = keep;
     inv.querySelector('#iv-min').onclick = () => { inv.classList.toggle('min'); decoBar(); };
+    invDragInit(inv);
     inv.querySelectorAll('[data-ivc]').forEach(b => b.onclick = () => { invCat = b.dataset.ivc; inv.querySelector('.iv-grid') && (inv.querySelector('.iv-grid').scrollTop = 0); decoBar(); const g2 = inv.querySelector('.iv-grid'); if (g2) g2.scrollTop = 0; });
     listDragInit(inv);
     inv.querySelectorAll('[data-dk]').forEach(b => b.onclick = () => {
       if (performance.now() - listDragDone < 300) return;
       const id = b.dataset.dk; if (Decor.spare(id) <= 0) { toast('모두 놓았어요. 놓인 소품을 눌러 옮기거나 보관할 수 있어요'); return; }
-      decoSel = decoSel === id ? null : id; Scene.officeGhost(decoSel); Sound.play('open'); decoBar();
+      if (Scene.officePendInfo()) { toast('먼저 놓을지 정해 주세요 (소품을 한 번 눌러 확인)'); return; }
+      const sp = Scene.officeFreeSpot(id); Scene.officePend(id, sp.gx, sp.gy, null); Sound.play('open'); pendHint();
     });
   }
   function decorTap(gx, gy, ok) {
     if (!decoSel) return;
     if (!ok) { Sound.play('no'); toast('여기엔 놓을 수 없어요 (빨간 칸·다른 소품과 겹침)'); return; }
     if (Decor.place(decoSel, gx, gy)) { Sound.play('buy'); Scene.burstAt(gx * DECOR_G * Scene.scale + DECOR_G, gy * DECOR_G * Scene.scale, '#ffe08a', 12); if (Decor.spare(decoSel) <= 0 || decoMove) { decoSel = null; decoMove = null; Scene.officeGhost(null); } decoBar(); officeBar(); }
+  }
+  // ---- 놓기 확인: 끌어서 자리 고르기 → 한 번 더 누르면 [놓기][취소] ----
+  const invDim = on => { const i = $('#deco-inv'); if (i) i.classList.toggle('dim', on); };
+  function pendHint() { closePendPop(); invDim(true); const t = $('#deco-bar .dk-tip'); if (t) t.innerHTML = '끌어서 자리를 고른 뒤 <b>소품을 한 번 더 누르면</b> 놓기·취소 버튼이 나와요'; }
+  function closePendPop() { const p = $('#pend-pop'); if (p) p.remove(); }
+  function pendMoved(done) { closePendPop(); invDim(true); }
+  function pendTap() {
+    const P = Scene.officePendInfo(); if (!P) return; closePendPop();
+    const pop = document.createElement('div'); pop.id = 'pend-pop';
+    pop.innerHTML = `<button class="btn" id="pp-ok" ${P.ok ? '' : 'disabled'}>✔ ${P.from == null ? '놓기' : '옮기기'}</button><button class="btn dark" id="pp-no">✕ 취소</button>${P.ok ? '' : '<small>여기엔 놓을 수 없어요</small>'}`;
+    document.body.appendChild(pop);
+    const w = pop.offsetWidth, h = pop.offsetHeight, above = P.top - h - 8 > 60;
+    pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, P.x - w / 2)) + 'px'; pop.style.top = (above ? P.top - h - 8 : P.bottom + 8) + 'px';
+    pop.querySelector('#pp-ok').onclick = () => { const Q = Scene.officePendInfo(); if (!Q || !Q.ok) return; if (Q.from == null) { if (!Decor.place(Q.id, Q.gx, Q.gy)) { toast('놓을 수 없어요'); return; } } else { const p = Decor.ensure().placed[Q.from]; p.gx = Q.gx; p.gy = Q.gy; Game.apply(); Game.save(); } Scene.officePendClear(); closePendPop(); invDim(false); Sound.play('buy'); decoBar(); officeBar(); };
+    pop.querySelector('#pp-no').onclick = () => { Scene.officePendClear(); closePendPop(); invDim(false); Sound.play('open'); decoBar(); };
   }
   function decorDrop(i, gx, gy, ok) {
     if (!ok) { Sound.play('no'); toast('여기엔 놓을 수 없어요'); return; }
@@ -546,8 +575,7 @@ const UI = (() => {
     if (!listDrag) return; const d = listDrag; listDrag = null; if (!d.on) { $('#deco-inv') && $('#deco-inv').classList.remove('dragging'); return; }
     const im = $('#dk-drag'); if (im) im.remove();
     const r = Scene.officeDragAt(e.clientX, e.clientY, d.id); $('#deco-inv') && $('#deco-inv').classList.remove('dragging'); Scene.officeDragEnd(); d.dropped = true; listDragDone = performance.now();
-    if (!r) return; if (!r.ok) { Sound.play('no'); toast('여기엔 놓을 수 없어요 (빨간 칸·다른 소품과 겹침)'); return; }
-    if (Decor.place(d.id, r.gx, r.gy)) { Sound.play('buy'); decoBar(); officeBar(); }
+    if (!r) return; Scene.officePend(d.id, r.gx, r.gy, null); Sound.play('open'); pendHint();
   });
   let listDragDone = 0;
   addEventListener('pointercancel', () => { if (listDrag) { $('#deco-inv') && $('#deco-inv').classList.remove('dragging'); const im = $('#dk-drag'); if (im) im.remove(); Scene.officeDragEnd(); listDrag = null; } });
@@ -555,7 +583,7 @@ const UI = (() => {
     const p = Decor.ensure().placed[i]; if (!p) return; const d = Decor.D(p.id);
     const box = modal(`<div class="pinfo"><img class="px" src="${decoThumb(p.id, 4)}" style="height:72px"><h2>${d.name}</h2><p class="mute">품격 +${d.pt}${d.seat ? ' · 앉을 수 있어요' : ''}</p></div>
       <div class="acts"><button class="btn" id="dp-move">옮기기</button><button class="btn dark" id="dp-store">보관하기</button><button class="btn dark" data-act="close">취소</button></div>`);
-    box.querySelector('#dp-move').onclick = () => { closeModal(); Decor.remove(i); decoSel = p.id; decoMove = true; Scene.officeGhost(p.id); decoBar(); };
+    box.querySelector('#dp-move').onclick = () => { closeModal(); Scene.officePend(p.id, p.gx, p.gy, i); pendHint(); };
     box.querySelector('#dp-store').onclick = () => { closeModal(); Decor.remove(i); Sound.play('open'); decoBar(); officeBar(); };
   }
   let shopCat = 'all';

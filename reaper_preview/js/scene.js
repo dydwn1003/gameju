@@ -488,9 +488,9 @@ const Scene = (() => {
       staff.forEach(m => list.push({ y: m.y, f: () => { shadow(m.x, m.y, 7); const im = m.judge ? SP.tinyReaper('m', 5, 'down', m.walk ? 'walk' : 'idle', Math.floor(m.ft * (m.walk ? 8 : 2.5))) : SP.minit(m.walk ? m.dir : 'up', m.walk ? 'walk' : 'idle', Math.floor(m.ft * (m.walk ? 8 : 2.5))); g.drawImage(im, Math.round(m.x - im.width / 2), Math.round(m.y - im.height + 1)); } }));
       const placed = hooks.decorPlaced ? hooks.decorPlaced() : [];
       // 벽 소품
-      placed.forEach((p, i) => { const d = Decor.D(p.id); if (!d.wall) return; const r = decoRect(p.id, p.gx, p.gy), im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h / 2, 10, d.glow, 0.22 + Math.sin(time * 4 + i) * 0.05); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + (r.h - im.height) / 2)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } });
+      placed.forEach((p, i) => { const d = Decor.D(p.id); if (!d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy), im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h / 2, 10, d.glow, 0.22 + Math.sin(time * 4 + i) * 0.05); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + (r.h - im.height) / 2)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } });
       // 바닥 소품 (깊이 정렬)
-      placed.forEach((p, i) => { const d = Decor.D(p.id); if (d.wall) return; const r = decoRect(p.id, p.gx, p.gy); list.push({ y: r.y + r.h - 1, f: () => { const im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h - im.height / 2, 10, d.glow, 0.2 + Math.sin(time * 4 + i) * 0.05); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 2); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } } }); });
+      placed.forEach((p, i) => { const d = Decor.D(p.id); if (d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy); list.push({ y: r.y + r.h - 1, f: () => { const im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h - im.height / 2, 10, d.glow, 0.2 + Math.sin(time * 4 + i) * 0.05); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 2); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } } }); });
       // 나 (앉아 있거나 걸어 다님)
       if (me && me.sit && !me.sit.desk && me.sit.r && !seatSpots().some(q => q.r && q.r.x === me.sit.r.x && q.r.y === me.sit.r.y)) me.sit = seatSpots().find(q => q.atDesk || q.desk);
       if (me) { const sit = me.sit, y0 = sit ? sit.y + (sit.desk ? 0 : 1) : me.y; list.push({ y: sit ? (sit.desk ? officeData.desk.y - 2 : sit.r.y + sit.r.h - 0.5) : me.y, f: () => {
@@ -503,6 +503,9 @@ const Scene = (() => {
         g.fillStyle = 'rgba(255,255,255,0.07)'; for (let x = 0; x <= W; x += G) g.fillRect(x, 0, 1, H); for (let y = 0; y <= H; y += G) g.fillRect(0, y, W, 1);
         g.fillStyle = 'rgba(255,60,80,0.12)'; officeData.floorB.concat(officeData.wallB).forEach(b => g.fillRect(b.x, b.y, b.w, b.h));
         { const b = officeData.chairB; g.fillStyle = 'rgba(90,170,255,0.18)'; g.fillRect(b.x, b.y, b.w, b.h); g.fillStyle = 'rgba(160,210,255,0.9)'; g.fillRect(b.x + b.w / 2 - 3, b.y + 3, 6, 1); g.fillRect(b.x + b.w / 2 - 3, b.y + 3, 1, 6); g.fillRect(b.x + b.w / 2 + 2, b.y + 3, 1, 6); g.fillRect(b.x + b.w / 2 - 3, b.y + 8, 6, 1); }
+        if (pend) { const r = decoRect(pend.id, pend.gx, pend.gy), ok = decoFits(pend.id, pend.gx, pend.gy, pend.from), im = Decor.img(pend.id), bob = Math.round(Math.sin(time * 6) * 1);
+          g.fillStyle = ok ? 'rgba(80,255,140,0.22)' : 'rgba(255,60,80,0.3)'; g.fillRect(r.x, r.y, r.w, r.h); g.globalAlpha = 0.92; g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round((r.wall ? r.y + (r.h - im.height) / 2 : r.y + r.h - im.height) - 1 + bob)); g.globalAlpha = 1;
+          g.strokeStyle = ok ? '#7fffb0' : '#ff6a7a'; g.setLineDash([2, 2]); g.lineDashOffset = -Math.floor(time * 8); g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); g.setLineDash([]); }
         if (ghost && hover) { const r = decoRect(ghost, hover.gx, hover.gy), ok = decoFits(ghost, hover.gx, hover.gy, hover.ignore), im = Decor.img(ghost); g.fillStyle = ok ? 'rgba(80,255,140,0.25)' : 'rgba(255,60,80,0.3)'; g.fillRect(r.x, r.y, r.w, r.h); g.globalAlpha = 0.75; g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.wall ? r.y + (r.h - im.height) / 2 : r.y + r.h - im.height)); g.globalAlpha = 1; }
       }
       // 결재함
@@ -636,19 +639,22 @@ const Scene = (() => {
     if (y > officeData.wallH + 6 && y < H - 2) { if (me.sit) { me.x = me.sit.desk ? me.sit.x : me.sit.x; me.y = me.sit.desk ? officeData.desk.y + 14 : me.sit.y + 4; me.sit = null; } me.walk = true; me.goSit = null; me.tx = Math.max(6, Math.min(W - 6, x)); me.ty = y; burst(x, y, '#ffe08a', 4, 12); }
   }
   // 꾸미기: 놓인 소품을 눌러 끌면 옮기고, 그냥 누르면 메뉴
-  let press = null;
+  let press = null, pend = null; // pend: 놓기 전 확인을 기다리는 소품 {id, gx, gy, from}
   const toOffice = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / S, y: (e.clientY - r.top) / S }; };
   // 책상 뒤(파란 칸)에 놓는 의자는 책상 가운데에 딱 맞춘다
   function snapChair(id, c) { const d = Decor.D(id); if (!d.seat || !officeData) return c; const r = decoRect(id, c.gx, c.gy), b = officeData.chairB; if (!hit(r, { x: b.x, y: b.y - 6, w: b.w, h: b.h + 10 })) return c; return { gx: (officeData.desk.x - d.fw * G / 2) / G, gy: (b.y + b.h - d.fh * G) / G }; }
   const cellAt = (id, x, y) => { const d = Decor.D(id); return snapChair(id, { gx: Math.round(x / G - d.fw / 2), gy: Math.round(y / G - d.fh / 2) }); };
   function down(e) { if (office) { const p = toOffice(e);
-      if (edit && !ghost) { const placed = hooks.decorPlaced ? hooks.decorPlaced() : []; for (let i = placed.length - 1; i >= 0; i--) { const q = placed[i], r = decoRect(q.id, q.gx, q.gy); if (p.x >= r.x && p.x < r.x + r.w && p.y >= r.y - (Decor.D(q.id).wall ? 0 : 10) && p.y < r.y + r.h) { press = { i, id: q.id, x0: e.clientX, y0: e.clientY, moved: false }; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); return; } } return; }
+      if (edit) {
+        if (pend) { const r = decoRect(pend.id, pend.gx, pend.gy); if (p.x >= r.x - 4 && p.x < r.x + r.w + 4 && p.y >= r.y - (Decor.D(pend.id).wall ? 4 : 14) && p.y < r.y + r.h + 4) { press = { pend: true, x0: e.clientX, y0: e.clientY, moved: false }; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); } return; }
+        const placed = hooks.decorPlaced ? hooks.decorPlaced() : []; for (let i = placed.length - 1; i >= 0; i--) { const q = placed[i], r = decoRect(q.id, q.gx, q.gy); if (p.x >= r.x && p.x < r.x + r.w && p.y >= r.y - (Decor.D(q.id).wall ? 0 : 10) && p.y < r.y + r.h) { press = { i, id: q.id, x0: e.clientX, y0: e.clientY, moved: false }; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); return; } } return; }
       officeTap(p.x, p.y); return; } if (arena) { tap(e); return; } drag = { x: e.clientX, y: e.clientY, cx: camX, cy: camY, moved: false }; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); }
   function move(e) {
-    if (office && press) { if (!press.moved && Math.hypot(e.clientX - press.x0, e.clientY - press.y0) > 6) press.moved = true; if (press.moved) { const p = toOffice(e), c = cellAt(press.id, p.x, p.y); ghost = press.id; hover = { gx: c.gx, gy: c.gy, ignore: press.i }; } return; }
+    if (office && press) { if (!press.moved && Math.hypot(e.clientX - press.x0, e.clientY - press.y0) > 6) { press.moved = true; if (!press.pend) { const q = (hooks.decorPlaced ? hooks.decorPlaced() : [])[press.i]; pend = { id: press.id, gx: q.gx, gy: q.gy, from: press.i }; press.pend = true; } hooks.pendMoved && hooks.pendMoved(); }
+      if (press.moved && pend) { const p = toOffice(e), c = cellAt(pend.id, p.x, p.y); pend.gx = c.gx; pend.gy = c.gy; } return; }
     if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!drag.moved && Math.hypot(dx, dy) > 6) drag.moved = true; if (drag.moved) { camX = drag.cx - dx / S; camY = drag.cy - dy / S; follow = false; followAt = time + 6; } }
   function up(e) {
-    if (office && press) { const pr = press; press = null; if (pr.moved && hover) { const ok = decoFits(pr.id, hover.gx, hover.gy, pr.i); hooks.decorDrop && hooks.decorDrop(pr.i, hover.gx, hover.gy, ok); } else if (!pr.moved) hooks.decorPick && hooks.decorPick(pr.i); ghost = null; hover = null; return; }
+    if (office && press) { const pr = press; press = null; if (pr.pend) { if (pr.moved) hooks.pendMoved && hooks.pendMoved(true); else hooks.pendTap && hooks.pendTap(); } else if (!pr.moved) hooks.decorPick && hooks.decorPick(pr.i); return; }
     if (arena || office) return; const d = drag; drag = null; if (d && !d.moved) tap(e); }
   function tap(e) {
     const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / S + camX, y = (e.clientY - r.top) / S + camY;
@@ -693,7 +699,12 @@ const Scene = (() => {
     exitOffice() { office = false; follow = true; edit = false; ghost = null; },
     officeDragAt(cx, cy, id) { const r = cv.getBoundingClientRect(); if (!office || !edit || cx < r.left || cx > r.right || cy < r.top || cy > r.bottom || document.elementFromPoint(cx, cy) !== cv) { hover = null; return null; } const x = (cx - r.left) / S, y = (cy - r.top) / S, c = cellAt(id, x, y); ghost = id; hover = { gx: c.gx, gy: c.gy }; return { gx: c.gx, gy: c.gy, ok: decoFits(id, c.gx, c.gy) }; },
     officeDragEnd() { ghost = null; hover = null; },
-    officeEdit(on) { edit = !!on; ghost = null; hover = null; },
+    officePend(id, gx, gy, from) { pend = { id, gx, gy, from: from == null ? null : from }; ghost = null; hover = null; },
+    officePendClear() { pend = null; },
+    officePendInfo() { if (!pend) return null; const r = decoRect(pend.id, pend.gx, pend.gy), c = cv.getBoundingClientRect(); return { id: pend.id, gx: pend.gx, gy: pend.gy, from: pend.from, ok: decoFits(pend.id, pend.gx, pend.gy, pend.from), x: c.left + (r.x + r.w / 2) * S, top: c.top + (r.y - (r.wall ? 0 : Decor.img(pend.id).height - r.h)) * S, bottom: c.top + (r.y + r.h) * S }; },
+    // 눌러서 고른 소품: 화면 가운데 근처의 빈자리 찾기
+    officeFreeSpot(id) { const d = Decor.D(id), cx = W / 2 / G, cy = d.wall ? officeData.wallH / 2 / G : (officeData.wallH + (H - officeData.wallH) * 0.55) / G; let best = null, bd = 1e9; for (let gy = 0; gy < H / G; gy++) for (let gx = 0; gx < W / G; gx++) { if (!decoFits(id, gx, gy)) continue; const dd = Math.hypot(gx + d.fw / 2 - cx, gy + d.fh / 2 - cy); if (dd < bd) { bd = dd; best = { gx, gy }; } } return best || { gx: Math.floor(cx - d.fw / 2), gy: Math.floor(cy) }; },
+    officeEdit(on) { edit = !!on; ghost = null; hover = null; pend = null; },
     officeGhost(id, ignore) { ghost = id; hover = ignore != null ? { gx: -99, gy: -99, ignore } : null; },
     officeFits: (id, gx, gy, ignore) => decoFits(id, gx, gy, ignore),
     officeMe: () => (me ? { x: (me.sit ? me.sit.x : me.x) * S, y: (me.sit ? me.sit.y : me.y) * S, sit: !!me.sit } : null),
