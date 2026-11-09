@@ -965,7 +965,7 @@ const UI = (() => {
     let kind = S().kind || 'm';
     const box = modal(`${first ? '<div class="title-logo">저승사자 키우기</div><div class="title-sub">명부를 들고 떠도는 혼을 거두어 염라대왕이 되어라</div>' : '<h2>모습 바꾸기</h2>'}
       <div class="pick"><button data-k="m"><canvas width="44" height="51"></canvas>남자 차사</button><button data-k="f"><canvas width="44" height="51"></canvas>여자 차사</button></div>
-      <input id="nm" maxlength="6" placeholder="이름 (최대 6자)" value="${S().name || ''}">
+      <input id="nm" maxlength="8" placeholder="닉네임 (2~8자)" value="${esc(S().name || '')}"><p class="mute" id="nm-msg" style="font-size:11px;min-height:15px;margin:4px 0 0">순위표·이웃 집무실에도 이 닉네임이 보여요</p>
       <div class="acts"><button class="btn red" id="go">${first ? '저승길 나서기' : '바꾸기'}</button>${first ? '' : '<button class="btn dark" data-act="close">취소</button>'}</div>`, first);
     const sel = () => box.querySelectorAll('.pick button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
     box.querySelectorAll('.pick button').forEach(b => {
@@ -973,9 +973,14 @@ const UI = (() => {
       b.onclick = () => { kind = b.dataset.k; sel(); Sound.play('open'); };
     });
     sel();
-    box.querySelector('#go').onclick = () => {
-      S().kind = kind; S().name = (box.querySelector('#nm').value || '').trim().slice(0, 6) || (kind === 'f' ? '월하' : '흑립');
-      Game.apply(); Game.save(); closeModal();
+    box.querySelector('#go').onclick = async () => {
+      const n = (box.querySelector('#nm').value || '').trim().replace(/\s+/g, ' '), msg = t => { const m = box.querySelector('#nm-msg'); m.textContent = t; m.style.color = '#ff6a7a'; };
+      if (n.length < 2) return msg('닉네임을 2자 이상 정해 주세요');
+      if (cleanText(n) !== n) return msg('쓸 수 없는 말이 들어 있어요');
+      if (n !== S().name && Board.online()) { msg('확인하는 중…'); if (await Board.nickTaken(n)) return msg('이미 다른 차사가 쓰는 닉네임이에요'); }
+      const changed = n !== S().name;
+      S().kind = kind; S().name = n; S().nickSet = true; // 처음 정한 이름이 곧 닉네임 (순위·이웃 집무실 공통)
+      Game.apply(); Game.save(); closeModal(); if (changed) { Board.push(true); Board.pushOffice(); }
       if (first) { S().created = Date.now(); S().tut = 0; setTimeout(storyIntro, 400); }
       hud();
     };
