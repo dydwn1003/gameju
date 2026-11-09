@@ -20,7 +20,7 @@ const REGIONS = [
   { id: 'palace', name: '명부전', sky: ['#06030c', '#140a24', '#26143a', '#3e2248', '#5e3a4a'], halo: '#e8c070',
     mt: ['#140a1e', '#1e1029'], rim: '#6a4a5a', ground: ['#1c1622', '#241c2a', '#2c2232'], tuft: '#4a3a4a', path: ['#4a3c42', '#5c4a4e'], fog: '#e8c8a0' },
 ];
-const POI_LABEL = { tavern: '주막', board: '의뢰 게시판', stall: '노점', stele: '도감 비석', garden: '꽃밭', gate: '파견 나루' };
+const POI_LABEL = { stall: '노점', stele: '도감 비석', garden: '꽃밭', n_jumo: '주모 · 주막', n_elder: '할아버지 · 의뢰', n_gob: '도깨비 상인', n_mudang: '무당 · 운세', n_kkachi: '까치 · 우편', n_sansin: '산신령 · 공양', n_judge: '판관 · 승진', n_boat: '뱃사공 · 파견' };
 
 const Scene = (() => {
   let cv, g, mini, mg, W = 130, H = 150, S = 3, GY = 90, WW = 390, region = 0, kind = 'm', rank = 0;
@@ -35,20 +35,27 @@ const Scene = (() => {
   const R = () => REGIONS[region];
   const seeded = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
   const clampFeet = y => Math.max(GY + 14, Math.min(H - 3, y));
-  const FIELD0 = () => 124, FIELD1 = () => WW - 160;
+  const FIELD0 = () => 126, FIELD1 = () => WW - 122;
+  let NPCS = [];
 
-  // ---------- 배치 ----------
+  // ---------- 배치 (맵 = 화면 2.4배) ----------
+  // 왼쪽: 주막 · 게시판 · 노점 · 무당 점집 / 가운데: 들판 / 오른쪽: 산신 제단 · 판관 · 도감 비석 · 꽃밭 · 파견 나루
   function layout() {
     const by = GY + 13;
     POIS = [
-      { id: 'tavern', x: 6, y: by - 30, w: 46, h: 32 },
-      { id: 'board', x: 58, y: by - 18, w: 16, h: 20 },
-      { id: 'stall', x: 80, y: by - 22, w: 32, h: 24 },
-      { id: 'stele', x: WW - 152, y: by - 20, w: 12, h: 22 },
-      { id: 'garden', x: WW - 126, y: GY + 8, w: 80, h: 44 },
-      { id: 'gate', x: WW - 36, y: by - 30, w: 30, h: 32 },
+      { id: 'tavern', x: 2, y: by - 28, w: 42, h: 30 },
+      { id: 'board', x: 48, y: by - 18, w: 16, h: 20 },
+      { id: 'stall', x: 68, y: by - 22, w: 28, h: 24 },
+      { id: 'stele', x: WW - 104, y: by - 20, w: 10, h: 22 },
+      { id: 'garden', x: WW - 82, y: GY + 8, w: 52, h: 40 },
+      { id: 'gate', x: WW - 24, y: by - 26, w: 20, h: 28 },
     ];
-    PLOTS = [0, 1, 2, 3, 4, 5].map(i => ({ x: WW - 116 + (i % 3) * 22, y: GY + 26 + Math.floor(i / 3) * 18 }));
+    PLOTS = [0, 1, 2, 3, 4, 5].map(i => ({ x: WW - 72 + (i % 3) * 16, y: GY + 26 + Math.floor(i / 3) * 16 }));
+    NPCS = [
+      { id: 'jumo', x: 24, y: by + 7 }, { id: 'elder', x: 58, y: by + 7, face: -1 }, { id: 'gob', x: 84, y: by + 8, face: -1, cond: 'merchant' },
+      { id: 'mudang', x: 112, y: by + 7 }, { id: 'kkachi', x: 56, y: by - 20, perch: 1 },
+      { id: 'sansin', x: WW - 112, y: by + 7, face: -1 }, { id: 'judge', x: WW - 92, y: by + 8, face: -1 }, { id: 'boat', x: WW - 14, y: by + 7, face: -1 },
+    ];
   }
 
   // ---------- 배경 굽기 ----------
@@ -227,41 +234,49 @@ const Scene = (() => {
   function base(x2) {
     const rect = rectOn(x2), by = GY + 13;
     // 주막
-    thatched(x2, 8, by, 42, false);
-    rect(48, by - 34, 1, 34, '#3a2414'); rect(42, by - 34, 6, 8, '#e04040'); rect(43, by - 33, 4, 1, '#ffffff'); rect(44, by - 31, 2, 3, '#ffffff');
-    rect(40, by - 22, 3, 4, '#d0a040'); rect(41, by - 24, 1, 2, '#d0a040');
-    rect(4, by + 1, 14, 2, '#7a5232'); rect(5, by + 3, 1, 3, '#5a3a22'); rect(16, by + 3, 1, 3, '#5a3a22');
+    thatched(x2, 4, by, 38, false);
+    rect(42, by - 32, 1, 32, '#3a2414'); rect(36, by - 32, 6, 8, '#e04040'); rect(37, by - 31, 4, 1, '#ffffff'); rect(38, by - 29, 2, 3, '#ffffff');
+    rect(2, by + 1, 12, 2, '#7a5232'); rect(3, by + 3, 1, 3, '#5a3a22'); rect(12, by + 3, 1, 3, '#5a3a22');
     // 의뢰 게시판
-    rect(59, by - 18, 2, 20, '#5a3a22'); rect(72, by - 18, 2, 20, '#5a3a22'); rect(58, by - 20, 17, 2, '#3a2414');
-    rect(60, by - 17, 13, 11, '#7a5232'); rect(61, by - 16, 4, 5, '#efe6d8'); rect(66, by - 15, 5, 4, '#efe6d8'); rect(62, by - 10, 6, 3, '#efe6d8'); rect(69, by - 10, 3, 3, '#ffd34a');
+    rect(49, by - 18, 2, 20, '#5a3a22'); rect(62, by - 18, 2, 20, '#5a3a22'); rect(48, by - 20, 17, 2, '#3a2414');
+    rect(50, by - 17, 13, 11, '#7a5232'); rect(51, by - 16, 4, 5, '#efe6d8'); rect(56, by - 15, 5, 4, '#efe6d8'); rect(52, by - 10, 6, 3, '#efe6d8'); rect(59, by - 10, 3, 3, '#ffd34a');
     // 노점
-    tent(x2, 84, by + 2, '#7a4ab0');
+    tent(x2, 70, by + 2, '#7a4ab0');
+    // 무당 점집: 오방색 깃발 + 상
+    rect(102, by - 22, 1, 24, '#3a2414'); rect(122, by - 22, 1, 24, '#3a2414');
+    ['#e04050', '#3a7ae0', '#f0c040', '#f0f0f0', '#40a060'].forEach((c, i) => { rect(103 + i * 4, by - 21, 3, 6, c); });
+    rect(102, by - 22, 21, 1, '#d8c8a0');
+    rect(104, by - 2, 16, 2, '#8a2a2a'); rect(105, by, 1, 3, '#5a1a1a'); rect(118, by, 1, 3, '#5a1a1a');
+    rect(106, by - 5, 1, 3, '#f0f0f0'); rect(106, by - 6, 1, 1, '#ffd34a'); rect(116, by - 5, 1, 3, '#f0f0f0'); rect(116, by - 6, 1, 1, '#ffd34a');
+    rect(110, by - 4, 4, 2, '#e0c060');
+    lanterns.push({ x: 106, y: by - 6, col: '#ffcf6a', r: 4, a: 0.3 }, { x: 116, y: by - 6, col: '#ffcf6a', r: 4, a: 0.3 });
+    // 산신 제단: 돌탑 + 작은 사당
+    const sx0 = WW - 120; cairn(x2, sx0, by + 4);
+    rect(sx0 + 6, by - 14, 12, 2, '#3a2a40'); rect(sx0 + 7, by - 12, 10, 10, '#7a2a2a'); rect(sx0 + 9, by - 10, 6, 6, '#2a1a1a'); rect(sx0 + 11, by - 8, 2, 2, '#ffd34a');
+    lanterns.push({ x: sx0 + 12, y: by - 7, col: '#ffd34a', r: 5, a: 0.3 });
     // 도감 비석
-    const sx = WW - 150; rect(sx - 2, by - 2, 12, 3, '#4a4a56'); rect(sx, by - 20, 8, 18, '#6a6a78'); rect(sx + 1, by - 20, 1, 18, '#8a8a98'); rect(sx - 1, by - 22, 10, 2, '#5a5a66');
-    rect(sx + 3, by - 16, 2, 2, '#7fd0ff'); rect(sx + 3, by - 12, 2, 1, '#7fd0ff'); rect(sx + 3, by - 9, 2, 1, '#7fd0ff');
-    lanterns.push({ x: sx + 4, y: by - 13, col: '#7fd0ff', r: 6, a: 0.25 });
-    // 꽃밭 울타리 + 이랑
-    const gx = WW - 126, gy = GY + 12;
-    for (let x = gx; x <= gx + 78; x += 6) { rect(x, gy - 4, 2, 6, '#7a5232'); rect(x, gy + 38, 2, 6, '#7a5232'); }
-    rect(gx, gy - 2, 80, 1, '#5a3a22'); rect(gx, gy + 40, 80, 1, '#5a3a22');
-    rect(gx, gy - 2, 1, 44, '#5a3a22'); rect(gx + 79, gy - 2, 1, 44, '#5a3a22');
-    // 파견 나루: 표지판 + 작은 문
-    const tx = WW - 34; rect(tx, by - 28, 2, 30, '#a02a2a'); rect(tx + 22, by - 28, 2, 30, '#a02a2a'); rect(tx - 2, by - 28, 28, 2, '#a02a2a'); rect(tx - 2, by - 28, 28, 1, '#e05050');
-    for (let i = 2; i < 22; i += 3) rect(tx + i, by - 32, 1, 5, '#a02a2a');
-    rect(tx + 6, by - 14, 12, 5, '#7a5232'); rect(tx + 15, by - 15, 4, 7, '#7a5232'); rect(tx + 7, by - 12, 7, 1, '#efe6d8');
-    rect(tx + 11, by - 9, 1, 11, '#5a3a22');
-    lanterns.push({ x: tx + 1, y: by - 24, col: '#ff8a6a', r: 6, a: 0.25 }, { x: tx + 23, y: by - 24, col: '#ff8a6a', r: 6, a: 0.25 });
+    const sx = WW - 102; rect(sx - 2, by - 2, 10, 3, '#4a4a56'); rect(sx, by - 20, 6, 18, '#6a6a78'); rect(sx + 1, by - 20, 1, 18, '#8a8a98'); rect(sx - 1, by - 22, 8, 2, '#5a5a66');
+    rect(sx + 2, by - 16, 2, 2, '#7fd0ff'); rect(sx + 2, by - 12, 2, 1, '#7fd0ff'); rect(sx + 2, by - 9, 2, 1, '#7fd0ff');
+    lanterns.push({ x: sx + 3, y: by - 13, col: '#7fd0ff', r: 6, a: 0.25 });
+    // 꽃밭 울타리
+    const gx = WW - 82, gy = GY + 12;
+    for (let x = gx; x <= gx + 50; x += 5) { rect(x, gy - 4, 1, 5, '#7a5232'); rect(x, gy + 32, 1, 5, '#7a5232'); }
+    rect(gx, gy - 2, 52, 1, '#5a3a22'); rect(gx, gy + 34, 52, 1, '#5a3a22'); rect(gx, gy - 2, 1, 36, '#5a3a22'); rect(gx + 51, gy - 2, 1, 36, '#5a3a22');
+    // 파견 나루
+    const tx = WW - 24; rect(tx, by - 26, 2, 28, '#a02a2a'); rect(tx + 16, by - 26, 2, 28, '#a02a2a'); rect(tx - 2, by - 26, 22, 2, '#a02a2a'); rect(tx - 2, by - 26, 22, 1, '#e05050');
+    for (let i = 2; i < 16; i += 3) rect(tx + i, by - 30, 1, 5, '#a02a2a');
+    lanterns.push({ x: tx + 1, y: by - 22, col: '#ff8a6a', r: 5, a: 0.25 }, { x: tx + 17, y: by - 22, col: '#ff8a6a', r: 5, a: 0.25 });
   }
 
   // ---------- 개체 ----------
   function resize() {
     const r = cv.getBoundingClientRect();
     S = r.width >= 700 ? 5 : r.width >= 520 ? 4 : r.width >= 300 ? 3 : 2;
-    W = Math.ceil(r.width / S); H = Math.ceil(r.height / S); GY = Math.round(H * 0.5); WW = W * 3;
+    W = Math.ceil(r.width / S); H = Math.ceil(r.height / S); GY = Math.round(H * 0.5); WW = Math.round(W * 2.4);
     cv.width = W; cv.height = H; g.imageSmoothingEnabled = false;
     lanterns = []; bake(); flies = [];
     reaper.x = Math.min(Math.max(reaper.x, 12), WW - 12); reaper.y = clampFeet(reaper.y);
-    critters = [{ k: 'cat', x: 30, y: GY + 20, vx: 4, t: 0 }, { k: 'crow', x: 64, y: GY - 7, t: 0, perch: 1 }, { k: 'crow', x: WW - 140, y: GY - 10, t: 1, perch: 1 }];
+    critters = [{ k: 'cat', x: 30, y: GY + 20, vx: 4, t: 0 }, { k: 'crow', x: 20, y: GY - 14, t: 0, perch: 1 }];
     if (mini) { mini.width = WW; mini.height = 1; }
   }
   function spawnSoul() {
@@ -411,10 +426,20 @@ const Scene = (() => {
     for (const f of flies) { f.x += Math.sin(time * f.sp + f.ph) * 0.12; f.y += Math.cos(time * f.sp * 1.3 + f.ph) * 0.08; if (!onScreen(f.x, 2)) continue; const k = Math.sin(time * 2.2 + f.ph * 3); if (k > 0.1) { g.fillStyle = k > 0.7 ? '#fffbb0' : '#c8e870'; g.fillRect(Math.round(f.x - camX), Math.round(f.y), 1, 1); } }
     // 주민 · 동물
     const by = GY + 13;
-    drawNpc('jumo', 28, by + 6, 1);
-    drawNpc('elder', 77, by + 7, -1);
-    if (cfg.merchant) drawNpc('gob', 98, by + 8, -1);
-    drawNpc('boat', WW - 22, by + 7, -1);
+    for (const n of NPCS) {
+      if (n.cond === 'merchant' && !cfg.merchant) continue;
+      if (!onScreen(n.x)) continue;
+      let img = n.id === 'judge' ? SP.reaper('m', 5, 'idle', 0) : n.id === 'kkachi' ? SP.pet(PETS[0], Math.floor(time * 2)) : SP.npc(n.id);
+      if ((n.face || 1) < 0) img = flipOf(img);
+      const bob = n.perch ? 0 : Math.floor(time * 1.5 + n.x) % 2;
+      if (!n.perch) { g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.round(n.x - camX - 4), n.y - 1, 8, 2); }
+      g.drawImage(img, Math.round(n.x - camX - img.width / 2), n.y - img.height + 1 + bob);
+      if (n.id === 'kkachi') { g.fillStyle = '#c8a060'; g.fillRect(Math.round(n.x - camX - 1), n.y - 6, 4, 3); g.fillStyle = '#e04040'; g.fillRect(Math.round(n.x - camX), n.y - 5, 2, 1); }
+      if (hooks.npcHot && hooks.npcHot(n.id)) { // 머리 위 느낌표
+        const ex = Math.round(n.x - camX), ey = n.y - img.height - 7 + Math.round(Math.sin(time * 5) * 1.5);
+        g.fillStyle = '#0f0c18'; g.fillRect(ex - 2, ey - 1, 5, 9); g.fillStyle = '#ffd34a'; g.fillRect(ex - 1, ey, 3, 4); g.fillRect(ex - 1, ey + 5, 3, 2);
+      }
+    }
     for (const c of critters) {
       if (!onScreen(c.x)) continue;
       const img = c.k === 'cat' ? SP.cat(c.vx === 0 ? 1 : Math.floor(c.t * 4) % 2) : SP.crow(c.perch ? 0 : Math.floor(c.t * 8) % 2);
@@ -492,6 +517,7 @@ const Scene = (() => {
   function tap(e) {
     const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / S + camX, y = (e.clientY - r.top) / S;
     if (wraith && !wraith.dead && Math.abs(x - wraith.x) < 10 && Math.abs(y - wraith.y) < 12) { const sp = scr(x, y); hooks.wraithTap && hooks.wraithTap(sp.x, sp.y); return; }
+    for (const n of NPCS) { if (n.cond === 'merchant' && !cfg.merchant) continue; if (Math.abs(x - n.x) < 7 && y > n.y - 17 && y < n.y + 3) { hooks.poi && hooks.poi(n.id === 'gob' ? 'merchant' : n.id); return; } }
     let best = null, bd = 10;
     for (const s of souls) if (s.st === 'float') { const d = Math.hypot(s.x - x, s.y - y); if (d < bd) { bd = d; best = s; } }
     if (best) {
@@ -533,7 +559,7 @@ const Scene = (() => {
     wraithHp: () => wraith ? wraith.hp : 0,
     wraithPos: () => wraith ? scr(wraith.x, wraith.y) : null,
     // 화면에 보이는 건물 이름표 위치 (CSS px)
-    labels: () => POIS.map(p => ({ id: p.id, x: (p.x + p.w / 2 - camX) * S, y: (p.y - 4) * S, vis: onScreen(p.x + p.w / 2, 4) })),
+    labels: () => POIS.map(p => ({ id: p.id, x: (p.x + p.w / 2 - camX) * S, y: (p.y - 4) * S, vis: onScreen(p.x + p.w / 2, 4) })).concat(NPCS.map(n => ({ id: 'n_' + n.id, x: (n.x - camX) * S, y: (n.y - (n.id === 'judge' ? 26 : 18)) * S, vis: onScreen(n.x, 4) && !(n.cond === 'merchant' && !cfg.merchant) }))),
     focus(id) { const p = POIS.find(q => q.id === id); if (p) { camX = Math.max(0, Math.min(WW - W, p.x + p.w / 2 - W / 2)); follow = false; followAt = time + 8; } },
     get scale() { return S; },
   };

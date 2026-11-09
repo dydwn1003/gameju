@@ -13,7 +13,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function init() {
     Game.load();
-    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, gardenReady: () => Life.alerts().garden }, $('#minimap'));
+    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, gardenReady: () => Life.alerts().garden }, $('#minimap'));
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply();
     Sound.set(S().sound, S().bgm); Sound.init();
@@ -89,7 +89,7 @@ const UI = (() => {
       if (autoAcc >= 0.5) { autoAcc = 0; hitW(Game.wraithDps() * 0.5); }
     } else if (!test) {
       nextWraith -= dt;
-      if (nextWraith <= 0) { nextWraith = rnd(70, 110); Scene.spawnWraith(Game.value() * 50, 22); toast('👻 원귀가 나타났다! 터치해서 퇴치하자', 2200); }
+      if (nextWraith <= 0) { nextWraith = rnd(70, 110); Scene.spawnWraith(Math.max(Game.value() * 50, Game.incomePerSec() * 8), 22); toast('👻 원귀가 나타났다! 터치해서 퇴치하자', 2200); }
     }
     if (test) {
       test.t -= dt;
@@ -146,7 +146,7 @@ const UI = (() => {
     Scene.config({ merchant: Life.merchantHere() });
     // 버프 표시 + 만료 시 설정 다시 적용
     const bs = ['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0);
-    $('#buffs').innerHTML = bs.map(k => `<span>${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}</span>`).join('');
+    $('#buffs').innerHTML = bs.map(k => `<span>${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}</span>`).join('') + (Life.fortuneMul() > 1 ? `<span>운세 ${S().fortune.last} ${fmtClock((S().fortune.until - Date.now()) / 1000)}</span>` : '');
     const sig = bs.join() + Game.boosting(); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
     refresh();
     if (++stuckT % 25 === 0) checkStuck();
@@ -305,15 +305,60 @@ const UI = (() => {
       e.classList.toggle('hide', !l.vis);
       if (!l.vis) return;
       e.style.left = l.x + 'px'; e.style.top = l.y + 'px';
-      const hot = (l.id === 'garden' && al.garden) || (l.id === 'gate' && al.expe) || (l.id === 'board' && Life.qReady()) || (l.id === 'stall' && Life.merchantHere());
+      const hot = l.id.startsWith('n_') ? npcHot(l.id.slice(2)) : (l.id === 'garden' && al.garden) || (l.id === 'stall' && Life.merchantHere());
       e.classList.toggle('hot', !!hot);
       if (l.id === 'stall') e.textContent = Life.merchantHere() ? '도깨비 상인!' : '노점';
     });
   }
+  function npcHot(id) {
+    const s = S(); if (!s || !s.kind) return false;
+    if (id === 'mudang') return Life.fortuneLeft() >= 2;
+    if (id === 'sansin') { const o = Life.offerState(); return (o.small > 0 && s.souls >= o.smallCost) || (o.big > 0 && s.souls >= o.bigCost); }
+    if (id === 'kkachi') return Life.mailCount() > 0;
+    if (id === 'elder') return Life.qReady();
+    if (id === 'judge') return Game.canTest();
+    if (id === 'jumo') return Life.alerts().brew;
+    if (id === 'boat') return Life.alerts().expe;
+    if (id === 'gob') return true;
+    return false;
+  }
+  function fortuneModal() {
+    const left = Life.fortuneLeft(), f = S().fortune, on = Life.fortuneMul() > 1;
+    const box = modal(`<h2>무당 · 오늘의 운세</h2><p>"어디 보자… 오늘 자네 운수를 봐 주지."</p>
+      ${on ? `<p>지금 운세 <b style="color:var(--gold)">${f.last}</b> · 혼 수확 ×${f.mul} (${fmtTime((f.until - Date.now()) / 1000)} 남음)</p>` : ''}
+      <p class="mute" style="font-size:10px">대길 6% · 길 24% · 소길 40% · 평 25% · 흉 5%(옥 30)</p>
+      <div class="acts"><button class="btn red" id="ft-go" ${left > 0 ? '' : 'disabled'}>${left >= 2 ? '운세 보기 (무료)' : left === 1 ? '한 번 더 보기' : '내일 또 오게'}${left === 1 ? '<em>AD</em>' : ''}</button><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelector('#ft-go').onclick = () => {
+      const go = () => { const F = Life.drawFortune(); if (!F) return; Sound.play(F.mul >= 1.5 ? 'promote' : 'buy');
+        modal(`<h2>오늘의 운세</h2><div class="big" style="color:${F.name === '흉' ? '#ff8a9a' : 'var(--gold)'};font-size:34px">${F.name}</div><p>${F.text}</p><div class="acts"><button class="btn red" data-act="close">고맙습니다</button></div>`); };
+      if (left === 1) { closeModal(); ad(go); } else go();
+    };
+  }
+  function offerModal() {
+    const o = Life.offerState(), s = S();
+    const box = modal(`<h2>산신령 · 공양</h2><p>"혼을 바치면 옥으로 보답하마."</p>
+      <div class="offer pbox"><div class="info"><b>작은 공양</b><div class="mute" style="font-size:10px">10분치 혼 → 옥 10 · 오늘 ${o.small}/3번</div></div><button class="btn" id="of-s" ${o.small > 0 && s.souls >= o.smallCost ? '' : 'disabled'}><img class="px" src="${IC('soul', 2)}">${fmt(o.smallCost)}</button></div>
+      <div class="offer pbox"><div class="info"><b>큰 공양</b><div class="mute" style="font-size:10px">1시간치 혼 → 옥 50 + 소환권 1 · 오늘 ${o.big}/1번</div></div><button class="btn red" id="of-b" ${o.big > 0 && s.souls >= o.bigCost ? '' : 'disabled'}><img class="px" src="${IC('soul', 2)}">${fmt(o.bigCost)}</button></div>
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelector('#of-s').onclick = () => { if (Life.offer('small')) { Sound.play('buy'); toast('공양을 올렸다. 옥 +10'); } offerModal(); };
+    box.querySelector('#of-b').onclick = () => { if (Life.offer('big')) { Sound.play('promote'); toast('큰 공양! 옥 +50 · 소환권 +1'); } offerModal(); };
+  }
+  function mailOpen() {
+    const n = Life.mailCount();
+    if (!n) { toast(`까치: 다음 편지는 ${fmtTime(Life.mailNext())} 뒤에 와요`); return; }
+    const g = Life.openMail(); Sound.play('promote');
+    modal(`<h2>까치 우편 ${g.length}통</h2><p>까치가 저승 곳곳에서 선물을 물어 왔어요.</p>${g.map(x => `<div class="offer pbox"><div class="info"><b>🎁 ${x}</b></div></div>`).join('')}<p class="mute" style="font-size:10px">4시간마다 1통, 최대 3통까지 쌓여요</p><div class="acts"><button class="btn red" data-act="close">받기</button></div>`);
+  }
   function openLife(k) { tab = 'life'; sub = k; render(); }
   function poi(id, i) {
     Sound.play('open');
-    if (id === 'tavern') openLife('tavern');
+    if (id === 'tavern' || id === 'jumo') openLife('tavern');
+    else if (id === 'elder') questModal();
+    else if (id === 'boat') openLife('expe');
+    else if (id === 'judge') { tab = 'rank'; render(); toast(Game.canTest() ? '판관: 승진 시험을 볼 수 있네!' : `판관: 레벨 ${Game.nextRank() ? Game.nextRank().lv : '-'}이 되면 다시 오게`); }
+    else if (id === 'mudang') fortuneModal();
+    else if (id === 'sansin') offerModal();
+    else if (id === 'kkachi') mailOpen();
     else if (id === 'garden') openLife('garden');
     else if (id === 'gate') openLife('expe');
     else if (id === 'stele') openLife('dex');

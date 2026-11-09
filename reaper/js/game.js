@@ -2,20 +2,20 @@
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 3, lv: 65, hp: 19000, region: 1 },
-  { name: '차사', mult: 9, lv: 300, hp: 9.7e07, region: 2 },
-  { name: '선임 차사', mult: 27, lv: 365, hp: 2.2e09, region: 3 },
-  { name: '차사장', mult: 80, lv: 405, hp: 1.7e10, region: 4 },
-  { name: '판관', mult: 240, lv: 440, hp: 1.3e11, region: 5 },
-  { name: '명부 판관', mult: 720, lv: 475, hp: 9.5e11, region: 6 },
-  { name: '시왕', mult: 2200, lv: 505, hp: 6.7e12, region: 7 },
-  { name: '염라대왕', mult: 6500, lv: 535, hp: 2.3e13, region: 8 },
+  { name: '말단 차사', mult: 3, lv: 115, hp: 110000, region: 1 },
+  { name: '차사', mult: 9, lv: 320, hp: 1.2e08, region: 2 },
+  { name: '선임 차사', mult: 27, lv: 380, hp: 2.4e09, region: 3 },
+  { name: '차사장', mult: 80, lv: 420, hp: 1.9e10, region: 4 },
+  { name: '판관', mult: 240, lv: 455, hp: 1.4e11, region: 5 },
+  { name: '명부 판관', mult: 720, lv: 490, hp: 1e12, region: 6 },
+  { name: '시왕', mult: 2200, lv: 520, hp: 7.1e12, region: 7 },
+  { name: '염라대왕', mult: 6500, lv: 550, hp: 4.9e13, region: 8 },
 ];
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 25, grow: 1.12, max: 999 },
-  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 60, grow: 1.32, max: 30 },
-  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 100, grow: 1.36, max: 35 },
-  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 90, grow: 1.34, max: 30 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 10, grow: 1.12, max: 999 },
+  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.32, max: 30 },
+  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.36, max: 35 },
+  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.34, max: 30 },
   { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.55, max: 25 },
   { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, max: 20 },
   { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.3, max: 999 },
@@ -58,7 +58,7 @@ const Game = (() => {
   const penMul = L => (1 + L * 0.45) * Math.pow(2, Math.floor(L / 25));
   const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * RANKS[S.rank].mult * rebornMult() * (S.perm2 ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
-  const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1);
+  const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
   const walk = () => (18 + lv('step') * 2.2) * Life.mul('spawn') * Pets.mul('walk');
   const spawn = () => Math.max(0.1, 0.7 * Math.pow(0.93, lv('call'))) / Life.mul('spawn');
   const reap = () => Math.max(0.12, 0.9 * Math.pow(0.93, lv('hand')) / Pets.mul('reap'));

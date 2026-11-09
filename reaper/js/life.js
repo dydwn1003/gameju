@@ -1,7 +1,7 @@
 // ===== 생활 콘텐츠: 저승 꽃밭 · 저승 주막 · 졸개 파견 · 혼령 도감 =====
 const FLOWERS = [
-  { id: 'mang', name: '망각초', grow: 10 * 60, yield: [3, 5], soul: 60, pal: { P: '#a8d8ff', p: '#5a8ad0', y: '#ffffff' }, desc: '망각의 강가에 피는 푸른 풀' },
-  { id: 'lotus', name: '저승 연꽃', grow: 60 * 60, yield: [2, 4], soul: 400, pal: { P: '#ffa8d0', p: '#d05a90', y: '#ffe08a' }, desc: '삼도천 물가의 분홍 연꽃' },
+  { id: 'mang', name: '망각초', grow: 10 * 60, yield: [3, 5], soul: 120, pal: { P: '#a8d8ff', p: '#5a8ad0', y: '#ffffff' }, desc: '망각의 강가에 피는 푸른 풀' },
+  { id: 'lotus', name: '저승 연꽃', grow: 60 * 60, yield: [2, 4], soul: 600, pal: { P: '#ffa8d0', p: '#d05a90', y: '#ffe08a' }, desc: '삼도천 물가의 분홍 연꽃' },
   { id: 'honbul', name: '혼불꽃', grow: 4 * 3600, yield: [2, 3], jade: 30, pal: { P: '#7fe8ff', p: '#2a8ac0', y: '#ffffff' }, desc: '혼불을 머금고 피는 꽃' },
   { id: 'saengsa', name: '생사화', grow: 12 * 3600, yield: [1, 2], jade: 80, pal: { P: '#ff4a5a', p: '#a01828', y: '#ffd34a' }, desc: '삶과 죽음을 잇는 붉은 꽃' },
 ];
@@ -39,6 +39,15 @@ const QUEST_POOL = [
   { id: 'ad', name: '2배 부적 쓰기', need: [1], jade: 25 },
 ];
 const QUEST_BONUS = 60;
+// 무당 운세 (하루 1번 무료 + 광고로 1번 더)
+const FORTUNES = [
+  { name: '대길', p: 0.06, mul: 2, min: 60, text: '하늘이 돕는 날! 1시간 동안 혼 수확 2배' },
+  { name: '길', p: 0.24, mul: 1.5, min: 60, text: '좋은 기운이 감도네. 1시간 동안 혼 수확 +50%' },
+  { name: '소길', p: 0.4, mul: 1.25, min: 60, text: '소소한 복이 있겠어. 1시간 동안 혼 수확 +25%' },
+  { name: '평', p: 0.25, mul: 1.2, min: 30, text: '무난한 하루. 30분 동안 혼 수확 +20%' },
+  { name: '흉', p: 0.05, mul: 1, min: 0, jade: 30, text: '액운이 끼었으니 부적값을 주지. 옥 30개' },
+];
+const MAIL_EVERY = 4 * 3600e3, MAIL_MAX = 3;
 // 도깨비 상인 (가끔 노점에 들름)
 const MERCHANT_POOL = [
   { id: 'm_honbul', name: '혼불꽃 씨앗 ×2', jade: 35, seed: { honbul: 2 } },
@@ -66,7 +75,50 @@ const Life = (() => {
     s.dex = s.dex || {};
     s.merchant = s.merchant || { next: now() + 3 * 60e3, until: 0, offers: [], bought: [] };
     questDay();
+    s.fortune = s.fortune || { day: '', n: 0, mul: 1, until: 0, last: '' };
+    s.offer = s.offer || { day: '', small: 0, big: 0 };
+    s.mail = s.mail || { last: now() - MAIL_EVERY };
   }
+  const dayStr = () => new Date().toISOString().slice(0, 10);
+
+  // ---------- 무당: 오늘의 운세 ----------
+  function fortuneLeft() { const f = S().fortune; if (f.day !== dayStr()) { f.day = dayStr(); f.n = 0; } return 2 - f.n; }
+  function drawFortune() {
+    if (fortuneLeft() <= 0) return null;
+    const f = S().fortune; f.n++;
+    let r = Math.random(), F = FORTUNES[FORTUNES.length - 1];
+    for (const x of FORTUNES) { if (r < x.p) { F = x; break; } r -= x.p; }
+    if (F.min) { f.mul = F.mul; f.until = now() + F.min * 60e3; }
+    if (F.jade) S().jade += F.jade;
+    f.last = F.name; Game.apply(); Game.save(); return F;
+  }
+  const fortuneMul = () => { const f = S() && S().fortune; return f && now() < f.until ? f.mul : 1; };
+
+  // ---------- 산신령: 공양 (혼 → 옥) ----------
+  function offerState() { const o = S().offer; if (o.day !== dayStr()) { o.day = dayStr(); o.small = 0; o.big = 0; } return { small: 3 - o.small, big: 1 - o.big, smallCost: Math.max(200, Math.ceil(Game.incomePerSec(true) * 600)), bigCost: Math.max(1000, Math.ceil(Game.incomePerSec(true) * 3600)) }; }
+  function offer(kind) {
+    const st = offerState(), s = S();
+    if (kind === 'small') { if (st.small <= 0 || s.souls < st.smallCost) return null; s.souls -= st.smallCost; s.offer.small++; s.jade += 10; Game.save(); return { jade: 10 }; }
+    if (st.big <= 0 || s.souls < st.bigCost) return null; s.souls -= st.bigCost; s.offer.big++; s.jade += 50; s.tickets = (s.tickets || 0) + 1; Game.save(); return { jade: 50, ticket: 1 };
+  }
+
+  // ---------- 까치 우체부: 4시간마다 선물 (최대 3통) ----------
+  const mailCount = () => { const m = S() && S().mail; return m ? Math.min(MAIL_MAX, Math.floor((now() - m.last) / MAIL_EVERY)) : 0; };
+  function openMail() {
+    const n = mailCount(); if (!n) return null;
+    const s = S(), gifts = [];
+    for (let i = 0; i < n; i++) {
+      const r = Math.random();
+      if (r < 0.1) { s.tickets = (s.tickets || 0) + 1; gifts.push('펫 소환권 1장'); }
+      else if (r < 0.4) { const j = 10 + Math.floor(Math.random() * 11); s.jade += j; gifts.push(`옥 ${j}개`); }
+      else if (r < 0.7) { const f = ['mang', 'lotus', 'honbul'][Math.floor(Math.random() * 3)], k = f === 'honbul' ? 1 : 3; s.seeds[f] = (s.seeds[f] || 0) + k; gifts.push(`${FLOWERS.find(x => x.id === f).name} 씨앗 ${k}개`); }
+      else { const a = Game.incomePerSec(true) * 1800; Game.gain(a); gifts.push(`혼 ${fmt(a)} (30분치)`); }
+    }
+    s.mail.last = Math.max(s.mail.last + n * MAIL_EVERY, now() - MAIL_EVERY * (MAIL_MAX - 1));
+    if (n >= MAIL_MAX) s.mail.last = now();
+    Game.save(); return gifts;
+  }
+  const mailNext = () => { const m = S().mail; return Math.max(0, MAIL_EVERY - ((now() - m.last) % MAIL_EVERY)) / 1000; };
 
   // ---------- 일일 의뢰 ----------
   function questDay() {
@@ -199,5 +251,5 @@ const Life = (() => {
       brew: RECIPES.some(canBrew),
     };
   }
-  return { qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
+  return { fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
 })();

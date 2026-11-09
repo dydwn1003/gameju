@@ -231,6 +231,8 @@ const SP = (() => {
     jumo: { rows: mirror(['..KKK', '.KAAA', '.KAaA', 'KAAAA', 'KASSS', 'KASES', '.KSPS', '..KKK', '.KWWW', 'KWWBB', 'KSKUU', '.KUWW', '.KUWW', 'KUUWW', 'KKKKK']), pal: { U: '#8a3a3a', W: '#efe6d8' } },
     elder: { rows: mirror(['.....', '..KKK', '.KiSS', '.KiSS', '.KSES', '.KSSS', '..Kii', '..Kii', '.KjjW', 'KjjjW', 'KSKjj', '.Kjjj', '.Kjjj', '.Kjjj', '.KKKK']), pal: { j: '#8a8aa0', i: '#f0f0f0' }, cane: 1 },
     gob: { rows: mirror(['.y...', '.yK..', '.KOOO', 'KOOOO', 'KOEOO', 'KOOwO', '.KOOO', '..KKK', '.KBBB', 'KBBcB', 'KOKBB', '.KTTT', '.KTTT', '.KTTT', '.KKKK']), pal: { O: '#5ec46a', B: '#3a6ab0', c: '#24447a', T: '#c8a060', w: '#ffffff', E: '#1a1024' } },
+    mudang: { rows: mirror(['..K.K', '.KyKy', '.KBBB', 'KAAAA', 'KASSS', 'KASES', '.KSPS', '..KKK', '.KBWW', 'KBBRR', 'KSKRR', '.KRBR', '.KRBR', 'KRRBR', 'KKKKK']), pal: { B: '#3a6ae0', R: '#e04050', W: '#f0f0f0', y: '#ffd34a' } },
+    sansin: { rows: mirror(['..KKK', '.KiiK', 'KiiSS', 'KiSES', 'KiSSS', '.Kiii', 'KWiii', 'KWWii', 'KWWWW', 'KSWWW', '.KWWW', '.KWWW', 'KWWWW', 'KWWWW', 'KKKKK']), pal: { W: '#e8eef8', i: '#ffffff' }, cane: 1 },
     boat: { rows: mirror(['.KKKK', 'KTTTT', 'KtTTT', '..KKK', '..KSS', '..KSE', '...KK', '..KRR', '.KRRR', '.KSRR', '..KRR', '..KRR', '..KRR', '..KRR', '..KKK']), pal: { R: '#3a4a5a', T: '#c8a860', t: '#9a7a40' } },
   };
   const CAT = [['.K..K...', 'KAKKAK..', 'KAEAEK..', 'KAAAAKK.', '.KAAAAAK', '.KKKKKK.'], ['.K..K...', 'KAKKAK..', 'KAKAKK..', 'KAAAAK.K', '.KAAAAAK', '.KKKKKK.']];

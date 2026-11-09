@@ -323,3 +323,6 @@ img.px, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 .ch-card small { display: block; font-size: 13px; color: var(--mute); letter-spacing: 4px; }
 .ch-card b { display: block; font-size: 28px; color: #ffe08a; margin-top: 6px; text-shadow: 3px 3px 0 #7e1f2a, -2px -2px 0 #000; }
 .btn.ticket { width: 100%; margin-top: 8px; }
+
+.plabel[id^='lb-n_'] { font-size: 9px; font-weight: 400; background: rgba(15, 12, 24, 0.6); }
+.plabel[id^='lb-n_'].hot { font-weight: 700; }
