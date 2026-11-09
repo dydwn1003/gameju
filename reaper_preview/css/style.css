@@ -717,3 +717,24 @@ img { -webkit-user-drag: none; user-select: none; }
 .pr-gift img { height: 44px; } .pr-gift div { display: flex; flex-direction: column; } .pr-gift small { font-size: 10px; color: #ffd34a; } .pr-gift b { font-size: 14px; color: #fff; } .pr-gift span { font-size: 10px; color: #cfc8e6; }
 .ds-card.ex { border-color: rgba(160, 200, 255, .4); background: rgba(120, 160, 255, .07); }
 .ds-card.ex .btn { font-size: 9.5px; padding: 4px 6px 5px; }
+
+/* 꾸미기 보관함 (왼쪽 위 네모 창) */
+#deco-inv { position: absolute; left: 8px; top: 8px; width: min(232px, 62vw); max-height: 56%; display: none; flex-direction: column; gap: 5px; padding: 8px; z-index: 6; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(34, 28, 66, .96), rgba(18, 14, 36, .96)); border: 1.5px solid rgba(255, 210, 110, .4); box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
+#deco-inv.on { display: flex; }
+#deco-inv.min .iv-cats, #deco-inv.min .iv-grid { display: none; }
+.iv-head { display: flex; align-items: center; gap: 6px; } .iv-head b { font-size: 12px; color: #ffe08a; } .iv-head small { flex: 1; font-size: 10px; color: #9a92b8; }
+.iv-head button { width: 24px; height: 22px; border-radius: 8px; background: rgba(255,255,255,.08); color: #fff; font-size: 10px; }
+.iv-cats { display: flex; flex-wrap: wrap; gap: 3px; }
+.iv-cats button { padding: 3px 7px; border-radius: 999px; font-size: 10px; color: #cfc8e6; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
+.iv-cats button i { font-style: normal; margin-left: 3px; font-size: 9px; color: #8a82a8; }
+.iv-cats button.on { color: #2a1a00; background: #ffd34a; border-color: #ffd34a; font-weight: 700; } .iv-cats button.on i { color: #6a4a00; }
+.iv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; overflow-y: auto; min-height: 0; touch-action: pan-y; }
+.iv-grid .dk-it { flex: none; width: auto; padding: 4px 2px; font-size: 9px; touch-action: pan-y; }
+.iv-grid .dk-it img { height: 30px; } .iv-grid .dk-it span { max-width: 100%; font-size: 9px; } .iv-grid .dk-it small { font-size: 8.5px; }
+.iv-grid p { grid-column: 1 / -1; font-size: 11px; text-align: center; }
+#deco-bar .dk-list { display: none; }
+.iv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } .iv-grid .dk-it { min-width: 0; overflow: hidden; } .iv-grid .dk-it span { display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.deco-t #toasts { top: auto !important; bottom: 150px; }
+.iv-grid { grid-auto-rows: max-content; align-content: start; } .iv-grid .dk-it { overflow: visible !important; }
+#deco-inv.dragging { opacity: .18; pointer-events: none; transition: opacity .15s; } #deco-bar.on ~ #deco-inv.dragging, #stage.deco-edit #deco-bar { }

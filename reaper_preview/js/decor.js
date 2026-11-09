@@ -176,7 +176,9 @@ DECOR_PACKS.forEach(P => { P.full = P.items.reduce((a, id) => a + DECOR.find(d =
 const Decor = (() => {
   const S = () => Game.S;
   const D = id => DECOR.find(d => d.id === id);
-  function ensure() { const s = S(); if (!s.decor) s.decor = { own: {}, placed: [], gift: 0 }; if (!s.decor.gift) { DECOR.filter(d => d.free).forEach(d => (s.decor.own[d.id] = (s.decor.own[d.id] || 0) + 1)); s.decor.gift = 1; } return s.decor; }
+  const REMOVED = { throne: 1500, yongsang: 1100 }; // 삭제된 소품: 갖고 있던 만큼 옥으로 돌려줌
+  function ensure() { const s = S(); if (!s.decor) s.decor = { own: {}, placed: [], gift: 0 };
+    if (!s.decor.clean2) { Object.keys(s.decor.own).forEach(id => { if (!D(id)) { if (REMOVED[id]) s.jade += REMOVED[id] * s.decor.own[id]; delete s.decor.own[id]; } }); s.decor.placed = s.decor.placed.filter(p => D(p.id)); s.decor.clean2 = 1; } if (!s.decor.gift) { DECOR.filter(d => d.free).forEach(d => (s.decor.own[d.id] = (s.decor.own[d.id] || 0) + 1)); s.decor.gift = 1; } return s.decor; }
   const isEx = d => d.rank != null || d.story != null || !!d.quest; // 승진·이야기·의뢰로만 얻는 소품
   // 유료 특제 의자 (테스트 결제): 그 직급에 오르면 살 수 있다
   function buyCash(id) { const d = D(id), s = S(); if (!d || !d.cash || s.rank < (d.rankReq || 0)) return false; ensure().own[id] = owned(id) + 1; Game.save(); return true; }

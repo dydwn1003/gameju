@@ -13,7 +13,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function init() {
     Game.load();
-    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => Decor.ensure().placed, decorTap, decorPick, decorDrop, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => Decor.ensure().placed.filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply(); if (S().kind) { Decor.grantRank(S().rank); Decor.grantStory(Math.max(-1, (S().story || {}).ch - 1)); }
@@ -493,24 +493,33 @@ const UI = (() => {
     if (sheetOpen()) closeSheet();
     Scene.officeEdit(true); decoSel = null; decoMove = null;
     let db = $('#deco-bar'); if (!db) { db = document.createElement('div'); db.id = 'deco-bar'; $('#stage').appendChild(db); }
-    db.classList.add('on'); $('#office-bar').classList.add('editing'); $('#stage').classList.add('deco-edit'); decoBar();
+    let inv = $('#deco-inv'); if (!inv) { inv = document.createElement('div'); inv.id = 'deco-inv'; $('#stage').appendChild(inv); } inv.classList.add('on'); inv.classList.remove('min');
+    db.classList.add('on'); $('#office-bar').classList.add('editing'); $('#stage').classList.add('deco-edit'); document.body.classList.add('deco-t'); decoBar();
   }
-  function decoEnd(silent) { const db = $('#deco-bar'); if (!db || !db.classList.contains('on')) return; db.classList.remove('on'); $('#office-bar') && $('#office-bar').classList.remove('editing'); $('#stage').classList.remove('deco-edit'); Scene.officeEdit(false); decoSel = null; decoMove = null; if (!silent) { Sound.play('buy'); toast(`꾸미기 완료! 품격 ${Decor.score()} · ${Decor.title(Decor.score())} (수확량 +${Math.round((Decor.mul() - 1) * 100)}%)`, 3000); } officeBar(); }
+  function decoEnd(silent) { const db = $('#deco-bar'); if (!db || !db.classList.contains('on')) return; db.classList.remove('on'); $('#deco-inv') && $('#deco-inv').classList.remove('on'); $('#office-bar') && $('#office-bar').classList.remove('editing'); $('#stage').classList.remove('deco-edit'); document.body.classList.remove('deco-t'); Scene.officeEdit(false); decoSel = null; decoMove = null; if (!silent) { Sound.play('buy'); toast(`꾸미기 완료! 품격 ${Decor.score()} · ${Decor.title(Decor.score())} (수확량 +${Math.round((Decor.mul() - 1) * 100)}%)`, 3000); } officeBar(); }
+  let invCat = 'all';
+  const INV_CATS = [['all', '전체'], ['floor', '바닥'], ['wall', '벽'], ['chair', '의자'], ['plant', '화초'], ['ex', '한정']];
+  const invMatch = (d, c) => c === 'all' || (c === 'floor' && !d.wall && !d.seat) || (c === 'wall' && d.wall) || (c === 'chair' && d.seat) || (c === 'plant' && /화분|분재|난초|연꽃|매화|대나무|피안화/.test(d.name)) || (c === 'ex' && (Decor.isEx(d) || d.cash));
   function decoBar() {
-    const db = $('#deco-bar'); if (!db) return;
-    const own = DECOR.filter(d => Decor.owned(d.id) > 0), dc = Decor.ensure(), sc = Decor.score(), keep = db.querySelector('.dk-list') ? db.querySelector('.dk-list').scrollLeft : 0;
+    const db = $('#deco-bar'), inv = $('#deco-inv'); if (!db) return;
+    const own = DECOR.filter(d => Decor.owned(d.id) > 0), dc = Decor.ensure(), sc = Decor.score();
     db.innerHTML = `<div class="dk-top"><div><b>🏮 ${Decor.title(sc)}</b><small>품격 ${sc} · 수확량 +${Math.round((Decor.mul() - 1) * 100)}% · 배치 ${dc.placed.length}개</small></div><button class="btn jade" id="dk-shop">상점</button><button class="btn red" id="dk-done">완료</button></div>
-      <div class="dk-tip">${decoSel ? `<b>${Decor.D(decoSel).name}</b>을(를) 놓을 자리를 누르세요 ${decoMove ? '' : '· <a id="dk-cancel">취소</a>'}` : '소품을 <b>위로 끌어서</b> 놓으세요 · 놓인 소품은 끌어서 옮겨요 · 책상 뒤 <b style="color:#9fd6ff">파란 칸</b>엔 의자를 놓을 수 있어요'}</div>
-      <div class="dk-list">${own.length ? own.map(d => { const sp = Decor.spare(d.id); return `<button class="dk-it ${decoSel === d.id ? 'on' : ''} ${sp ? '' : 'used'}" data-dk="${d.id}"><img class="px" src="${decoThumb(d.id)}"><span>${d.name}</span><small>${sp ? '남음 ' + sp : '모두 배치'}</small></button>`; }).join('') : '<p class="mute">가진 소품이 없어요. 상점에서 구해 보세요.</p>'}</div>`;
-    const dl = db.querySelector('.dk-list'); if (dl) dl.scrollLeft = keep;
+      <div class="dk-tip">${decoSel ? `<b>${Decor.D(decoSel).name}</b>을(를) 놓을 자리를 누르세요 ${decoMove ? '' : '· <a id="dk-cancel">취소</a>'}` : '왼쪽 위 <b>보관함</b>에서 소품을 <b>끌어내어</b> 놓으세요 · 놓인 소품은 끌어서 옮겨요 · 책상 뒤 <b style="color:#9fd6ff">파란 칸</b>은 의자 자리'}</div>`;
     db.querySelector('#dk-done').onclick = () => decoEnd();
     db.querySelector('#dk-shop').onclick = decoShop;
     const cn = db.querySelector('#dk-cancel'); if (cn) cn.onclick = () => { decoSel = null; Scene.officeGhost(null); decoBar(); };
-    listDragInit(db);
-    db.querySelectorAll('[data-dk]').forEach(b => b.onclick = () => {
+    if (!inv) return;
+    const keep = inv.querySelector('.iv-grid') ? inv.querySelector('.iv-grid').scrollTop : 0, list = own.filter(d => invMatch(d, invCat));
+    inv.innerHTML = `<div class="iv-head"><b>📦 보관함</b><small>${own.length}종</small><button id="iv-min">${inv.classList.contains('min') ? '▼' : '▲'}</button></div>
+      <div class="iv-cats">${INV_CATS.map(([k, n]) => `<button data-ivc="${k}" class="${invCat === k ? 'on' : ''}">${n}<i>${own.filter(d => invMatch(d, k)).length}</i></button>`).join('')}</div>
+      <div class="iv-grid">${list.length ? list.map(d => { const sp = Decor.spare(d.id); return `<button class="dk-it ${decoSel === d.id ? 'on' : ''} ${sp ? '' : 'used'}" data-dk="${d.id}" title="${d.name}"><img class="px" src="${decoThumb(d.id)}"><span>${d.name}</span><small>${sp ? '×' + sp : '배치됨'}</small></button>`; }).join('') : '<p class="mute">이 분류의 소품이 없어요</p>'}</div>`;
+    const gr = inv.querySelector('.iv-grid'); if (gr) gr.scrollTop = keep;
+    inv.querySelector('#iv-min').onclick = () => { inv.classList.toggle('min'); decoBar(); };
+    inv.querySelectorAll('[data-ivc]').forEach(b => b.onclick = () => { invCat = b.dataset.ivc; inv.querySelector('.iv-grid') && (inv.querySelector('.iv-grid').scrollTop = 0); decoBar(); const g2 = inv.querySelector('.iv-grid'); if (g2) g2.scrollTop = 0; });
+    listDragInit(inv);
+    inv.querySelectorAll('[data-dk]').forEach(b => b.onclick = () => {
       if (performance.now() - listDragDone < 300) return;
       const id = b.dataset.dk; if (Decor.spare(id) <= 0) { toast('모두 놓았어요. 놓인 소품을 눌러 옮기거나 보관할 수 있어요'); return; }
-      if (dc.placed.length >= Decor.maxPlace()) { toast(`지금 집무실엔 ${Decor.maxPlace()}개까지 놓을 수 있어요. 승진하면 더 놓을 수 있어요!`, 2800); return; }
       decoSel = decoSel === id ? null : id; Scene.officeGhost(decoSel); Sound.play('open'); decoBar();
     });
   }
@@ -530,17 +539,18 @@ const UI = (() => {
   }
   addEventListener('pointermove', e => {
     if (!listDrag) return;
-    if (!listDrag.on) { const dy = listDrag.y0 - e.clientY, dx = Math.abs(e.clientX - listDrag.x0); if (dy > 10 && dy > dx) { if (Decor.spare(listDrag.id) <= 0) { toast('모두 놓았어요'); listDrag = null; return; } if (Decor.ensure().placed.length >= Decor.maxPlace()) { toast(`지금 집무실엔 ${Decor.maxPlace()}개까지 놓을 수 있어요. 승진하면 더 놓을 수 있어요!`, 2800); listDrag = null; return; } listDrag.on = true; const im = document.createElement('img'); im.id = 'dk-drag'; im.className = 'px'; im.src = decoThumb(listDrag.id, 4); document.body.appendChild(im); decoSel = null; } else if (dx > 10) { listDrag = null; return; } }
+    if (!listDrag.on) { const ir = $('#deco-inv') ? $('#deco-inv').getBoundingClientRect() : null, out = ir && (e.clientX > ir.right + 4 || e.clientY > ir.bottom + 4 || e.clientX < ir.left - 4); const dy = listDrag.y0 - e.clientY, dx = Math.abs(e.clientX - listDrag.x0); if (out || Math.hypot(dx, dy) > 12) { if (Decor.spare(listDrag.id) <= 0) { toast('모두 놓았어요'); listDrag = null; return; } if (Decor.ensure().placed.length >= Decor.maxPlace()) { toast(`지금 집무실엔 ${Decor.maxPlace()}개까지 놓을 수 있어요. 승진하면 더 놓을 수 있어요!`, 2800); listDrag = null; return; } listDrag.on = true; $('#deco-inv') && $('#deco-inv').classList.add('dragging'); const im = document.createElement('img'); im.id = 'dk-drag'; im.className = 'px'; im.src = decoThumb(listDrag.id, 4); document.body.appendChild(im); decoSel = null; } }
     if (listDrag && listDrag.on) { const im = $('#dk-drag'); if (im) { im.style.left = e.clientX + 'px'; im.style.top = e.clientY + 'px'; } const r = Scene.officeDragAt(e.clientX, e.clientY, listDrag.id); if (im) im.classList.toggle('over', !!r); }
   });
   addEventListener('pointerup', e => {
-    if (!listDrag) return; const d = listDrag; listDrag = null; if (!d.on) return;
+    if (!listDrag) return; const d = listDrag; listDrag = null; if (!d.on) { $('#deco-inv') && $('#deco-inv').classList.remove('dragging'); return; }
     const im = $('#dk-drag'); if (im) im.remove();
-    const r = Scene.officeDragAt(e.clientX, e.clientY, d.id); Scene.officeDragEnd(); d.dropped = true; listDragDone = performance.now();
+    const r = Scene.officeDragAt(e.clientX, e.clientY, d.id); $('#deco-inv') && $('#deco-inv').classList.remove('dragging'); Scene.officeDragEnd(); d.dropped = true; listDragDone = performance.now();
     if (!r) return; if (!r.ok) { Sound.play('no'); toast('여기엔 놓을 수 없어요 (빨간 칸·다른 소품과 겹침)'); return; }
     if (Decor.place(d.id, r.gx, r.gy)) { Sound.play('buy'); decoBar(); officeBar(); }
   });
   let listDragDone = 0;
+  addEventListener('pointercancel', () => { if (listDrag) { $('#deco-inv') && $('#deco-inv').classList.remove('dragging'); const im = $('#dk-drag'); if (im) im.remove(); Scene.officeDragEnd(); listDrag = null; } });
   function decorPick(i) {
     const p = Decor.ensure().placed[i]; if (!p) return; const d = Decor.D(p.id);
     const box = modal(`<div class="pinfo"><img class="px" src="${decoThumb(p.id, 4)}" style="height:72px"><h2>${d.name}</h2><p class="mute">품격 +${d.pt}${d.seat ? ' · 앉을 수 있어요' : ''}</p></div>
