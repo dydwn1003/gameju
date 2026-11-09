@@ -364,7 +364,7 @@ const UI = (() => {
     h += SHOP_IAP.map(P => { const left = Game.iapLeft(P.id), own = left <= 0, sl = P.seal ? Game.sealLeft() : 0; return `<div class="card pbox ${own ? 'owned' : ''}">${P.tag ? `<span class="tag">${P.tag}</span>` : ''}<img class="px" src="${IC(P.icon, P.icon === 'jade' ? 4 : 3)}"><div class="nm">${P.name}</div><div class="ds">${P.desc || '보석함에 바로 지급'}</div>
       ${P.daily ? `<div class="ds" style="color:var(--gold)">하루 ${P.daily}번 · 오늘 ${Math.max(0, left)}번 남음</div>` : ''}${sl > 0 ? `<div class="ds" style="color:var(--jade)">효과 남은 기간 ${fmtDays(sl)}</div>` : ''}
       <button class="btn red" data-iap="${P.id}" ${own ? 'disabled' : ''}>${own ? (P.daily ? '내일 다시' : '구매 완료') : priceOf(P.id)}</button></div>`; }).join('');
-    h += `</div><p class="note">테스트 버전: 실제 결제·광고 없이 바로 지급됩니다.</p>`;
+    h += `</div>${testPay() ? '<p class="note">테스트 버전: 실제 결제·광고 없이 바로 지급됩니다.</p>' : ''}`;
     P.innerHTML = h;
   }
   // 버튼 상태만 갱신 (DOM을 다시 만들지 않아 터치가 끊기지 않음)
@@ -1518,7 +1518,7 @@ const UI = (() => {
     Sound.play('open');
     const o = overlay(`<div class="gs-bg" style="--c:${col}"></div><div class="gs-motes">${motes}</div>
       <div class="gs-stage" style="--c:${col}">${ring}<div class="gs-talisman"><b>召</b><span></span></div><div class="gs-pillar ${best >= 4 ? 'rainbow' : ''}"></div><div class="gs-flash"></div></div>
-      <div class="gs-cards n${res.length} ${res.length > 10 ? 'many' : ''}" style="${res.length > 1 && res.length !== 10 ? `grid-template-columns:repeat(${Math.min(5, res.length)},1fr)` : ''}">${res.map((r, i) => { const p = Pets.P(r.id), c = PET_GRADES[p.g].col; return `<div class="gs-card g${p.g}" style="--c:${c};--i:${i}"><div class="gs-in"><div class="gs-back"><b>靈</b></div><div class="gs-front"><span class="gb" style="background:${c}">${p.g}</span><canvas width="12" height="11" data-gp="${r.id}"></canvas><b>${p.name}</b><small>${r.up ? (r.isNew ? '등급UP·NEW' : '등급 UP!') : r.isNew ? 'NEW!' : '여분 +1'}</small></div></div></div>`; }).join('')}</div>
+      <div class="gs-cards n${res.length} ${res.length > 10 ? 'many' : ''}" style="${res.length > 1 && res.length !== 10 ? `grid-template-columns:repeat(${Math.min(5, res.length)},1fr)` : ''}">${res.map((r, i) => { const p = Pets.P(r.id), c = PET_GRADES[p.g].col; return `<div class="gs-card gr-${p.g}" style="--c:${c};--i:${i}"><div class="gs-in"><div class="gs-back"><b>靈</b></div><div class="gs-front"><span class="gb" style="background:${c}">${p.g}</span><canvas width="12" height="11" data-gp="${r.id}"></canvas><b>${p.name}</b><small>${r.up ? (r.isNew ? '등급UP·NEW' : '등급 UP!') : r.isNew ? 'NEW!' : '여분 +1'}</small></div></div></div>`; }).join('')}</div>
       <button class="gs-skip2" id="gs-skip">건너뛰기 ▶▶</button>${opt.fuse ? `<div class="gs-fuse">${res.some(r => r.up) ? '✨ 등급 상승 성공!' : '영물 합성 완료'}</div>` : ''}
       <div class="gs-acts ${opt.fuse ? 'fz' : ''}"><button class="btn jade" id="gs-one">1회 더<em>${S().tickets ? '소환권' : '옥 ' + PULL_COST[1]}</em></button><button class="btn red" id="gs-ten">10회 더<em>옥 ${PULL_COST[10]}</em></button><button class="btn dark" id="ga-close">확인</button></div>`);
     o.querySelectorAll('[data-gp]').forEach(c => previews.push({ c, pet: Pets.P(c.dataset.gp), keep: 1 }));

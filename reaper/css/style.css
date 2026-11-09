@@ -297,8 +297,8 @@ img.px, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 .ga-card b { font-size: 10px; white-space: nowrap; } .ga-cards.n1 .ga-card b { font-size: 14px; }
 .ga-card small { font-size: 9px; color: #ffd34a; }
 .ga-card .gb { position: absolute; top: -6px; left: -4px; }
-.ga-card.gSS, .ga-card.gSSS { box-shadow: 0 0 0 2px var(--line), inset 0 0 0 2px var(--c), 0 0 16px var(--c); }
-.ga-card.gSSS { animation: cardin 0.35s calc(1s + var(--i) * 0.09s) cubic-bezier(.3, 1.6, .5, 1) forwards, glowc 1s 1.5s steps(2) infinite; }
+.ga-card.gr-SS, .ga-card.gr-SSS { box-shadow: 0 0 0 2px var(--line), inset 0 0 0 2px var(--c), 0 0 16px var(--c); }
+.ga-card.gr-SSS { animation: cardin 0.35s calc(1s + var(--i) * 0.09s) cubic-bezier(.3, 1.6, .5, 1) forwards, glowc 1s 1.5s steps(2) infinite; }
 @keyframes cardin { from { opacity: 0; transform: scale(0.3) rotateY(90deg); } to { opacity: 1; transform: none; } }
 @keyframes glowc { 50% { filter: brightness(1.4); } }
 .ga-acts { position: absolute; left: 0; right: 0; bottom: 12%; text-align: center; animation: fadein 0.3s 1.9s both; }
@@ -457,7 +457,7 @@ html, body { background: var(--n0); }
 .gs-front b { font-size: 10px; white-space: nowrap; } .gs-cards.n1 .gs-front b { font-size: 14px; }
 .gs-front small { font-size: 9px; color: #ffd34a; }
 .gs-front .gb { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); }
-.gs-card.gSS .gs-front, .gs-card.gSSS .gs-front { animation: gsshine 1.6s 2.6s ease-in-out infinite; }
+.gs-card.gr-SS .gs-front, .gs-card.gr-SSS .gs-front { animation: gsshine 1.6s 2.6s ease-in-out infinite; }
 @keyframes gsshine { 50% { box-shadow: 0 0 26px var(--c), 0 0 4px #fff inset; } }
 .gs-acts { position: absolute; left: 0; right: 0; bottom: 10%; text-align: center; opacity: 0; animation: gsfade .4s 2.8s ease-out reverse forwards; }
 .gs-acts { animation: gsin .4s 2.8s ease-out forwards; } @keyframes gsin { to { opacity: 1; } }
@@ -892,3 +892,37 @@ html.native, html.native body { overscroll-behavior: none; -webkit-touch-callout
 .m-x:active { transform: scale(0.92); }
 /* 창이 열려 있는 동안 안내는 숨김 */
 #tut.under { display: none; }
+
+/* ===== 디자인 점검: 상자 밖으로 삐져나와 잘리던 표시들을 상자 안쪽으로 ===== */
+/* 상점 카드의 추천 · +10% · 7일 · 1회 한정 */
+.card .tag { top: 6px; left: 6px; right: auto; z-index: 2; line-height: 1.4; padding: 2px 6px; font-size: 9px; letter-spacing: -0.2px; max-width: calc(100% - 12px); white-space: nowrap; }
+/* 재화가 모자랄 때 구매 페이지: 태그를 줄 안에 나란히 */
+.bp-row > div { flex: 1; min-width: 0; }
+.bp-row em { position: static; flex: none; align-self: center; padding: 2px 6px; line-height: 1.3; white-space: nowrap; }
+/* 영물 도감 등급 · 여분 개수 */
+.pcell .gb { top: 3px; left: 3px; z-index: 1; }
+.pinv { top: 3px; right: 3px; z-index: 1; }
+.ga-card .gb { top: 3px; left: 3px; }
+/* 소품 상점 분류: 옆으로 숨지 않게 두 줄로 */
+.ds-cats { flex-wrap: wrap; overflow-x: visible; }
+.ds-cats button { padding: 5px 10px; }
+/* 보관함 소품 이름: 말줄임 대신 두 줄까지 */
+.iv-grid .dk-it span { white-space: normal !important; text-overflow: clip !important; overflow: hidden; display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; font-size: 8.5px !important; word-break: keep-all; min-height: 2.4em; }
+/* 이름 옆 작은 칩(시간 · 레벨 등)이 줄바꿈으로 쪼개지지 않게 */
+.nm small, .nm em, .row .nm > small, .ds small.chip { white-space: nowrap; display: inline-block; }
+/* 소품 세트: 좁은 화면에서 그림 줄을 위로 올려 이름 · 할인 문구가 쪼개지지 않게 */
+.ds-pt b { word-break: keep-all; }
+.ds-pt small:last-child, .ds-pt .sale { white-space: nowrap; }
+@media (max-width: 400px) {
+  .ds-pack { flex-wrap: wrap; }
+  .ds-pi { flex: 0 0 100% !important; flex-wrap: nowrap; justify-content: flex-start; order: -1; }
+  .ds-pi img { height: 22px !important; }
+}
+/* 위쪽 재화: 숫자가 두 줄로 쪼개지지 않게 */
+.cur b { white-space: nowrap; }
+.cur:first-child { min-width: 86px; }
+.cur.jade { flex-shrink: 0; }
+@media (max-width: 380px) { .cur { font-size: 13px; padding: 0 7px 0 4px; gap: 3px; } .cur img { width: 20px; height: 20px; } }
+/* 소품 세트: 가격 버튼은 항상 오른쪽 */
+.ds-pt { flex: 1 1 0 !important; }
+.ds-pack .btn { margin-left: auto; flex: none; }

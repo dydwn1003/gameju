@@ -7,15 +7,17 @@ css = (root / 'css' / 'style.css').read_text().replace("url('../fonts/", "url('f
 body = re.search(r'<body>(.*?)<script src=', html, re.S).group(1)
 scripts = re.findall(r'<script src="(js/[^"]+)"></script>', html)
 js = '\n'.join((root / s).read_text() for s in scripts)
-page = f'''<title>저승사자 키우기</title>
+page = f'''<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>저승사자 키우기</title>
 <meta name="theme-color" content="#0b0a1c">
 <style>{css}
-:root{{color-scheme:dark}}html,body{{height:100%;background:#08071a}}#app{{height:100%}}</style>
+:root{{color-scheme:dark}}html,body{{height:100%;background:#08071a}}#app{{height:100%}}</style></head><body>
 {body}
 <script>
 {js}
 UI.init();
-</script>
+</script></body></html>
 '''
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(page)

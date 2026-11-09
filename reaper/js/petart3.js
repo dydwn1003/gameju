@@ -80,5 +80,7 @@ function shadeSprite(c) {
 }
 function petArt3(id, i) {
   const A = PET3[id]; if (!A) return null;
-  return shadeSprite(compose(20, 16, [[A.rows, 1, i % 2 ? 2 : 1]], Object.assign({ K: '#0b0a0e', E: '#1a1024', w: '#ffffff', P: '#ff9ab0' }, A.pal)));
+  // base: 다른 영물의 그림을 빌려 색만 바꾼 영물 (petart4.js)
+  const Base = A.base ? PET3[A.base] : null, rows = A.rows || (Base && Base.rows); if (!rows) return null;
+  return shadeSprite(compose(20, 16, [[rows, 1, i % 2 ? 2 : 1]], Object.assign({ K: '#0b0a0e', E: '#1a1024', w: '#ffffff', P: '#ff9ab0' }, Base ? Base.pal : {}, A.pal)));
 }

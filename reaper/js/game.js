@@ -268,5 +268,5 @@ function fmt(n) {
 function fmtTime(sec) {
   sec = Math.floor(sec);
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-  return h ? `${h}시간 ${m}분` : m ? `${m}분 ${s}초` : `${s}초`;
+  return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : m ? (s ? `${m}분 ${s}초` : `${m}분`) : `${s}초`;
 }
