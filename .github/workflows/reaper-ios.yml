@@ -1,8 +1,7 @@
 # 저승사자 키우기 — iOS 빌드 → TestFlight 업로드
 #
 # 실행: GitHub → Actions → "저승사자 iOS TestFlight" → Run workflow
-#       또는 reaper-v1.0.0 같은 태그를 push 하면 자동 실행
-# reaper/ 를 고쳐서 push 하면 "빌드 확인"(서명 없이 컴파일만)이 자동으로 돌아요
+# 자동 실행 없음: 요청할 때만 수동 실행 (코드 push · 태그로는 돌지 않음)
 # 서명은 App Store Connect API 키로 Xcode 자동 서명(클라우드 인증서)을 쓴다. 필요한 Secrets 는 reaper/docs/APP_RELEASE.md 참고
 name: 저승사자 iOS TestFlight
 
@@ -13,10 +12,6 @@ on:
         description: '빌드만 확인 (서명 · 업로드 안 함)'
         type: boolean
         default: false
-  push:
-    tags: ['reaper-v*']
-    branches-ignore: [main]
-    paths: ['reaper/**', '.github/workflows/reaper-ios.yml']
 
 concurrency:
   group: reaper-ios-${{ github.ref }}

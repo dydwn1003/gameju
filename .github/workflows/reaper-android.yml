@@ -1,8 +1,7 @@
 # 저승사자 키우기 — 안드로이드 AAB 빌드 → Play Console 업로드 (+ 바로 설치용 APK)
 #
 # 실행: GitHub → Actions → "저승사자 Android 출시" → Run workflow
-#       또는 reaper-v1.0.0 같은 태그를 push 하면 자동 실행
-# reaper/ 를 고쳐서 push 하면 "빌드 확인"만 자동으로 돌아요 (서명 · 업로드 없음)
+# 자동 실행 없음: 요청할 때만 수동 실행 (코드 push · 태그로는 돌지 않음)
 # 필요한 Secrets 는 reaper/docs/APP_RELEASE.md 참고
 name: 저승사자 Android 출시
 
@@ -21,10 +20,6 @@ on:
         description: '빌드만 확인 (서명 키 없이, 업로드 안 함)'
         type: boolean
         default: false
-  push:
-    tags: ['reaper-v*']
-    branches-ignore: [main]
-    paths: ['reaper/**', '.github/workflows/reaper-android.yml']
 
 permissions:
   contents: write

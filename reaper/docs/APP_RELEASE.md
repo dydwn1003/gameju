@@ -63,8 +63,7 @@
 
 **실행 방법**
 - **수동 실행:** GitHub → **Actions** → 워크플로 선택 → **Run workflow**
-- **태그로 실행:** `reaper-v1.0.0` 같은 태그를 push 하면 두 개가 같이 실행돼요.
-- **자동 빌드 확인:** `reaper/` 를 고쳐서 브랜치에 push 하면 서명 · 업로드 없이 빌드만 확인해요.
+- **자동 실행 없음:** 코드를 push 하거나 태그를 올려도 돌지 않아요. **APK · AAB · TestFlight 는 요청할 때만** 실행해요(Claude 에게 "APK 만들어줘", "TestFlight 올려줘").
 - **빌드 번호:** 실행할 때마다 자동으로 +1 돼요.
 - **버전 이름:** `js/config.js` 의 `APP.version` 을 씁니다.
 
