@@ -156,12 +156,13 @@ const UI = (() => {
     Scene.config({ merchant: Life.merchantHere() });
     // 버프 표시 + 만료 시 설정 다시 적용
     const bs = ['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0);
-    $('#buffs').innerHTML = bs.map(k => `<span>${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}</span>`).join('') + (Life.fortuneMul() > 1 ? `<span>운세 ${S().fortune.last} ${fmtClock((S().fortune.until - Date.now()) / 1000)}</span>` : '');
-    const sig = bs.join() + Game.boosting(); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
+    $('#buffs').innerHTML = bs.map(k => `<span>${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}</span>`).join('') + (Life.fortuneMul() > 1 ? `<span>운세 ${S().fortune.last} ${fmtClock((S().fortune.until - Date.now()) / 1000)}</span>` : '') + (Game.sealLeft() > 0 ? `<span>염라의 인장 ×2 ${fmtDays(Game.sealLeft())}</span>` : '');
+    const sig = bs.join() + Game.boosting() + (Game.sealLeft() > 0); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
     refresh(); officeBar(); officeTutCheck();
     if (++stuckT % 25 === 0) checkStuck();
   }
   const dot = (t, on) => $(`#tabs [data-tab="${t}"] .dot`).classList.toggle('on', on);
+  const fmtDays = t => t >= 86400 ? `${Math.floor(t / 86400)}일 ${Math.floor(t % 86400 / 3600)}시간` : fmtTime(t);
   const fmtClock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   function float(x, y, text, cls) {
     if (cls === 'dmg' && Scene.inOffice()) return;
@@ -279,8 +280,9 @@ const UI = (() => {
     h += JADE_SHOP.map(J => `<div class="card pbox"><img class="px" src="${IC(J.hours ? 'scroll' : J.boost ? 'luck' : 'minion', J.hours ? 4 : 3)}"><div class="nm">${J.name}</div><div class="ds">${J.desc}${J.hours ? `<br><b style="color:var(--soul)">+${fmt(Game.incomePerSec(true) * 3600 * J.hours)}</b>` : ''}</div>
       ${J.day ? `<div class="ds" style="color:var(--gold)">오늘 ${Game.jadeLeft(J.id)}/${J.day}회 남음</div>` : ''}<button class="btn jade" data-jade="${J.id}" ${Game.jadeCost(J.id) == null ? 'disabled' : s.jade >= Game.jadeCost(J.id) ? '' : 'data-short="jade"'}>${Game.jadeCost(J.id) == null ? '내일 다시' : `<img class="px" src="${IC('jade', 2)}">${Game.jadeCost(J.id)}`}</button></div>`).join('');
     h += `</div><div class="sec">패키지</div><div class="grid2">`;
-    h += SHOP_IAP.map(P => { const own = P.once && s.bought[P.id]; return `<div class="card pbox ${own ? 'owned' : ''}">${P.tag ? `<span class="tag">${P.tag}</span>` : ''}<img class="px" src="${IC(P.icon, P.icon === 'jade' ? 4 : 3)}"><div class="nm">${P.name}</div><div class="ds">${P.desc || '보석함에 바로 지급'}</div>
-      <button class="btn red" data-iap="${P.id}" ${own ? 'disabled' : ''}>${own ? '구매 완료' : P.price}</button></div>`; }).join('');
+    h += SHOP_IAP.map(P => { const left = Game.iapLeft(P.id), own = left <= 0, sl = P.seal ? Game.sealLeft() : 0; return `<div class="card pbox ${own ? 'owned' : ''}">${P.tag ? `<span class="tag">${P.tag}</span>` : ''}<img class="px" src="${IC(P.icon, P.icon === 'jade' ? 4 : 3)}"><div class="nm">${P.name}</div><div class="ds">${P.desc || '보석함에 바로 지급'}</div>
+      ${P.daily ? `<div class="ds" style="color:var(--gold)">하루 ${P.daily}번 · 오늘 ${Math.max(0, left)}번 남음</div>` : ''}${sl > 0 ? `<div class="ds" style="color:var(--jade)">효과 남은 기간 ${fmtDays(sl)}</div>` : ''}
+      <button class="btn red" data-iap="${P.id}" ${own ? 'disabled' : ''}>${own ? (P.daily ? '내일 다시' : '구매 완료') : P.price}</button></div>`; }).join('');
     h += `</div><p class="note">테스트 버전: 실제 결제·광고 없이 바로 지급됩니다.</p>`;
     P.innerHTML = h;
   }
@@ -895,7 +897,7 @@ const UI = (() => {
   function buyPage(kind) {
     closeOverlay && $('#promo').classList.contains('on') && closeOverlay();
     const s = S(), jadeKind = kind !== 'souls';
-    const packs = SHOP_IAP.filter(P => jadeKind ? P.jade && !P.perm2 && !P.noAds && !(P.once && s.bought && s.bought[P.id]) : (P.hours || P.boost || P.perm2) && !(P.once && s.bought && s.bought[P.id]));
+    const packs = SHOP_IAP.filter(P => Game.iapLeft(P.id) > 0 && (jadeKind ? P.jade && !P.seal && !P.noAds : (P.hours || P.boost || P.seal)));
     const row = P => `<div class="bp-row"><img class="px" src="${IC(P.icon || 'jade', 3)}"><div><b>${P.name}</b><small>${P.desc || ''}</small></div>${P.tag ? `<em>${P.tag}</em>` : ''}<button class="btn red" data-bp="${P.id}">${P.price}</button></div>`;
     const jadeOpts = !jadeKind ? JADE_SHOP.filter(J => J.hours || J.boost).map(J => { const c = Game.jadeCost(J.id); return c == null ? '' : `<div class="bp-row"><img class="px" src="${IC(J.hours ? 'scroll' : 'luck', 3)}"><div><b>${J.name}</b><small>${J.desc}${J.hours ? ' · +' + fmt(Game.incomePerSec(true) * 3600 * J.hours) : ''}</small></div><button class="btn jade" data-bj="${J.id}" ${s.jade >= c ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${c}</button></div>`; }).join('') : '';
     const box = modal(`<div class="bp-head"><b>${jadeKind ? '💎 옥이 부족해요' : '🔥 혼이 부족해요'}</b><small>보유 ${jadeKind ? `옥 <i class="red">${fmt(s.jade)}</i>` : `혼 <i class="red">${fmt(s.souls)}</i>`}</small></div>
