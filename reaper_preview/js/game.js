@@ -57,7 +57,7 @@ const Game = (() => {
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
   const penMul = L => (1 + L * 0.45) * Math.pow(2, Math.floor(L / 25));
-  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * RANKS[S.rank].mult * rebornMult() * (S.perm2 ? 2 : 1);
+  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * RANKS[S.rank].mult * rebornMult() * (S.perm2 ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
   const walk = () => (30 + lv('step') * 3) * Life.mul('spawn') * Pets.mul('walk');
@@ -220,7 +220,7 @@ const Game = (() => {
   function load() {
     try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
     if (!S) S = fresh();
-    Life.ensure(); Pets.ensure(); Story.ensure();
+    Life.ensure(); Pets.ensure(); Story.ensure(); if (typeof Decor !== 'undefined') Decor.ensure();
   }
   // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 60%)
   function offline() {

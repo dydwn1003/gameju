@@ -13,7 +13,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function init() {
     Game.load();
-    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => Decor.ensure().placed, decorTap, decorPick, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply();
@@ -164,6 +164,7 @@ const UI = (() => {
   const dot = (t, on) => $(`#tabs [data-tab="${t}"] .dot`).classList.toggle('on', on);
   const fmtClock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   function float(x, y, text, cls) {
+    if (cls === 'dmg' && Scene.inOffice()) return;
     const box = $('#floats'); if (box.children.length > 28) box.firstChild.remove();
     const e = document.createElement('span'); e.className = 'fl ' + (cls || ''); e.textContent = text;
     e.style.left = x + 'px'; e.style.top = y + 'px'; box.appendChild(e);
@@ -421,25 +422,28 @@ const UI = (() => {
     if (!Scene.inOffice()) { Scene.enterOffice(S().rank); Sound.play('open'); }
     let bar = $('#office-bar'); if (!bar) { bar = document.createElement('div'); bar.id = 'office-bar'; $('#stage').appendChild(bar); }
     const N = Game.nextRank();
-    bar.innerHTML = `<div class="of-top"><button class="btn dark" id="of-out">◀ 나가기</button><div><b>${Scene.officeName(S().rank)}</b><small>${N ? `다음: ${Scene.officeName(S().rank + 1)} (Lv.${N.lv})` : '저승 최고의 집무실'}</small></div></div>
-      <div class="of-acts"><button id="of-docs"><span>📜</span>결재<i></i></button><button id="of-judge"><span>⚖️</span>망자 심판<i></i></button><button id="of-expe"><span>🚣</span>부하 파견<i></i></button></div>`;
-    bar.classList.add('on'); $('#side').style.display = 'none'; $('#stage').classList.add('in-office'); document.body.classList.add('in-office-t');
+    bar.innerHTML = `<div class="of-top"><button class="btn dark" id="of-out">◀ 나가기</button><div><b>${Scene.officeName(S().rank)}</b><small>${N ? `다음: ${Scene.officeName(S().rank + 1)} (Lv.${N.lv})` : '저승 최고의 집무실'}</small></div></div>`;
+    let acts = $('#office-acts'); if (!acts) { acts = document.createElement('div'); acts.id = 'office-acts'; $('#stage').appendChild(acts); }
+    acts.innerHTML = `<div class="of-acts"><button id="of-docs"><span>📜</span>결재<i></i></button><button id="of-judge"><span>⚖️</span>망자 심판<i></i></button><button id="of-expe"><span>🚣</span>부하 파견<i></i></button><button id="of-deco"><span>🏮</span>꾸미기<i></i></button></div>`;
+    bar.classList.add('on'); acts.classList.add('on'); $('#side').style.display = 'none'; $('#stage').classList.add('in-office'); document.body.classList.add('in-office-t');
     bar.querySelector('#of-out').onclick = exitOffice;
-    bar.querySelector('#of-docs').onclick = () => { claimDocs(); tutEv('docs'); };
-    bar.querySelector('#of-judge').onclick = () => { judgeModal(); tutEv('judge'); };
-    bar.querySelector('#of-expe').onclick = () => { openLife('expe'); tutEv('expe'); };
+    $('#of-docs').onclick = () => { claimDocs(); tutEv('docs'); };
+    $('#of-judge').onclick = () => { judgeModal(); tutEv('judge'); };
+    $('#of-expe').onclick = () => { openLife('expe'); tutEv('expe'); };
+    $('#of-deco').onclick = () => decoStart();
     officeBar(); tutEv('office');
   }
   // 집무실 버튼의 숫자 갱신
   function officeBar() {
     const bar = $('#office-bar'); if (!bar || !bar.classList.contains('on')) return;
     const d = Life.docsCount(), j = Life.judgeLeft(), e = S().expe || [], ed = e.filter(x => Life.expeLeft(x) <= 0).length;
-    const set = (q, txt, hot) => { const b = bar.querySelector(q); if (!b) return; b.querySelector('i').textContent = txt; b.classList.toggle('hot', hot); };
+    const set = (q, txt, hot) => { const b = $(q); if (!b) return; b.querySelector('i').textContent = txt; b.classList.toggle('hot', hot); };
     const dn = Life.docsNext(); set('#of-docs', d ? d + '건' : `${Math.floor(dn / 3600)}:${String(Math.floor(dn % 3600 / 60)).padStart(2, '0')}`, d > 0);
     set('#of-judge', `${j}/${Life.JUDGE_MAX}`, j > 0);
     set('#of-expe', ed ? '완료!' : `${e.length}/${Life.slots()}`, ed > 0 || e.length < Life.slots());
+    set('#of-deco', `품격 ${Decor.score()}`, DECOR.some(d => Decor.spare(d.id) > 0) && Decor.ensure().placed.length < Decor.maxPlace());
   }
-  function exitOffice() { Scene.exitOffice(); const bar = $('#office-bar'); if (bar) bar.classList.remove('on'); $('#side').style.display = ''; $('#stage').classList.remove('in-office'); document.body.classList.remove('in-office-t'); Sound.play('open'); }
+  function exitOffice() { decoEnd(true); Scene.exitOffice(); const bar = $('#office-bar'); if (bar) bar.classList.remove('on'); $('#office-acts') && $('#office-acts').classList.remove('on'); $('#side').style.display = ''; $('#stage').classList.remove('in-office'); document.body.classList.remove('in-office-t'); Sound.play('open'); }
   // ---------- 순위 ----------
   const TIER = { 1: { name: '저승 제일 차사', icon: '👑', col: '#ffd34a' }, 2: { name: '명예의 차사', icon: '🥈', col: '#dfe8ff' }, 3: { name: '이름난 차사', icon: '🥉', col: '#ffb070' } };
   function applyPlace(p) {
@@ -480,6 +484,55 @@ const UI = (() => {
     } catch (e) { if (document.body.contains(L)) L.innerHTML = rankRow(mine, 0) + '<p class="note">순위를 불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</p>'; }
   }
   const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // ---------- 집무실 꾸미기 ----------
+  let decoSel = null, decoMove = null;
+  const decoThumb = (id, sc = 2) => { const k = 'dc' + id + sc; return urls[k] || (urls[k] = toURL(Decor.img(id), sc)); };
+  function decoStart() {
+    if (!Scene.inOffice()) enterOffice();
+    if (sheetOpen()) closeSheet();
+    Scene.officeEdit(true); decoSel = null; decoMove = null;
+    let db = $('#deco-bar'); if (!db) { db = document.createElement('div'); db.id = 'deco-bar'; $('#stage').appendChild(db); }
+    db.classList.add('on'); $('#office-bar').classList.add('editing'); $('#stage').classList.add('deco-edit'); decoBar();
+  }
+  function decoEnd(silent) { const db = $('#deco-bar'); if (!db || !db.classList.contains('on')) return; db.classList.remove('on'); $('#office-bar') && $('#office-bar').classList.remove('editing'); $('#stage').classList.remove('deco-edit'); Scene.officeEdit(false); decoSel = null; decoMove = null; if (!silent) { Sound.play('buy'); toast(`꾸미기 완료! 품격 ${Decor.score()} · ${Decor.title(Decor.score())} (수확량 +${Math.round((Decor.mul() - 1) * 100)}%)`, 3000); } officeBar(); }
+  function decoBar() {
+    const db = $('#deco-bar'); if (!db) return;
+    const own = DECOR.filter(d => Decor.owned(d.id) > 0), dc = Decor.ensure(), sc = Decor.score();
+    db.innerHTML = `<div class="dk-top"><div><b>🏮 ${Decor.title(sc)}</b><small>품격 ${sc} · 수확량 +${Math.round((Decor.mul() - 1) * 100)}% · 배치 ${dc.placed.length}/${Decor.maxPlace()}</small></div><button class="btn jade" id="dk-shop">상점</button><button class="btn red" id="dk-done">완료</button></div>
+      <div class="dk-tip">${decoSel ? `<b>${Decor.D(decoSel).name}</b>을(를) 놓을 자리를 누르세요 ${decoMove ? '' : '· <a id="dk-cancel">취소</a>'}` : '아래에서 소품을 고르거나, 놓인 소품을 눌러 옮기세요'}</div>
+      <div class="dk-list">${own.length ? own.map(d => { const sp = Decor.spare(d.id); return `<button class="dk-it ${decoSel === d.id ? 'on' : ''} ${sp ? '' : 'used'}" data-dk="${d.id}"><img class="px" src="${decoThumb(d.id)}"><span>${d.name}</span><small>${sp ? '남음 ' + sp : '모두 배치'}</small></button>`; }).join('') : '<p class="mute">가진 소품이 없어요. 상점에서 구해 보세요.</p>'}</div>`;
+    db.querySelector('#dk-done').onclick = () => decoEnd();
+    db.querySelector('#dk-shop').onclick = decoShop;
+    const cn = db.querySelector('#dk-cancel'); if (cn) cn.onclick = () => { decoSel = null; Scene.officeGhost(null); decoBar(); };
+    db.querySelectorAll('[data-dk]').forEach(b => b.onclick = () => {
+      const id = b.dataset.dk; if (Decor.spare(id) <= 0) { toast('모두 놓았어요. 놓인 소품을 눌러 옮기거나 보관할 수 있어요'); return; }
+      if (dc.placed.length >= Decor.maxPlace()) { toast(`지금 집무실엔 ${Decor.maxPlace()}개까지 놓을 수 있어요. 승진하면 더 놓을 수 있어요!`, 2800); return; }
+      decoSel = decoSel === id ? null : id; Scene.officeGhost(decoSel); Sound.play('open'); decoBar();
+    });
+  }
+  function decorTap(gx, gy, ok) {
+    if (!decoSel) return;
+    if (!ok) { Sound.play('no'); toast('여기엔 놓을 수 없어요 (빨간 칸·다른 소품과 겹침)'); return; }
+    if (Decor.place(decoSel, gx, gy)) { Sound.play('buy'); Scene.burstAt(gx * DECOR_G * Scene.scale + DECOR_G, gy * DECOR_G * Scene.scale, '#ffe08a', 12); if (Decor.spare(decoSel) <= 0 || decoMove) { decoSel = null; decoMove = null; Scene.officeGhost(null); } decoBar(); officeBar(); }
+  }
+  function decorPick(i) {
+    const p = Decor.ensure().placed[i]; if (!p) return; const d = Decor.D(p.id);
+    const box = modal(`<div class="pinfo"><img class="px" src="${decoThumb(p.id, 4)}" style="height:72px"><h2>${d.name}</h2><p class="mute">품격 +${d.pt}${d.seat ? ' · 앉을 수 있어요' : ''}</p></div>
+      <div class="acts"><button class="btn" id="dp-move">옮기기</button><button class="btn dark" id="dp-store">보관하기</button><button class="btn dark" data-act="close">취소</button></div>`);
+    box.querySelector('#dp-move').onclick = () => { closeModal(); Decor.remove(i); decoSel = p.id; decoMove = true; Scene.officeGhost(p.id); decoBar(); };
+    box.querySelector('#dp-store').onclick = () => { closeModal(); Decor.remove(i); Sound.play('open'); decoBar(); officeBar(); };
+  }
+  function decoShop() {
+    const s = S();
+    const card = d => { const n = Decor.owned(d.id); return `<div class="ds-card ${d.cash ? 'cash' : ''}"><img class="px" src="${decoThumb(d.id, 3)}"><b>${d.name}</b><small>품격 +${d.pt}${d.seat ? ' · 앉기' : ''}${d.wall ? ' · 벽' : ''}</small><p>${d.desc}</p>${n ? `<em>보유 ${n}</em>` : ''}
+      ${d.free ? '<button class="btn dark" disabled>무료 지급</button>' : d.cash ? '<button class="btn dark" disabled>패키지 전용</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
+    const box = modal(`<h2>🏮 소품 상점</h2><p class="mute">놓은 소품의 품격만큼 수확량이 올라요 (최대 +40%)</p>
+      <div class="ds-packs">${DECOR_PACKS.map(P => `<div class="ds-pack"><div class="ds-pi">${P.items.map(id => `<img class="px" src="${decoThumb(id, 2)}">`).join('')}</div><div class="ds-pt"><b>${P.name}</b><small>${P.desc}</small></div><button class="btn red" data-dpack="${P.id}">${P.price}</button></div>`).join('')}</div>
+      <div class="ds-grid">${DECOR.filter(d => !d.cash).map(card).join('')}${DECOR.filter(d => d.cash).map(card).join('')}</div>
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelectorAll('[data-dbuy]').forEach(b => b.onclick = () => { const d = Decor.D(b.dataset.dbuy); if (Decor.buy(d.id)) { Sound.play('buy'); toast(`${d.name} 구입! 아래 목록에서 골라 놓아 보세요`); closeModal(); decoBar(); decoShop(); } else { Sound.play('no'); toast('옥이 부족해요'); } });
+    box.querySelectorAll('[data-dpack]').forEach(b => b.onclick = () => { const P = DECOR_PACKS.find(x => x.id === b.dataset.dpack); closeModal(); confirmBox(`<h2>${P.name}</h2><p>${P.desc}</p><div class="big" style="color:var(--gold)">${P.price}</div><p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>`, () => { Decor.buyPack(P.id); Sound.play('promote'); toast(`${P.name} 지급 완료!`); decoBar(); decoShop(); }, '구매'); });
+  }
   function judgeModal() {
     const c = Life.judgeCase();
     if (!c) { toast(`오늘 심판은 모두 끝났어요. 내일 새 망자가 와요 (누적 명판결 ${S().judge.total}건)`); return; }
