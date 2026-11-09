@@ -106,5 +106,5 @@ const Board = (() => {
   async function refresh() { try { await top(); } catch (e) {} }
   // 순위 구간: 1 = 1위, 2 = 2~5위, 3 = 6~10위, 0 = 그 밖
   const tierOf = p => (p === 1 ? 1 : p >= 2 && p <= 5 ? 2 : p >= 6 && p <= 10 ? 3 : 0);
-  return { init, push, top, nickTaken, isOwner: () => owner, notices, postNotice, delNotice, mails, sendMail, delMail, total: () => total, pushOffice, offices, office, like, note, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
+  return { init, push, top, nickTaken, isOwner: () => owner, checkOwner: isOwner, notices, postNotice, delNotice, mails, sendMail, delMail, total: () => total, pushOffice, offices, office, like, note, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
 })();

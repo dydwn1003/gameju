@@ -802,3 +802,4 @@ input, textarea { user-select: text !important; -webkit-user-select: text !impor
 .ad-form label { font-size: 11px; color: #cfc8e6; display: flex; flex-direction: column; gap: 3px; } .ad-form label:has(input[type=checkbox]) { flex-direction: row; align-items: center; }
 .ad-form input[type=checkbox] { width: 16px; height: 16px; } .ad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 #modal .btn#nt-write, #modal .btn#ml-send { width: 100%; margin-top: 6px; }
+.adm-badge { font-size: 11px !important; color: #7fffb0 !important; background: rgba(80, 220, 140, .12); border: 1px solid rgba(80, 220, 140, .4); border-radius: 10px; padding: 6px 8px; }

@@ -468,7 +468,7 @@ const UI = (() => {
     let tries = 0; const go = () => { if (busy() && tries++ < 40) { setTimeout(go, 1000); return; } if (!busy()) noticeModal(true); }; go();
   }
   async function noticeModal(startup) {
-    const list = noticeCache || await loadNotices(), admin = Board.online() && Board.isOwner();
+    const list = noticeCache || await loadNotices(), admin = Board.online() && await Board.checkOwner();
     const box = modal(`<h2>📢 공지사항</h2><div class="nt-list">${list.length ? list.map((n, i) => `<div class="nt-item ${i === 0 ? 'open' : ''}" data-nt="${esc(n.id)}"><div class="nt-head">${n.pin ? '<em>📌</em>' : ''}<b>${esc(n.title)}</b><small>${fmtDate(n.at)}</small>${admin ? `<button class="nt-del" data-ntdel="${esc(n.id)}">삭제</button>` : ''}</div><div class="nt-body">${esc(n.body || '').replace(/\n/g, '<br>')}</div></div>`).join('') : '<div class="rkload">아직 공지사항이 없어요</div>'}</div>
       ${admin ? '<button class="btn" id="nt-write">✍️ 공지 쓰기 (운영자)</button>' : ''}
       <label class="nt-hide"><input type="checkbox" id="nt-today" ${(S().noticeHide || 0) > Date.now() ? 'checked' : ''}> 오늘 하루 그만보기 <small>(한국 시간 00시에 다시 떠요)</small></label>
@@ -496,7 +496,7 @@ const UI = (() => {
     Game.save(); return true;
   }
   async function mailModal() {
-    const admin = Board.online() && Board.isOwner();
+    const admin = Board.online() && await Board.checkOwner();
     if (!Board.online()) { modal(`<h2>📮 우편함</h2><p>운영자 우편은 claude.ai에서 공유된 게임 페이지를 열면 받을 수 있어요.<br><span class="mute">까치 우편은 마을의 까치를 눌러 받아요.</span></p><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
     let list = []; try { list = mailCache = await Board.mails(); } catch (e) { list = mailCache || []; }
     const got = S().mailGot || {}, left = list.filter(m => !got[m.id]);
@@ -1067,6 +1067,7 @@ const UI = (() => {
       <div class="set-row"><span>퇴치한 원귀 / 터치 수확</span><span>${s.stats.wraith} / ${s.stats.tap}</span></div>
       <div class="acts"><button class="btn dark" id="s-reset">처음부터</button><button class="btn red" data-act="close">닫기</button></div>`);
     const sn = box.querySelector('#s-nick'); if (sn) sn.onclick = () => { closeModal(); nickModal(); };
+    if (Board.online()) Board.checkOwner().then(o => { const h = box.querySelector('h2'); if (o && h && document.body.contains(h)) h.insertAdjacentHTML('afterend', '<p class="adm-badge">🛡️ 운영자 모드 · 📢 공지 쓰기 / 📮 전체 우편 보내기를 쓸 수 있어요</p>'); });
     box.querySelector('#s-look').onclick = () => charSelect(false);
     box.querySelector('#s-snd').onclick = () => { s.sound = !s.sound; Sound.set(s.sound, s.bgm); Game.save(); settings(); };
     box.querySelector('#s-bgm').onclick = () => { s.bgm = !s.bgm; Sound.set(s.sound, s.bgm); Game.save(); settings(); };
