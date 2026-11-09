@@ -191,7 +191,7 @@ const Decor = (() => {
   const spare = id => owned(id) - placedCount(id);
   const maxPlace = () => Infinity; // 배치 개수 제한 없음 (빈자리만 있으면 얼마든지)
   function buy(id) { const d = D(id), s = S(); if (!d || !d.price || d.rank || d.story != null || d.quest || s.jade < d.price) return false; s.jade -= d.price; ensure().own[id] = owned(id) + 1; Game.save(); return true; }
-  function buyPack(pid) { const P = DECOR_PACKS.find(p => p.id === pid), s = S(); ensure(); s.decor.packs = s.decor.packs || {}; if (s.decor.packs[pid] || s.jade < P.price) return false; s.jade -= P.price; P.items.forEach(id => (s.decor.own[id] = owned(id) + 1)); s.decor.packs[pid] = 1; Game.save(); return true; }
+  function buyPack(pid) { const P = DECOR_PACKS.find(p => p.id === pid), s = S(); if (!P) return false; ensure(); s.decor.packs = s.decor.packs || {}; if (s.decor.packs[pid] || s.jade < P.price) return false; s.jade -= P.price; P.items.forEach(id => (s.decor.own[id] = owned(id) + 1)); s.decor.packs[pid] = 1; Game.save(); return true; }
   const packBought = pid => !!((ensure().packs || {})[pid]);
   function place(id, gx, gy) { const dc = ensure(); if (spare(id) <= 0 || dc.placed.length >= maxPlace()) return false; dc.placed.push({ id, gx, gy }); Game.apply(); Game.save(); return true; }
   function remove(i) { const dc = ensure(); const p = dc.placed.splice(i, 1)[0]; Game.apply(); Game.save(); return p; }
