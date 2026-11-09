@@ -288,7 +288,8 @@ const Scene = (() => {
     const seats = [];
     for (let k = 0; k < O.staff; k++) { const col = k % 2, row = Math.floor(k / 2), sx = col ? w * 0.78 : w * 0.22, sy = wallH + 44 + row * 18; if (sy > h - 8) break; rect(sx - 8, sy - 2, 16, 4, '#5a3a22'); rect(sx - 8, sy - 2, 16, 1, '#7a5232'); rect(sx - 3, sy - 4, 5, 2, '#e8d8a8'); seats.push({ x: sx, y: sy + 9 }); }
     // 소품을 놓을 수 없는 자리 (벽: 창·책장·병풍 / 바닥: 책상·부하 자리·화로)
-    const wallB = [], floorB = [{ x: cx - dw / 2 - 3, y: deskY - 14, w: dw + 6, h: 28 }];
+    const wallB = [], floorB = [{ x: cx - dw / 2 - 3, y: deskY - 1, w: dw + 6, h: 15 }];
+    const chairB = { x: cx - dw / 2 - 3, y: deskY - 16, w: dw + 6, h: 15 }; // 책상 뒤: 의자(앉는 소품)만 놓을 수 있는 자리
     for (let k = 0; k < (t >= 4 ? 3 : 1); k++) { const wx = t >= 4 ? 18 + k * ((w - 60) / 2) : w / 2 - 12; wallB.push({ x: wx - 1, y: 7, w: 26, h: 18 }); }
     if (O.shelf) { wallB.push({ x: 3, y: wallH - 23, w: 28, h: 23 }); if (O.shelf > 1) wallB.push({ x: w - 31, y: wallH - 23, w: 28, h: 23 }); }
     if (O.ledger) wallB.push({ x: w / 2 - 31, y: 3, w: 62, h: wallH - 6 });
@@ -296,7 +297,7 @@ const Scene = (() => {
     if (O.throne) floorB.push({ x: cx - 21, y: deskY - 33, w: 42, h: 20 });
     seats.forEach(p => floorB.push({ x: p.x - 9, y: p.y - 13, w: 18, h: 17 }));
     for (let k = 0; k < (O.brazier || 0); k++) { const bx = k % 2 ? w - 18 : 10, by = h - 18 - Math.floor(k / 2) * 40; floorB.push({ x: bx - 2, y: by - 20, w: 14, h: 22 }); }
-    return { c, seats, wallH, wallB, floorB, desk: { x: cx, y: deskY - 1 }, docs: { x: cx + dw / 2 - 6, y: deskY - 1 } };
+    return { c, seats, wallH, wallB, floorB, chairB, desk: { x: cx, y: deskY - 1 }, docs: { x: cx + dw / 2 - 6, y: deskY - 1 } };
   }
   let officeData = null;
   // 집무실: 걸어 다니기 · 앉기 · 꾸미기 편집
@@ -309,13 +310,15 @@ const Scene = (() => {
     if (!officeData) return false; const r = decoRect(id, gx, gy), od = officeData;
     if (r.x < 0 || r.x + r.w > W) return false;
     if (r.wall) { if (r.y < 2 || r.y + r.h > od.wallH - 2) return false; if (od.wallB.some(b => hit(r, b))) return false; }
-    else { if (r.y < od.wallH + 4 || r.y + r.h > H - 2) return false; if (od.floorB.some(b => hit(r, b))) return false; }
+    else { if (r.y < od.wallH + 4 || r.y + r.h > H - 2) return false; if (od.floorB.some(b => hit(r, b))) return false; if (hit(r, od.chairB) && !Decor.D(id).seat) return false; }
     const placed = hooks.decorPlaced ? hooks.decorPlaced() : [];
     return !placed.some((p, i) => i !== ignore && !!Decor.D(p.id).wall === r.wall && hit(r, decoRect(p.id, p.gx, p.gy)));
   }
   function seatSpots() {
-    const list = [{ x: officeData.desk.x, y: officeData.desk.y - 6, desk: true }];
-    (hooks.decorPlaced ? hooks.decorPlaced() : []).forEach(p => { const d = Decor.D(p.id); if (d.seat) { const r = decoRect(p.id, p.gx, p.gy); list.push({ x: r.x + r.w / 2, y: r.y + r.h - (d.id === 'throne' ? 7 : 2), id: d.id, r }); } });
+    const list = [];
+    (hooks.decorPlaced ? hooks.decorPlaced() : []).forEach(p => { const d = Decor.D(p.id); if (d.seat) { const r = decoRect(p.id, p.gx, p.gy); list.push({ x: r.x + r.w / 2, y: r.y + r.h - (d.id === 'throne' ? 7 : d.chair ? 3 : 2), id: d.id, r, atDesk: hit(r, officeData.chairB) }); } });
+    // 책상 뒤에 의자를 놓지 않았으면 기본 자리(책상)에 앉는다
+    if (!list.some(q => q.atDesk)) list.unshift({ x: officeData.desk.x, y: officeData.desk.y - 6, desk: true });
     return list;
   }
 
@@ -489,6 +492,7 @@ const Scene = (() => {
       // 바닥 소품 (깊이 정렬)
       placed.forEach((p, i) => { const d = Decor.D(p.id); if (d.wall) return; const r = decoRect(p.id, p.gx, p.gy); list.push({ y: r.y + r.h - 1, f: () => { const im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h - im.height / 2, 10, d.glow, 0.2 + Math.sin(time * 4 + i) * 0.05); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 2); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } } }); });
       // 나 (앉아 있거나 걸어 다님)
+      if (me && me.sit && !me.sit.desk && me.sit.r && !seatSpots().some(q => q.r && q.r.x === me.sit.r.x && q.r.y === me.sit.r.y)) me.sit = seatSpots().find(q => q.atDesk || q.desk);
       if (me) { const sit = me.sit, y0 = sit ? sit.y + (sit.desk ? 0 : 1) : me.y; list.push({ y: sit ? (sit.desk ? officeData.desk.y - 2 : sit.r.y + sit.r.h - 0.5) : me.y, f: () => {
         const x = sit ? sit.x : me.x; auraUnder({ x: x + camX, y: y0 + camY }); rankFxUnder({ x: x + camX, y: y0 + camY });
         const moving = me.walk && !sit, im0 = SP.tinyReaper(kind, rank, sit ? 'down' : me.dir, moving ? 'walk' : 'idle', Math.floor((moving ? me.ft * 8 : time * 2.5))), im = me.dir === 'side' && me.face < 0 && !sit ? flipOf(im0) : im0;
@@ -498,6 +502,7 @@ const Scene = (() => {
       if (edit) { // 격자 + 놓을 자리 미리보기
         g.fillStyle = 'rgba(255,255,255,0.07)'; for (let x = 0; x <= W; x += G) g.fillRect(x, 0, 1, H); for (let y = 0; y <= H; y += G) g.fillRect(0, y, W, 1);
         g.fillStyle = 'rgba(255,60,80,0.12)'; officeData.floorB.concat(officeData.wallB).forEach(b => g.fillRect(b.x, b.y, b.w, b.h));
+        { const b = officeData.chairB; g.fillStyle = 'rgba(90,170,255,0.18)'; g.fillRect(b.x, b.y, b.w, b.h); g.fillStyle = 'rgba(160,210,255,0.9)'; g.fillRect(b.x + b.w / 2 - 3, b.y + 3, 6, 1); g.fillRect(b.x + b.w / 2 - 3, b.y + 3, 1, 6); g.fillRect(b.x + b.w / 2 + 2, b.y + 3, 1, 6); g.fillRect(b.x + b.w / 2 - 3, b.y + 8, 6, 1); }
         if (ghost && hover) { const r = decoRect(ghost, hover.gx, hover.gy), ok = decoFits(ghost, hover.gx, hover.gy, hover.ignore), im = Decor.img(ghost); g.fillStyle = ok ? 'rgba(80,255,140,0.25)' : 'rgba(255,60,80,0.3)'; g.fillRect(r.x, r.y, r.w, r.h); g.globalAlpha = 0.75; g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.wall ? r.y + (r.h - im.height) / 2 : r.y + r.h - im.height)); g.globalAlpha = 1; }
       }
       // 결재함
@@ -682,7 +687,7 @@ const Scene = (() => {
     inArena: () => arena || office,
     enterOffice(t) { office = true; officeTier = Math.max(0, Math.min(8, t)); officeData = bakeOffice(officeTier, W, H); fade = 1; parts = [];
       staff = officeData.seats.map((p, k) => ({ x: p.x, y: p.y, sx: p.x, sy: p.y, ft: rnd(0, 3), t: rnd(2, 8), walk: false, dir: 'up', judge: officeTier >= 5 && k < 2 }));
-      me = { x: officeData.desk.x, y: officeData.desk.y + 16, ft: 0, walk: false, dir: 'down', face: 1, sit: { x: officeData.desk.x, y: officeData.desk.y - 6, desk: true } }; edit = false; ghost = null; },
+      { const ch = seatSpots().find(q => q.atDesk || q.desk); me = { x: officeData.desk.x, y: officeData.desk.y + 16, ft: 0, walk: false, dir: 'down', face: 1, sit: ch }; } edit = false; ghost = null; },
     exitOffice() { office = false; follow = true; edit = false; ghost = null; },
     officeDragAt(cx, cy, id) { const r = cv.getBoundingClientRect(); if (!office || !edit || cx < r.left || cx > r.right || cy < r.top || cy > r.bottom || document.elementFromPoint(cx, cy) !== cv) { hover = null; return null; } const x = (cx - r.left) / S, y = (cy - r.top) / S, c = cellAt(id, x, y); ghost = id; hover = { gx: c.gx, gy: c.gy }; return { gx: c.gx, gy: c.gy, ok: decoFits(id, c.gx, c.gy) }; },
     officeDragEnd() { ghost = null; hover = null; },

@@ -189,7 +189,7 @@ const Decor = (() => {
   const owned = id => ensure().own[id] || 0;
   const placedCount = id => ensure().placed.filter(p => p.id === id).length;
   const spare = id => owned(id) - placedCount(id);
-  const maxPlace = () => 8 + Math.min(8, S().rank) * 4; // 승진할수록 놓을 수 있는 칸 증가 (8~40)
+  const maxPlace = () => Infinity; // 배치 개수 제한 없음 (빈자리만 있으면 얼마든지)
   function buy(id) { const d = D(id), s = S(); if (!d || !d.price || d.rank || d.story != null || d.quest || s.jade < d.price) return false; s.jade -= d.price; ensure().own[id] = owned(id) + 1; Game.save(); return true; }
   function buyPack(pid) { const P = DECOR_PACKS.find(p => p.id === pid), s = S(); ensure(); s.decor.packs = s.decor.packs || {}; if (s.decor.packs[pid] || s.jade < P.price) return false; s.jade -= P.price; P.items.forEach(id => (s.decor.own[id] = owned(id) + 1)); s.decor.packs[pid] = 1; Game.save(); return true; }
   const packBought = pid => !!((ensure().packs || {})[pid]);

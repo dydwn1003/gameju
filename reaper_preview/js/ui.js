@@ -497,10 +497,11 @@ const UI = (() => {
   function decoEnd(silent) { const db = $('#deco-bar'); if (!db || !db.classList.contains('on')) return; db.classList.remove('on'); $('#office-bar') && $('#office-bar').classList.remove('editing'); $('#stage').classList.remove('deco-edit'); Scene.officeEdit(false); decoSel = null; decoMove = null; if (!silent) { Sound.play('buy'); toast(`꾸미기 완료! 품격 ${Decor.score()} · ${Decor.title(Decor.score())} (수확량 +${Math.round((Decor.mul() - 1) * 100)}%)`, 3000); } officeBar(); }
   function decoBar() {
     const db = $('#deco-bar'); if (!db) return;
-    const own = DECOR.filter(d => Decor.owned(d.id) > 0), dc = Decor.ensure(), sc = Decor.score();
-    db.innerHTML = `<div class="dk-top"><div><b>🏮 ${Decor.title(sc)}</b><small>품격 ${sc} · 수확량 +${Math.round((Decor.mul() - 1) * 100)}% · 배치 ${dc.placed.length}/${Decor.maxPlace()}</small></div><button class="btn jade" id="dk-shop">상점</button><button class="btn red" id="dk-done">완료</button></div>
-      <div class="dk-tip">${decoSel ? `<b>${Decor.D(decoSel).name}</b>을(를) 놓을 자리를 누르세요 ${decoMove ? '' : '· <a id="dk-cancel">취소</a>'}` : '소품을 <b>위로 끌어서</b> 놓거나 눌러서 고른 뒤 자리를 누르세요 · 놓인 소품은 끌어서 옮겨요'}</div>
+    const own = DECOR.filter(d => Decor.owned(d.id) > 0), dc = Decor.ensure(), sc = Decor.score(), keep = db.querySelector('.dk-list') ? db.querySelector('.dk-list').scrollLeft : 0;
+    db.innerHTML = `<div class="dk-top"><div><b>🏮 ${Decor.title(sc)}</b><small>품격 ${sc} · 수확량 +${Math.round((Decor.mul() - 1) * 100)}% · 배치 ${dc.placed.length}개</small></div><button class="btn jade" id="dk-shop">상점</button><button class="btn red" id="dk-done">완료</button></div>
+      <div class="dk-tip">${decoSel ? `<b>${Decor.D(decoSel).name}</b>을(를) 놓을 자리를 누르세요 ${decoMove ? '' : '· <a id="dk-cancel">취소</a>'}` : '소품을 <b>위로 끌어서</b> 놓으세요 · 놓인 소품은 끌어서 옮겨요 · 책상 뒤 <b style="color:#9fd6ff">파란 칸</b>엔 의자를 놓을 수 있어요'}</div>
       <div class="dk-list">${own.length ? own.map(d => { const sp = Decor.spare(d.id); return `<button class="dk-it ${decoSel === d.id ? 'on' : ''} ${sp ? '' : 'used'}" data-dk="${d.id}"><img class="px" src="${decoThumb(d.id)}"><span>${d.name}</span><small>${sp ? '남음 ' + sp : '모두 배치'}</small></button>`; }).join('') : '<p class="mute">가진 소품이 없어요. 상점에서 구해 보세요.</p>'}</div>`;
+    const dl = db.querySelector('.dk-list'); if (dl) dl.scrollLeft = keep;
     db.querySelector('#dk-done').onclick = () => decoEnd();
     db.querySelector('#dk-shop').onclick = decoShop;
     const cn = db.querySelector('#dk-cancel'); if (cn) cn.onclick = () => { decoSel = null; Scene.officeGhost(null); decoBar(); };
