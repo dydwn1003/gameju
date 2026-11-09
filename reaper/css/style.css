@@ -310,7 +310,7 @@ img.px, canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
 #story-bar b { color: #c8f0ff; margin-left: 3px; }
 #story-bar.done { background: var(--gold); color: #2a1606; animation: blink 1s steps(2) infinite; }
 #story-bar.done span, #story-bar.done b { color: #7e1f2a; }
-#story-bar.done::after { content: ' · 보상 받기!'; font-weight: 700; }
+#story-bar .sb-claim { font-style: normal; font-weight: 700; }
 .tk-bg { position: absolute; inset: 0; background: linear-gradient(transparent 40%, rgba(4, 3, 12, 0.85)); }
 .tk-box { position: absolute; left: 0; right: 0; margin: 0 auto; bottom: 6%; width: min(440px, 94vw); display: flex; gap: 10px; align-items: flex-end; padding: 12px; background: #1b1730; box-shadow: 0 0 0 3px var(--line), inset 0 0 0 2px #e8b84a; cursor: pointer; animation: pop 0.18s steps(3); }
 .tk-por { width: 80px; height: auto; flex: 0 0 80px; margin-top: -40px; filter: drop-shadow(2px 2px 0 #000); }
@@ -926,3 +926,16 @@ html.native, html.native body { overscroll-behavior: none; -webkit-touch-callout
 /* 소품 세트: 가격 버튼은 항상 오른쪽 */
 .ds-pt { flex: 1 1 0 !important; }
 .ds-pack .btn { margin-left: auto; flex: none; }
+
+/* ===== 다국어 ===== */
+/* 일본어 · 중국어 글자가 픽셀 글꼴에 없으면 기기 글꼴로 */
+html:lang(ja) body, html:lang(ja) button, html:lang(ja) input, html:lang(ja) textarea { font-family: 'Galmuri11', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', 'Meiryo', sans-serif; }
+html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) textarea { font-family: 'Galmuri11', 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', 'Heiti SC', sans-serif; }
+/* 언어 고르기 창 */
+.lp-title { font-size: 18px !important; margin-bottom: 14px; }
+.lp-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lp-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px; border-radius: 14px; background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.14) !important; }
+.lp-btn b { font-size: 18px; color: #fff; }
+.lp-btn small { font-size: 10px; color: var(--mute); }
+.lp-btn.on { border-color: var(--gold) !important; background: rgba(255, 211, 74, .14); box-shadow: 0 0 12px rgba(255, 211, 74, .35); }
+.lp-btn:active { transform: scale(.97); }

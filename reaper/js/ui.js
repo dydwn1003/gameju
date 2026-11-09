@@ -118,7 +118,8 @@ const UI = (() => {
     Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
     Native.setPay(gid => grantPaid(gid), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); });
     render(); hud();
-    if (!S().kind) { if (Cloud.enabled() && Cloud.signedIn()) { /* cloudSync 가 정함 */ } else if (Cloud.ready() && !S().guest) loginScreen(); else charSelect(true); }
+    if (!S().kind && !I18N.chosen()) { langPicker(true); } // 처음 켜면 언어부터 고르기
+    else if (!S().kind) { if (Cloud.enabled() && Cloud.signedIn()) { /* cloudSync 가 정함 */ } else if (Cloud.ready() && !S().guest) loginScreen(); else charSelect(true); }
     else if (!Cloud.signedIn()) afterLoad(); // 로그인했으면 서버 기록을 맞춘 뒤에
   }
 
@@ -127,7 +128,7 @@ const UI = (() => {
     const v = Game.collect(s.tier, who);
     if (who === 'tap') tutEv('tap');
     Life.qEvent('soul'); if (who === 'tap') Life.qEvent('tap');
-    if (s.sp >= 0) { const first = Life.catchSpecial(s.sp); toast(`${first ? '📖 도감 등록! ' : '✨ '}${SPECIALS[s.sp].name}을 거뒀다${first ? ' (혼 수확 +3%)' : ''}`, 3000); }
+    if (s.sp >= 0) { const first = Life.catchSpecial(s.sp); toast(first ? `📖 도감 등록! ${SPECIALS[s.sp].name}을 거뒀다 (혼 수확 +3%)` : `✨ ${SPECIALS[s.sp].name}을 거뒀다`, 3000); }
     let shown = v;
     if (parade) { parade.gained += v; if (who === 'tap') { parade.combo++; parade.comboT = 1.6; parade.max = Math.max(parade.max, parade.combo); const bonus = v * Math.min(4, parade.combo * 0.1); Game.gain(bonus); parade.gained += bonus; shown += bonus; } }
     if (who !== 'minion' || Math.random() < 0.7) float(x, y, '+' + fmt(shown), 't' + s.tier + (who === 'tap' ? ' tap' : ''));
@@ -1200,6 +1201,13 @@ const UI = (() => {
   // 로그인 안 했을 때 안내창에 넣는 로그인 버튼 (서버가 연결돼 있을 때만)
   const loginBtn = () => Cloud.ready() && !Cloud.signedIn() ? '<button class="btn" data-login="1">로그인</button>' : '';
   const bindLogin = () => { const b = $('#modal [data-login]'); if (b) b.onclick = () => { closeModal(); loginScreen(true); }; };
+  // ---------- 언어 고르기 (각 언어 이름은 그 나라 글자로, 번역하지 않음) ----------
+  function langPicker(first) {
+    const box = modal(`<div translate="no"><div class="title-logo lp-title">🌏 언어 · 言語 · 语言 · Language</div>
+      <div class="lp-list">${I18N.LANGS.map(([k, n]) => `<button class="lp-btn ${k === I18N.lang ? 'on' : ''}" data-lang="${k}"><b>${n}</b><small>${{ ko: '저승사자 키우기', ja: '冥土の使者を育てよう', zh: '冥府使者养成记', en: 'Grim Reaper Idle' }[k]}</small></button>`).join('')}</div>
+      ${first ? '' : '<div class="acts"><button class="btn dark" data-act="close">✕</button></div>'}</div>`, first);
+    box.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { Game.save(); I18N.choose(b.dataset.lang); });
+  }
   function settings() {
     const s = S(), cloud = Cloud.ready(), inn = cloud && Cloud.signedIn();
     const PN = { google: '구글', kakao: '카카오', naver: '네이버', apple: 'Apple', email: '네이버' };
@@ -1208,6 +1216,7 @@ const UI = (() => {
         : cloud ? '<div class="set-row"><span>👤 게스트 (이 기기에만 저장)</span><button class="btn" id="s-link">계정 연동</button></div>'
         : '<div class="set-row"><span>👤 이 기기에 저장 중<small class="set-sub">로그인 서버를 연결하면 계정 연동 · 로그아웃을 쓸 수 있어요</small></span><button class="btn dark" id="s-out0" disabled>로그아웃</button></div>'}
       <div class="set-sec">게임</div>
+      <div class="set-row"><span>🌏 Language</span><button class="btn dark" id="s-lang" translate="no">${I18N.LANGS.find(l => l[0] === I18N.lang)[1]}</button></div>
       <div class="set-row"><span>${esc(s.name)} · ${s.kind === 'f' ? '여자' : '남자'} 차사</span><button class="btn dark" id="s-look">모습 바꾸기</button></div>${Board.online() ? `<div class="set-row"><span>닉네임 ${s.nickSet ? '「' + esc(s.name) + '」' : '(아직 없음)'}</span><button class="btn dark" id="s-nick">${s.nickSet ? '바꾸기' : '정하기'}</button></div>` : ''}
       <div class="set-row"><span>효과음</span><button class="btn ${s.sound ? '' : 'dark'}" id="s-snd">${s.sound ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>배경음</span><button class="btn ${s.bgm ? '' : 'dark'}" id="s-bgm">${s.bgm ? '켜짐' : '꺼짐'}</button></div>
@@ -1238,6 +1247,7 @@ const UI = (() => {
     on('#s-priv', () => { closeModal(); privacyModal(); });
     on('#s-restore', async () => { toast('구매 내역을 확인하는 중…', 1500); const ok = await Native.restore(); toast(ok ? '구매 내역을 복원했어요' : '스토어에 연결하지 못했어요', 2200); render(); });
     on('#s-look', () => charSelect(false));
+    on('#s-lang', () => { closeModal(); langPicker(false); });
     on('#s-push', async () => {
       if (s.push !== false && s.pushAsked) { s.push = false; Game.save(); settings(); return; }
       s.pushAsked = true; const ok = (await Native.notifyPerm()) === 'granted' || (await Native.notifyAsk());
@@ -1342,7 +1352,7 @@ const UI = (() => {
   function storyBar() {
     const c = Story.cur(), e = $('#story-bar');
     if (c.end) { e.innerHTML = '📜 이야기 완결 · 윤회로 새 생을'; e.classList.remove('done'); return; }
-    e.innerHTML = `<span>📜 ${c.ch + 1}장</span> ${c.Q.t} <b>${fmt(c.have)}/${fmt(c.need)}</b>`;
+    e.innerHTML = `<span>📜 ${c.ch + 1}장</span> ${c.Q.t} <b>${fmt(c.have)}/${fmt(c.need)}</b>${c.done ? '<i class="sb-claim"> · 보상 받기!</i>' : ''}`;
     e.classList.toggle('done', c.done);
   }
   function storyTap() {
@@ -1422,7 +1432,7 @@ const UI = (() => {
     if (st.grant === 'docs' && !Life.docsCount()) { S().docs.last = Date.now() - 2 * 3600e3 - 1000; officeBar(); }
     if (st.target === 'soul') Scene.soulNear();
     if (!tutEl) { tutEl = document.createElement('div'); tutEl.id = 'tut'; document.body.appendChild(tutEl); }
-    tutEl.innerHTML = `<div class="tut-spot"></div><div class="tut-hand">👆</div><div class="tut-box"><span class="tut-n">${TK === 'otut' ? '집무실 안내 ' : ''}${S()[TK] + 1}/${TL.length}</span><p>${st.text}</p><div class="tut-acts">${st.last ? '<button class="btn red" id="tut-ok">시작하기</button>' : ''}<button class="tut-skip" id="tut-skip">안내 건너뛰기</button></div></div>`;
+    tutEl.innerHTML = `<div class="tut-spot"></div><div class="tut-hand">👆</div><div class="tut-box"><span class="tut-n">${TK === 'otut' ? '집무실 안내 ' : ''}${S()[TK] + 1}/${TL.length}</span><p>${I18N.on ? I18N.t(st.text.replace(/<[^>]+>/g, '')) : st.text}</p><div class="tut-acts">${st.last ? '<button class="btn red" id="tut-ok">시작하기</button>' : ''}<button class="tut-skip" id="tut-skip">안내 건너뛰기</button></div></div>`;
     tutEl.querySelector('#tut-skip').onclick = () => tutEnd();
     const ok = tutEl.querySelector('#tut-ok'); if (ok) ok.onclick = () => tutEv('ok');
     tutPlace();

@@ -24,7 +24,7 @@ const Push = (() => {
     now = now || Date.now();
     // pri: 겹칠 때 어떤 알림을 앞세울지 (작을수록 중요) · short: 묶을 때 쓰는 짧은 이름
     const s = S(), out = [], add = (id, sec, title, body, pri, short) => { if (sec > 60) out.push({ id, at: now + sec * 1000, title, body, pri, short }); };
-    const name = s.name || '차사', who = /차사$/.test(name) ? name + '님' : name + ' 차사님';
+    const name = s.name || '차사', who = I18N.on ? name : /차사$/.test(name) ? name + '님' : name + ' 차사님';
     const inc = Game.incomePerSec(true), cap = Game.offHours() * 3600;
     const amt = sec => fmt(inc * Math.min(sec, cap) * 0.6);
 
@@ -66,7 +66,7 @@ const Push = (() => {
       // 장부 절반 + 가득이 같이 있으면 가득만
       const rest = g.slice(1).filter(n => n.short && n.short !== top.short && !(top.short === '장부 가득' && n.short === '장부 절반'));
       const names = [...new Set(rest.map(n => n.short))];
-      return { id: top.id, at: g[0].at, title: top.title, body: names.length ? `${top.body}\n+ ${names.join(' · ')}도 기다리고 있어요` : top.body };
+      return { id: top.id, at: g[0].at, title: top.title, body: names.length ? `${top.body}\n+ ${names.map(x => I18N.t(x)).join(' · ')}도 기다리고 있어요` : top.body };
     });
   }
 

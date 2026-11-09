@@ -45,10 +45,10 @@ const Native = (() => {
   }
   async function notifySchedule(list) {
     const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return;
-    if (!chan && platform() === 'android') { try { await L.createChannel({ id: 'reaper', name: '게임 알림', description: '보상 · 파견 · 출석 알림', importance: 4, visibility: 1 }); } catch (e) {} chan = true; }
+    if (!chan && platform() === 'android') { try { await L.createChannel({ id: 'reaper', name: I18N.t('게임 알림'), description: I18N.t('보상 · 파견 · 출석 알림'), importance: 4, visibility: 1 }); } catch (e) {} chan = true; }
     await notifyClear();
     if (!list.length) return;
-    await L.schedule({ notifications: list.map(n => ({ id: n.id, title: n.title, body: n.body, channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true } })) });
+    await L.schedule({ notifications: list.map(n => ({ id: n.id, title: I18N.t(n.title), body: n.body.split('\n').map(x => I18N.t(x)).join('\n'), channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true } })) });
   }
 
   // ---------- 보상형 광고 (AdMob) ----------
