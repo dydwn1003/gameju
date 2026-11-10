@@ -130,14 +130,16 @@ const Board = (() => {
   async function notices() { if (!ready) return null; const snap = await timeout(db.collection('notices').orderBy('at', 'desc').limit(20).get()); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())); }
   async function postNotice(n) { const id = 'n' + Date.now(); await db.doc('notices/' + id).set(Object.assign({ at: Date.now() }, n)); return id; }
   async function delNotice(id) { await db.doc('notices/' + id).delete(); }
-  async function mails() { if (!ready) return null; const snap = await timeout(db.collection('mail').orderBy('at', 'desc').limit(30).get()); const now = Date.now(); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(m => !m.until || m.until > now); }
+  async function mails() { if (!ready) return null; const snap = await timeout(db.collection('mail').orderBy('at', 'desc').limit(60).get()); const now = Date.now(); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(m => !m.until || m.until > now); }
   async function sendMail(m) { const id = 'm' + Date.now(); await db.doc('mail/' + id).set(Object.assign({ at: Date.now() }, m)); return id; }
   async function delMail(id) { await db.doc('mail/' + id).delete(); }
+  // 닉네임 → 계정 id (특정 플레이어에게 우편 보낼 때). 못 찾은 닉네임은 missing 으로
+  async function uidsByNick(nicks) { const ids = [], missing = []; for (const n of nicks) { try { const snap = await timeout(db.collection('rank').where('nick', '==', n).limit(5).get()); if (snap.docs.length) snap.docs.forEach(d => ids.push(d.id)); else missing.push(n); } catch (e) { missing.push(n); } } return { ids: [...new Set(ids)], missing }; }
   function setPlace(p, n) { if (n != null) total = n; if (p !== place || n != null) { place = p; onPlace && onPlace(p, total); } }
   // 닉네임 중복 확인
   async function nickTaken(n) { if (!ready) return false; try { const snap = await timeout(db.collection('rank').where('nick', '==', n).limit(3).get()); return snap.docs.some(d => d.id !== uid); } catch (e) { return false; } }
   async function refresh() { try { await top(); } catch (e) {} }
   // 순위 구간: 1 = 1위, 2 = 2~5위, 3 = 6~10위, 0 = 그 밖
   const tierOf = p => (p === 1 ? 1 : p >= 2 && p <= 5 ? 2 : p >= 6 && p <= 10 ? 3 : 0);
-  return { init, push, top, nickTaken, isOwner: () => owner, checkOwner: isOwner, notices, postNotice, delNotice, mails, sendMail, delMail, total: () => total, pushOffice, offices, office, like, note, delNote, ownerDel, block, unblockAll, blockedCount, report, modHide, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
+  return { init, push, top, nickTaken, isOwner: () => owner, checkOwner: isOwner, notices, postNotice, delNotice, mails, sendMail, delMail, uidsByNick, total: () => total, pushOffice, offices, office, like, note, delNote, ownerDel, block, unblockAll, blockedCount, report, modHide, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
 })();
