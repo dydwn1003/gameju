@@ -92,7 +92,10 @@ const I18N = (() => {
     if (!on || !text || !H.test(text)) return text;
     const c = cache.get(text); if (c !== undefined) return c;
     const lead = text.match(/^\s*/)[0], tail = text.match(/\s*$/)[0];
-    const s = num(text.trim().replace(/\s+/g, ' '));
+    const raw = text.trim().replace(/\s+/g, ' ');
+    // 사전에 문장 그대로 있으면 먼저 (예: '2자 이상' 의 '자'를 큰 수 단위로 잘못 바꾸지 않게)
+    if (dict[raw] !== undefined) { const r0 = lead + dict[raw] + tail; cache.set(text, r0); return r0; }
+    const s = num(raw);
     let r = core(s, 0);
     if (r == null) r = s; // 끝내 모르면 (숫자 단위만 바꾼 채) 그대로
     r = lead + r + tail;
