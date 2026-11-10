@@ -69,15 +69,32 @@ const Native = (() => {
     adLoaded = A.prepareRewardVideoAd({ adId: adId() || undefined, isTesting: APP.admob.testing || !adId() }).then(() => true, () => false);
   }
   // 광고를 끝까지 보면 onReward. 광고를 못 띄우면 onFail(사유)
+  // 보상은 ① showRewardVideoAd 가 끝까지 봤을 때 돌려주는 결과 ② 'Reward' 신호 중 먼저 오는 것으로 확인하고,
+  // 광고가 닫힌 것은 ③ 'Dismissed' 신호 ④ 게임 화면이 다시 보이는 순간 ⑤ 2분 안전장치 중 먼저 오는 것으로 확인
+  // (어느 한 신호가 오지 않아도 게임이 '광고 중'으로 멈추지 않게)
+  let adStartedAt = 0;
   async function rewardAd(onReward, onFail) {
     const A = P('AdMob');
     if (!A || !adReady) { onFail && onFail('광고를 준비 중이에요. 잠시 후 다시 눌러 주세요'); return; }
-    if (adBusy) return; adBusy = true;
-    let got = false; const subs = [];
-    const done = () => { subs.forEach(s => s.then(h => h.remove())); adBusy = false; setTimeout(prepareAd, 400); }; // 광고가 완전히 닫힌 뒤 다음 광고 준비
-    subs.push(A.addListener('onRewardedVideoAdReward', () => { got = true; }));
-    subs.push(A.addListener('onRewardedVideoAdDismissed', () => { done(); if (got) onReward(); else onFail && onFail('끝까지 보면 보상을 받아요'); }));
-    subs.push(A.addListener('onRewardedVideoAdFailedToShow', () => { done(); onFail && onFail('광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요'); }));
+    if (adBusy && Date.now() - adStartedAt < 120000) return;
+    adBusy = true; adStartedAt = Date.now();
+    let got = false, finished = false, shown = false; const subs = [];
+    const finish = why => {
+      if (finished) return; finished = true;
+      subs.forEach(s => Promise.resolve(s).then(h => h && h.remove && h.remove()).catch(() => {}));
+      document.removeEventListener('visibilitychange', onVis); clearTimeout(safety);
+      adBusy = false; setTimeout(prepareAd, 400);
+      if (got) onReward(); else onFail && onFail(why || '끝까지 보면 보상을 받아요');
+    };
+    const onVis = () => { if (!document.hidden && shown) setTimeout(() => finish(), 1200); };
+    const safety = setTimeout(() => finish('광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요'), 120000);
+    document.addEventListener('visibilitychange', onVis);
+    try {
+      subs.push(A.addListener('onRewardedVideoAdReward', () => { got = true; }));
+      subs.push(A.addListener('onRewardedVideoAdShowed', () => { shown = true; }));
+      subs.push(A.addListener('onRewardedVideoAdDismissed', () => { shown = true; setTimeout(() => finish(), 500); }));
+      subs.push(A.addListener('onRewardedVideoAdFailedToShow', () => finish('광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요')));
+    } catch (e) {}
     // 미리 받아 둔 광고가 없거나 실패했으면 다시 받아 봄 (최대 2번, 각 10초)
     const wait = p => Promise.race([p, new Promise(r => setTimeout(() => r(false), 10000))]);
     let ok = false;
@@ -86,8 +103,10 @@ const Native = (() => {
       const slow = setTimeout(() => typeof toast === 'function' && toast('광고를 불러오는 중…', 1500), 700);
       ok = await wait(adLoaded || Promise.resolve(false)); clearTimeout(slow);
     }
-    if (!ok) { done(); onFail && onFail('광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요'); return; }
-    try { await A.showRewardVideoAd(); } catch (e) { done(); onFail && onFail('광고를 불러오지 못했어요'); }
+    if (!ok) { finish('광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요'); return; }
+    adLoaded = null; shown = true;
+    // 끝까지 보면 이 약속이 보상 정보와 함께 끝남 (닫기만 하면 끝나지 않을 수 있음)
+    A.showRewardVideoAd().then(() => { got = true; }, () => finish('광고를 불러오지 못했어요'));
   }
 
   // ---------- 인앱 결제 ----------
