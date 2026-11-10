@@ -1287,7 +1287,7 @@ const UI = (() => {
   }
   // ---------- 개인정보처리방침 ----------
   function privacyModal() {
-    modal(`<h2>개인정보처리방침</h2><iframe class="priv-frame" src="${APP.privacyUrl}" title="개인정보처리방침"></iframe><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    modal(`<h2>개인정보처리방침</h2><iframe class="priv-frame" src="${APP.privacyUrl}?lang=${I18N.lang}" title="개인정보처리방침"></iframe><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
   }
   // ---------- 1:1 문의 ----------
   const ASK_CAT = ['결제', '오류 · 버그', '계정 · 로그인', '제안', '기타'];
