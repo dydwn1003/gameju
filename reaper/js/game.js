@@ -31,9 +31,9 @@ const SHOP_IAP = [
   { id: 'jade100', name: '옥 100개', price: '₩1,200', jade: 100, icon: 'jade' },
   { id: 'jade550', name: '옥 550개', price: '₩5,900', jade: 550, icon: 'jade', tag: '+10%' },
   { id: 'jade1200', name: '옥 1,200개', price: '₩12,000', jade: 1200, icon: 'jade', tag: '+20%' },
-  { id: 'starter', name: '신입 차사 패키지', price: '₩1,200', once: true, jade: 140, minion: 2, icon: 'minion', desc: '옥 140 + 졸개 2명 즉시 고용', tag: '1회 한정' },
-  { id: 'promo', name: '승진 응원 패키지', price: '₩3,300', daily: 1, jade: 210, hours: 3, boost: 40, icon: 'luck', desc: '옥 210 + 3시간치 혼 + 2배 부적 40분', tag: '추천' },
-  { id: 'perm2', name: '염라의 인장', price: '₩9,900', seal: 5, icon: 'ledger', desc: '5일 동안 모든 혼 수확 2배 (다시 사면 5일 연장)', tag: '5일' },
+  { id: 'starter', name: '신입 차사 패키지', price: '₩1,200', once: true, jade: 200, minion: 2, icon: 'minion', desc: '옥 200 + 졸개 2명 즉시 고용', tag: '1회 한정' },
+  { id: 'promo', name: '승진 응원 패키지', price: '₩3,300', daily: 1, jade: 300, hours: 4, boost: 60, icon: 'luck', desc: '옥 300 + 4시간치 혼 + 2배 부적 60분', tag: '추천' },
+  { id: 'perm2', name: '염라의 인장', price: '₩9,900', seal: 7, icon: 'ledger', desc: '7일 동안 모든 혼 수확 2배 (다시 사면 7일 연장)', tag: '7일' },
   { id: 'noads', name: '광고 제거', price: '₩6,900', once: true, noAds: true, icon: 'scroll', desc: '광고 없이 광고 보상 즉시 받기' },
 ];
 const JADE_SHOP = [
