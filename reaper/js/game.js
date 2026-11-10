@@ -1,28 +1,29 @@
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 // 기준: 버프를 다 쓰는 플레이어(2배 부적 · 탕약 · 영물 · 꾸미기 · 도감 · 결재 · 파견 · 심판, 하루 4번 접속)가
-//       3분 · 20분 · 2일 · 5일 · 9일 · 14일 · 21일 · 30일에 승진, 염라대왕 = 레벨 2000 (모의 실행 tools/balance_sim_full.js)
+//       3분 · 20분 · 2일 · 5일 · 9일 · 14일 · 21일 · 30일에 승진, 염라대왕 = 레벨 3000 = 모든 업그레이드 최대 (만렙) (모의 실행 tools/balance_sim_full.js)
 //       하루 6시간 넘게 몰아서 해도 3계급 이후는 거의 같은 일정 (sim_binge)
 // mult: 계급별 수확 배수 (승진할 때마다 약 2.2배)
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 2.5, lv: 112, hp: 1.62e04, region: 1 },
-  { name: '차사', mult: 6, lv: 832, hp: 1.00e08, region: 2 },
-  { name: '선임 차사', mult: 14, lv: 1663, hp: 5.86e12, region: 3 },
-  { name: '차사장', mult: 32, lv: 1747, hp: 4.06e13, region: 4 },
-  { name: '판관', mult: 72, lv: 1821, hp: 1.20e14, region: 5 },
-  { name: '명부 판관', mult: 160, lv: 1883, hp: 6.46e14, region: 6 },
-  { name: '시왕', mult: 360, lv: 1946, hp: 3.29e15, region: 7 },
-  { name: '염라대왕', mult: 800, lv: 2000, hp: 1.67e16, region: 8 },
+  { name: '말단 차사', mult: 2.5, lv: 99, hp: 4.43e03, region: 1 },
+  { name: '차사', mult: 6, lv: 680, hp: 1.73e06, region: 2 },
+  { name: '선임 차사', mult: 14, lv: 2117, hp: 1.00e12, region: 3 },
+  { name: '차사장', mult: 32, lv: 2339, hp: 1.61e13, region: 4 },
+  { name: '판관', mult: 72, lv: 2491, hp: 1.00e14, region: 5 },
+  { name: '명부 판관', mult: 160, lv: 2644, hp: 5.63e14, region: 6 },
+  { name: '시왕', mult: 360, lv: 2813, hp: 2.91e15, region: 7 },
+  { name: '염라대왕', mult: 800, lv: 3000, hp: 3.09e16, region: 8 },
 ];
+// 모든 업그레이드 max 합 + 1 = 3000 = 염라대왕 승진 레벨 (만렙). sq: 비용 증가율이 레벨이 오를수록 조금씩 줄어듦
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (60레벨마다 ×2)', base: 8, grow: 1.0442, max: 3000 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120레벨마다 ×2)', base: 8, grow: 1.04, sq: -0.885e-5, pa: 0.1, pd: 120, max: 1699 },
   { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.149, cap: 60, grow2: 1.105, max: 200 },
   { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.166, cap: 70, grow2: 1.105, max: 200 },
   { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.158, cap: 60, grow2: 1.105, max: 200 },
-  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.245, cap: 50, grow2: 1.105, max: 160 },
+  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.245, cap: 50, grow2: 1.105, max: 200 },
   { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, cap: 20, grow2: 1.4, max: 40 },
-  { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.11, max: 3000 },
+  { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.08, max: 420 },
   { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 1.55, cap: 20, grow2: 1.34, max: 40 },
 ];
 const TIER_MULT = [1, 3, 10, 30];
@@ -68,7 +69,8 @@ const Game = (() => {
 
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
-  const penMul = L => (1 + L * 0.15) * Math.pow(2, Math.floor(L / 60)); // 레벨당 +15%, 60레벨마다 ×2
+  const PEN = UPGRADES[0];
+  const penMul = L => (1 + L * PEN.pa) * Math.pow(2, Math.floor(L / PEN.pd)); // 레벨당 +10%, 120레벨마다 ×2
   const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
@@ -128,7 +130,7 @@ const Game = (() => {
   // ---------- 비용 ----------
   function cost(id, n = 1) {
     const U = UPGRADES.find(u => u.id === id); let c = 0, L = lv(id);
-    for (let i = 0; i < n && L + i < U.max; i++) { const k = L + i, cp = U.cap || U.max; c += Math.ceil(k < cp ? U.base * Math.pow(U.grow, k) : U.base * Math.pow(U.grow, cp) * Math.pow(U.grow2 || 1.22, k - cp + 1)); }
+    for (let i = 0; i < n && L + i < U.max; i++) { const k = L + i, cp = U.cap || U.max; c += Math.ceil((k < cp ? U.base * Math.pow(U.grow, k) : U.base * Math.pow(U.grow, cp) * Math.pow(U.grow2 || 1.22, k - cp + 1)) * (U.sq ? Math.exp(U.sq * k * k) : 1)); }
     return c;
   }
   function maxBuy(id) {

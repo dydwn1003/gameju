@@ -18,7 +18,7 @@ const res=await p.evaluate(([mode,arg,OV])=>{
   const inc=()=>Game.incomePerSec(true);
   const buy=()=>{for(let k=0;k<80;k++){let best=null,bv=0;const base=inc();
     for(const id of ids){const U=UPGRADES.find(u=>u.id===id);if(Game.lv(id)>=U.max)continue;const c=Game.cost(id);if(c>S.souls)continue;
-     let v; if(id==='ledger'){v=c<=base*M(t/864e2)*1800?1e9:0;} else {S.upg[id]=Game.lv(id)+1;const dd=inc()-base;S.upg[id]--;v=dd/c;}
+     let v; if(id==='ledger'){v=c<=base*M(t/864e2)*1800?1e9:0;} else {S.upg[id]=Game.lv(id)+1;const dd=inc()-base;S.upg[id]--;v=dd/c; if(v<=0&&c<=base*M(t/864e2)*600)v=1e-30/c;}
      if(v>bv){bv=v;best=id;}}
     if(!best)break;S.souls-=Game.cost(best);S.upg[best]=Game.lv(best)+1;}};
   const promo=()=>{while(Game.nextRank()&&Game.canTest()){window.__upg=window.__upg||[];window.__upg.push(JSON.stringify(S.upg));dmg.push(30*(Game.wraithDps()+5*Game.tapDmg())*M(t/864e2));S.rank++;times.push(t);if(S.rank>=stopRank)return true;}return false;};
