@@ -9,7 +9,7 @@ const CAP={
 };
 const RAWL={ko:'ko',en:'en',ja:'ja',zhs:'zh',zht:'zh'};
 const ORDER=[1,4,3,2,5];
-const SIZE={ios:[1206,2622],and:[1080,1920]};
+const SIZE={ios:[1290,2796],and:[1080,1920]}; // ios = iPhone 6.9″
 const TITLE={ko:['저승사자','키우기'],en:['Grim Reaper','Idle'],ja:['冥土の使者を','育てよう'],zhs:['冥府使者','养成记'],zht:['冥府使者','養成記']};
 const TSUB={ko:'혼을 거두고 염라대왕이 되자!',en:'Reap souls & rise to King Yeomra!',ja:'魂を集めて閻魔大王を目指そう!',zhs:'收集魂魄,晋升阎罗王!',zht:'收集魂魄,晉升閻羅王!'};
 (async()=>{const b=await chromium.launch({args:['--allow-file-access-from-files']});const p=await b.newPage();
@@ -51,9 +51,10 @@ const run=async(job)=>{const url=await p.evaluate(async j=>{
   }
   return c.toDataURL('image/png');},job);
   fs.writeFileSync(job.out,Buffer.from(url.split(',')[1],'base64'));};
-for(const lang of Object.keys(CAP)){for(const plat of ['ios','and']){for(let i=0;i<5;i++){const n=ORDER[i];
+const PLATS=(process.argv[2]||'ios,and').split(',');
+for(const lang of Object.keys(CAP)){for(const plat of PLATS){for(let i=0;i<5;i++){const n=ORDER[i];
   await run({kind:'shot',lang,plat,size:SIZE[plat],cap:CAP[lang][i],src:`file://${D}/raw/${RAWL[lang]}_${plat}_${n}.png`,seed:7+i,out:`${D}/out/${plat==='ios'?'iphone':'android'}_${lang}_${i+1}.png`});}}
-  await run({kind:'head',lang,size:[1024,500],title:TITLE[lang],sub:TSUB[lang],seed:3,out:`${D}/out/google_feature_${lang}.png`});
-  await run({kind:'head',lang,size:[1920,1080],title:TITLE[lang],sub:TSUB[lang],seed:5,out:`${D}/out/header_${lang}.png`});
+  if(PLATS.includes('and')){ await run({kind:'head',lang,size:[1024,500],title:TITLE[lang],sub:TSUB[lang],seed:3,out:`${D}/out/google_feature_${lang}.png`});
+  await run({kind:'head',lang,size:[1920,1080],title:TITLE[lang],sub:TSUB[lang],seed:5,out:`${D}/out/header_${lang}.png`}); }
   console.log(lang,'ok');}
 await b.close();})();

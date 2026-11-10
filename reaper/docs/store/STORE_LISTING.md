@@ -20,7 +20,7 @@
 
 | 파일 | 크기 | 넣는 곳 |
 |---|---|---|
-| `iphone_1~5.jpg` | 1206×2622 | App Store Connect → 버전 → **iPhone 6.9″ / 6.3″ 디스플레이** 스크린샷 (순서대로) |
+| `iphone_1~5.jpg` | 1290×2796 | App Store Connect → 버전 → **iPhone 6.9″ 디스플레이** 스크린샷 (순서대로, 다른 아이폰 크기는 자동) |
 | `android_1~5.jpg` | 1080×1920 | Play Console → 스토어 등록정보 → **휴대전화 스크린샷** |
 | `google_feature.jpg` | 1024×500 | Play Console → 스토어 등록정보 → **그래픽 이미지** |
 | `header.jpg` | 1920×1080 | 가로 헤더 · 배너가 필요한 곳 (애플 제품 페이지 헤더 · 홍보용 · SNS) |

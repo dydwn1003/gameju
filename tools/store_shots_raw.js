@@ -3,13 +3,13 @@
 const {chromium}=require('playwright');const fs=require('fs');
 const ST=JSON.parse(fs.readFileSync('/tmp/claude-0/-home-user-gameju/a9e510cc-9039-5350-9a0b-cbc48e014662/scratchpad/prev/qaout/state3.json','utf8'));
 const NAMES={ko:'저승이',en:'Reaper',ja:'しにがみ',zh:'小鬼差'};
-const PLAT={ios:{w:402,h:820},and:{w:390,h:740}};
-const only=process.argv[2];
+const PLAT={ios:{w:430,h:932},and:{w:390,h:740}}; // ios ×3 = 1290×2796 (iPhone 6.9″)
+const only=process.argv[2], onlyPlat=process.argv[3];
 (async()=>{fs.mkdirSync('raw',{recursive:true});const b=await chromium.launch();
 for(const lang of ['ko','en','ja','zh']){ if(only&&only!==lang)continue;
- for(const [plat,vp] of Object.entries(PLAT)){
-  const st=JSON.parse(JSON.stringify(ST));Object.assign(st,{name:NAMES[lang],rank:5,souls:3.2e13,jade:12850,tickets:12,noticeHide:9e15,last:Date.now(),merchant:null,boostUntil:Date.now()+25*60e3+30e3,tut:'done',otut:'done',nickSet:true,story:{ch:4,q:0,intro:true}});
-  st.upg={pen:420,step:45,call:40,hand:35,luck:28,minion:24,drill:180,ledger:14};
+ for(const [plat,vp] of Object.entries(PLAT)){ if(onlyPlat&&onlyPlat!==plat)continue;
+  const st=JSON.parse(JSON.stringify(ST));Object.assign(st,{name:NAMES[lang],rank:5,souls:2.5e17,jade:12850,tickets:12,noticeHide:9e15,last:Date.now(),merchant:null,boostUntil:Date.now()+25*60e3+30e3,tut:'done',otut:'done',nickSet:true,story:{ch:4,q:0,intro:true}});
+  st.upg={pen:1380,step:200,call:200,hand:200,luck:150,minion:40,drill:300,ledger:40}; // 레벨 2511 (판관)
   const c=await b.newContext({viewport:{width:vp.w,height:vp.h},deviceScaleFactor:3,locale:lang});
   await c.addInitScript(([l,s])=>{localStorage.setItem('reaper_lang',l);if(!sessionStorage.x){sessionStorage.x=1;localStorage.setItem('jeoseung_v1',s);}document.addEventListener('DOMContentLoaded',()=>{try{CLOUD.url=''}catch(e){}});},[lang,JSON.stringify(st)]);
   const p=await c.newPage();await p.goto('file:///home/user/gameju/reaper/index.html');await p.waitForSelector('#loading',{state:'detached',timeout:30000});await p.addStyleTag({content:'#toasts{display:none!important}'});await p.waitForTimeout(800);
