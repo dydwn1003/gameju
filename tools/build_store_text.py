@@ -6,7 +6,7 @@ LANGS = [('ko', '한국어 (ko-KR)'), ('en', 'English (en-US)'), ('ja', '日本�
 
 L = {}
 L['ko'] = dict(
- name='저승사자 키우기',
+ name='저승사자 키우기 - 도트 방치형 롤플레잉 RPG',
  subtitle='혼을 거두고 염라대왕이 되자',
  short='떠도는 혼을 거두고 승진해 염라대왕이 되자! 꺼 둬도 자라는 도트 방치형 키우기',
  promo='명부를 들고 저승 마을을 누비는 꼬마 저승사자! 혼을 거두고, 영물을 모으고, 집무실을 꾸미며 수습 차사에서 염라대왕까지 승진해 보세요.',
@@ -47,7 +47,7 @@ L['ko'] = dict(
 문의: dydwn1003@gmail.com''')
 
 L['en'] = dict(
- name='Grim Reaper Idle',
+ name='Grim Reaper Idle - Pixel RPG',
  subtitle='Reap souls, become King Yeomra',
  short='Reap wandering souls and climb the afterlife ranks! A cozy pixel idle game.',
  promo='A tiny grim reaper with a ledger of the dead! Reap souls, collect mythical pets, decorate your office and rise from Trainee Envoy to King Yeomra.',
@@ -84,7 +84,7 @@ Some items can be purchased. Start as a guest and play right away — no login n
 Contact: dydwn1003@gmail.com''')
 
 L['ja'] = dict(
- name='冥土の使者を育てよう',
+ name='冥土の使者を育てよう - ドット放置RPG',
  subtitle='魂を集めて閻魔大王を目指そう',
  short='さまよう魂を集めて昇進し、閻魔大王を目指そう!放置でも育つドット育成ゲーム',
  promo='冥簿を手にあの世の村をめぐるちびっこ死神!魂を集め、霊獣をコレクションし、執務室を飾りながら見習い使者から閻魔大王まで昇進しよう。',
@@ -121,7 +121,7 @@ L['ja'] = dict(
 お問い合わせ:dydwn1003@gmail.com''')
 
 L['zhs'] = dict(
- name='冥府使者养成记',
+ name='冥府使者养成记 - 像素放置RPG',
  subtitle='收集魂魄,晋升阎罗王',
  short='收集游荡的魂魄,一路晋升成为阎罗王!关掉也能成长的像素放置养成游戏',
  promo='手持冥簿穿梭冥府村庄的小小勾魂使者!收集魂魄、收藏灵兽、装饰办公室,从见习差使一路晋升到阎罗王。',
@@ -158,7 +158,7 @@ L['zhs'] = dict(
 联系我们:dydwn1003@gmail.com''')
 
 L['zht'] = dict(
- name='冥府使者養成記',
+ name='冥府使者養成記 - 像素放置RPG',
  subtitle='收集魂魄,晉升閻羅王',
  short='收集遊蕩的魂魄,一路晉升成為閻羅王!關掉也能成長的像素放置養成遊戲',
  promo='手持冥簿穿梭冥府村莊的小小勾魂使者!收集魂魄、收藏靈獸、裝飾辦公室,從見習差使一路晉升到閻羅王。',
