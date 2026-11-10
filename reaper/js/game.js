@@ -1,16 +1,17 @@
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
-// 승급 레벨: 일반 플레이(하루 4번 접속 · 나머지는 오프라인) 기준 약 3분 · 20분 · 3시간 · 10시간 · 3일 · 6일 · 14일 · 30일
+// 기준: 버프를 다 쓰는 플레이어(2배 부적 · 탕약 · 영물 · 꾸미기 · 도감 · 결재 · 파견 · 심판, 하루 4번 접속)가
+//       3분 · 20분 · 3시간 · 10시간 · 3일 · 6일 · 14일 · 30일에 승진 (모의 실행 sim_full)
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 3, lv: 55, hp: 19400, region: 1 },
-  { name: '차사', mult: 9, lv: 445, hp: 3.1e09, region: 2 },
-  { name: '선임 차사', mult: 27, lv: 756, hp: 1.66e14, region: 3 },
-  { name: '차사장', mult: 80, lv: 798, hp: 1.21e15, region: 4 },
-  { name: '판관', mult: 240, lv: 850, hp: 8.97e15, region: 5 },
-  { name: '명부 판관', mult: 720, lv: 878, hp: 6.0e16, region: 6 },
-  { name: '시왕', mult: 2200, lv: 913, hp: 4.09e17, region: 7 },
-  { name: '염라대왕', mult: 6500, lv: 945, hp: 2.77e18, region: 8 },
+  { name: '말단 차사', mult: 3, lv: 109, hp: 1.02e05, region: 1 },
+  { name: '차사', mult: 9, lv: 697, hp: 1.08e13, region: 2 },
+  { name: '선임 차사', mult: 27, lv: 769, hp: 2.02e14, region: 3 },
+  { name: '차사장', mult: 80, lv: 806, hp: 1.65e15, region: 4 },
+  { name: '판관', mult: 240, lv: 868, hp: 4.43e16, region: 5 },
+  { name: '명부 판관', mult: 720, lv: 898, hp: 3.91e17, region: 6 },
+  { name: '시왕', mult: 2200, lv: 941, hp: 3.43e18, region: 7 },
+  { name: '염라대왕', mult: 6500, lv: 976, hp: 2.63e19, region: 8 },
 ];
 const UPGRADES = [
   { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.125, max: 999 },
@@ -74,7 +75,8 @@ const Game = (() => {
   const mWalk = () => Math.min(56, 18 * (1 + lv('drill') * 0.05));
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.965, lv('drill')));
   const drillMul = () => 1 + lv('drill') * 0.08;
-  const offHours = () => Math.min(24, 2 + lv('ledger'));
+  const OFFLINE_RATE = 0.3; // 자리 비운 동안 받는 비율 (켜 둔 수입 대비)
+  const offHours = () => Math.min(13, 2 + lv('ledger') * 0.5); // 장부 레벨마다 30분, 최대 13시간
   function tierProbs() {
     const L = lc('luck');
     const p3 = 0.004 * (1 + 0.15 * L), p2 = 0.015 * (1 + 0.12 * L), p1 = 0.06 * (1 + 0.1 * L);
@@ -116,7 +118,7 @@ const Game = (() => {
       case 'luck': { const p = 0.004 * (1 + 0.15 * L) + 0.015 * (1 + 0.12 * L) + 0.06 * (1 + 0.1 * L); return (p * 100).toFixed(1) + '%'; }
       case 'minion': return L + '명';
       case 'drill': return '×' + (1 + L * 0.08).toFixed(2);
-      case 'ledger': return Math.min(24, 2 + L) + '시간';
+      case 'ledger': { const h = Math.min(13, 2 + L * 0.5); return (h % 1 ? Math.floor(h) + '시간 30분' : h + '시간'); }
     }
   }
   // ---------- 비용 ----------
@@ -254,7 +256,7 @@ const Game = (() => {
     const away = Math.max(0, (Date.now() - from) / 1000);
     if (!S.kind || away < 60) return null;
     const secs = Math.min(away, offHours() * 3600);
-    const amt = incomePerSec(true) * secs * 0.6;
+    const amt = incomePerSec(true) * secs * OFFLINE_RATE;
     return { away, secs, amt, capped: away > secs };
   }
   function reset() { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); Life.ensure(); Pets.ensure(); Story.ensure(); apply(); }
@@ -263,7 +265,7 @@ const Game = (() => {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, canTest, testHp, promote, canReborn, reborn, rebornMult,
-    collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, iapLeft, sealLeft, offline,
+    collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();
 

@@ -16,7 +16,7 @@ L['ko'] = dict(
 
 ■ 터치 한 번, 꺼 둬도 쑥쑥
 • 혼령을 터치해 거두고, 졸개 차사를 고용해 자동으로 모아요
-• 게임을 꺼 둬도 저승 장부에 혼이 쌓여요 (최대 24시간)
+• 게임을 꺼 둬도 저승 장부에 혼이 쌓여요 (최대 13시간)
 • 명부 필력 · 축지법 · 거둠의 손길 등 성장은 끝없이!
 
 ■ 9단계 승진과 저승 이야기
@@ -57,7 +57,7 @@ Start as a Trainee Envoy, pass promotion tests and climb all the way to King Yeo
 
 ■ Tap once, grow even while offline
 • Tap spirits to reap them, or hire minion envoys to collect automatically
-• Souls pile up in your ledger even when the game is closed (up to 24h)
+• Souls pile up in your ledger even when the game is closed (up to 13h)
 • Endless upgrades: Ledger Pen, Shrink-Earth Step, Reaping Hand and more
 
 ■ 9 ranks and a Korean afterlife story
@@ -94,7 +94,7 @@ L['ja'] = dict(
 
 ■ タップひとつ、放置でもぐんぐん
 • 霊をタップして回収、子分の使者を雇えば自動で集めてくれる
-• ゲームを閉じていても冥簿に魂がたまる(最大24時間)
+• ゲームを閉じていても冥簿に魂がたまる(最大13時間)
 • 冥簿の筆力・縮地法・刈り取りの手など、成長はどこまでも!
 
 ■ 9段階の昇進とあの世の物語
@@ -131,7 +131,7 @@ L['zhs'] = dict(
 
 ■ 轻点一下,离线也能成长
 • 点击魂灵即可收取,雇佣小鬼差还能自动收集
-• 关闭游戏时魂魄也会在冥簿中累积(最长24小时)
+• 关闭游戏时魂魄也会在冥簿中累积(最长13小时)
 • 冥簿笔力、缩地法、收魂之手……成长永无止境!
 
 ■ 9级晋升与冥府故事
@@ -168,7 +168,7 @@ L['zht'] = dict(
 
 ■ 輕點一下,離線也能成長
 • 點擊魂靈即可收取,僱用小鬼差還能自動收集
-• 關閉遊戲時魂魄也會在冥簿中累積(最長24小時)
+• 關閉遊戲時魂魄也會在冥簿中累積(最長13小時)
 • 冥簿筆力、縮地法、收魂之手……成長永無止境!
 
 ■ 9級晉升與冥府故事
