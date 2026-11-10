@@ -161,3 +161,63 @@ create or replace view public.mail_list with (security_invoker = true) as
          to_timestamp((data ->> 'until')::bigint / 1000.0) at time zone 'Asia/Seoul' as until_kst
   from public.docs where col = 'mail' order by at desc;
 revoke all on public.mail_list from anon, authenticated;
+
+-- ===== 운영자 · 1:1 문의를 SQL 로 =====
+-- 운영자 등록: 게임에서 로그인한 계정의 이메일(또는 닉네임)로
+--   select add_admin('내이메일@gmail.com');
+--   select add_admin('갓주');               -- 닉네임으로도 돼요
+-- 운영자 목록:        select * from admin_list;
+-- 운영자 빼기:        delete from public.admins where user_id = '<user_id>';
+create or replace function public.add_admin(p_who text) returns text
+  language plpgsql security definer set search_path = public, auth as $$
+declare v_id uuid; v_n int;
+begin
+  select count(*) into v_n from auth.users where lower(email) = lower(trim(p_who));
+  if v_n > 1 then raise exception '이 이메일로 된 계정이 %개예요. user_id 로 직접 넣어 주세요 (select * from admin_list 참고)', v_n; end if;
+  select id into v_id from auth.users where lower(email) = lower(trim(p_who)) limit 1;
+  if v_id is null then
+    select count(*) into v_n from docs where col = 'rank' and data ->> 'nick' = trim(p_who);
+    if v_n > 1 then raise exception '이 닉네임이 %명이에요. 이메일로 넣어 주세요', v_n; end if;
+    select doc_id::uuid into v_id from docs where col = 'rank' and data ->> 'nick' = trim(p_who) limit 1;
+  end if;
+  if v_id is null then raise exception '계정을 찾지 못했어요: % (게임에서 그 계정으로 한 번 로그인했는지 확인)', p_who; end if;
+  insert into admins (user_id) values (v_id) on conflict do nothing;
+  return '운영자 등록 완료: ' || v_id;
+end $$;
+revoke all on function public.add_admin(text) from public, anon, authenticated;
+
+create or replace view public.admin_list with (security_invoker = true) as
+  select a.user_id, u.email, (select data ->> 'nick' from public.docs d where d.col = 'rank' and d.doc_id = a.user_id::text) as nick
+  from public.admins a left join auth.users u on u.id = a.user_id;
+revoke all on public.admin_list from anon, authenticated;
+
+-- 1:1 문의 목록 (답변 안 한 것 먼저, 한국 시간)
+--   select * from inquiry_list;                       -- 전부
+--   select * from inquiry_list where replied = false; -- 답변 대기만
+create or replace view public.inquiry_list with (security_invoker = true) as
+  select id, reply is not null as replied, category, nick, body, reply,
+         created_at at time zone 'Asia/Seoul' as asked_kst, replied_at at time zone 'Asia/Seoul' as replied_kst, info, user_id
+  from public.inquiries order by (reply is not null), created_at desc;
+revoke all on public.inquiry_list from anon, authenticated;
+
+-- 답변하기 (+ 원하면 그 사람에게 보상 우편도 같이)
+--   select reply_inquiry(12, '확인했어요. 불편을 드려 죄송해요!');
+--   select reply_inquiry(12, '결제 상품을 우편으로 보냈어요.', p_jade => 550);
+create or replace function public.reply_inquiry(p_id bigint, p_reply text, p_jade integer default 0, p_tickets integer default 0, p_hours numeric default 0, p_title text default '📮 문의 답변 보상')
+  returns text language plpgsql security definer set search_path = public as $$
+declare q public.inquiries; v_at bigint := floor(extract(epoch from clock_timestamp()) * 1000)::bigint; v_mail text := '';
+begin
+  select * into q from inquiries where id = p_id;
+  if q.id is null then raise exception '문의 번호 %를 찾지 못했어요', p_id; end if;
+  if coalesce(trim(p_reply), '') = '' then raise exception '답변 내용을 넣어 주세요'; end if;
+  update inquiries set reply = trim(p_reply), replied_at = now() where id = p_id;
+  if coalesce(p_jade, 0) > 0 or coalesce(p_tickets, 0) > 0 or coalesce(p_hours, 0) > 0 then
+    insert into docs (path, col, doc_id, owner, data) values ('mail/m' || v_at, 'mail', 'm' || v_at, null, jsonb_build_object(
+      'at', v_at, 'title', p_title, 'body', '1:1 문의 답변과 함께 보내 드려요.', 'jade', greatest(coalesce(p_jade, 0), 0), 'tickets', greatest(coalesce(p_tickets, 0), 0),
+      'hours', greatest(coalesce(p_hours, 0), 0), 'decor', '', 'until', v_at + 30::bigint * 86400000, 'to', 'user',
+      'uids', jsonb_build_array(q.user_id::text), 'nicks', jsonb_build_array(coalesce(q.nick, '?'))));
+    v_mail := ' + 보상 우편 mail/m' || v_at;
+  end if;
+  return '답변 완료 (문의 ' || p_id || ')' || v_mail;
+end $$;
+revoke all on function public.reply_inquiry(bigint, text, integer, integer, numeric, text) from public, anon, authenticated;

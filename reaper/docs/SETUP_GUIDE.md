@@ -191,12 +191,13 @@
 3. **Verify JWT** 는 기본값 그대로 두면 돼요. 함수가 로그인 토큰을 직접 확인해서 꺼도 안전해요. 계정 삭제가 "401"로 실패하면 끄세요.
 
 ### A-9. 운영자(나) 등록 — 새 앱으로 처음 로그인한 뒤
-1. **Authentication → Users** → 내 계정 줄의 **UID** 복사
+1. 게임에서 내 계정으로 로그인 (구글 · 카카오 · 애플)
 2. **SQL Editor → + New query**
    ```sql
-   insert into public.admins (user_id) values ('여기에-UID');
+   select add_admin('내이메일@gmail.com');   -- 또는 게임 닉네임
    ```
-   → **Run**
+   → **Run** → 게임을 다시 켜면 `🛡️ 운영자 모드`
+3. 자세한 운영 방법: `docs/OPERATOR_GUIDE.md`
 
 ---
 
