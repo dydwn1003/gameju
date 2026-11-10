@@ -1,23 +1,23 @@
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 // 기준: 버프를 다 쓰는 플레이어(2배 부적 · 탕약 · 영물 · 꾸미기 · 도감 · 결재 · 파견 · 심판, 하루 4번 접속)가
-//       3분 · 20분 · 2일 · 5일 · 9일 · 14일 · 21일 · 30일에 승진, 염라대왕 = 레벨 3000 = 모든 업그레이드 최대 (만렙) (모의 실행 tools/balance_sim_full.js)
+//       3분 · 20분 · 2일 · 5일 · 9일 · 14일 · 21일 · 28일에 승진, 염라대왕 = 레벨 3000 = 모든 업그레이드 최대 (만렙) (모의 실행 tools/balance_sim_full.js)
 //       하루 6시간 넘게 몰아서 해도 3계급 이후는 거의 같은 일정 (sim_binge)
 // mult: 계급별 수확 배수 (승진할 때마다 약 2.2배)
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 2.5, lv: 99, hp: 4.43e03, region: 1 },
-  { name: '차사', mult: 6, lv: 680, hp: 1.73e06, region: 2 },
-  { name: '선임 차사', mult: 14, lv: 2117, hp: 1.00e12, region: 3 },
-  { name: '차사장', mult: 32, lv: 2339, hp: 1.61e13, region: 4 },
-  { name: '판관', mult: 72, lv: 2491, hp: 1.00e14, region: 5 },
-  { name: '명부 판관', mult: 160, lv: 2644, hp: 5.63e14, region: 6 },
-  { name: '시왕', mult: 360, lv: 2813, hp: 2.91e15, region: 7 },
-  { name: '염라대왕', mult: 800, lv: 3000, hp: 3.09e16, region: 8 },
+  { name: '말단 차사', mult: 2.5, lv: 96, hp: 4.13e03, region: 1 },
+  { name: '차사', mult: 6, lv: 503, hp: 2.55e05, region: 2 },
+  { name: '선임 차사', mult: 14, lv: 1923, hp: 1.02e11, region: 3 },
+  { name: '차사장', mult: 32, lv: 2241, hp: 2.63e12, region: 4 },
+  { name: '판관', mult: 72, lv: 2424, hp: 1.71e13, region: 5 },
+  { name: '명부 판관', mult: 160, lv: 2576, hp: 9.74e13, region: 6 },
+  { name: '시왕', mult: 360, lv: 2786, hp: 1.07e15, region: 7 },
+  { name: '염라대왕', mult: 800, lv: 3000, hp: 1.14e16, region: 8 },
 ];
 // 모든 업그레이드 max 합 + 1 = 3000 = 염라대왕 승진 레벨 (만렙). sq: 비용 증가율이 레벨이 오를수록 조금씩 줄어듦
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120레벨마다 ×2)', base: 8, grow: 1.04, sq: -0.885e-5, pa: 0.1, pd: 120, max: 1699 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120레벨마다 ×2)', base: 8, grow: 1.04, sq: -0.95e-5, pa: 0.1, pd: 120, max: 1699 },
   { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.149, cap: 60, grow2: 1.105, max: 200 },
   { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.166, cap: 70, grow2: 1.105, max: 200 },
   { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.158, cap: 60, grow2: 1.105, max: 200 },
@@ -81,7 +81,7 @@ const Game = (() => {
   const mWalk = () => Math.min(56, 18 * (1 + lv('drill') * 0.035));
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.975, lv('drill')));
   const drillMul = () => 1 + lv('drill') * 0.03;
-  const OFFLINE_RATE = 0.3; // 자리 비운 동안 받는 비율 (켜 둔 수입 대비)
+  const OFFLINE_RATE = 0.12; // 자리 비운 동안 받는 비율 (켜 둔 실제 수입 대비 12%, 복귀 2배 광고로 24%)
   const offHours = () => Math.min(8, 2 + lv('ledger') * 0.15); // 장부 레벨마다 9분, 최대 8시간
   function tierProbs() {
     const L = le('luck');
@@ -97,14 +97,15 @@ const Game = (() => {
   // 초당 수익 추정 (화면 표시 · 오프라인 계산)
   function incomePerSec(noBoost) {
     const dist = 40;
-    const main = 1 / (dist / walk() + reap() + 0.15);
-    const vis = Math.min(5, minions()), mr = vis ? 1 / (dist / mWalk() + mReap() + 0.15) : 0;
-    const cap = 1 / spawn(), coll = Math.min(cap, main + vis * mr);
-    const shareM = vis ? (vis * mr) / (main + vis * mr) : 0;
+    const group = 1.25 + 1.5 * (1 - Math.exp(-le('hand') / 8)); // 주변 혼령 함께 거두기 (한 번에 여러 개)
+    const main = group / (dist / walk() + reap() + 0.15);
+    const vis = Math.min(5, minions()), mr = vis ? vis / (dist / mWalk() + mReap() + 0.15) : 0;
+    // 거두는 속도는 혼령이 나타나는 속도(1/spawn)를 넘을 수 없음 — 함께 거두기도 이 한도 안에서
+    const cap = 1 / spawn(), tot = main + mr, coll = Math.min(cap, tot);
+    const shareM = tot ? mr / tot : 0;
     const scale = vis ? (minions() / vis) * drillMul() : 0;
     const v = (noBoost ? valueBase() : value()) * avgTier();
-    const group = 1.25 + 1.5 * (1 - Math.exp(-le('hand') / 8)); // 주변 혼령 함께 거두기
-    return coll * v * ((1 - shareM) + shareM * scale) * group;
+    return coll * v * ((1 - shareM) + shareM * scale);
   }
   const tapValue = () => value() * 1.5;
   const wraithDps = () => (incomePerSec() + value() * 2) * Life.mul('fight');
@@ -257,7 +258,7 @@ const Game = (() => {
     if (S.kind && S.name && !S.nickSet) S.nickSet = true; // 예전에 만든 캐릭터: 처음 정한 이름을 닉네임으로
     if (S.perm2) { S.perm2 = false; S.sealUntil = Math.max(S.sealUntil || 0, Date.now() + 7 * 86400e3); } // 영구 인장 → 7일 인장으로 바뀜
   }
-  // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 60%)
+  // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 12%)
   let awayFrom = 0;
   function offline() {
     const from = awayFrom || S.last; awayFrom = 0;
