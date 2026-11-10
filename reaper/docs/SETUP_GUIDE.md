@@ -1,4 +1,7 @@
-# 저승사자 키우기 — 로그인 · 결제 · 광고 넣기 (순서대로)
+# 저승사자 키우기 — 로그인 · 결제 · 광고 넣기 (순서대로, 앱 전용)
+
+> 게임은 **앱(구글 플레이 · 앱스토어)으로만** 내요. 웹 로그인 설정은 하지 않아요.
+> 웹 주소가 필요한 곳은 **개인정보처리방침 페이지 하나**뿐이에요(D).
 
 위에서부터 하나씩 하면 돼요. 각 단계 끝의 **📮 Claude 에게** 부분은 받은 값을 Claude 에게 보내면 코드에 넣어 준다는 뜻이에요.
 
@@ -25,16 +28,14 @@
    - (GitHub 에서 파일 열기 → 오른쪽 위 **Copy raw file** 버튼)
 3. "Success" 가 뜨면 끝. 여러 번 실행해도 괜찮아요.
 
-### A-3. 로그인 후 돌아올 주소
+### A-3. 로그인 후 돌아올 주소 (앱 전용)
 **Authentication → URL Configuration**
-- **Site URL:** `https://dydwn1003.github.io/gameju/reaper/` (나중에 웹 주소가 바뀌면 고치면 돼요)
-- **Redirect URLs → Add URL** 로 두 개 추가
+- **Site URL:** `com.jeoseungsaja.idle://login` (필수 칸이라 앱 주소를 그대로 넣어요)
+- **Redirect URLs → Add URL** 로 하나만 추가
   ```
   com.jeoseungsaja.idle://login
   ```
-  ```
-  https://dydwn1003.github.io/gameju/reaper/
-  ```
+- 웹 주소(`https://…github.io…`)는 웹에서 로그인할 때만 필요해서 넣지 않아요.
 
 아래 로그인 콘솔들에 넣는 **콜백 주소**는 모두 이거예요 (`<프로젝트ID>` = Project URL 의 앞부분):
 ```
@@ -83,7 +84,7 @@ https://<프로젝트ID>.supabase.co/auth/v1/callback
 ### A-7. 네이버 로그인
 1. https://developers.naver.com → **Application → 애플리케이션 등록**
    - 사용 API: **네이버 로그인** → 이메일 · 별명 체크
-   - 환경: **PC 웹** → 서비스 URL `https://dydwn1003.github.io/gameju/reaper/`
+   - 환경: **PC 웹** → 서비스 URL 은 웹 주소 형식이면 아무거나 돼요 (예: `https://<프로젝트ID>.supabase.co`). 실제로 쓰는 건 아래 Callback URL 이에요.
    - Callback URL:
      ```
      https://<프로젝트ID>.supabase.co/functions/v1/naver-auth/callback
@@ -94,7 +95,7 @@ https://<프로젝트ID>.supabase.co/auth/v1/callback
    |---|---|
    | `NAVER_CLIENT_ID` | 네이버 Client ID |
    | `NAVER_CLIENT_SECRET` | 네이버 Client Secret |
-   | `ALLOWED_REDIRECTS` | `https://dydwn1003.github.io/gameju/reaper/,com.jeoseungsaja.idle://login` |
+   | `ALLOWED_REDIRECTS` | `com.jeoseungsaja.idle://login` |
 3. **Edge Functions → Deploy a new function → Via Editor**
    - 이름 **`naver-auth`**
    - `reaper/server/supabase/functions/naver-auth/index.ts` 내용을 붙여 넣고 **Deploy**
@@ -202,7 +203,7 @@ https://<프로젝트ID>.supabase.co/auth/v1/callback
 
 ## D. 개인정보처리방침 · 문의 이메일
 - 📮 **Claude 에게:** 운영자 이름(또는 상호) · 문의 이메일 · 시행일 → `privacy.html` 과 `APP.supportEmail` 에 넣어 줘요.
-- 스토어에는 **웹 주소**가 필요해요. 방법 둘 중 하나:
+- 앱 전용이어도 스토어에는 개인정보처리방침 **웹 주소**를 꼭 적어야 해요. 방법 둘 중 하나:
   - **GitHub Pages:** gameju → **Settings → Pages → Deploy from a branch** → 브랜치 선택 → `/ (root)` → 주소 `https://dydwn1003.github.io/gameju/reaper/privacy.html`
     (저장소가 비공개면 GitHub 유료 요금제가 필요해요)
   - **노션 공개 페이지**에 같은 내용을 붙여 넣고 그 주소를 써도 돼요.
