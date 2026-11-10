@@ -47,23 +47,23 @@ create policy saves_own on public.saves for all to authenticated
 drop policy if exists docs_read on public.docs;
 create policy docs_read on public.docs for select to anon, authenticated using (true);
 
--- 쓰기: rank/offices/visits 는 문서 id 가 내 id 일 때만, notices/mail 은 운영자만
+-- 쓰기: rank/offices/visits 는 문서 id 가 내 id 일 때만, notices/mail/mod(방명록 숨기기) 는 운영자만
 drop policy if exists docs_insert on public.docs;
 create policy docs_insert on public.docs for insert to authenticated with check (
   owner = auth.uid() and (
     (col in ('rank', 'offices', 'visits') and doc_id = auth.uid()::text)
-    or (col in ('notices', 'mail') and public.is_admin())
+    or (col in ('notices', 'mail', 'mod') and public.is_admin())
   ));
 drop policy if exists docs_update on public.docs;
 create policy docs_update on public.docs for update to authenticated
-  using ((col in ('rank', 'offices', 'visits') and doc_id = auth.uid()::text) or (col in ('notices', 'mail') and public.is_admin()))
+  using ((col in ('rank', 'offices', 'visits') and doc_id = auth.uid()::text) or (col in ('notices', 'mail', 'mod') and public.is_admin()))
   with check (owner = auth.uid() and (
     (col in ('rank', 'offices', 'visits') and doc_id = auth.uid()::text)
-    or (col in ('notices', 'mail') and public.is_admin())
+    or (col in ('notices', 'mail', 'mod') and public.is_admin())
   ));
 drop policy if exists docs_delete on public.docs;
 create policy docs_delete on public.docs for delete to authenticated
-  using ((col in ('rank', 'offices', 'visits') and doc_id = auth.uid()::text) or (col in ('notices', 'mail') and public.is_admin()));
+  using ((col in ('rank', 'offices', 'visits') and doc_id = auth.uid()::text) or (col in ('notices', 'mail', 'mod') and public.is_admin()));
 
 -- 운영자 목록은 운영자만 볼 수 있음 (추가는 대시보드에서 직접)
 drop policy if exists admins_read on public.admins;

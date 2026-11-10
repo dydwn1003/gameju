@@ -49,7 +49,7 @@ const Board = (() => {
     const sig = JSON.stringify(row); if (sig === lastOffice) return; lastOffice = sig;
     try { await db.doc('offices/' + uid).set(Object.assign(row, { at: Date.now() })); } catch (e) { lastOffice = ''; }
   }
-  async function visitsDoc() { if (myVisits) return myVisits; try { const d = await timeout(db.doc('visits/' + uid).get()); myVisits = d.exists ? d.data() : {}; } catch (e) { myVisits = {}; } myVisits.likedIds = myVisits.likedIds || []; myVisits.likeDay = myVisits.likeDay || {}; myVisits.noteIds = myVisits.noteIds || []; myVisits.notes = myVisits.notes || {}; myVisits.friends = myVisits.friends || []; return myVisits; }
+  async function visitsDoc() { if (myVisits) return myVisits; try { const d = await timeout(db.doc('visits/' + uid).get()); myVisits = d.exists ? d.data() : {}; } catch (e) { myVisits = {}; } myVisits.likedIds = myVisits.likedIds || []; myVisits.blocked = myVisits.blocked || []; myVisits.reported = myVisits.reported || {}; myVisits.likeDay = myVisits.likeDay || {}; myVisits.noteIds = myVisits.noteIds || []; myVisits.notes = myVisits.notes || {}; myVisits.friends = myVisits.friends || []; return myVisits; }
   const saveVisits = () => db.doc('visits/' + uid).set(Object.assign({}, myVisits, { nick: Game.S.name, at: Date.now() }));
   // 이웃 집무실 목록 (최근에 꾸민 순 · 좋아요 순)
   async function offices(sortLikes) {
@@ -71,15 +71,43 @@ const Board = (() => {
     const v = await visitsDoc(); o.likedToday = v.likeDay[id] === today(); o.liked = v.likedIds.includes(id);
     return o;
   }
+  // 방명록: 쓴 사람 각자의 visits 문서에 notes[집무실 id] 로 저장
+  // 숨기는 규칙: 집무실 주인이 차단한 사람 · 내가 차단한 사람 · 내가 신고한 글 · 운영자가 숨긴 글/사람
+  let modCache = null, modAt = 0;
+  async function modDoc() { if (modCache && Date.now() - modAt < 60e3) return modCache; try { const d = await timeout(db.doc('mod/guestbook').get()); modCache = d.exists ? d.data() : {}; } catch (e) { modCache = modCache || {}; } modCache.notes = modCache.notes || {}; modCache.users = modCache.users || []; modAt = Date.now(); return modCache; }
+  async function ownerBlocks(id) { if (id === uid) { const v = await visitsDoc(); return v.blocked; } try { const d = await timeout(db.doc('visits/' + id).get()); return (d.exists && d.data().blocked) || []; } catch (e) { return []; } }
   async function guestbook(id) {
-    try { const snap = await timeout(db.collection('visits').where('noteIds', 'array-contains', id).limit(30).get());
-      const rows = snap.docs.map(d => ({ by: d.id, nick: d.data().nick, n: (d.data().notes || {})[id] })).filter(r => r.n).sort((a, b) => b.n.at - a.n.at);
+    try { const snap = await timeout(db.collection('visits').where('noteIds', 'array-contains', id).limit(40).get());
+      const [ob, mine, mod] = await Promise.all([ownerBlocks(id), visitsDoc(), modDoc()]);
+      const rows = snap.docs.map(d => ({ by: d.id, nick: d.data().nick, n: (d.data().notes || {})[id] })).filter(r => r.n)
+        .filter(r => r.by === uid || (!ob.includes(r.by) && !mine.blocked.includes(r.by) && !mine.reported[r.by + '|' + id] && !mod.users.includes(r.by) && !mod.notes[r.by + '|' + id]))
+        .sort((a, b) => b.n.at - a.n.at).slice(0, 30);
       let names = {}; try { names = await user.profiles(rows.map(r => r.by)); } catch (e) {}
-      return rows.map(r => ({ m: r.n.m, t: r.n.t, at: r.n.at, name: r.nick || (names[r.by] && names[r.by].name) || '이름 모를 차사', me: r.by === uid }));
+      return rows.map(r => ({ by: r.by, m: r.n.m, t: r.n.t, at: r.n.at, ed: r.n.ed, name: r.nick || (names[r.by] && names[r.by].name) || '이름 모를 차사', me: r.by === uid }));
     } catch (e) { return []; }
   }
   async function like(id) { const v = await visitsDoc(); if (v.likeDay[id] === today()) return false; v.likeDay[id] = today(); if (!v.likedIds.includes(id)) v.likedIds.push(id); await saveVisits(); return true; }
-  async function note(id, t) { const v = await visitsDoc(); v.notes[id] = { t: String(t).slice(0, 40), at: Date.now() }; if (!v.noteIds.includes(id)) v.noteIds.push(id); await saveVisits(); return true; }
+  // 남기기 · 고치기 (한 집무실에 한 사람 한 줄). 주인이 나를 차단했거나 운영자가 막았으면 'blocked'
+  async function note(id, t) {
+    const [ob, mod] = await Promise.all([ownerBlocks(id), modDoc()]);
+    if (ob.includes(uid) || mod.users.includes(uid)) return 'blocked';
+    const v = await visitsDoc(), old = v.notes[id];
+    v.notes[id] = { t: String(t).slice(0, 40), at: old ? old.at : Date.now() }; if (old) v.notes[id].ed = Date.now();
+    if (!v.noteIds.includes(id)) v.noteIds.push(id); await saveVisits(); return true;
+  }
+  async function delNote(id) { const v = await visitsDoc(); delete v.notes[id]; v.noteIds = v.noteIds.filter(x => x !== id); await saveVisits(); return true; }
+  // 차단: 그 사람의 방명록이 안 보이고, 내 집무실에 글을 남길 수 없음
+  async function block(by) { const v = await visitsDoc(); if (!v.blocked.includes(by)) v.blocked.push(by); await saveVisits(); return true; }
+  async function unblockAll() { const v = await visitsDoc(); v.blocked = []; v.blockedNames = {}; await saveVisits(); }
+  async function blockedCount() { const v = await visitsDoc(); return v.blocked.length; }
+  // 신고: 운영자에게 접수(1:1 문의 함께 씀) + 내 화면에서는 바로 숨김
+  async function report(row, officeId, reason) {
+    const v = await visitsDoc(); v.reported[row.by + '|' + officeId] = Date.now(); await saveVisits();
+    if (typeof Cloud !== 'undefined' && Cloud.signedIn()) { try { await Cloud.inquiry.send('신고', `[방명록 신고] ${reason}\n작성자: ${row.name}\n내용: ${row.t != null ? row.t : ''}`, Game.S.name, `report|${row.by}|${officeId}`); } catch (e) {} }
+    return true;
+  }
+  // 운영자: 글 하나 숨기기 · 그 사람 방명록 전체 금지
+  async function modHide(by, officeId, banUser) { const m = await modDoc(); if (banUser) { if (!m.users.includes(by)) m.users.push(by); } else m.notes[by + '|' + officeId] = Date.now(); await db.doc('mod/guestbook').set({ notes: m.notes, users: m.users, at: Date.now() }); modAt = Date.now(); }
   // 이웃 (내 visits 문서에 저장)
   async function friends() { const v = await visitsDoc(); return v.friends.slice(); }
   async function toggleFriend(id) { const v = await visitsDoc(); const i = v.friends.indexOf(id); if (i >= 0) v.friends.splice(i, 1); else v.friends.push(id); await saveVisits(); return i < 0; }
@@ -108,5 +136,5 @@ const Board = (() => {
   async function refresh() { try { await top(); } catch (e) {} }
   // 순위 구간: 1 = 1위, 2 = 2~5위, 3 = 6~10위, 0 = 그 밖
   const tierOf = p => (p === 1 ? 1 : p >= 2 && p <= 5 ? 2 : p >= 6 && p <= 10 ? 3 : 0);
-  return { init, push, top, nickTaken, isOwner: () => owner, checkOwner: isOwner, notices, postNotice, delNotice, mails, sendMail, delMail, total: () => total, pushOffice, offices, office, like, note, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
+  return { init, push, top, nickTaken, isOwner: () => owner, checkOwner: isOwner, notices, postNotice, delNotice, mails, sendMail, delMail, total: () => total, pushOffice, offices, office, like, note, delNote, block, unblockAll, blockedCount, report, modHide, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
 })();
