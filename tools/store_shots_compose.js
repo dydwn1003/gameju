@@ -52,9 +52,12 @@ const run=async(job)=>{const url=await p.evaluate(async j=>{
   return c.toDataURL('image/png');},job);
   fs.writeFileSync(job.out,Buffer.from(url.split(',')[1],'base64'));};
 const PLATS=(process.argv[2]||'ios,and').split(',');
-for(const lang of Object.keys(CAP)){for(const plat of PLATS){for(let i=0;i<5;i++){const n=ORDER[i];
+for(const lang of Object.keys(CAP)){for(const plat of PLATS.filter(x=>x==='ios'||x==='and')){for(let i=0;i<5;i++){const n=ORDER[i];
   await run({kind:'shot',lang,plat,size:SIZE[plat],cap:CAP[lang][i],src:`file://${D}/raw/${RAWL[lang]}_${plat}_${n}.png`,seed:7+i,out:`${D}/out/${plat==='ios'?'iphone':'android'}_${lang}_${i+1}.png`});}}
   if(PLATS.includes('and')){ await run({kind:'head',lang,size:[1024,500],title:TITLE[lang],sub:TSUB[lang],seed:3,out:`${D}/out/google_feature_${lang}.png`});
   await run({kind:'head',lang,size:[1920,1080],title:TITLE[lang],sub:TSUB[lang],seed:5,out:`${D}/out/header_${lang}.png`}); }
+  if(PLATS.includes('apphead')){ // App Store 제품 페이지 헤더 (애플 지원 크기)
+    await run({kind:'head',lang,size:[5244,2950],title:TITLE[lang],sub:TSUB[lang],seed:5,out:`${D}/out/appstore_header_${lang}.png`});
+    await run({kind:'head',lang,size:[3840,1646],title:TITLE[lang],sub:TSUB[lang],seed:5,out:`${D}/out/appstore_header_wide_${lang}.png`}); }
   console.log(lang,'ok');}
 await b.close();})();
