@@ -5,7 +5,7 @@
 const CLOUD = {
   url: '',            // 예: 'https://abcdefgh.supabase.co'
   anonKey: '',        // 예: 'eyJhbGciOi...' 또는 'sb_publishable_...'
-  providers: ['google', 'kakao', 'naver', 'apple'], // 로그인 화면에 보일 버튼 (Apple 은 iOS 앱에서만, 아이폰 기본 로그인 창으로)
+  providers: ['google', 'kakao', 'apple'], // 로그인 화면에 보일 버튼 (Apple 은 iOS 앱에서만, 아이폰 기본 로그인 창으로)
   naverFunction: 'naver-auth',                      // 네이버 로그인용 Edge Function 이름
   deleteFunction: 'delete-account',                 // 계정 삭제용 Edge Function 이름 (스토어 필수)
   sdk: 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js',
