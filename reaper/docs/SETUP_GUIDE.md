@@ -132,34 +132,27 @@
    - **Allow users without an email** 켜기 (이메일 동의는 비즈 앱이 필요해서)
    - **Save**
 
-### A-6. 애플 로그인 (iOS 앱 필수)
+### A-6. 애플 로그인 (iOS 전용 · 아이폰 기본 로그인 창)
+> 앱이 아이폰 기본 **"Apple로 계속하기"** 창(Face ID)을 써요. 그래서 **Services ID · Key(.p8) · Secret Key 가 필요 없고, 6개월 갱신도 없어요.**
+> 안드로이드에서는 애플 버튼이 안 보여요(구글 · 카카오 · 네이버만).
+
 **애플 쪽 (https://developer.apple.com/account)**
 1. **Certificates, IDs & Profiles → Identifiers** → `com.jeoseungsaja.idle` 클릭
-   - Capabilities 목록에서 **Sign in with Apple** 체크 → **Save** → **Confirm**
-2. **Identifiers** 오른쪽 위 필터를 **Services IDs** 로 → **+** → **Services IDs** → **Continue**
-   - Description: `Reaper Login`
-   - Identifier: `com.jeoseungsaja.idle.login`
-   - **Continue → Register**
-3. 방금 만든 `com.jeoseungsaja.idle.login` 클릭
-   - **Sign in with Apple** 체크 → **Configure**
-     - Primary App ID: `com.jeoseungsaja.idle`
-     - Domains and Subdomains: `eurinhfamcdygqxepmdg.supabase.co` (https:// 없이)
-     - Return URLs: 콜백 주소
-     - **Next → Done → Continue → Save**
-4. 왼쪽 **Keys** → **+**
-   - Key Name: `Reaper SIWA`
-   - **Sign in with Apple** 체크 → **Configure** → Primary App ID `com.jeoseungsaja.idle` → **Save**
-   - **Continue → Register → Download** (`AuthKey_XXXXXXXXXX.p8`, **한 번만** 받을 수 있어요)
-   - 화면의 **Key ID** 메모
+   - Capabilities 목록에서 **Sign in with Apple** 체크
+   - 옆에 **Edit** 가 있으면 **Enable as a primary App ID** → Save
+   - 오른쪽 위 **Save** → **Confirm**
+   - (빌드는 GitHub 에서 자동 서명하니 프로파일 경고는 무시해도 돼요)
 
 **Supabase 쪽**
-5. **Authentication → Sign In / Providers → Apple**
+2. **Authentication → Sign In / Providers → Apple**
    - **Enable Sign in with Apple** 켜기
-   - **Client IDs**: `com.jeoseungsaja.idle.login,com.jeoseungsaja.idle`
-   - **Secret Key (for OAuth)**: Supabase 문서 "Login with Apple" 페이지(설정 화면의 안내 링크)의 **비밀 키 생성 도구**에서
-     Team ID `V9RLBAGQZD` · Services ID `com.jeoseungsaja.idle.login` · Key ID · `.p8` 내용으로 만든 긴 값
+   - **Client IDs**: `com.jeoseungsaja.idle`
+   - **Secret Key (for OAuth)**: **비워 두기**
    - **Save**
-6. ⏰ 이 Secret Key 는 **6개월마다** 다시 만들어 넣어야 해요 (달력에 적기)
+
+**앱 쪽 (Claude 가 이미 해 둠)**
+- `@capgo/capacitor-social-login` 플러그인, `App.entitlements`(Sign in with Apple), 로그인 코드
+- 새 TestFlight 빌드부터 적용돼요
 
 ### A-7. 네이버 로그인
 **네이버 쪽 (https://developers.naver.com)**

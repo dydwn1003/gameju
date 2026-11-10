@@ -138,7 +138,7 @@ const Native = (() => {
   async function restore() { if (!payOn()) return false; await store.restorePurchases(); ownedCheck(); return true; }
 
   return {
-    isApp, platform, init, hideSplash, openUrl, closeBrowser, rewardAd, price, buy, restore, payOn,
+    isApp, platform, plugin: P, init, hideSplash, openUrl, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
     notifyPerm, notifyAsk, notifyClear, notifySchedule,
     setPay: (grant, owned, priceChange) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; },

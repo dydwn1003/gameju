@@ -15,7 +15,7 @@ const UI = (() => {
   // ---------- 로그인 (Supabase) ----------
   const PROV = { google: ['G', '구글로 시작', 'pv-google'], kakao: ['💬', '카카오로 시작', 'pv-kakao'], naver: ['N', '네이버로 시작', 'pv-naver'], apple: ['', 'Apple로 시작', 'pv-apple'] };
   // iOS 앱은 다른 소셜 로그인이 있으면 Apple 로그인도 꼭 있어야 함 (App Store 심사 4.8)
-  const loginProviders = () => { const l = CLOUD.providers.slice(); if (Native.platform() === 'ios' && !l.includes('apple')) l.push('apple'); return l; };
+  const loginProviders = () => { const ios = Native.platform() === 'ios', l = CLOUD.providers.filter(x => x !== 'apple'); if (ios) l.push('apple'); return l; }; // Apple 로그인은 iOS 에서만 (아이폰 기본 로그인 창)
   function loginScreen(fromSettings) {
     const box = modal(`${fromSettings ? '<h2>계정 연동</h2><p class="mute">지금까지의 기록을 계정에 저장해 다른 기기에서도 이어 해요</p>' : '<div class="title-logo">저승사자 키우기</div><div class="title-sub">로그인하면 기록이 서버에 저장돼 기기를 바꿔도 이어 할 수 있어요</div>'}
       <div class="lg-list">${loginProviders().map(p => `<button class="lg-btn ${PROV[p][2]}" data-lg="${p}"><i>${PROV[p][0]}</i><span>${PROV[p][1]}</span></button>`).join('')}</div>

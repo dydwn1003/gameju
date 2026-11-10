@@ -28,6 +28,7 @@ const Cloud = (() => {
   async function signIn(p) {
     if (!sb) return;
     if (Native.isApp()) {
+      if (p === 'apple' && Native.platform() === 'ios') return appleNative();
       const back = APP.authRedirect;
       if (p === 'naver') return Native.openUrl(`${CLOUD.url}/functions/v1/${CLOUD.naverFunction}/start?redirect=${encodeURIComponent(back)}`);
       const { data, error } = await sb.auth.signInWithOAuth({ provider: p, options: { redirectTo: back, skipBrowserRedirect: true } });
@@ -37,6 +38,20 @@ const Cloud = (() => {
     const back = location.origin + location.pathname;
     if (p === 'naver') { location.href = `${CLOUD.url}/functions/v1/${CLOUD.naverFunction}/start?redirect=${encodeURIComponent(back)}`; return; }
     await sb.auth.signInWithOAuth({ provider: p, options: { redirectTo: back } });
+  }
+  // iOS: 아이폰 기본 'Apple로 계속하기' 창 → Apple 이 준 ID 토큰으로 Supabase 로그인 (Secret Key · Services ID 필요 없음)
+  // nonce: Apple 에는 sha256 값을, Supabase 에는 원래 값을 줌 (Supabase 가 다시 해시해서 맞춰 봄)
+  async function appleNative() {
+    const SL = Native.plugin('SocialLogin'); if (!SL) throw new Error('apple');
+    const raw = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+    const hashed = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))), b => b.toString(16).padStart(2, '0')).join('');
+    await SL.initialize({ apple: { clientId: 'com.jeoseungsaja.idle' } });
+    const res = await SL.login({ provider: 'apple', options: { scopes: ['email', 'name'], nonce: hashed } });
+    const token = res && res.result && res.result.idToken;
+    if (!token) throw new Error('apple');
+    const { error } = await sb.auth.signInWithIdToken({ provider: 'apple', token, nonce: raw });
+    if (error) throw error;
+    location.reload(); // 처음 켤 때와 똑같이 클라우드 저장을 맞춰 봄
   }
   // 앱으로 돌아온 로그인 주소 처리: ?code=… (구글·카카오·애플) 또는 #access_token=… (네이버 매직 링크)
   async function handleAuthUrl(url) {
