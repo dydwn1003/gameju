@@ -160,7 +160,7 @@ const UI = (() => {
       render(); return;
     }
     S().stats.wraith++; Life.qEvent('wraith');
-    const amt = Math.max(Game.incomePerSec() * 25, Game.value() * 30);
+    const amt = Math.max(Game.incomePerSec() * 12, Game.value() * 15); // 원귀 퇴치 보상
     Game.gain(amt);
     let jade = 0;
     if (Math.random() < 0.25) { jade = 2 + Math.floor(Math.random() * 6); S().jade += jade; }
@@ -348,7 +348,7 @@ const UI = (() => {
         <div class="prog"><i style="width:${pct}%"></i></div>
         <div class="d">레벨 <b style="color:var(--soul)">${L}</b> / ${N.lv} <span style="color:var(--mute)">(수련을 1번 올릴 때마다 레벨 +1)</span><br>
         승진하면 옷차림이 바뀌고 수확량 <b style="color:var(--gold)">×${(N.mult / RANKS[s.rank].mult).toFixed(1)}</b>${RANKS[s.rank].region !== N.region ? ` · 새 지역 <b style="color:var(--gold)">${REGIONS[N.region].name}</b>` : ''}</div>
-        ${N.minT ? `<div class="d" style="margin-top:4px">⏳ 근무 기간 조건: 시작하고 <b>${fmtDays(N.minT)}</b> 지나야 승진 시험</div>` : ''}<button class="btn red" data-act="test" ${ok ? '' : 'disabled'}>${ok ? '승진하기' : L >= N.lv ? `⏳ ${fmtDays(Game.waitLeft())} 뒤에 승진할 수 있어요` : `레벨 ${N.lv}에 승진할 수 있어요`}</button></div>`;
+        <button class="btn red" data-act="test" ${ok ? '' : 'disabled'}>${ok ? '승진하기' : `레벨 ${N.lv}에 승진할 수 있어요`}</button></div>`;
     } else {
       html += `<div class="promo pbox"><div class="looks"><div><div class="lk-w"><canvas class="mg" id="mg-now" width="48" height="20"></canvas><canvas id="lk-now" width="44" height="51"></canvas></div><span>염라대왕</span></div></div><div class="t">염라대왕에 올랐다!</div>
         <div class="d">윤회하면 직급과 수련이 처음으로 돌아가지만<br>모든 수확량이 영구히 <b style="color:var(--gold)">×${(1 + (s.reborn + 1) * 1.5).toFixed(1)}</b> (지금 ×${Game.rebornMult().toFixed(1)})가 된다.<br>옥과 구매한 상품은 유지된다.</div>
@@ -1622,7 +1622,7 @@ const UI = (() => {
   function ghostTap(x, y, gold) {
     if (!parade) return;
     parade.combo++; parade.comboT = 2; parade.max = Math.max(parade.max, parade.combo); parade.ghosts++;
-    const amt = Game.incomePerSec(true) * (gold ? 20 : 4) * (1 + Math.min(4, parade.combo * 0.1));
+    const amt = Game.incomePerSec(true) * (gold ? 10 : 2) * (1 + Math.min(4, parade.combo * 0.1)); // 백귀야행 귀신 1마리
     Game.gain(amt); parade.gained += amt; Life.qEvent('soul', 3);
     float(x, y, (gold ? '✨+' : '+') + fmt(amt), gold ? 'big' : 't2 tap'); Sound.play(gold ? 'promote' : 'kill');
     const cb = $('#parade-bar .cb'); if (cb) { cb.classList.remove('pop'); void cb.offsetWidth; cb.classList.add('pop'); }

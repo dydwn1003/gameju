@@ -1,4 +1,4 @@
-// 밸런스 모의 실행 (버프 전부 쓰는 플레이어). 실행: node tools/balance_sim_full.js run "[0,109,683,...]"  또는  solve "[180,1200,...초]"
+// 밸런스 모의 실행 (버프 전부 쓰는 플레이어). 실행: node tools/balance_sim_full.js run "[0,102,675,...]"  또는  solve "[180,1200,...초]"
 // 버프를 다 쓰는 플레이어 모의 실행:
 // 하루 4번 접속(첫날 60분, 이후 20분) · 접속 중 2배 부적(광고) · 탕약 ×1.5 · 운세 약간
 // 영물(보유 수 · 장착 등급) · 집무실 꾸미기 · 도감 보너스가 시간에 따라 자람
@@ -8,7 +8,7 @@ await p.addInitScript(()=>{localStorage.setItem('reaper_lang','ko');document.add
 await p.goto('file:///home/user/gameju/reaper/index.html');await p.waitForSelector('#loading',{state:'detached',timeout:20000}).catch(()=>{});await p.waitForTimeout(300);
 const mode=process.argv[2], arg=JSON.parse(process.argv[3]);
 const res=await p.evaluate(([mode,arg])=>{
- const DOC_SEC=[60,100,150,220,300,380,480,600,720], JUDGE_SEC=[30,50,80,120,160,210,270,330,400];
+ const DOC_SEC=[30,50,75,110,150,190,240,300,360], JUDGE_SEC=[15,25,40,60,80,105,135,165,200];
  const lerp=(pts,d)=>{for(let i=1;i<pts.length;i++){if(d<=pts[i][0]){const [d0,v0]=pts[i-1],[d1,v1]=pts[i];return v0+(v1-v0)*(d-d0)/(d1-d0);}}return pts[pts.length-1][1];};
  // 시간(일)에 따른 곱: 영물 보유(+1%씩) + 장착 영물 수확량, 꾸미기(최대 +40%), 도감(최대 +50%)
  const M=d=>(1+lerp([[0,0.03],[1,0.12],[3,0.25],[7,0.38],[14,0.47],[30,0.53]],d)+lerp([[0,0.03],[1,0.1],[3,0.17],[7,0.29],[14,0.35],[30,0.51]],d))*(1+lerp([[0,0],[0.5,0.05],[3,0.2],[7,0.32],[14,0.4]],d))*(1+lerp([[0,0],[0.3,0.1],[2,0.3],[5,0.45],[10,0.5]],d));
@@ -27,7 +27,7 @@ const res=await p.evaluate(([mode,arg])=>{
    const st=(day*24+SS[si][0])*3600, dur=SS[si][1]*60, d=st/864e2;
    if(st>last){const away=st-last;S.souls+=inc()*M(d)*Math.min(away,Game.offHours()*3600)*Game.OFFLINE_RATE;
      // 파견: 칸 수 × 하루 약 2.5시간치(돌아올 때 받음)
-     const slots=1+Math.floor(S.rank/2); S.souls+=inc()*M(d)*3600*2.5*slots*Math.min(away,86400)/86400;
+     const slots=1+Math.floor(S.rank/2); S.souls+=inc()*M(d)*3600*1.25*slots*Math.min(away,86400)/86400;
      t=st;}
    // 결재 서류
    const nd=Math.min(3,Math.floor((st-docsLast)/7200)); if(nd>0){S.souls+=inc()*M(d)*DOC_SEC[Math.min(8,S.rank)]*nd; docsLast=nd>=3?st:docsLast+nd*7200;}
