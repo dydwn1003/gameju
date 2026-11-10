@@ -76,7 +76,7 @@
 	</array>
 	<!-- AdMob 앱 ID: 지금은 구글 테스트용. 출시 전 AdMob 콘솔의 iOS 앱 ID 로 바꾸기 -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-7300932926935302~6776451783</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>허용하면 관심사에 맞는 광고가 나와요. 허용하지 않아도 게임과 광고 보상은 똑같이 이용할 수 있어요.</string>
 	<key>SKAdNetworkItems</key>
