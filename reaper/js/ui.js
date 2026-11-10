@@ -1614,10 +1614,10 @@ const UI = (() => {
   }
   function petInfo(id) {
     const p = Pets.P(id), s = S(), st = s.pets[id];
-    if (!st) { toast('아직 만나지 못한 영물이에요'); return; }
+    if (!st) { modal(`<div class="pinfo"><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ???</h2><p class="mute">${p.g}등급 영물</p><p class="lore">아직 만나지 못한 영물이에요. 영물 소환으로 만날 수 있어요.</p></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
     const inv = s.petInv[id] || 0, c = Pets.starCost(id), sv = Pets.stats(id);
-    const box = modal(`<div class="pinfo"><canvas id="pi-big" width="12" height="11"></canvas><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</h2><div class="stars">${'★'.repeat(st)}${'☆'.repeat(5 - st)}</div><p>${p.desc}</p>
-      <p class="mute">수확량 +${Math.round(sv[0] * 100)}% · 이동 +${Math.round(sv[1] * 100)}% · 수확속도 +${Math.round(sv[2] * 100)}%<br>여분 <b style="color:var(--gold)">${inv}</b>마리${st < 5 ? ` · 별 올리기에 ${c}마리 필요 (능력치 +20%)` : ' · 최대 별!'}</p></div>
+    const box = modal(`<div class="pinfo"><canvas id="pi-big" width="12" height="11"></canvas><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</h2><div class="stars">${'★'.repeat(st)}${'☆'.repeat(5 - st)}</div><p class="mute">${p.desc}</p>${PET_LORE[id] ? `<p class="lore">${PET_LORE[id]}</p>` : ''}
+      <p class="mute">수확량 +${Math.round(sv[0] * 100)}% · 이동 +${Math.round(sv[1] * 100)}% · 수확속도 +${Math.round(sv[2] * 100)}%<br>여분 <b style="color:var(--gold)">${inv}</b>마리${st < 5 ? `<br>별 올리기에 ${c}마리 필요 (능력치 +15%)` : ' · 최대 별!'}</p></div>
       <div class="acts"><button class="btn" id="pi-eq" ${s.petEq === id ? 'disabled' : ''}>${s.petEq === id ? '소환 중' : '소환하기'}</button><button class="btn red" id="pi-up" ${st < 5 && inv >= c ? '' : 'disabled'}>★ 올리기</button><button class="btn dark" data-act="close">닫기</button></div>`);
     previews.push({ c: box.querySelector('#pi-big'), pet: p });
     box.querySelector('#pi-eq').onclick = () => { Pets.equip(id); Sound.play('buy'); toast(`${p.name}을(를) 소환했어요`); closeModal(); render(); };
