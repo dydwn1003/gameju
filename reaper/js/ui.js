@@ -407,7 +407,7 @@ const UI = (() => {
     if (tab === 'shop' && !force) document.querySelectorAll('[data-jade]').forEach(b => { const c = Game.jadeMaxed(b.dataset.jade) ? null : Game.jadeCost(b.dataset.jade); b.disabled = c == null; b.toggleAttribute('data-short', c != null && s.jade < c); if (c != null && s.jade < c) b.dataset.short = 'jade'; });
   }
   function onPanel(e) {
-    const t = e.target.closest('button'); if (!t) return;
+    const t = e.target.closest('button, [data-dexi]'); if (!t) return;
     if (t.dataset.mult) { mult = t.dataset.mult === 'max' ? 'max' : +t.dataset.mult; render(); return; }
     if (t.dataset.buy) {
       const id = t.dataset.buy;
@@ -573,7 +573,7 @@ const UI = (() => {
       ${row('계급 배수', '×' + fmt(R.mult))}
       ${s.reborn ? row('윤회 배수', '×' + f1(Game.rebornMult())) : ''}
       ${row('소환 중인 영물', pet ? `${pet.name} ★${s.pets[pet.id]}` : '없음', pet ? `수확량 +${Math.round(pst[0] * 100)}% · 이동 +${Math.round(pst[1] * 100)}% · 수확속도 +${Math.round(pst[2] * 100)}%` : '')}
-      ${row('영물 도감', `${Object.keys(s.pets || {}).length}종`, `수확량 +${Object.keys(s.pets || {}).length}%`)}
+      ${row('영물 도감', `${Object.keys(s.pets || {}).length}종`, `수확량 +${+(Object.keys(s.pets || {}).length * 0.5).toFixed(1)}%`)}
       ${row('혼령 도감', pct(1 + Life.dexBonus()))}
       ${row('집무실 품격', `${Decor.score()} (${Decor.title(Decor.score())})`, `수확량 ${pct(Decor.mul())}`)}
       ${row('지금 받는 버프', buffs.length ? buffs.join('<br>') : '없음')}
@@ -1105,20 +1105,30 @@ const UI = (() => {
     } else {
       const n = Object.keys(s.dex).length;
       h += `<div class="ph"><h3>혼령 도감</h3><span class="sub">${n}/${SPECIALS.length}종 · 혼 수확 +${Math.round(Life.dexBonus() * 100)}%</span></div>
-        <div class="dex">${SPECIALS.map(p => { const c = s.dex[p.i] || 0; return `<div class="pbox ${c ? '' : 'unk'}"><img class="px" src="${SPIC(p.i, !!c)}"><b>${c ? p.name : '???'}</b><small>${c ? `${c}마리${c >= 10 ? ' ★' : ''}` : REGIONS[p.region].name}</small></div>`; }).join('')}</div>
+        <div class="dex">${SPECIALS.map(p => { const c = s.dex[p.i] || 0; return `<div class="pbox ${c ? '' : 'unk'}" data-dexi="${p.i}"><img class="px" src="${SPIC(p.i, !!c)}"><b>${c ? p.name : '???'}</b><small>${c ? `${c}마리${c >= 10 ? ' ★' : ''}` : REGIONS[p.region].name}</small></div>`; }).join('')}</div>
         <p class="note">특별한 혼령은 아주 가끔 나타나요 (귀한 인연을 올리면 더 자주).<br>처음 거두면 혼 수확 +2%, 10마리 모으면 +1% 더. 근무지마다 나오는 혼령이 달라요.</p>`;
     }
     P.innerHTML = h;
     lifeTick();
+  }
+  function brewGo(id) { const d = { brew: id }; const r = Life.brew(d.brew); if (r) { Sound.play('promote'); Life.qEvent('brew'); const R = RECIPES.find(x => x.id === d.brew); toast(typeof r === 'number' ? `${R.name}! +${fmt(r)} 혼 · 옥 +${R.instant.jade}` : `${R.name}${eul(R.name)} 마셨다! ${R.desc}`); } renderLife($('#panel')); }
+  function dexInfo(i) {
+    const p = SPECIALS[i], c = S().dex[i] || 0, reg = REGIONS[p.region].name;
+    modal(`<div class="pinfo dexinfo"><img class="px" src="${SPIC(i, !!c, 6)}" style="height:96px"><h2>${c ? p.name : '???'}</h2>
+      ${c ? `<p class="mute">${p.desc}</p><p class="lore">${p.lore}</p>` : `<p class="lore">아직 만나지 못한 혼령이에요.</p>`}
+      <div class="dexmeta"><span>📍 ${reg}</span>${c ? `<span>거둔 수 ${c}마리${c >= 10 ? ' ★' : ''}</span>` : ''}</div>
+      <p class="mute" style="font-size:11px">${c ? (c >= 10 ? '도감 보너스 혼 수확 +3% (완성)' : `도감 보너스 혼 수확 +2% · 10마리 모으면 +1% 더 (${c}/10)`) : `${reg}에서 아주 가끔 나타나요. 처음 거두면 혼 수확 +2%`}</p></div>
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
   }
   function lifeClick(t) {
     const d = t.dataset;
     if (d.sub) { sub = d.sub; Sound.play('open'); renderLife($('#panel')); return true; }
     if (d.unlock) { askBuy('밭 늘리기', '새 밭을 일굴까요?', PLOT_COST[S().plots], 0, () => { if (Life.unlockPlot()) { Sound.play('buy'); toast('새 밭을 일궜어요!'); } else { Sound.play('no'); toast('옥이 부족해요'); } renderLife($('#panel')); }); return true; }
     if (d.harvest) { const n = Life.harvest(+d.harvest); if (n) { Sound.play('collect', 2); Life.qEvent('harvest'); toast(`꽃 ${n}송이 수확!`); } renderLife($('#panel')); return true; }
+    if (d.dexi != null) { dexInfo(+d.dexi); return true; }
     if (d.seed) { const f = FLOWERS.find(x => x.id === d.seed), j = f.soul ? 0 : f.jade, so = f.soul ? Life.seedSoulCost(f) : 0;
       askBuy('씨앗 구매', `${f.name} 씨앗 1개를 살까요?`, j, so, () => { if (Life.buySeed(d.seed, 1)) { Sound.play('buy'); toast(`${f.name} 씨앗 +1`); } else { Sound.play('no'); toast(j ? '옥이 부족해요' : '혼이 부족해요'); } renderLife($('#panel')); }); return true; }
-    if (d.brew) { const r = Life.brew(d.brew); if (r) { Sound.play('promote'); Life.qEvent('brew'); const R = RECIPES.find(x => x.id === d.brew); toast(typeof r === 'number' ? `${R.name}! +${fmt(r)} 혼 · 옥 +${R.instant.jade}` : `${R.name}${eul(R.name)} 마셨다! ${R.desc}`); } renderLife($('#panel')); return true; }
+    if (d.brew) { const R0 = RECIPES.find(x => x.id === d.brew); confirmBox(`<h2>🍶 ${R0.name}</h2><p>${R0.desc}</p><p class="mute">재료: ${Object.entries(R0.need).map(([k, v]) => `${fname(k)} ${v}송이`).join(' · ')}</p><p>달일까요?</p>`, () => brewGo(d.brew), '달이기'); return true; }
     if (d.send) { if (Life.send(d.send)) { Sound.play('buy'); Life.qEvent('send'); toast('졸개를 순찰 보냈어요'); setTimeout(askPush, 1200); } renderLife($('#panel')); return true; }
     if (d.skip) { const [k, i] = d.skip.split(':'); speedUp(k, +i); return true; }
     if (d.claim) { const r = Life.claim(+d.claim); if (r) { Sound.play('promote'); toast(`파견 보상: +${fmt(r.souls)} 혼${r.jade ? ` · 옥 +${r.jade}` : ''} · ${Object.entries(r.seeds).map(([k, v]) => fname(k) + ' 씨앗 ' + v).join(', ')}${r.dex ? ` · 📖 ${r.dex.name}` : ''}`, 4000); } renderLife($('#panel')); return true; }
@@ -1585,7 +1595,7 @@ const UI = (() => {
         <div class="gb3"><button class="btn" data-pull="ad" ${Pets.adLeft() > 0 ? '' : 'disabled'}>무료 1회<em>AD ${Pets.adLeft()}/2</em></button>
         <button class="btn jade" data-pull="1" ${s.jade >= PULL_COST[1] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[1]} · 1회</button>
         <button class="btn red" data-pull="10" ${s.jade >= PULL_COST[10] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[10]} · 10회</button></div><div class="gd">10회 소환은 A등급 이상 1마리 확정</div></div>
-      <div class="ph"><h3>영물 도감</h3><span class="sub">${own}/${PETS.length}종 · 수확량 +${own}%</span></div><div class="petgrid">`;
+      <div class="ph"><h3>영물 도감</h3><span class="sub">${own}/${PETS.length}종 · 수확량 +${+(own * 0.5).toFixed(1)}%</span></div><div class="petgrid">`;
     h += PETS.slice().sort((a, b) => PET_ORDER.indexOf(a.g) - PET_ORDER.indexOf(b.g)).map(p => { const st = s.pets[p.id], inv = s.petInv[p.id] || 0, canUp = st && st < 5 && inv >= Pets.starCost(p.id); return `<button class="pcell pbox ${st ? '' : 'unk'} ${s.petEq === p.id ? 'eq' : ''}" data-pet="${p.id}" style="--gc:${PET_GRADES[p.g].col}"><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span>${inv ? `<span class="pinv ${canUp ? 'up' : ''}">×${inv}</span>` : ''}<img class="px" src="${petIcon(p, !!st)}"><b>${st ? p.name : '???'}</b><small>${st ? '★'.repeat(st) : ''}${s.petEq === p.id ? ' 소환 중' : ''}</small></button>`; }).join('');
     h += '</div><div class="ph"><h3>영물 합성</h3><span class="sub">같은 등급 여분 3마리 → 1마리</span></div><div class="fuse pbox">';
     h += Object.keys(Pets.FUSE_UP).map(g => { const n = Pets.spares(g), k = Math.floor(n / Pets.FUSE_N), nx = PET_ORDER[PET_ORDER.indexOf(g) + 1]; return `<div class="frow"><span class="gb" style="background:${PET_GRADES[g].col}">${g}</span><div class="fi"><b>여분 ${n}마리</b><small>${Math.round(Pets.FUSE_UP[g] * 100)}% 확률로 <i style="color:${PET_GRADES[nx].col}">${nx}</i> 등급!</small></div><button class="btn jade" data-fuse="${g}:1" ${k ? '' : 'disabled'}>1회</button><button class="btn red" data-fuseall="${g}" ${k ? '' : 'disabled'}>모두 합성</button></div>`; }).join('');
