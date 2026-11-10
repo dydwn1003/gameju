@@ -20,7 +20,7 @@ const UI = (() => {
     const box = modal(`${fromSettings ? '<h2>계정 연동</h2><p class="mute">지금까지의 기록을 계정에 저장해 다른 기기에서도 이어 해요</p>' : '<div class="title-logo">저승사자 키우기</div><div class="title-sub">로그인하면 기록이 서버에 저장돼 기기를 바꿔도 이어 할 수 있어요</div>'}
       <div class="lg-list">${loginProviders().map(p => `<button class="lg-btn ${PROV[p][2]}" data-lg="${p}"><i>${PROV[p][0]}</i><span>${PROV[p][1]}</span></button>`).join('')}</div>
       ${fromSettings ? '<div class="acts"><button class="btn dark" data-act="close">닫기</button></div>' : '<button class="lg-guest" id="lg-guest">게스트로 시작 <small>(이 기기에만 저장돼요)</small></button>'}`, !fromSettings);
-    box.querySelectorAll('[data-lg]').forEach(b => b.onclick = () => { S().pendingLink = !!S().kind; Game.save(); toast('로그인 화면으로 이동해요…', 2000); Promise.resolve(Cloud.signIn(b.dataset.lg)).catch(() => toast('로그인을 시작하지 못했어요. 인터넷 연결을 확인해 주세요', 2600)); });
+    box.querySelectorAll('[data-lg]').forEach(b => b.onclick = async () => { S().pendingLink = !!S().kind; Game.save(); if (!Cloud.ready() && !(await Cloud.init())) return toast('서버에 연결하지 못했어요. 인터넷 연결을 확인하거나 게스트로 시작해 주세요', 3000); toast('로그인 화면으로 이동해요…', 2000); Promise.resolve(Cloud.signIn(b.dataset.lg)).catch(() => toast('로그인을 시작하지 못했어요. 인터넷 연결을 확인해 주세요', 2600)); });
     const g = box.querySelector('#lg-guest'); if (g) g.onclick = () => { S().guest = true; Game.save(); closeModal(); charSelect(true); };
   }
   function afterLoad() {
@@ -73,7 +73,8 @@ const UI = (() => {
     await step(82, '저승 서버에 접속하는 중…', () => Cloud.init());
     await step(90, '명부를 펼치는 중…', () => initGame());
     if (Cloud.signedIn()) await step(96, '내 기록을 불러오는 중…', () => cloudSync());
-    const wait = Math.max(0, 1200 - (performance.now() - t0)); await new Promise(r => setTimeout(r, wait));
+    let quick = false; try { quick = sessionStorage.getItem('reaper_quick') === '1'; sessionStorage.removeItem('reaper_quick'); } catch (e) {} // 언어를 고른 직후 다시 켜질 때는 로딩을 짧게
+    const wait = quick ? 0 : Math.max(0, 1200 - (performance.now() - t0)); await new Promise(r => setTimeout(r, wait));
     fill.style.width = '100%'; wc.style.left = 'calc(100% - 8px)'; msg.textContent = '근무 시작!';
     await new Promise(r => setTimeout(r, 250)); clearInterval(walk);
     L.classList.add('out'); setTimeout(() => L.remove(), 600);
@@ -119,7 +120,7 @@ const UI = (() => {
     Native.setPay(gid => grantPaid(gid), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); });
     render(); hud();
     if (!S().kind && !I18N.chosen()) { langPicker(true); } // 처음 켜면 언어부터 고르기
-    else if (!S().kind) { if (Cloud.enabled() && Cloud.signedIn()) { /* cloudSync 가 정함 */ } else if (Cloud.ready() && !S().guest) loginScreen(); else charSelect(true); }
+    else if (!S().kind) { if (Cloud.enabled() && Cloud.signedIn()) { /* cloudSync 가 정함 */ } else if (Cloud.enabled() && !S().guest) loginScreen(); else charSelect(true); } // 언어 → 로그인 → 캐릭터 · 닉네임
     else if (!Cloud.signedIn()) afterLoad(); // 로그인했으면 서버 기록을 맞춘 뒤에
   }
 
@@ -1207,7 +1208,7 @@ const UI = (() => {
     const box = modal(`<div translate="no"><div class="title-logo lp-title">🌏 언어 · 言語 · 语言 · Language</div>
       <div class="lp-list">${I18N.LANGS.map(([k, n]) => `<button class="lp-btn ${k === I18N.lang ? 'on' : ''}" data-lang="${k}"><b>${n}</b><small>${{ ko: '저승사자 키우기', ja: '冥土の使者を育てよう', zh: '冥府使者养成记', en: 'Grim Reaper Idle' }[k]}</small></button>`).join('')}</div>
       ${first ? '' : '<div class="acts"><button class="btn dark" data-act="close">✕</button></div>'}</div>`, first);
-    box.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { Game.save(); I18N.choose(b.dataset.lang); });
+    box.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { Game.save(); try { sessionStorage.setItem('reaper_quick', '1'); } catch (e) {} I18N.choose(b.dataset.lang); });
   }
   function settings() {
     const s = S(), cloud = Cloud.ready(), inn = cloud && Cloud.signedIn();
