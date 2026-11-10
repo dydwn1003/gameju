@@ -31,7 +31,7 @@
   - **Project URL · anon 키** → `js/config.js`
 - **로그인 콘솔:** 카카오 · 구글 · 네이버 · 애플(Services ID).
 - **AdMob:** 앱 ID 2개(AndroidManifest · Info.plist), 보상형 광고 단위 ID 2개(`config.js`). 출시 직전에 `testing: false`.
-- **개인정보처리방침:** `privacy.html` 의 `[운영자 이름] [문의 이메일] [시행일]` 을 채워요. `APP.supportEmail` 도 채워요.
+- **개인정보처리방침:** ✅ 채움 (갓주모바일). 웹 주소: https://whimsical-salt-0b8.notion.site/414e0d3e460280a09049dc1306b6df31
 
 ## 3-1. 다국어 (2026-11-10 추가)
 - 처음 켜면 언어 고르기(한국어 · 日本語 · 中文 · English), 설정 → 🌏 Language 로 언제든 변경.
