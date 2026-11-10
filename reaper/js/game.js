@@ -87,7 +87,7 @@ const Game = (() => {
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.975, 4 * Math.sqrt(lv('drill'))));
   const drillMulOf = L => 1 + 0.45 * Math.pow(L, 0.55); // 처음 강화가 크게
   const drillMul = () => drillMulOf(lv('drill'));
-  const OFFLINE_RATE = 0.08; // 자리 비운 동안 받는 비율 (켜 둔 실제 수입 대비 8%, 복귀 2배 광고로 16%)
+  const OFFLINE_RATE = 0.12; // 자리 비운 동안 받는 비율 (켜 둔 실제 수입 대비 12%, 복귀 2배 광고로 24%)
   const offHoursOf = L => 2 + 6 * (1 - Math.exp(-L / 12)) / (1 - Math.exp(-40 / 12)); // 처음 강화가 크게, 최대 8시간
   const offHours = () => Math.min(8, offHoursOf(lv('ledger')));
   function tierProbs() {
@@ -273,7 +273,7 @@ const Game = (() => {
     if (S.kind && S.name && !S.nickSet) S.nickSet = true; // 예전에 만든 캐릭터: 처음 정한 이름을 닉네임으로
     if (S.perm2) { S.perm2 = false; S.sealUntil = Math.max(S.sealUntil || 0, Date.now() + 7 * 86400e3); } // 영구 인장 → 7일 인장으로 바뀜
   }
-  // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 8%)
+  // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 12%)
   let awayFrom = 0;
   function offline() {
     const from = awayFrom || S.last; awayFrom = 0;
