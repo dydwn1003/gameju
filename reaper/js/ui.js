@@ -392,7 +392,7 @@ const UI = (() => {
       let n = mult === 'max' ? Math.max(1, Game.maxBuy(U.id).n) : Math.min(mult, U.max - L);
       const c = maxed ? 0 : Game.cost(U.id, n);
       $(`#lv-${U.id}`).textContent = `Lv.${L}`;
-      const de = $(`#de-${U.id}`), dt = U.cap && L >= U.cap && ['step', 'call', 'hand', 'luck'].includes(U.id) ? '숙련: 레벨마다 혼 가치 +2%' : U.desc; if (de && de.textContent !== dt && de.dataset.k !== dt) { de.dataset.k = dt; de.textContent = dt; }
+      const de = $(`#de-${U.id}`), dt = U.cap && L >= U.cap && ['step', 'call', 'hand', 'luck'].includes(U.id) ? '숙련: 레벨마다 혼 가치 +1%' : U.desc; if (de && de.textContent !== dt && de.dataset.k !== dt) { de.dataset.k = dt; de.textContent = dt; }
       $(`#ef-${U.id}`).textContent = maxed ? Game.eff(U.id, L) + ' (최대)' : `${Game.eff(U.id, L)} → ${Game.eff(U.id, L + n)}`;
       $(`#co-${U.id}`).textContent = maxed ? '최대' : fmt(c);
       $(`#bl-${U.id}`).textContent = maxed ? '' : `+${n}`;
