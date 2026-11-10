@@ -19,7 +19,8 @@
 | 문의(지원) 이메일 | 문의 받을 이메일. 개인 메일이 드러나는 게 싫으면 게임용 Gmail 을 새로 만들어 쓰기 |
 | 운영자 이름 | 본인 이름 또는 상호 (사업자 등록했으면 상호) |
 | 앱 돌아올 주소 | `com.jeoseungsaja.idle://login` |
-| 콜백 주소 | `https://<프로젝트ID>.supabase.co/auth/v1/callback` (A-1 후에 정해져요) |
+| 프로젝트ID | `eurinhfamcdygqxepmdg` |
+| 콜백 주소 | `https://eurinhfamcdygqxepmdg.supabase.co/auth/v1/callback` |
 
 ---
 
@@ -68,21 +69,39 @@
    - 대상: **외부** → **다음**
    - 연락처 정보: 문의 이메일 → **다음**
    - 정책 동의 체크 → **계속 → 만들기**
-3. 왼쪽 **대상(Audience)** → 게시 상태 **테스트** 아래 **앱 게시** → **확인**
+3. 왼쪽 **대상(Audience)**
+   - **앱 게시** 버튼이 회색이면(브랜딩 미완료) 지금은 **테스트 중** 그대로 두고, 아래 **테스트 사용자 → + Add users** 에 내 구글 이메일(테스트할 사람들)을 넣어요. 최대 100명.
+   - 출시 전에: 브랜딩에 **홈페이지 · 개인정보처리방침 링크**(D 의 주소) + 그 도메인을 **승인된 도메인**에 넣고 저장 → **앱 게시**
    - (로고는 넣지 마세요. 로고를 넣으면 구글 심사가 생겨요)
-4. 왼쪽 **클라이언트** → **+ 클라이언트 만들기**
-   - 애플리케이션 유형: **웹 애플리케이션** (앱이어도 로그인이 Supabase 서버를 거쳐서 '웹'이에요)
+4. 왼쪽 **클라이언트** → **+ 클라이언트 만들기** — **웹** (필수)
+   - 애플리케이션 유형: **웹 애플리케이션** (로그인 결과를 받는 곳이 Supabase 서버라서 '웹'이에요)
    - 이름: `Supabase`
    - **승인된 리디렉션 URI → + URI 추가** → 콜백 주소 붙여 넣기
    - **만들기**
 5. 뜨는 창의 **클라이언트 ID** 와 **클라이언트 보안 비밀번호** 복사
    - ⚠️ 보안 비밀번호는 이 창에서만 보일 수 있어요. **JSON 다운로드**도 눌러 두기
 
+**(선택) 앱 안 계정 선택 창(네이티브 로그인)용 클라이언트** — 만든 뒤 Claude 에게 말하면 코드를 바꿔 줘요
+- **Android** (2개 만들기: 앱 서명 키용 · 업로드 키용)
+  1. Play Console → 저승사자 키우기 → **테스트 및 출시 → 설정 → 앱 무결성 → 앱 서명** 탭
+     - **앱 서명 키 인증서**의 **SHA-1** 복사 (스토어에서 받은 앱용)
+     - **업로드 키 인증서**의 **SHA-1** 복사 (GitHub 에서 받은 APK 용)
+     - (첫 AAB 를 올린 뒤에 보여요 — B-2 의 1번)
+  2. **+ 클라이언트 만들기** → 유형 **Android**
+     - 이름: `Android (앱 서명)` / 패키지 이름: `com.jeoseungsaja.idle` / SHA-1: 앱 서명 키 SHA-1 → **만들기**
+  3. 한 번 더: 이름 `Android (업로드)`, SHA-1 은 업로드 키 SHA-1
+  - 안드로이드 클라이언트는 비밀번호가 없어요. 따로 넣을 값도 없어요(구글이 패키지 + SHA-1 로 알아봐요).
+- **iOS**
+  1. **+ 클라이언트 만들기** → 유형 **iOS**
+     - 이름: `iOS` / 번들 ID: `com.jeoseungsaja.idle` / 팀 ID: `V9RLBAGQZD` / App Store ID: 비워 두기 → **만들기**
+  2. 나온 **클라이언트 ID** 와 **iOS URL 스킴**(`com.googleusercontent.apps.…`) 복사 → 📮 Claude 에게 (공개용 값이에요)
+- 📮 **웹 클라이언트 ID** 도 Claude 에게 (공개용 값, 비밀번호는 보내지 않기)
+
 **Supabase 쪽**
 6. **Authentication → Sign In / Providers → Google**
    - **Enable Sign in with Google** 켜기
-   - **Client IDs**: 클라이언트 ID
-   - **Client Secret (for OAuth)**: 보안 비밀번호
+   - **Client IDs**: 웹 클라이언트 ID (네이티브 로그인을 켜면 나중에 `웹ID,iOS ID,Android ID…` 처럼 쉼표로 이어 붙여요)
+   - **Client Secret (for OAuth)**: 웹 클라이언트 보안 비밀번호
    - **Save**
 
 ### A-5. 카카오 로그인
@@ -124,7 +143,7 @@
 3. 방금 만든 `com.jeoseungsaja.idle.login` 클릭
    - **Sign in with Apple** 체크 → **Configure**
      - Primary App ID: `com.jeoseungsaja.idle`
-     - Domains and Subdomains: `<프로젝트ID>.supabase.co` (https:// 없이)
+     - Domains and Subdomains: `eurinhfamcdygqxepmdg.supabase.co` (https:// 없이)
      - Return URLs: 콜백 주소
      - **Next → Done → Continue → Save**
 4. 왼쪽 **Keys** → **+**
@@ -149,10 +168,10 @@
    - 사용 API: **네이버 로그인**
      - 권한: **별명 · 이메일 주소** → **필수**, 프로필 사진 → 추가(선택)
    - 로그인 오픈 API 서비스 환경: **PC 웹** 추가
-     - 서비스 URL: `https://<프로젝트ID>.supabase.co`
+     - 서비스 URL: `https://eurinhfamcdygqxepmdg.supabase.co`
      - 네이버 로그인 Callback URL:
        ```
-       https://<프로젝트ID>.supabase.co/functions/v1/naver-auth/callback
+       https://eurinhfamcdygqxepmdg.supabase.co/functions/v1/naver-auth/callback
        ```
    - **등록하기**
 2. **내 애플리케이션 → 저승사자 키우기 → 개요** 에서 **Client ID** · **Client Secret**(보기) 복사
