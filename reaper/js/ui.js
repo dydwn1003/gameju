@@ -1084,7 +1084,7 @@ const UI = (() => {
   // 앱: 구글 플레이 결제 / App Store 결제 → 완료되면 grantPaid. 웹: 서버가 없는 시험판(claude.ai 등)에서만 테스트 결제.
   // gid: SHOP_IAP 의 id, 또는 현금 의자는 'decor:<소품 id>'
   const testPay = () => !Native.isApp() && (!!window.claude || !Cloud.enabled());
-  const priceOf = gid => Native.price(gid) || (gid.startsWith('decor:') ? Decor.D(gid.slice(6)).cash : SHOP_IAP.find(p => p.id === gid).price);
+  const priceOf = gid => Native.price(gid) || LocalPrice.of(gid.startsWith('decor:') ? Decor.D(gid.slice(6)).cash : SHOP_IAP.find(p => p.id === gid).price);
   const payNote = () => testPay() ? '<p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>' : Native.isApp() ? `<p style="color:var(--mute);font-size:10px">${Native.platform() === 'ios' ? 'App Store' : 'Google Play'} 계정으로 결제돼요.</p>` : '';
   function grantPaid(gid) {
     if (gid.startsWith('decor:')) { const d = Decor.D(gid.slice(6)); if (d && Decor.buyCash(d.id)) { Sound.play('promote'); toast(`${d.name} 구입! 책상 뒤에 놓아 보세요`); decoBar(); } }
