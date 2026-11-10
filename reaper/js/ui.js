@@ -210,12 +210,12 @@ const UI = (() => {
     if (!S()) return;
     $('#v-soul').textContent = fmt(S().souls);
     $('#v-jade').textContent = fmt(S().jade);
-    $('#v-rate').textContent = fmt(Game.incomePerSec()) + (Game.incomePerSec() < 10 ? '.' + Math.floor((Game.incomePerSec() * 10) % 10) : '');
+    // (초당 혼 표시는 없앰 — 실제 수확량은 혼령을 거둘 때마다 들어와 예상치와 차이가 나서)
     const R = RANKS[S().rank], badge = $('#rank-badge');
     badge.textContent = R.name; badge.classList.toggle('reborn', S().reborn > 0); badge.dataset.r = S().reborn ? `윤회${S().reborn}` : '';
     $('#region').textContent = REGIONS[R.region].name;
     const b = Game.boosting();
-    $('#boost-on').classList.toggle('on', b);
+    const bo = $('#boost-on'); if (bo) bo.classList.toggle('on', b);
     $('#btn-boost').classList.toggle('active', b);
     $('#boost-t').textContent = b ? fmtClock((S().boostUntil - Date.now()) / 1000) : '';
     $('#btn-attend .dot').classList.toggle('on', Game.attendState().can);
@@ -558,7 +558,6 @@ const UI = (() => {
     const row = (k, v, sub) => `<div class="st-row"><span>${k}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
     const box = modal(`<div class="st-head"><canvas id="st-por" width="44" height="51"></canvas><div><b>${esc(s.name || '')}</b><span class="badge">${R.name}</span><small>Lv.${Game.level()} · ${REGIONS[R.region].name}${s.reborn ? ` · 윤회 ${s.reborn}회` : ''}</small>${N ? `<div class="prog"><i style="width:${Math.min(100, Game.level() / N.lv * 100)}%"></i></div><small>다음 계급 <b style="color:var(--gold)">${N.name}</b>까지 Lv.${N.lv}</small>` : '<small style="color:var(--gold)">최고 계급!</small>'}</div></div>
       <div class="st-sec">⚡ 수확</div>
-      ${row('초당 수확량', fmt(Game.incomePerSec()) + ' /초', Game.boosting() ? '2배 부적 적용 중' : '')}
       ${row('혼 1개 가치', fmt(Game.value() * Game.avgTier()), `평균 등급 ×${f1(Game.avgTier())}`)}
       ${row('수확 시간', f1(Game.reap()) + '초', '거두는 데 걸리는 시간')}
       ${row('혼령 나타나는 간격', f1(Game.spawn()) + '초')}
