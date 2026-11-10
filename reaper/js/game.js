@@ -282,7 +282,8 @@ const Game = (() => {
 
 // 숫자 표기: 만 · 억 · 조 · 경 · 해
 function fmt(n) {
-  if (n > 0 && n < 1) n = 1; // 0.몇은 1로 표시
+  if (n > 0 && n < 1) n = 1; // 0.몇은 1로 표시 (획득도 최소 1)
+  if (n < 10) { const t = Math.floor(n * 10) / 10; return t % 1 ? t.toFixed(1) : String(t); } // 한 자리 수는 소수점 한 자리 (1.2 · 6.6 · 9.3)
   n = Math.floor(n);
   if (n < 1e4) return n.toLocaleString('ko-KR');
   const units = [['극', 1e48], ['재', 1e44], ['정', 1e40], ['간', 1e36], ['구', 1e32], ['양', 1e28], ['자', 1e24], ['해', 1e20], ['경', 1e16], ['조', 1e12], ['억', 1e8], ['만', 1e4]];
