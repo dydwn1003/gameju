@@ -171,7 +171,7 @@ const Game = (() => {
   }
 
   // ---------- 획득 ----------
-  function gain(n) { S.souls += n; S.total += n; }
+  function gain(n) { if (n > 0 && n < 1) n = 1; S.souls += n; S.total += n; } // 0.몇 보상은 최소 1
   function roll() { const sp = Life.rollSpecial(RANKS[S.rank].region, le('luck')); return sp >= 0 ? { tier: 2, sp } : { tier: rollTier(), sp: -1 }; }
   function collect(tier, who, sp) {
     let v = value() * TIER_MULT[tier];
@@ -282,6 +282,7 @@ const Game = (() => {
 
 // 숫자 표기: 만 · 억 · 조 · 경 · 해
 function fmt(n) {
+  if (n > 0 && n < 1) n = 1; // 0.몇은 1로 표시
   n = Math.floor(n);
   if (n < 1e4) return n.toLocaleString('ko-KR');
   const units = [['극', 1e48], ['재', 1e44], ['정', 1e40], ['간', 1e36], ['구', 1e32], ['양', 1e28], ['자', 1e24], ['해', 1e20], ['경', 1e16], ['조', 1e12], ['억', 1e8], ['만', 1e4]];
