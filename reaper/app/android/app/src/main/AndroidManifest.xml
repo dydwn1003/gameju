@@ -33,7 +33,7 @@
         <!-- AdMob 앱 ID: 지금은 구글 테스트용. 출시 전 AdMob 콘솔의 내 앱 ID(ca-app-pub-…~…)로 바꾸기 -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"
+            android:value="ca-app-pub-7300932926935302~8958752839"
         />
 
         <provider
