@@ -114,8 +114,8 @@ const UI = (() => {
     window.addEventListener('pagehide', () => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
-    Native.setPause(() => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
-    Native.setResume(() => Push.back());
+    Native.setPause(() => { Sound.pause(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
+    Native.setResume(() => { Sound.resume(); Push.back(); });
     Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
     Native.setPay(gid => grantPaid(gid), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); });
     render(); hud();

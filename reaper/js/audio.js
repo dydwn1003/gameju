@@ -1,9 +1,10 @@
 // ===== 효과음 · 배경음 (WebAudio 합성, 가야금 느낌의 5음계) =====
 const Sound = (() => {
-  let ac = null, master = null, on = true, bgmOn = true, bgmT = null;
+  let ac = null, master = null, on = true, bgmOn = true, bgmT = null, away = false; // away: 앱이 뒤로 감 (홈 버튼 · 다른 앱)
   const PENTA = [261.6, 293.7, 329.6, 392, 440];
   function ctx() {
     if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination); } catch (e) { return null; } }
+    if (away) return null; // 뒤에 있을 땐 소리를 내지도, 다시 켜지도 않음
     if (ac.state === 'suspended') ac.resume();
     return ac;
   }
@@ -36,7 +37,7 @@ const Sound = (() => {
     open: () => pluck(note(6), 0, 0.12, 0.06),
   };
   function bgmStep() {
-    if (!on || !bgmOn) return;
+    if (!on || !bgmOn || away) return;
     const a = ctx(); if (!a || a.state !== 'running') { bgmT = setTimeout(bgmStep, 1000); return; }
     const r = Math.random();
     if (r < 0.75) pluck(note(Math.floor(Math.random() * 8), -1), 0, 1.6, 0.045);
@@ -47,8 +48,13 @@ const Sound = (() => {
     init() {
       const unlock = () => { ctx(); if (!bgmT) bgmStep(); };
       window.addEventListener('pointerdown', unlock, { once: true });
+      document.addEventListener('visibilitychange', () => (document.hidden ? this.pause() : this.resume()));
+      window.addEventListener('pagehide', () => this.pause());
     },
-    play(name, arg) { if (on && SFX[name]) SFX[name](arg); },
+    play(name, arg) { if (on && !away && SFX[name]) SFX[name](arg); },
+    // 앱이 뒤로 가면 소리를 완전히 멈추고, 돌아오면 다시 켬
+    pause() { away = true; clearTimeout(bgmT); bgmT = null; if (ac && ac.state === 'running') ac.suspend().catch(() => {}); },
+    resume() { if (!away) return; away = false; if (ac) { ac.resume().catch(() => {}); if (on && bgmOn) bgmStep(); } },
     set(sfx, bgm) { on = sfx; bgmOn = bgm; clearTimeout(bgmT); bgmT = null; if (on && bgmOn && ac) bgmStep(); },
   };
 })();
