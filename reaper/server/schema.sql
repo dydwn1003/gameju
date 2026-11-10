@@ -100,3 +100,64 @@ create trigger docs_touch before update on public.docs for each row execute func
 -- ===== 운영자 등록 (내 계정으로 한 번 로그인한 뒤 실행) =====
 -- Authentication > Users 에서 내 User UID 를 복사해 아래에 넣고 실행:
 -- insert into public.admins (user_id) values ('여기에-내-UID');
+
+-- ===== 운영자 우편을 SQL 로 보내기 =====
+-- SQL Editor 에서만 쓸 수 있어요 (게임 앱 · 다른 사용자는 실행 불가).
+-- 받는 사람 p_to: 'all' 모두(지금 + 새로 올 사람) · 'old' 지금 하고 있는 사람만 · 'new' 새로 시작하는 사람만
+--                 'online' 지금 접속 중인 사람만 · 'user' 특정 플레이어(p_nicks 에 닉네임 목록)
+-- 예)
+--   select send_mail('오픈 기념 선물', 'all', p_jade => 300, p_days => 14);
+--   select send_mail('점검 보상', 'old', p_jade => 100, p_hours => 2, p_body => '점검 동안 기다려 주셔서 감사해요');
+--   select send_mail('신규 차사 환영 선물', 'new', p_jade => 200, p_tickets => 3, p_days => 30);
+--   select send_mail('깜짝 선물!', 'online', p_jade => 50, p_days => 1);
+--   select send_mail('이벤트 당첨', 'user', p_jade => 500, p_nicks => array['갓주', '차사왕']);
+-- 보낸 우편 보기:  select * from mail_list;
+-- 우편 지우기:     delete from public.docs where path = 'mail/m1700000000000';   (이미 받은 사람의 보상은 그대로)
+create or replace function public.send_mail(
+  p_title   text,
+  p_to      text    default 'all',
+  p_jade    integer default 0,
+  p_tickets integer default 0,
+  p_hours   numeric default 0,
+  p_days    integer default 7,
+  p_body    text    default '',
+  p_decor   text    default '',
+  p_nicks   text[]  default null
+) returns text language plpgsql security definer set search_path = public as $$
+declare
+  v_at bigint := floor(extract(epoch from clock_timestamp()) * 1000)::bigint;
+  v_id text := 'm' || v_at;
+  v_uids jsonb;
+  v_missing text[];
+begin
+  if p_to not in ('all', 'old', 'new', 'online', 'user') then
+    raise exception '받는 사람(p_to)은 all / old / new / online / user 중 하나예요';
+  end if;
+  if coalesce(trim(p_title), '') = '' then raise exception '제목(p_title)을 넣어 주세요'; end if;
+  if coalesce(p_jade, 0) <= 0 and coalesce(p_tickets, 0) <= 0 and coalesce(p_hours, 0) <= 0 and coalesce(p_decor, '') = '' then
+    raise exception '보상(p_jade · p_tickets · p_hours · p_decor)을 하나 이상 넣어 주세요';
+  end if;
+  if p_to = 'user' then
+    if coalesce(array_length(p_nicks, 1), 0) = 0 then raise exception '특정 플레이어는 p_nicks => array[''닉네임''] 으로 넣어 주세요'; end if;
+    select array_agg(n) into v_missing from unnest(p_nicks) n
+      where not exists (select 1 from docs where col = 'rank' and data ->> 'nick' = n);
+    if v_missing is not null then raise exception '닉네임을 찾지 못했어요: %', array_to_string(v_missing, ', '); end if;
+    select jsonb_agg(distinct doc_id) into v_uids from docs where col = 'rank' and data ->> 'nick' = any (p_nicks);
+  end if;
+  insert into docs (path, col, doc_id, owner, data) values ('mail/' || v_id, 'mail', v_id, null, jsonb_strip_nulls(jsonb_build_object(
+    'at', v_at, 'title', trim(p_title), 'body', coalesce(p_body, ''),
+    'jade', greatest(coalesce(p_jade, 0), 0), 'tickets', greatest(coalesce(p_tickets, 0), 0), 'hours', greatest(coalesce(p_hours, 0), 0),
+    'decor', coalesce(p_decor, ''), 'until', v_at + greatest(coalesce(p_days, 7), 1)::bigint * 86400000,
+    'to', p_to, 'uids', v_uids, 'nicks', case when p_to = 'user' then to_jsonb(p_nicks) end)));
+  return v_id;
+end $$;
+revoke all on function public.send_mail(text, text, integer, integer, numeric, integer, text, text, text[]) from public, anon, authenticated;
+
+-- 보낸 우편 목록 (SQL Editor 에서 보기 좋게)
+create or replace view public.mail_list with (security_invoker = true) as
+  select path, data ->> 'title' as title, coalesce(data ->> 'to', 'all') as "to", data -> 'nicks' as nicks,
+         (data ->> 'jade')::int as jade, (data ->> 'tickets')::int as tickets, (data ->> 'hours')::numeric as hours, data ->> 'decor' as decor,
+         to_timestamp(at / 1000.0) at time zone 'Asia/Seoul' as sent_kst,
+         to_timestamp((data ->> 'until')::bigint / 1000.0) at time zone 'Asia/Seoul' as until_kst
+  from public.docs where col = 'mail' order by at desc;
+revoke all on public.mail_list from anon, authenticated;
