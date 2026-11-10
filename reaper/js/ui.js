@@ -507,7 +507,7 @@ const UI = (() => {
     const c = Life.skipCost(l), al = Game.adLeft('skip');
     const box = modal(`<h2>⏩ 시간 단축</h2><p>${SKIP_NAME[kind]} 시간<br><b class="big" style="color:var(--gold)" id="sk-left">${fmtTime(l)}</b></p>
       <div class="sk-opts"><button class="btn" id="sk-ad" ${al > 0 ? '' : 'disabled'}><span>📺 광고 보고 30분 단축</span><em>오늘 ${al}/${AD_LIMIT.skip}</em></button>
-      <button class="btn jade" id="sk-jade" ${S().jade >= c ? '' : 'data-short="jade"'}><span><img class="px" src="${IC('jade', 2)}"> 옥 ${c}개로 바로 완료</span><em>10분당 옥 10개</em></button></div>
+      <button class="btn jade" id="sk-jade" ${S().jade >= c ? '' : 'data-short="jade"'}><span><img class="px" src="${IC('jade', 2)}"> 옥 ${c}개로 바로 완료</span><em>10분당 옥 20개</em></button></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     const done = msg => { closeModal(); Sound.play('promote'); toast(msg); if (tab === 'life') renderLife($('#panel')); officeBar(); after && after(); };
     box.querySelector('#sk-jade').onclick = () => { const r = Life.skipJade(kind, i); if (r) done(`옥 ${r}개로 시간을 건너뛰었어요!`); else { Sound.play('no'); toast('옥이 부족해요'); } };

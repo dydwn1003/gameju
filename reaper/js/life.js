@@ -214,7 +214,7 @@ const Life = (() => {
     qEvent('prop'); Game.save(); return out;
   }
 
-  // ---------- 시간 단축 (옥: 10분당 10개 · 광고: 30분 단축) ----------
+  // ---------- 시간 단축 (옥: 10분당 20개 · 광고: 30분 단축) ----------
   // kind: plot(밭 i) · expe(파견 i) · docs(결재) · mail(까치 우편) · parade(백귀야행)
   function timerLeft(kind, i) {
     const s = S();
@@ -234,7 +234,7 @@ const Life = (() => {
     else if (kind === 'parade') s.parade.next -= ms;
     Game.save();
   }
-  const skipCost = secs => Math.max(10, Math.ceil(secs / 600) * 10); // 10분당 옥 10개
+  const skipCost = secs => Math.max(20, Math.ceil(secs / 600) * 20); // 10분당 옥 20개
   function skipJade(kind, i) {
     const l = timerLeft(kind, i), c = skipCost(l); if (l <= 0 || S().jade < c) return false;
     S().jade -= c; shiftTimer(kind, i, l + 1); return c;

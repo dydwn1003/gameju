@@ -67,7 +67,7 @@ const PETS = [
   { id: 'eungryong', name: '아기 응룡', g: 'SSS', kind: 'dragon', e: 'all', pal: {"H": "#9a6aff", "B": "#9a6aff", "b": "#f0e8ff", "y": "#ffd34a"}, aura: '#c8a0ff', desc: '날개 달린 용, 응룡의 새끼' },
   { id: 'geumsijo', name: '금시조', g: 'SSS', kind: 'bird', e: 'all', pal: {"H": "#ffc83a", "B": "#ffc83a", "b": "#fff4c0", "y": "#ff3a5a"}, aura: '#ffd34a', desc: '용을 잡아먹는 황금 새' },
 ];
-const PULL_COST = { 1: 30, 10: 270 };
+const PULL_COST = { 1: 50, 10: 450 };
 const PITY = 80; // 80번 안에 SS 이상 확정
 
 const Pets = (() => {
