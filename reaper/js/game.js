@@ -1,33 +1,34 @@
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
-// lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
+// lv: 승진 시험을 볼 수 있는 전체 레벨(업그레이드 레벨 합 + 1, 최대 99), hp: 시험 원귀 체력
 // 기준: 버프를 다 쓰는 플레이어(2배 부적 · 탕약 · 영물 · 꾸미기 · 도감 · 결재 · 파견 · 심판, 하루 4번 접속)가
-//       5분 · 30분 · 3시간 · 2일 · 5일 · 10일 · 18일 · 28일에 승진, 염라대왕 = 레벨 3000 = 모든 업그레이드 최대 (만렙) (모의 실행 tools/balance_sim_full.js)
+//       3분 · 20분 · 1시간 · 2일 · 4일 · 10일 · 17일 · 27일에 승진, 염라대왕 = 레벨 99 = 모든 업그레이드 최대 (만렙)
 //       하루 6시간 넘게 몰아서 해도 3계급 이후는 거의 같은 일정 (sim_binge)
 // mult: 계급별 수확 배수 (승진할 때마다 약 2.2배)
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 2.5, lv: 40, hp: 4.24e02, region: 1 },
-  { name: '차사', mult: 6, lv: 271, hp: 4.34e03, region: 2 },
-  { name: '선임 차사', mult: 14, lv: 565, hp: 1.65e05, region: 3 },
-  { name: '차사장', mult: 32, lv: 1285, hp: 1.95e08, region: 4 },
-  { name: '판관', mult: 72, lv: 1819, hp: 4.14e10, region: 5 },
-  { name: '명부 판관', mult: 160, lv: 2252, hp: 2.31e12, region: 6 },
-  { name: '시왕', mult: 360, lv: 2573, hp: 4.00e13, region: 7 },
-  { name: '염라대왕', mult: 800, lv: 3000, hp: 2.27e15, region: 8 },
+  { name: '말단 차사', mult: 2.5, lv: 9, hp: 1.85e04, region: 1 },
+  { name: '차사', mult: 6, lv: 36, hp: 4.37e06, region: 2 },
+  { name: '선임 차사', mult: 14, lv: 51, hp: 4.66e08, region: 3 },
+  { name: '차사장', mult: 32, lv: 77, hp: 7.23e11, region: 4 },
+  { name: '판관', mult: 72, lv: 87, hp: 1.29e13, region: 5 },
+  { name: '명부 판관', mult: 160, lv: 92, hp: 2.27e14, region: 6 },
+  { name: '시왕', mult: 360, lv: 96, hp: 2.58e15, region: 7 },
+  { name: '염라대왕', mult: 800, lv: 99, hp: 2.80e16, region: 8 },
 ];
-// 모든 업그레이드 max 합 + 1 = 3000 = 염라대왕 승진 레벨 (만렙). sq: 비용 증가율이 레벨이 오를수록 조금씩 줄어듦
+// 강화(구매)할 때마다 능력치가 오르고 경험치 1. 경험치가 차면 업그레이드 레벨 ↑ (lmax 까지).
+// 업그레이드 레벨 합 + 1 = 전체 레벨 (만렙 99 = 모든 업그레이드 최대 = 염라대왕). sq: 비용 증가율이 강화할수록 조금씩 줄어듦
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120레벨마다 ×2)', base: 8, grow: 1.04, sq: -1.03e-5, pa: 0.1, pd: 120, max: 1699 },
-  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.149, cap: 60, grow2: 1.15, max: 200 },
-  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.166, cap: 70, grow2: 1.15, max: 200 },
-  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.158, cap: 60, grow2: 1.15, max: 200 },
-  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.245, cap: 50, grow2: 1.15, max: 200 },
-  { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, cap: 20, grow2: 1.4, max: 40 },
-  { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.08, max: 420 },
-  { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 1.55, cap: 20, grow2: 1.34, max: 40 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120번 강화마다 ×2)', base: 8, grow: 1.04, sq: -0.905e-5, pa: 0.5, pd: 120, max: 1699, lmax: 30 },
+  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.149, cap: 60, grow2: 1.15, max: 200, lmax: 10 },
+  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.166, cap: 70, grow2: 1.15, max: 200, lmax: 10 },
+  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.158, cap: 60, grow2: 1.15, max: 200, lmax: 10 },
+  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.245, cap: 50, grow2: 1.15, max: 200, lmax: 10 },
+  { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, cap: 20, grow2: 1.4, max: 40, lmax: 8 },
+  { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.08, max: 420, lmax: 14 },
+  { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 1.55, cap: 20, grow2: 1.34, max: 40, lmax: 6 },
 ];
 const TIER_MULT = [1, 3, 10, 30];
-var SOUL_MUL = 0.2; // 혼 1개의 기본 가치 배율 (전체 혼 양 조절)
+var SOUL_MUL = 0.5; // 혼 1개의 기본 가치 배율 (전체 혼 양 조절)
 const TIER_NAME = ['떠도는 혼', '맑은 혼', '황금 혼', '원한 서린 혼'];
 const SHOP_IAP = [
   { id: 'jade100', name: '옥 100개', price: '₩1,200', jade: 100, icon: 'jade' },
@@ -63,7 +64,10 @@ const Game = (() => {
   const MASTERY = 1.01; // 숙련 1레벨당 혼 가치 배수
   const capOf = id => { const U = UPGRADES.find(u => u.id === id); return U.cap || U.max; };
   const lc = id => Math.min(lv(id), capOf(id));
-  const le = id => lc(id) / 2; // 걸음 · 부르기 · 손길 · 인연: 2레벨 = 예전 1레벨 효과 (레벨업 더 잘게)
+  // 걸음 · 부르기 · 손길 · 인연: 처음 강화는 크게 오르고 갈수록 오르는 폭이 좁아짐 (최대 강화에서 cap/2 효과)
+  const FRONT = 3, curve = x => (1 - Math.exp(-FRONT * x)) / (1 - Math.exp(-FRONT));
+  const leOf = (id, L) => { const c = capOf(id); return (c / 2) * curve(Math.min(L, c) / c); };
+  const le = id => leOf(id, lv(id));
   const over = (id, L = lv(id)) => Math.max(0, L - capOf(id));
   const masteryMul = () => MASTER.reduce((m, id) => m * Math.pow(MASTERY, over(id)), 1);
   const today = () => new Date().toISOString().slice(0, 10);
@@ -71,7 +75,7 @@ const Game = (() => {
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
   const PEN = UPGRADES[0];
-  const penMul = L => (1 + L * PEN.pa) * Math.pow(2, Math.floor(L / PEN.pd)); // 레벨당 +10%, 120레벨마다 ×2
+  const penMul = L => (1 + L * PEN.pa) * Math.pow(2, Math.floor(L / PEN.pd)); // 처음엔 강화마다 크게(+pa), 갈수록 비율이 줄어듦 · pd번마다 ×2
   const valueBase = () => SOUL_MUL * penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
@@ -79,11 +83,13 @@ const Game = (() => {
   const spawn = () => Math.max(0.1, 0.7 * Math.pow(0.93, le('call'))) / Life.mul('spawn');
   const reap = () => Math.max(0.12, 0.9 * Math.pow(0.93, le('hand')) / Pets.mul('reap'));
   const minions = () => lv('minion');
-  const mWalk = () => Math.min(56, 18 * (1 + lv('drill') * 0.035));
-  const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.975, lv('drill')));
-  const drillMul = () => 1 + lv('drill') * 0.03;
+  const mWalk = () => Math.min(56, 18 * (1 + 0.4 * Math.pow(lv('drill'), 0.6)));
+  const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.975, 4 * Math.sqrt(lv('drill'))));
+  const drillMulOf = L => 1 + 0.45 * Math.pow(L, 0.55); // 처음 강화가 크게
+  const drillMul = () => drillMulOf(lv('drill'));
   const OFFLINE_RATE = 0.08; // 자리 비운 동안 받는 비율 (켜 둔 실제 수입 대비 8%, 복귀 2배 광고로 16%)
-  const offHours = () => Math.min(8, 2 + lv('ledger') * 0.15); // 장부 레벨마다 9분, 최대 8시간
+  const offHoursOf = L => 2 + 6 * (1 - Math.exp(-L / 12)) / (1 - Math.exp(-40 / 12)); // 처음 강화가 크게, 최대 8시간
+  const offHours = () => Math.min(8, offHoursOf(lv('ledger')));
   function tierProbs() {
     const L = le('luck');
     const p3 = 0.004 * (1 + 0.15 * L), p2 = 0.015 * (1 + 0.12 * L), p1 = 0.06 * (1 + 0.1 * L);
@@ -120,13 +126,13 @@ const Game = (() => {
   function effBase(id, L) {
     switch (id) {
       case 'pen': { const m = penMul(L); return '×' + (m >= 100 ? fmt(m) : m.toFixed(2)); }
-      case 'step': return Math.round(18 + L / 2 * 2.2) + '보';
-      case 'call': return Math.max(0.3, 2.4 * Math.pow(0.93, L / 2)).toFixed(2) + '초';
-      case 'hand': return Math.max(0.18, 0.9 * Math.pow(0.93, L / 2)).toFixed(2) + '초';
-      case 'luck': { const l = L / 2, p = 0.004 * (1 + 0.15 * l) + 0.015 * (1 + 0.12 * l) + 0.06 * (1 + 0.1 * l); return (p * 100).toFixed(1) + '%'; }
+      case 'step': return Math.round(18 + leOf('step', L) * 2.2) + '보';
+      case 'call': return Math.max(0.3, 2.4 * Math.pow(0.93, leOf('call', L))).toFixed(2) + '초';
+      case 'hand': return Math.max(0.18, 0.9 * Math.pow(0.93, leOf('hand', L))).toFixed(2) + '초';
+      case 'luck': { const l = leOf('luck', L), p = 0.004 * (1 + 0.15 * l) + 0.015 * (1 + 0.12 * l) + 0.06 * (1 + 0.1 * l); return (p * 100).toFixed(1) + '%'; }
       case 'minion': return L + '명';
-      case 'drill': return '×' + (1 + L * 0.03).toFixed(2);
-      case 'ledger': { const m = Math.round(Math.min(8, 2 + L * 0.15) * 60), H = Math.floor(m / 60), M = m % 60; return H + '시간' + (M ? ' ' + M + '분' : ''); }
+      case 'drill': return '×' + drillMulOf(L).toFixed(2);
+      case 'ledger': { const m = Math.round(Math.min(8, offHoursOf(L)) * 60), H = Math.floor(m / 60), M = m % 60; return H + '시간' + (M ? ' ' + M + '분' : ''); }
     }
   }
   // ---------- 비용 ----------
@@ -154,7 +160,14 @@ const Game = (() => {
 
   // ---------- 승진 ----------
   const nextRank = () => RANKS[S.rank + 1];
-  const level = () => 1 + Object.values(S.upg).reduce((a, b) => a + b, 0);
+  // 업그레이드 레벨: 강화 경험치(구매 횟수)가 쌓여서 오름. 뒤로 갈수록 다음 레벨까지 경험치가 더 필요 (XP_POW)
+  const XP_POW = 1.3, MAX_LEVEL = 99;
+  const U_ = id => UPGRADES.find(u => u.id === id);
+  const xpNeed = (id, k) => { const U = U_(id); return k <= 0 ? 0 : k >= U.lmax ? U.max : Math.ceil(U.max * Math.pow(k / U.lmax, XP_POW)); }; // k레벨까지 누적 경험치
+  function ulv(id, P = lv(id)) { const U = U_(id); if (P >= U.max) return U.lmax; let k = Math.floor(U.lmax * Math.pow(P / U.max, 1 / XP_POW)); while (k < U.lmax && xpNeed(id, k + 1) <= P) k++; while (k > 0 && xpNeed(id, k) > P) k--; return k; }
+  // 현재 레벨 안에서의 경험치 진행 { lv, cur, need } (need 0 = 최대)
+  const uxp = id => { const P = lv(id), k = ulv(id, P), U = U_(id); if (k >= U.lmax) return { lv: k, cur: 0, need: 0 }; const a = xpNeed(id, k), b = xpNeed(id, k + 1); return { lv: k, cur: P - a, need: b - a }; };
+  const level = () => Math.min(MAX_LEVEL, 1 + UPGRADES.reduce((a, U) => a + ulv(U.id), 0));
   const canTest = () => !!nextRank() && level() >= nextRank().lv;
   const testHp = () => nextRank() ? nextRank().hp * rebornMult() : 0;
   function promote() {
@@ -275,7 +288,7 @@ const Game = (() => {
   return {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
-    eff, cost, maxBuy, buy, nextRank, level, canTest, testHp, promote, canReborn, reborn, rebornMult,
+    eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult,
     collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();

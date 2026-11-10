@@ -40,7 +40,7 @@ const res=await p.evaluate(([mode,arg,OV])=>{
   return [times,dmg];}
  if(mode==='run'){window.__upg=[];const [tm,dm]=run(arg,8);return tm.map((x,i)=>[x,dm[i],window.__upg[i]]);}
  const tgt=arg, lvs=[0,1,2,3,4,5,6,7,8].map((_,i)=>i?9000+i:0);
- for(let k=1;k<=8;k++){let lo=lvs[k-1]+1,hi=6000;
+ for(let k=1;k<=8;k++){let lo=lvs[k-1]+1,hi=99;
   while(lo<hi){const mid=(lo+hi+1)>>1;lvs[k]=mid;for(let j=k+1;j<=8;j++)lvs[j]=9000+j;const [tm]=run(lvs,k);const tk=tm[k-1];if(tk==null||tk>tgt[k-1])hi=mid-1;else lo=mid;}
   lvs[k]=lo;}
  return lvs;},[mode,arg,OV]);

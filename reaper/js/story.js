@@ -15,8 +15,8 @@ const STORY = [
     quests: [
       { t: '혼령 100개 거두기', k: 'cnt.soul', n: 100, r: { jade: 20 } },
       { t: '혼령을 직접 터치해서 10번 거두기', k: 'cnt.tap', n: 10, r: { jade: 20 } },
-      { t: '명부 필력 Lv.5 달성', k: 'pen', n: 5, r: { hours: 0.35 } },
-      { t: '차사 레벨 20 달성', k: 'lv', n: 20, r: { jade: 30 } }],
+      { t: '명부 필력 Lv.1 달성', k: 'pen', n: 1, r: { hours: 0.35 } },
+      { t: '차사 레벨 8 달성', k: 'lv', n: 8, r: { jade: 30 } }],
     outro: [['me', '선배, 명부 첫 장에… 제 이름 칸만 비어 있어요.'],
       ['gangrim', '…인쇄가 덜 됐나 보지. 저승 인쇄소가 원래 그래. 하하… 하.'],
       ['narr', '강림 선배는 웃었지만, 눈은 웃고 있지 않았다.']],
@@ -30,7 +30,7 @@ const STORY = [
       { t: '졸개 차사 1명 고용하기', k: 'minion', n: 1, r: { jade: 30 } },
       { t: '원귀 1마리 퇴치하기', k: 'cnt.wraith', n: 1, r: { jade: 30 } },
       { t: '원귀가 떨어뜨린 종이 조각 찾기 (지도의 ✦)', k: 'clue', n: 1, r: { jade: 30 } },
-      { t: '차사 레벨 60 달성', k: 'lv', n: 60, r: { ticket: 1 } }],
+      { t: '차사 레벨 18 달성', k: 'lv', n: 18, r: { ticket: 1 } }],
     outro: [['wraith', '내 이름… 누가… 명부에서 내 이름을 지웠어…'],
       ['narr', '주운 종이 조각에 검은 먹물이 번져 있다. 이름 하나가 통째로 지워진 흔적이다.'],
       ['gangrim', '…이건 판관 나리께 보고해야겠다.']],
@@ -174,7 +174,7 @@ const Story = (() => {
     if (k === 'rank') return s.rank + (s.reborn ? 99 : 0);
     if (k === 'rankNow') return s.rank;
     if (k === 'reborn') return s.reborn || 0;
-    if (k === 'pen') return Game.lv('pen');
+    if (k === 'pen') return Game.ulv('pen');
     if (k === 'minion') return Game.minions();
     if (k === 'dex') return Object.keys(s.dex || {}).length;
     if (k === 'pets') return Object.keys(s.pets || {}).length;

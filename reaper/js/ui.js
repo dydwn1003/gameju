@@ -273,7 +273,7 @@ const UI = (() => {
   function upRow(U) {
     return `<div class="row pbox" id="row-${U.id}">
       <div class="ic"><img class="px" src="${IC(U.icon, 3)}"></div>
-      <div class="info"><div class="nm">${U.name}<small id="lv-${U.id}"></small></div><div class="ds"><span id="de-${U.id}">${U.desc}</span> · <b id="ef-${U.id}"></b></div></div>
+      <div class="info"><div class="nm">${U.name}<small id="lv-${U.id}"></small><small class="xpt" id="xt-${U.id}"></small></div><div class="ds"><span id="de-${U.id}">${U.desc}</span> · <b id="ef-${U.id}"></b></div><div class="xpb"><i id="xp-${U.id}"></i></div></div>
       <button class="btn" data-buy="${U.id}"><span class="c"><img class="px" src="${IC('soul', 2)}"><span id="co-${U.id}"></span></span><span class="l" id="bl-${U.id}"></span></button>
     </div>`;
   }
@@ -346,7 +346,7 @@ const UI = (() => {
       html += `<div class="promo pbox">
         <div class="looks"><div><div class="lk-w"><canvas class="mg" id="mg-now" width="48" height="20"></canvas><canvas id="lk-now" width="44" height="51"></canvas></div><span>${RANKS[s.rank].name}</span></div><b>▶</b><div><div class="lk-w"><canvas class="mg" id="mg-next" width="48" height="20"></canvas><canvas id="lk-next" width="44" height="51"></canvas></div><span class="nx">${N.name}</span></div></div><div class="mg-note">승진하면 발밑 <b>마법진</b>이 ${s.rank ? '더 화려해져요' : '생겨요'} ✨</div>
         <div class="prog"><i style="width:${pct}%"></i></div>
-        <div class="d">레벨 <b style="color:var(--soul)">${L}</b> / ${N.lv} <span style="color:var(--mute)">(수련을 1번 올릴 때마다 레벨 +1)</span><br>
+        <div class="d">레벨 <b style="color:var(--soul)">${L}</b> / ${N.lv} <span style="color:var(--mute)">(업그레이드를 강화하면 경험치가 쌓여 업그레이드 레벨이 오르고, 그만큼 차사 레벨 +1 · 최대 99)</span><br>
         승진하면 옷차림이 바뀌고 수확량 <b style="color:var(--gold)">×${(N.mult / RANKS[s.rank].mult).toFixed(1)}</b>${RANKS[s.rank].region !== N.region ? ` · 새 지역 <b style="color:var(--gold)">${REGIONS[N.region].name}</b>` : ''}</div>
         <button class="btn red" data-act="test" ${ok ? '' : 'disabled'}>${ok ? '승진하기' : `레벨 ${N.lv}에 승진할 수 있어요`}</button></div>`;
     } else {
@@ -391,8 +391,10 @@ const UI = (() => {
       const L = Game.lv(U.id), maxed = L >= U.max;
       let n = mult === 'max' ? Math.max(1, Game.maxBuy(U.id).n) : Math.min(mult, U.max - L);
       const c = maxed ? 0 : Game.cost(U.id, n);
-      $(`#lv-${U.id}`).textContent = `Lv.${L}`;
-      const de = $(`#de-${U.id}`), dt = U.cap && L >= U.cap && ['step', 'call', 'hand', 'luck'].includes(U.id) ? '숙련: 레벨마다 혼 가치 +1%' : U.desc; if (de && de.textContent !== dt && de.dataset.k !== dt) { de.dataset.k = dt; de.textContent = dt; }
+      const X = Game.uxp(U.id); $(`#lv-${U.id}`).textContent = `Lv.${X.lv}`;
+      const xt = $(`#xt-${U.id}`); if (xt) xt.textContent = X.need ? `경험치 ${Math.floor(X.cur / X.need * 100)}%` : '최대 레벨';
+      const xb = $(`#xp-${U.id}`); if (xb) xb.style.width = (X.need ? Math.round(X.cur / X.need * 100) : 100) + '%';
+      const de = $(`#de-${U.id}`), dt = U.cap && L >= U.cap && ['step', 'call', 'hand', 'luck'].includes(U.id) ? '숙련: 강화마다 혼 가치 +1%' : U.desc; if (de && de.textContent !== dt && de.dataset.k !== dt) { de.dataset.k = dt; de.textContent = dt; }
       $(`#ef-${U.id}`).textContent = maxed ? Game.eff(U.id, L) + ' (최대)' : `${Game.eff(U.id, L)} → ${Game.eff(U.id, L + n)}`;
       $(`#co-${U.id}`).textContent = maxed ? '최대' : fmt(c);
       $(`#bl-${U.id}`).textContent = maxed ? '' : `+${n}`;
@@ -411,13 +413,15 @@ const UI = (() => {
     if (t.dataset.mult) { mult = t.dataset.mult === 'max' ? 'max' : +t.dataset.mult; render(); return; }
     if (t.dataset.buy) {
       const id = t.dataset.buy;
-      const L0 = Game.lv(id);
+      const L0 = Game.lv(id), u0 = Game.ulv(id), g0 = Game.level();
       if (Game.buy(id, mult)) {
         tutEv('buy');
         Life.qEvent('buy', Game.lv(id) - L0);
         Sound.play('buy');
         const r = t.getBoundingClientRect(), st = $('#stage').getBoundingClientRect();
-        float(st.width / 2, st.height * 0.42, `Lv.${Game.level()}`, 'lvup');
+        const u1 = Game.ulv(id), g1 = Game.level(), UU = UPGRADES.find(x => x.id === id);
+        if (g1 > g0) { float(st.width / 2, st.height * 0.42, `Lv.${g1}`, 'lvup'); toast(`🎉 ${UU.name} Lv.${u1}! 차사 레벨 ${g1}`); }
+        else float(st.width / 2, st.height * 0.42, `강화 +${Game.lv(id) - L0}`, 'lvup');
         if (id === 'minion') { toast('졸개 차사가 합류했다!'); render(); }
         refresh(true);
       } else Sound.play('no');
