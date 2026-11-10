@@ -847,6 +847,7 @@ input, textarea { user-select: text !important; -webkit-user-select: text !impor
 .pv-kakao { background: #fee500; color: #191919; }
 .pv-naver { background: #03c75a; color: #fff; }
 .pv-apple { background: #000; color: #fff; border: 1px solid #444; }
+.lg-back { display: block; margin: -4px 0 4px -4px; padding: 4px 8px; border: 0; border-radius: 8px; background: rgba(255, 255, 255, 0.06); color: #cfc8e6; font: inherit; font-size: 12px; cursor: pointer; } .lg-back:active { transform: scale(0.95); }
 .lg-guest { margin-top: 4px; font-size: 12px; color: #cfc8e6; text-decoration: underline; } .lg-guest small { color: #8a82a8; }
 .sv-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
 .sv-pick button { display: flex; flex-direction: column; gap: 4px; padding: 12px 8px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1.5px solid rgba(255, 210, 110, .35); color: #f1ecf8; }

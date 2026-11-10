@@ -17,10 +17,11 @@ const UI = (() => {
   // iOS 앱은 다른 소셜 로그인이 있으면 Apple 로그인도 꼭 있어야 함 (App Store 심사 4.8)
   const loginProviders = () => { const ios = Native.platform() === 'ios', l = CLOUD.providers.filter(x => x !== 'apple'); if (ios) l.push('apple'); return l; }; // Apple 로그인은 iOS 에서만 (아이폰 기본 로그인 창)
   function loginScreen(fromSettings) {
-    const box = modal(`${fromSettings ? '<h2>계정 연동</h2><p class="mute">지금까지의 기록을 계정에 저장해 다른 기기에서도 이어 해요</p>' : '<div class="title-logo">저승사자 키우기</div><div class="title-sub">로그인하면 기록이 서버에 저장돼 기기를 바꿔도 이어 할 수 있어요</div>'}
+    const box = modal(`${fromSettings ? '' : '<button class="lg-back" id="lg-back" translate="no">‹ 🌏 Language</button>'}${fromSettings ? '<h2>계정 연동</h2><p class="mute">지금까지의 기록을 계정에 저장해 다른 기기에서도 이어 해요</p>' : '<div class="title-logo">저승사자 키우기</div><div class="title-sub">로그인하면 기록이 서버에 저장돼 기기를 바꿔도 이어 할 수 있어요</div>'}
       <div class="lg-list">${loginProviders().map(p => `<button class="lg-btn ${PROV[p][2]}" data-lg="${p}"><i>${PROV[p][0]}</i><span>${PROV[p][1]}</span></button>`).join('')}</div>
       ${fromSettings ? '<div class="acts"><button class="btn dark" data-act="close">닫기</button></div>' : '<button class="lg-guest" id="lg-guest">게스트로 시작 <small>(이 기기에만 저장돼요)</small></button>'}`, !fromSettings);
     box.querySelectorAll('[data-lg]').forEach(b => b.onclick = async () => { S().pendingLink = !!S().kind; Game.save(); if (!Cloud.ready() && !(await Cloud.init())) return toast('서버에 연결하지 못했어요. 인터넷 연결을 확인하거나 게스트로 시작해 주세요', 3000); toast('로그인 화면으로 이동해요…', 2000); Promise.resolve(Cloud.signIn(b.dataset.lg)).catch(() => toast('로그인을 시작하지 못했어요. 인터넷 연결을 확인해 주세요', 2600)); });
+    const bk = box.querySelector('#lg-back'); if (bk) bk.onclick = () => langPicker(true); // 처음 화면: 언어를 잘못 골랐으면 다시 고르기
     const g = box.querySelector('#lg-guest'); if (g) g.onclick = () => { S().guest = true; Game.save(); closeModal(); charSelect(true); };
   }
   function afterLoad() {
@@ -112,7 +113,7 @@ const UI = (() => {
     document.addEventListener('visibilitychange', () => { if (document.hidden) { Game.save(); if (S().kind) Cloud.pushSave(S(), true); } else checkOffline(); });
     window.addEventListener('pagehide', () => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
-    Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
+    Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
     Native.setPause(() => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
     Native.setResume(() => Push.back());
     Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
