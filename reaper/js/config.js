@@ -3,8 +3,8 @@
 // anonKey 는 공개용 키라 웹/앱에 들어가도 괜찮아요. (service_role · secret 키는 절대 여기에 넣지 마세요)
 // 비워 두면 서버 없이 기기 저장만으로 동작합니다. claude.ai 안에서 열면 claude.ai 공유 저장소를 씁니다.
 const CLOUD = {
-  url: '',            // 예: 'https://abcdefgh.supabase.co'
-  anonKey: '',        // 예: 'eyJhbGciOi...' 또는 'sb_publishable_...'
+  url: 'https://eurinhfamcdygqxepmdg.supabase.co',
+  anonKey: 'sb_publishable_6eRHjUVJ3CJG37CcG_DB6g_hl-DDmhu', // 공개용(publishable) 키
   providers: ['google', 'kakao', 'apple'], // 로그인 화면에 보일 버튼 (Apple 은 iOS 앱에서만, 아이폰 기본 로그인 창으로)
   naverFunction: 'naver-auth',                      // 네이버 로그인용 Edge Function 이름
   deleteFunction: 'delete-account',                 // 계정 삭제용 Edge Function 이름 (스토어 필수)
