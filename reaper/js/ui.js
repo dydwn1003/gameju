@@ -73,8 +73,7 @@ const UI = (() => {
     await step(82, '저승 서버에 접속하는 중…', () => Cloud.init());
     await step(90, '명부를 펼치는 중…', () => initGame());
     if (Cloud.signedIn()) await step(96, '내 기록을 불러오는 중…', () => cloudSync());
-    let quick = false; try { quick = sessionStorage.getItem('reaper_quick') === '1'; sessionStorage.removeItem('reaper_quick'); } catch (e) {} // 언어를 고른 직후 다시 켜질 때는 로딩을 짧게
-    const wait = quick ? 0 : Math.max(0, 1200 - (performance.now() - t0)); await new Promise(r => setTimeout(r, wait));
+    const wait = Math.max(0, 1200 - (performance.now() - t0)); await new Promise(r => setTimeout(r, wait));
     fill.style.width = '100%'; wc.style.left = 'calc(100% - 8px)'; msg.textContent = '근무 시작!';
     await new Promise(r => setTimeout(r, 250)); clearInterval(walk);
     L.classList.add('out'); setTimeout(() => L.remove(), 600);
@@ -119,8 +118,10 @@ const UI = (() => {
     Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
     Native.setPay(gid => grantPaid(gid), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); });
     render(); hud();
+    // 로그인 성공 → 다시 켜지 않고 그 자리에서 서버 기록을 맞춤
+    Cloud.setOnLogin(() => { closeModal(); toast('☁️ 로그인했어요', 1600); Board.init(); cloudSync(); });
     if (!S().kind && !I18N.chosen()) { langPicker(true); } // 처음 켜면 언어부터 고르기
-    else if (!S().kind) { if (Cloud.enabled() && Cloud.signedIn()) { /* cloudSync 가 정함 */ } else if (Cloud.enabled() && !S().guest) loginScreen(); else charSelect(true); } // 언어 → 로그인 → 캐릭터 · 닉네임
+    else if (!S().kind) startFlow();
     else if (!Cloud.signedIn()) afterLoad(); // 로그인했으면 서버 기록을 맞춘 뒤에
   }
 
@@ -583,7 +584,7 @@ const UI = (() => {
     if ((S().noticeHide || 0) > Date.now()) return;
     const list = await loadNotices(); if (!list.length) return;
     // 창 · 안내 · 집무실 · 꾸미기 · 아래 메뉴가 열려 있으면 기다렸다가 마을 화면으로 돌아왔을 때 띄움 (최대 3분)
-    const busy = () => $('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut') || Scene.inOffice() || sheetOpen() || parade;
+    const busy = () => (!Story.cur().end && !Story.cur().intro) || $('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut') || Scene.inOffice() || sheetOpen() || parade;
     let tries = 0; const go = () => { if (busy() && tries++ < 180) { setTimeout(go, 1000); return; } if (!busy()) noticeModal(true); }; go();
   }
   async function noticeModal(startup) {
@@ -1204,11 +1205,18 @@ const UI = (() => {
   const loginBtn = () => Cloud.ready() && !Cloud.signedIn() ? '<button class="btn" data-login="1">로그인</button>' : '';
   const bindLogin = () => { const b = $('#modal [data-login]'); if (b) b.onclick = () => { closeModal(); loginScreen(true); }; };
   // ---------- 언어 고르기 (각 언어 이름은 그 나라 글자로, 번역하지 않음) ----------
+  // 시작 순서: 로딩 → 언어 → 로그인 → 캐릭터 · 닉네임
+  function startFlow() {
+    if (S().kind) return;
+    if (Cloud.enabled() && Cloud.signedIn()) return; // cloudSync 가 정함
+    if (Cloud.enabled() && !S().guest) loginScreen(); else charSelect(true);
+  }
   function langPicker(first) {
     const box = modal(`<div translate="no"><div class="title-logo lp-title">🌏 언어 · 言語 · 语言 · Language</div>
       <div class="lp-list">${I18N.LANGS.map(([k, n]) => `<button class="lp-btn ${k === I18N.lang ? 'on' : ''}" data-lang="${k}"><b>${n}</b><small>${{ ko: '저승사자 키우기', ja: '冥土の使者を育てよう', zh: '冥府使者养成记', en: 'Grim Reaper Idle' }[k]}</small></button>`).join('')}</div>
       ${first ? '' : '<div class="acts"><button class="btn dark" data-act="close">✕</button></div>'}</div>`, first);
-    box.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { Game.save(); try { sessionStorage.setItem('reaper_quick', '1'); } catch (e) {} I18N.choose(b.dataset.lang); });
+    // 다시 켜지 않고 바로 바꿈 → 처음이면 이어서 로그인(또는 캐릭터 만들기)
+    box.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { I18N.choose(b.dataset.lang); Game.save(); closeModal(); render(); hud(); if (first) startFlow(); });
   }
   function settings() {
     const s = S(), cloud = Cloud.ready(), inn = cloud && Cloud.signedIn();

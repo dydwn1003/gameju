@@ -2,7 +2,7 @@
 // 공유 데이터(순위·집무실·방문·공지·우편)는 docs 테이블 하나에 저장하고,
 // claude.ai 공유 저장소와 같은 모양(doc/collection/where/orderBy/limit)으로 감싸서 Board 가 그대로 쓴다.
 const Cloud = (() => {
-  let sb = null, session = null, listeners = [], lastPush = 0, pushing = false;
+  let sb = null, session = null, listeners = [], onLogin = null, lastPush = 0, pushing = false;
   const SORT_COLS = ['score', 'at', 'likes']; // docs 테이블에 따로 뽑아 둔 정렬용 숫자 칸
   const enabled = () => !!(CLOUD.url && CLOUD.anonKey) && !(window.claude && window.claude.use);
   const uid = () => (session && session.user ? session.user.id : null);
@@ -24,6 +24,8 @@ const Cloud = (() => {
       return true;
     } catch (e) { sb = null; return false; }
   }
+  // 로그인 성공: 앱을 다시 켜지 않고 화면(UI)이 바로 기록을 맞춤 (UI 가 setOnLogin 으로 넘겨 줌)
+  const loggedIn = () => { if (onLogin) onLogin(); else location.reload(); };
   // ---------- 로그인 ----------
   async function signIn(p) {
     if (!sb) return;
@@ -51,7 +53,7 @@ const Cloud = (() => {
     if (!token) throw new Error('apple');
     const { error } = await sb.auth.signInWithIdToken({ provider: 'apple', token, nonce: raw });
     if (error) throw error;
-    location.reload(); // 처음 켤 때와 똑같이 클라우드 저장을 맞춰 봄
+    loggedIn();
   }
   // 앱으로 돌아온 로그인 주소 처리: ?code=… (구글·카카오·애플) 또는 #access_token=… (네이버 매직 링크)
   async function handleAuthUrl(url) {
@@ -63,7 +65,7 @@ const Cloud = (() => {
       if (q.get('code')) { const { error } = await sb.auth.exchangeCodeForSession(q.get('code')); if (error) throw error; }
       else if (h.get('access_token')) { const { error } = await sb.auth.setSession({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token') }); if (error) throw error; }
       else return;
-      location.reload(); // 처음 켤 때와 똑같이 클라우드 저장을 맞춰 봄
+      loggedIn();
     } catch (e) { if (typeof toast === 'function') toast('로그인에 실패했어요. 다시 시도해 주세요'); }
   }
   // 계정 삭제 (구글 플레이 · 앱스토어 필수): 서버의 delete-account 함수가 계정과 모든 데이터를 지움
@@ -132,5 +134,5 @@ const Cloud = (() => {
     profiles: async () => ({}), // 표시 이름은 게임 닉네임을 씀
     isOwner: async () => { try { const { data } = await sb.rpc('is_admin'); return !!data; } catch (e) { return false; } },
   };
-  return { enabled, init, ready: () => !!sb, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, db, user, onChange: f => listeners.push(f) };
+  return { enabled, init, ready: () => !!sb, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, db, user, onChange: f => listeners.push(f), setOnLogin: f => { onLogin = f; } };
 })();

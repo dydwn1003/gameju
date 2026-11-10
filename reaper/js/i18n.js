@@ -8,10 +8,9 @@ const I18N = (() => {
   const KEY = 'reaper_lang';
   const guess = () => { const n = (navigator.language || 'ko').toLowerCase(); return n.startsWith('ja') ? 'ja' : n.startsWith('zh') ? 'zh' : n.startsWith('en') ? 'en' : 'ko'; };
   let chosen = null; try { chosen = localStorage.getItem(KEY); } catch (e) {}
-  const lang = LANGS.some(l => l[0] === chosen) ? chosen : guess();
+  let lang = LANGS.some(l => l[0] === chosen) ? chosen : guess();
   const H = /[가-힣]/;
-  const dict = (typeof I18N_DATA !== 'undefined' && I18N_DATA[lang]) || {};
-  const on = lang !== 'ko';
+  let dict = {}, on = false;
 
   // ---------- 숫자 단위 ----------
   const KU = { '만': 1e4, '억': 1e8, '조': 1e12, '경': 1e16, '해': 1e20 };
@@ -28,25 +27,30 @@ const I18N = (() => {
 
   // ---------- 틀이 있는 문장 ({0} · {~}) ----------
   const esc = s => s.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&');
-  const pats = [];
-  for (const k of Object.keys(dict)) {
-    if (!/\{(\d+|~)\}/.test(k)) continue;
-    // 바로 붙은 자리표시({0}{1})는 한 덩어리로 잡은 뒤 나눌 곳을 하나씩 시험
-    const parts = k.split(/(\{\d+\}|\{~\})/).filter(x => x !== '');
-    const groups = []; let src = '^', prevCap = false;
-    for (const part of parts) {
-      if (part === '{~}') { src += '(?:을|를|이|가)?'; prevCap = false; }
-      else if (/^\{\d+\}$/.test(part)) { const n = +part.slice(1, -1); if (prevCap) groups[groups.length - 1].push(n); else { groups.push([n]); src += '(.*?)'; } prevCap = true; }
-      else { src += esc(part); prevCap = false; }
+  let pats = [], words = [], wordRe = null;
+  const cache = new Map();
+  // 고른 언어의 사전 · 틀 준비 (언어를 바꾸면 다시 부름)
+  function build() {
+    dict = (typeof I18N_DATA !== 'undefined' && I18N_DATA[lang]) || {}; on = lang !== 'ko'; pats = []; cache.clear();
+    for (const k of Object.keys(dict)) {
+      if (!/\{(\d+|~)\}/.test(k)) continue;
+      // 바로 붙은 자리표시({0}{1})는 한 덩어리로 잡은 뒤 나눌 곳을 하나씩 시험
+      const parts = k.split(/(\{\d+\}|\{~\})/).filter(x => x !== '');
+      const groups = []; let src = '^', prevCap = false;
+      for (const part of parts) {
+        if (part === '{~}') { src += '(?:을|를|이|가)?'; prevCap = false; }
+        else if (/^\{\d+\}$/.test(part)) { const n = +part.slice(1, -1); if (prevCap) groups[groups.length - 1].push(n); else { groups.push([n]); src += '(.*?)'; } prevCap = true; }
+        else { src += esc(part); prevCap = false; }
+      }
+      const statics = k.split(/\{\d+\}|\{~\}/).map(x => x.trim()).filter(Boolean);
+      if (!statics.some(x => H.test(x))) continue;
+      pats.push({ re: new RegExp(src + '$'), groups, val: dict[k], statics, len: statics.join('').length, startsCap: /^\{\d+\}/.test(k) });
     }
-    const statics = k.split(/\{\d+\}|\{~\}/).map(x => x.trim()).filter(Boolean);
-    if (!statics.some(x => H.test(x))) continue;
-    pats.push({ re: new RegExp(src + '$'), groups, val: dict[k], statics, len: statics.join('').length, startsCap: /^\{\d+\}/.test(k) });
+    // 사전의 단어들 (긴 것부터) — 마지막 방법: 문장 속 단어 바꿔 끼우기
+    words = Object.keys(dict).filter(k => !/[{}]/.test(k) && k.length >= 2 && H.test(k)).sort((a, b) => b.length - a.length);
+    wordRe = words.length ? new RegExp(words.map(esc).join('|'), 'g') : null;
+    pats.sort((a, b) => b.len - a.len);
   }
-  pats.sort((a, b) => b.len - a.len);
-  // 사전의 단어들 (긴 것부터) — 마지막 방법: 문장 속 단어 바꿔 끼우기
-  const words = Object.keys(dict).filter(k => !/[{}]/.test(k) && k.length >= 2 && H.test(k)).sort((a, b) => b.length - a.length);
-  const wordRe = words.length ? new RegExp(words.map(esc).join('|'), 'g') : null;
   const done = r => r != null && !H.test(r);
   // 번역이 안 된 조각이라도 짧은 한 단어(닉네임 같은 것)면 그대로 둠
   const nameLike = x => !/\s/.test(x.trim()) && x.trim().length <= 8;
@@ -84,7 +88,6 @@ const I18N = (() => {
     return null;
   }
 
-  const cache = new Map();
   function t(text) {
     if (!on || !text || !H.test(text)) return text;
     const c = cache.get(text); if (c !== undefined) return c;
@@ -98,26 +101,52 @@ const I18N = (() => {
   }
 
   // ---------- 화면에 적용 ----------
+  // 바꿔 끼운 글자의 원래 한국어를 기억해 두어, 다시 켜지 않고도 언어를 바꿀 수 있게 함
   const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT']);
   const ATTRS = ['placeholder', 'title', 'aria-label'];
-  function fixNode(n) {
-    if (n.nodeType === 3) {
-      const p = n.parentNode; if (!p || SKIP.has(p.nodeName) || (p.closest && p.closest('[translate="no"]'))) return;
-      const v = n.nodeValue; if (!H.test(v)) return;
-      const r = t(v); if (r !== v) n.nodeValue = r;
-    } else if (n.nodeType === 1) {
-      if (SKIP.has(n.nodeName) && n.nodeName !== 'INPUT' && n.nodeName !== 'TEXTAREA') return;
-      for (const a of ATTRS) { const v = n.getAttribute && n.getAttribute(a); if (v && H.test(v)) n.setAttribute(a, t(v)); }
-      if (n.nodeName === 'INPUT' || n.nodeName === 'TEXTAREA' || n.closest('[translate="no"]')) return;
-      const w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
-      let x; while ((x = w.nextNode())) { if (x.nodeType === 3) fixNode(x); else for (const a of ATTRS) { const v = x.getAttribute(a); if (v && H.test(v)) x.setAttribute(a, t(v)); } }
+  const origT = new WeakMap(), origA = new WeakMap();
+  function fixText(n) {
+    const p = n.parentNode; if (!p || SKIP.has(p.nodeName) || (p.closest && p.closest('[translate="no"]'))) return;
+    const v = n.nodeValue, m = origT.get(n);
+    let base;
+    if (m && v === m.r) base = m.o;            // 내가 바꿔 둔 글자 → 원래 한국어로 다시
+    else if (H.test(v)) base = v;              // 새로 들어온 한국어
+    else { if (m) origT.delete(n); return; }   // 게임이 넣은 다른 글자(숫자 등)
+    const r = on ? t(base) : base;
+    if (r !== v) n.nodeValue = r;
+    if (r !== base) origT.set(n, { o: base, r }); else origT.delete(n);
+  }
+  function fixAttrs(el) {
+    if (!el.getAttribute) return;
+    let m = origA.get(el);
+    for (const a of ATTRS) {
+      const v = el.getAttribute(a); if (v == null) continue;
+      const k = m && m[a];
+      let base;
+      if (k && v === k.r) base = k.o; else if (H.test(v)) base = v; else { if (k) delete m[a]; continue; }
+      const r = on ? t(base) : base;
+      if (r !== v) el.setAttribute(a, r);
+      if (r !== base) { if (!m) origA.set(el, (m = {})); m[a] = { o: base, r }; } else if (k) delete m[a];
     }
   }
-  function start() {
+  function fixNode(n) {
+    if (n.nodeType === 3) return fixText(n);
+    if (n.nodeType !== 1) return;
+    if (n.nodeName === 'SCRIPT' || n.nodeName === 'STYLE') return;
+    fixAttrs(n);
+    if (n.nodeName === 'INPUT' || n.nodeName === 'TEXTAREA' || (n.closest && n.closest('[translate="no"]'))) return;
+    const w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    let x; while ((x = w.nextNode())) { if (x.nodeType === 3) fixText(x); else fixAttrs(x); }
+  }
+  let title0 = null;
+  function applyAll() {
     document.documentElement.lang = lang;
-    if (!on) return;
-    document.title = t(document.title);
-    fixNode(document.body);
+    if (title0 == null) title0 = document.title;
+    document.title = on ? t(title0) : title0;
+    if (document.body) fixNode(document.body);
+  }
+  function start() {
+    applyAll();
     new MutationObserver(list => {
       for (const m of list) {
         if (m.type === 'characterData') fixNode(m.target);
@@ -126,8 +155,16 @@ const I18N = (() => {
       }
     }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
   }
+  build();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 
-  function choose(l) { try { localStorage.setItem(KEY, l); } catch (e) {} location.reload(); }
-  return { lang, LANGS, t, choose, chosen: () => !!chosen, on };
+  // 언어 바꾸기: 다시 켜지 않고 그 자리에서 바꿔 끼움
+  const changed = [];
+  function choose(l) {
+    try { localStorage.setItem(KEY, l); } catch (e) {}
+    chosen = l;
+    if (l !== lang) { lang = l; build(); applyAll(); }
+    changed.forEach(f => { try { f(lang); } catch (e) {} });
+  }
+  return { get lang() { return lang; }, LANGS, t, choose, chosen: () => !!chosen, get on() { return on; }, onChange: f => changed.push(f) };
 })();

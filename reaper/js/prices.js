@@ -20,17 +20,16 @@ const LocalPrice = (() => {
   const BY_LANG = { ko: 'KRW', ja: 'JPY', zh: 'CNY', en: 'USD' };
   // 고른 언어로 통화를 정함: 한국어 ₩ · 日本語 ¥(엔) · 中文 ¥(위안) · English $
   function currency() { return BY_LANG[typeof I18N !== 'undefined' ? I18N.lang : 'ko'] || 'KRW'; }
-  const cur = currency();
   function fmt(v, c) {
     try { return new Intl.NumberFormat(c === 'KRW' ? 'ko-KR' : c === 'JPY' ? 'ja-JP' : c === 'CNY' ? 'zh-CN' : c === 'HKD' ? 'zh-HK' : 'en-US', { style: 'currency', currency: c, minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(v); }
     catch (e) { return c + ' ' + v; }
   }
   // '₩3,300' 또는 3300 → 현지 가격 글자
-  function of(krw, c = cur) {
+  function of(krw, c = currency()) {
     const n = typeof krw === 'number' ? krw : +String(krw).replace(/[^\d]/g, '');
     let i = KRW.indexOf(n);
     if (i < 0) { if (c === 'KRW') return fmt(n, c); i = KRW.reduce((b, k, j) => Math.abs(k - n) < Math.abs(KRW[b] - n) ? j : b, 0); }
     return fmt(T[c][i], c);
   }
-  return { of, currency: () => cur, table: T, KRW };
+  return { of, currency, table: T, KRW };
 })();
