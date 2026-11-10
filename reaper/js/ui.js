@@ -777,15 +777,39 @@ const UI = (() => {
     const R = visitR(); if (!R.ids.includes(o.id) && R.ids.length < 3) { R.ids.push(o.id); S().jade += 5; Game.save(); setTimeout(() => toast(`🎁 방문 보상 옥 +5 (오늘 ${R.ids.length}/3)`, 2600), 900); }
     else setTimeout(() => toast(`${esc(o.name)}님의 집무실에 놀러 왔어요! 빈 의자에 앉아 볼 수 있어요`, 2600), 900);
   }
-  async function guestbookModal(id, mine) {
+  // 방명록: 내 글은 고치기 · 지우기, 남의 글은 신고 · 차단 (구글 플레이 · 앱스토어 사용자 콘텐츠 정책)
+  async function gbReload(id) { const notes = await Board.guestbook(id); if (visiting && visiting.id === id) { visiting.notes = notes; const g = $('#vs-gb i'); if (g) g.textContent = notes.length; } return notes; }
+  async function guestbookModal(id, mine, editing) {
     const notes = visiting && visiting.id === id ? visiting.notes : await Board.guestbook(id);
+    const myNote = notes.find(n => n.me), canAct = Board.online();
+    const rowActs = (n, i) => !canAct ? '' : n.me ? `<i class="gb-act"><button data-gb-edit title="고치기">✏️</button><button data-gb-del title="지우기">🗑</button></i>` : `<i class="gb-act">${mine ? `<button data-gb-odel="${i}" title="지우기">🗑</button>` : ''}<button data-gb-rep="${i}" title="신고">🚩</button><button data-gb-blk="${i}" title="차단">🚫</button></i>`;
     const box = modal(`<h2>📜 방명록</h2>${mine ? `<p class="mute">내 집무실이 받은 좋아요 <b style="color:var(--gold)">👍 ${S().officeLikes || 0}</b></p>` : ''}
-      <div class="gb-list">${notes.length ? notes.map(n => `<div class="gb-row ${n.me ? 'me' : ''}"><b>${esc(n.name)}</b><span>${esc(n.t != null ? n.t : (GB_PHRASES[n.m] || ''))}</span><small>${ago(n.at)}</small></div>`).join('') : '<div class="rkload">아직 방명록이 비어 있어요</div>'}</div>
-      ${mine ? '' : `<div class="sec" style="margin-top:8px">한마디 남기기</div><div class="gb-write"><input id="gb-in" maxlength="40" placeholder="방명록을 남겨 주세요 (40자)"><button class="btn red" id="gb-send">남기기</button></div><div class="gb-pick">${GB_PHRASES.map((t, i) => `<button data-gb="${i}">${t}</button>`).join('')}</div>`}
+      <div class="gb-list">${notes.length ? notes.map((n, i) => `<div class="gb-row ${n.me ? 'me' : ''}"><b>${esc(n.name)}</b><span>${esc(n.t != null ? n.t : (GB_PHRASES[n.m] || ''))}</span><small>${ago(n.at)}${n.ed ? ' · 수정됨' : ''}</small>${rowActs(n, i)}</div>`).join('') : '<div class="rkload">아직 방명록이 비어 있어요</div>'}</div>
+      ${mine ? '' : `<div class="sec" style="margin-top:8px">${editing ? '내 방명록 고치기' : myNote ? '한마디 남기기 (남기면 내 글이 바뀌어요)' : '한마디 남기기'}</div><div class="gb-write"><input id="gb-in" maxlength="40" placeholder="방명록을 남겨 주세요 (40자)"><button class="btn red" id="gb-send">${editing ? '고치기' : '남기기'}</button></div><div class="gb-pick">${GB_PHRASES.map((t, i) => `<button data-gb="${i}">${t}</button>`).join('')}</div>`}
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    box.querySelectorAll('[data-gb]').forEach(b => b.onclick = () => { const i = box.querySelector('#gb-in'); i.value = GB_PHRASES[+b.dataset.gb]; i.focus(); });
-    const send = box.querySelector('#gb-send'); if (send) send.onclick = async () => { if (!S().nickSet) { closeModal(); nickModal(() => guestbookModal(id, mine)); return; } const raw = box.querySelector('#gb-in').value.trim(); if (!raw) { toast('내용을 입력해 주세요'); return; } await Board.note(id, cleanText(raw)); Sound.play('buy'); toast('방명록을 남겼어요 ✍️'); if (visiting && visiting.id === id) { visiting.notes = await Board.guestbook(id); const g = $('#vs-gb i'); if (g) g.textContent = visiting.notes.length; } closeModal(); guestbookModal(id, false); };
-    box.querySelectorAll('[data-gb-old]').forEach(b => b.onclick = async () => { await Board.note(id, +b.dataset.gb); Sound.play('buy'); toast('방명록을 남겼어요 ✍️'); if (visiting && visiting.id === id) { visiting.notes = await Board.guestbook(id); const g = $('#vs-gb i'); if (g) g.textContent = visiting.notes.length; } closeModal(); guestbookModal(id, false); });
+    const inp = box.querySelector('#gb-in');
+    if (inp && editing && myNote) { inp.value = myNote.t != null ? myNote.t : (GB_PHRASES[myNote.m] || ''); setTimeout(() => inp.focus(), 50); }
+    box.querySelectorAll('[data-gb]').forEach(b => b.onclick = () => { inp.value = GB_PHRASES[+b.dataset.gb]; inp.focus(); });
+    const send = box.querySelector('#gb-send'); if (send) send.onclick = async () => {
+      if (!S().nickSet) { closeModal(); nickModal(() => guestbookModal(id, mine)); return; }
+      const raw = inp.value.trim(); if (!raw) { toast('내용을 입력해 주세요'); return; }
+      const r = await Board.note(id, cleanText(raw));
+      if (r === 'blocked') { toast('이 집무실에는 방명록을 남길 수 없어요'); return; }
+      Sound.play('buy'); toast(editing || myNote ? '방명록을 고쳤어요 ✍️' : '방명록을 남겼어요 ✍️'); await gbReload(id); closeModal(); guestbookModal(id, false);
+    };
+    const ed = box.querySelector('[data-gb-edit]'); if (ed) ed.onclick = () => { closeModal(); guestbookModal(id, mine, true); };
+    const del = box.querySelector('[data-gb-del]'); if (del) del.onclick = () => { closeModal(); confirmBox('<h2>🗑 방명록 지우기</h2><p>내가 남긴 방명록을 지울까요?</p>', async () => { await Board.delNote(id); toast('방명록을 지웠어요'); await gbReload(id); guestbookModal(id, mine); }, '지우기'); };
+    box.querySelectorAll('[data-gb-blk]').forEach(b => b.onclick = () => { const n = notes[+b.dataset.gbBlk]; closeModal();
+      confirmBox(`<h2>🚫 차단</h2><p><b>${esc(n.name)}</b> 님을 차단할까요?<br><small class="mute">이 사람의 방명록이 보이지 않고, 내 집무실에 방명록을 남길 수 없어요. 설정에서 풀 수 있어요.</small></p>`, async () => { await Board.block(n.by); toast('차단했어요'); await gbReload(id); guestbookModal(id, mine); }, '차단'); });
+    box.querySelectorAll('[data-gb-odel]').forEach(b => b.onclick = () => { const n = notes[+b.dataset.gbOdel]; closeModal();
+      confirmBox(`<h2>🗑 방명록 지우기</h2><p><b>${esc(n.name)}</b> 님의 방명록을 내 집무실에서 지울까요?</p>`, async () => { await Board.ownerDel(n.by, n.at); toast('방명록을 지웠어요'); await gbReload(id); guestbookModal(id, mine); }, '지우기'); });
+    box.querySelectorAll('[data-gb-rep]').forEach(b => b.onclick = () => { const n = notes[+b.dataset.gbRep]; closeModal(); reportModal(n, id, mine); });
+  }
+  const REPORT_WHY = ['욕설 · 비방', '음란 · 불쾌한 내용', '광고 · 도배', '개인정보 노출', '기타'];
+  function reportModal(n, id, mine) {
+    const box = modal(`<h2>🚩 신고</h2><p><b>${esc(n.name)}</b>: ${esc(n.t != null ? n.t : (GB_PHRASES[n.m] || ''))}</p><p class="mute">신고 이유를 골라 주세요. 운영자가 확인한 뒤 조치해요.</p>
+      <div class="rep-list">${REPORT_WHY.map((w, i) => `<button class="btn dark" data-why="${i}">${w}</button>`).join('')}</div><div class="acts"><button class="btn dark" data-act="close">취소</button></div>`);
+    box.querySelectorAll('[data-why]').forEach(b => b.onclick = async () => { closeModal(); await Board.report(n, id, REPORT_WHY[+b.dataset.why]); toast('신고했어요. 운영자가 확인할게요 🙏', 2600); await gbReload(id); guestbookModal(id, mine); });
   }
 
   // ---------- 집무실 꾸미기 ----------
@@ -1241,6 +1265,7 @@ const UI = (() => {
       <div class="set-sec">게임</div>
       <div class="set-row"><span>🌏 Language</span><button class="btn dark" id="s-lang" translate="no">${I18N.LANGS.find(l => l[0] === I18N.lang)[1]}</button></div>
       <div class="set-row"><span>${esc(s.name)} · ${s.kind === 'f' ? '여자' : '남자'} 차사</span><button class="btn dark" id="s-look">모습 바꾸기</button></div>${Board.online() ? `<div class="set-row"><span>닉네임 ${s.nickSet ? '「' + esc(s.name) + '」' : '(아직 없음)'}</span><button class="btn dark" id="s-nick">${s.nickSet ? '바꾸기' : '정하기'}</button></div>` : ''}
+      ${Board.online() ? '<div class="set-row" id="s-blkrow" style="display:none"><span>🚫 차단한 사람 <b id="s-blkn">0</b>명</span><button class="btn dark" id="s-unblk">모두 풀기</button></div>' : ''}
       <div class="set-row"><span>효과음</span><button class="btn ${s.sound ? '' : 'dark'}" id="s-snd">${s.sound ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>배경음</span><button class="btn ${s.bgm ? '' : 'dark'}" id="s-bgm">${s.bgm ? '켜짐' : '꺼짐'}</button></div>
       ${Native.isApp() ? `<div class="set-row"><span>알림 <small class="set-sub">장부 가득 · 파견 완료 · 꽃 · 출석 (밤 11시~아침 8시 제외)</small></span><button class="btn ${s.push !== false && s.pushAsked ? '' : 'dark'}" id="s-push">${s.push !== false && s.pushAsked ? '켜짐' : '꺼짐'}</button></div>` : ''}
@@ -1271,6 +1296,8 @@ const UI = (() => {
     on('#s-restore', async () => { toast('구매 내역을 확인하는 중…', 1500); const ok = await Native.restore(); toast(ok ? '구매 내역을 복원했어요' : '스토어에 연결하지 못했어요', 2200); render(); });
     on('#s-look', () => charSelect(false));
     on('#s-lang', () => { closeModal(); langPicker(false); });
+    if (Board.online()) Board.blockedCount().then(n => { const r = box.querySelector('#s-blkrow'); if (r && n) { r.style.display = ''; box.querySelector('#s-blkn').textContent = n; } }).catch(() => {});
+    on('#s-unblk', () => confirmBox('<h2>차단 풀기</h2><p>차단한 사람을 모두 풀까요?</p>', async () => { await Board.unblockAll(); toast('차단을 모두 풀었어요'); }, '모두 풀기'));
     on('#s-push', async () => {
       if (s.push !== false && s.pushAsked) { s.push = false; Game.save(); settings(); return; }
       s.pushAsked = true; const ok = (await Native.notifyPerm()) === 'granted' || (await Native.notifyAsk());
@@ -1330,7 +1357,9 @@ const UI = (() => {
     const el = box.querySelector('#ia-list');
     let rows = []; try { rows = await Cloud.inquiry.all(!all); } catch (e) { el.innerHTML = '<p class="mute">불러오지 못했어요</p>'; return; }
     el.innerHTML = rows.length ? rows.map(r => `<div class="ask-item"><div class="ask-h"><em>${esc(r.category)}</em><small>${esc(r.nick || '')} · ${agoT(r.created_at)}</small><b class="${r.reply ? 'done' : ''}">${r.reply ? '답변 완료' : '대기'}</b></div><p>${esc(r.body)}</p><small class="mute ask-info">${esc(r.info || '')} · ${esc(String(r.user_id).slice(0, 8))}</small>
+      ${/^report\|/.test(r.info || '') ? `<div class="acts rep-mod"><button class="btn" data-mod="${esc(r.info)}">이 글 숨기기</button><button class="btn red" data-mod="${esc(r.info)}" data-ban="1">작성자 방명록 금지</button></div>` : ''}
       <textarea data-rid="${r.id}" rows="3" maxlength="1000" placeholder="답변 쓰기">${esc(r.reply || '')}</textarea><div class="acts"><button class="btn" data-reply="${r.id}">답변 ${r.reply ? '고치기' : '보내기'}</button></div></div>`).join('') : '<p class="mute">답변할 문의가 없어요 👍</p>';
+    el.querySelectorAll('[data-mod]').forEach(b => b.onclick = async () => { const [, by, office] = b.dataset.mod.split('|'); try { await Board.modHide(by, office, !!b.dataset.ban); toast(b.dataset.ban ? '이 사람은 이제 방명록을 쓸 수 없어요' : '이 글을 숨겼어요'); } catch (e) { toast('처리하지 못했어요 (schema.sql 을 다시 실행했는지 확인)'); } });
     el.querySelectorAll('[data-reply]').forEach(b => b.onclick = async () => {
       const t = el.querySelector(`[data-rid="${b.dataset.reply}"]`).value.trim(); if (!t) return;
       try { await Cloud.inquiry.reply(+b.dataset.reply, t); toast('답변을 보냈어요'); closeModal(); inquiryAdmin(all); } catch (e) { toast('보내지 못했어요'); }

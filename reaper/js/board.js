@@ -49,7 +49,7 @@ const Board = (() => {
     const sig = JSON.stringify(row); if (sig === lastOffice) return; lastOffice = sig;
     try { await db.doc('offices/' + uid).set(Object.assign(row, { at: Date.now() })); } catch (e) { lastOffice = ''; }
   }
-  async function visitsDoc() { if (myVisits) return myVisits; try { const d = await timeout(db.doc('visits/' + uid).get()); myVisits = d.exists ? d.data() : {}; } catch (e) { myVisits = {}; } myVisits.likedIds = myVisits.likedIds || []; myVisits.blocked = myVisits.blocked || []; myVisits.reported = myVisits.reported || {}; myVisits.likeDay = myVisits.likeDay || {}; myVisits.noteIds = myVisits.noteIds || []; myVisits.notes = myVisits.notes || {}; myVisits.friends = myVisits.friends || []; return myVisits; }
+  async function visitsDoc() { if (myVisits) return myVisits; try { const d = await timeout(db.doc('visits/' + uid).get()); myVisits = d.exists ? d.data() : {}; } catch (e) { myVisits = {}; } myVisits.likedIds = myVisits.likedIds || []; myVisits.blocked = myVisits.blocked || []; myVisits.reported = myVisits.reported || {}; myVisits.hid = myVisits.hid || {}; myVisits.likeDay = myVisits.likeDay || {}; myVisits.noteIds = myVisits.noteIds || []; myVisits.notes = myVisits.notes || {}; myVisits.friends = myVisits.friends || []; return myVisits; }
   const saveVisits = () => db.doc('visits/' + uid).set(Object.assign({}, myVisits, { nick: Game.S.name, at: Date.now() }));
   // 이웃 집무실 목록 (최근에 꾸민 순 · 좋아요 순)
   async function offices(sortLikes) {
@@ -75,12 +75,13 @@ const Board = (() => {
   // 숨기는 규칙: 집무실 주인이 차단한 사람 · 내가 차단한 사람 · 내가 신고한 글 · 운영자가 숨긴 글/사람
   let modCache = null, modAt = 0;
   async function modDoc() { if (modCache && Date.now() - modAt < 60e3) return modCache; try { const d = await timeout(db.doc('mod/guestbook').get()); modCache = d.exists ? d.data() : {}; } catch (e) { modCache = modCache || {}; } modCache.notes = modCache.notes || {}; modCache.users = modCache.users || []; modAt = Date.now(); return modCache; }
-  async function ownerBlocks(id) { if (id === uid) { const v = await visitsDoc(); return v.blocked; } try { const d = await timeout(db.doc('visits/' + id).get()); return (d.exists && d.data().blocked) || []; } catch (e) { return []; } }
+  // 집무실 주인의 설정: blocked(차단한 사람) · hid(주인이 지운 방명록: 쓴 사람 → 그 글의 시각)
+  async function ownerData(id) { if (id === uid) { const v = await visitsDoc(); return { blocked: v.blocked, hid: v.hid }; } try { const d = await timeout(db.doc('visits/' + id).get()); const x = d.exists ? d.data() : {}; return { blocked: x.blocked || [], hid: x.hid || {} }; } catch (e) { return { blocked: [], hid: {} }; } }
   async function guestbook(id) {
     try { const snap = await timeout(db.collection('visits').where('noteIds', 'array-contains', id).limit(40).get());
-      const [ob, mine, mod] = await Promise.all([ownerBlocks(id), visitsDoc(), modDoc()]);
+      const [od, mine, mod] = await Promise.all([ownerData(id), visitsDoc(), modDoc()]); const ob = od.blocked;
       const rows = snap.docs.map(d => ({ by: d.id, nick: d.data().nick, n: (d.data().notes || {})[id] })).filter(r => r.n)
-        .filter(r => r.by === uid || (!ob.includes(r.by) && !mine.blocked.includes(r.by) && !mine.reported[r.by + '|' + id] && !mod.users.includes(r.by) && !mod.notes[r.by + '|' + id]))
+        .filter(r => r.by === uid || (!ob.includes(r.by) && !mine.blocked.includes(r.by) && !mine.reported[r.by + '|' + id] && !mod.users.includes(r.by) && !mod.notes[r.by + '|' + id] && !(od.hid[r.by] && od.hid[r.by] >= r.n.at)))
         .sort((a, b) => b.n.at - a.n.at).slice(0, 30);
       let names = {}; try { names = await user.profiles(rows.map(r => r.by)); } catch (e) {}
       return rows.map(r => ({ by: r.by, m: r.n.m, t: r.n.t, at: r.n.at, ed: r.n.ed, name: r.nick || (names[r.by] && names[r.by].name) || '이름 모를 차사', me: r.by === uid }));
@@ -89,12 +90,14 @@ const Board = (() => {
   async function like(id) { const v = await visitsDoc(); if (v.likeDay[id] === today()) return false; v.likeDay[id] = today(); if (!v.likedIds.includes(id)) v.likedIds.push(id); await saveVisits(); return true; }
   // 남기기 · 고치기 (한 집무실에 한 사람 한 줄). 주인이 나를 차단했거나 운영자가 막았으면 'blocked'
   async function note(id, t) {
-    const [ob, mod] = await Promise.all([ownerBlocks(id), modDoc()]);
-    if (ob.includes(uid) || mod.users.includes(uid)) return 'blocked';
+    const [od, mod] = await Promise.all([ownerData(id), modDoc()]);
+    if (od.blocked.includes(uid) || mod.users.includes(uid)) return 'blocked';
     const v = await visitsDoc(), old = v.notes[id];
     v.notes[id] = { t: String(t).slice(0, 40), at: old ? old.at : Date.now() }; if (old) v.notes[id].ed = Date.now();
     if (!v.noteIds.includes(id)) v.noteIds.push(id); await saveVisits(); return true;
   }
+  // 주인이 내 집무실 방명록 지우기 (쓴 사람 문서는 못 고치므로, 그 글을 모두에게 안 보이게 숨김. 새로 쓰면 다시 보임)
+  async function ownerDel(by, at) { const v = await visitsDoc(); v.hid[by] = at || Date.now(); await saveVisits(); return true; }
   async function delNote(id) { const v = await visitsDoc(); delete v.notes[id]; v.noteIds = v.noteIds.filter(x => x !== id); await saveVisits(); return true; }
   // 차단: 그 사람의 방명록이 안 보이고, 내 집무실에 글을 남길 수 없음
   async function block(by) { const v = await visitsDoc(); if (!v.blocked.includes(by)) v.blocked.push(by); await saveVisits(); return true; }
@@ -136,5 +139,5 @@ const Board = (() => {
   async function refresh() { try { await top(); } catch (e) {} }
   // 순위 구간: 1 = 1위, 2 = 2~5위, 3 = 6~10위, 0 = 그 밖
   const tierOf = p => (p === 1 ? 1 : p >= 2 && p <= 5 ? 2 : p >= 6 && p <= 10 ? 3 : 0);
-  return { init, push, top, nickTaken, isOwner: () => owner, checkOwner: isOwner, notices, postNotice, delNotice, mails, sendMail, delMail, total: () => total, pushOffice, offices, office, like, note, delNote, block, unblockAll, blockedCount, report, modHide, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
+  return { init, push, top, nickTaken, isOwner: () => owner, checkOwner: isOwner, notices, postNotice, delNotice, mails, sendMail, delMail, total: () => total, pushOffice, offices, office, like, note, delNote, ownerDel, block, unblockAll, blockedCount, report, modHide, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
 })();

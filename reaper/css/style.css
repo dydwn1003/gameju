@@ -769,7 +769,9 @@ body.deco-t #toasts { top: auto !important; bottom: 150px; }
 .rk-visit { padding: 3px 7px 4px !important; font-size: 12px !important; }
 .gb-list { max-height: 36vh; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin: 6px 0; text-align: left; }
 .gb-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; padding: 7px 10px; border-radius: 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); }
-.gb-row.me { border-color: rgba(255,211,74,.45); } .gb-row b { font-size: 11px; color: #ffe08a; } .gb-row span { flex: 1; font-size: 12px; } .gb-row small { font-size: 9.5px; color: #8a82a8; }
+.gb-row.me { border-color: rgba(255,211,74,.45); }
+.gb-act { display: flex; gap: 2px; margin-left: auto; font-style: normal; } .gb-act button { border: 0; background: rgba(255,255,255,.06); border-radius: 8px; padding: 2px 6px; font-size: 11px; cursor: pointer; line-height: 1.4; } .gb-act button:active { transform: scale(.9); }
+.rep-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; } .rep-mod { margin: 4px 0; } .gb-row b { font-size: 11px; color: #ffe08a; } .gb-row span { flex: 1; font-size: 12px; } .gb-row small { font-size: 9.5px; color: #8a82a8; }
 .gb-pick { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; max-height: 24vh; overflow-y: auto; }
 .gb-pick button { padding: 6px 9px; border-radius: 999px; font-size: 11px; color: #f1ecf8; background: rgba(120, 100, 220, .2); border: 1px solid rgba(170, 150, 255, .35); }
 
