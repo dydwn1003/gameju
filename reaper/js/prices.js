@@ -1,6 +1,6 @@
 // ===== 나라별 가격 =====
 // 앱에서는 스토어(구글 플레이 · 앱스토어)가 알려 주는 현지 가격이 먼저 쓰임 (Native.price).
-// 그 값이 아직 없을 때(웹 · 스토어 연결 전)는 이 표에서 기기 지역(없으면 고른 언어)에 맞는 통화로 보여 줌.
+// 그 값이 아직 없을 때(웹 · 스토어 연결 전)는 이 표에서 고른 언어에 맞는 통화로 보여 줌.
 // 스토어 콘솔에 넣는 나라별 가격도 이 표와 같게 맞춰 두면 됨 (docs/APP_RELEASE.md).
 const LocalPrice = (() => {
   const KRW = [1200, 1900, 2500, 3300, 3900, 4900, 5900, 6900, 7900, 9900, 12000];
@@ -17,14 +17,9 @@ const LocalPrice = (() => {
     AUD: [1.49, 2.49, 2.99, 3.99, 4.49, 5.99, 6.99, 7.99, 8.99, 11.99, 14.99],
     SGD: [1.48, 1.98, 2.68, 3.48, 3.98, 5.48, 5.98, 6.98, 7.98, 10.98, 13.98],
   };
-  const REGION = { KR: 'KRW', JP: 'JPY', CN: 'CNY', TW: 'TWD', HK: 'HKD', MO: 'HKD', US: 'USD', GB: 'GBP', CA: 'CAD', AU: 'AUD', SG: 'SGD' };
-  ['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'FI', 'IE', 'PT', 'GR', 'SK', 'SI', 'LU', 'EE', 'LV', 'LT', 'MT', 'CY', 'HR'].forEach(r => REGION[r] = 'EUR');
   const BY_LANG = { ko: 'KRW', ja: 'JPY', zh: 'CNY', en: 'USD' };
-  function currency() {
-    const tags = [].concat(navigator.languages || [], navigator.language || []);
-    for (const t of tags) { const m = String(t).match(/[-_]([A-Za-z]{2})\b/); if (m && REGION[m[1].toUpperCase()]) return REGION[m[1].toUpperCase()]; }
-    return BY_LANG[typeof I18N !== 'undefined' ? I18N.lang : 'ko'] || 'KRW';
-  }
+  // 고른 언어로 통화를 정함: 한국어 ₩ · 日本語 ¥(엔) · 中文 ¥(위안) · English $
+  function currency() { return BY_LANG[typeof I18N !== 'undefined' ? I18N.lang : 'ko'] || 'KRW'; }
   const cur = currency();
   function fmt(v, c) {
     try { return new Intl.NumberFormat(c === 'KRW' ? 'ko-KR' : c === 'JPY' ? 'ja-JP' : c === 'CNY' ? 'zh-CN' : c === 'HKD' ? 'zh-HK' : 'en-US', { style: 'currency', currency: c, minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(v); }

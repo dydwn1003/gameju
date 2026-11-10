@@ -1611,7 +1611,7 @@ const UI = (() => {
     if (cheapest <= s.souls + inc * 120 || Game.canTest()) return;
     s.stuckShown = Date.now(); Game.save();
     modal(`<h2>성장이 더디신가요?</h2><p>다음 수련까지 시간이 꽤 걸려요.<br>부적이나 패키지로 빠르게 넘어가 보세요!</p>
-      <div class="acts" style="flex-direction:column"><button class="btn red" data-act="boostAd">2배 부적 (광고 무료)</button><button class="btn" id="st-pkg">승진 응원 패키지 ₩3,300</button><button class="btn dark" data-act="close">괜찮아요</button></div>`)
+      <div class="acts" style="flex-direction:column"><button class="btn red" data-act="boostAd">2배 부적 (광고 무료)</button><button class="btn" id="st-pkg">승진 응원 패키지 ${priceOf('promo')}</button><button class="btn dark" data-act="close">괜찮아요</button></div>`)
       .querySelector('#st-pkg').onclick = () => { closeModal(); iapBox('promo'); };
   }
 
