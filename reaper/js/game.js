@@ -105,7 +105,7 @@ const Game = (() => {
     const cap = 1 / spawn(), tot = main + mr, coll = Math.min(cap, tot);
     const shareM = tot ? mr / tot : 0;
     const scale = vis ? (minions() / vis) * drillMul() : 0;
-    const v = (noBoost ? valueBase() : value()) * avgTier();
+    const v = Math.max(1, (noBoost ? valueBase() : value()) * avgTier()); // 혼 1개 최소 1
     return coll * v * ((1 - shareM) + shareM * scale);
   }
   const tapValue = () => value() * 1.5;
@@ -177,6 +177,7 @@ const Game = (() => {
     let v = value() * TIER_MULT[tier];
     if (who === 'minion') { const vis = Math.min(5, minions()); v *= (minions() / Math.max(1, vis)) * drillMul(); }
     if (who === 'tap') { v = tapValue() * TIER_MULT[tier]; S.stats.tap++; }
+    v = Math.max(1, v); // 처음에도 혼 1개는 최소 1 (가치가 1보다 작을 때 '+0' 으로 보이지 않게)
     gain(v); return v;
   }
   function addBoost(min) { S.boostUntil = Math.max(Date.now(), S.boostUntil) + min * 60000; S.boostUntil = Math.min(S.boostUntil, Date.now() + 180 * 60000); apply(); save(); }
