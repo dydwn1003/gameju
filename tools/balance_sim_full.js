@@ -7,6 +7,7 @@ await p.addInitScript(()=>{localStorage.setItem('reaper_lang','ko');document.add
 await p.goto('file:///home/user/gameju/reaper/index.html');await p.waitForSelector('#loading',{state:'detached',timeout:20000}).catch(()=>{});await p.waitForTimeout(300);
 const mode=process.argv[2], arg=JSON.parse(process.argv[3]), OV=JSON.parse(process.argv[4]||'{}');
 const res=await p.evaluate(([mode,arg,OV])=>{
+ if(OV.SOUL){SOUL_MUL=OV.SOUL;delete OV.SOUL;}
  for(const id in OV)Object.assign(UPGRADES.find(u=>u.id===id),OV[id]);
  const DOC_SEC=[21,35,53,77,105,133,168,210,252], JUDGE_SEC=[10,18,28,42,56,74,95,116,140];
  const lerp=(pts,d)=>{for(let i=1;i<pts.length;i++){if(d<=pts[i][0]){const [d0,v0]=pts[i-1],[d1,v1]=pts[i];return v0+(v1-v0)*(d-d0)/(d1-d0);}}return pts[pts.length-1][1];};

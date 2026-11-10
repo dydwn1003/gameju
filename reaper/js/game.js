@@ -1,32 +1,33 @@
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 // 기준: 버프를 다 쓰는 플레이어(2배 부적 · 탕약 · 영물 · 꾸미기 · 도감 · 결재 · 파견 · 심판, 하루 4번 접속)가
-//       3분 · 20분 · 2일 · 5일 · 9일 · 14일 · 21일 · 28일에 승진, 염라대왕 = 레벨 3000 = 모든 업그레이드 최대 (만렙) (모의 실행 tools/balance_sim_full.js)
+//       5분 · 30분 · 3시간 · 2일 · 5일 · 10일 · 18일 · 28일에 승진, 염라대왕 = 레벨 3000 = 모든 업그레이드 최대 (만렙) (모의 실행 tools/balance_sim_full.js)
 //       하루 6시간 넘게 몰아서 해도 3계급 이후는 거의 같은 일정 (sim_binge)
 // mult: 계급별 수확 배수 (승진할 때마다 약 2.2배)
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 2.5, lv: 96, hp: 4.13e03, region: 1 },
-  { name: '차사', mult: 6, lv: 503, hp: 2.55e05, region: 2 },
-  { name: '선임 차사', mult: 14, lv: 1923, hp: 1.02e11, region: 3 },
-  { name: '차사장', mult: 32, lv: 2241, hp: 2.63e12, region: 4 },
-  { name: '판관', mult: 72, lv: 2424, hp: 1.71e13, region: 5 },
-  { name: '명부 판관', mult: 160, lv: 2576, hp: 9.74e13, region: 6 },
-  { name: '시왕', mult: 360, lv: 2786, hp: 1.07e15, region: 7 },
-  { name: '염라대왕', mult: 800, lv: 3000, hp: 1.14e16, region: 8 },
+  { name: '말단 차사', mult: 2.5, lv: 40, hp: 4.24e02, region: 1 },
+  { name: '차사', mult: 6, lv: 271, hp: 4.34e03, region: 2 },
+  { name: '선임 차사', mult: 14, lv: 565, hp: 1.65e05, region: 3 },
+  { name: '차사장', mult: 32, lv: 1285, hp: 1.95e08, region: 4 },
+  { name: '판관', mult: 72, lv: 1819, hp: 4.14e10, region: 5 },
+  { name: '명부 판관', mult: 160, lv: 2252, hp: 2.31e12, region: 6 },
+  { name: '시왕', mult: 360, lv: 2573, hp: 4.00e13, region: 7 },
+  { name: '염라대왕', mult: 800, lv: 3000, hp: 2.27e15, region: 8 },
 ];
 // 모든 업그레이드 max 합 + 1 = 3000 = 염라대왕 승진 레벨 (만렙). sq: 비용 증가율이 레벨이 오를수록 조금씩 줄어듦
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120레벨마다 ×2)', base: 8, grow: 1.04, sq: -0.95e-5, pa: 0.1, pd: 120, max: 1699 },
-  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.149, cap: 60, grow2: 1.105, max: 200 },
-  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.166, cap: 70, grow2: 1.105, max: 200 },
-  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.158, cap: 60, grow2: 1.105, max: 200 },
-  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.245, cap: 50, grow2: 1.105, max: 200 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120레벨마다 ×2)', base: 8, grow: 1.04, sq: -1.03e-5, pa: 0.1, pd: 120, max: 1699 },
+  { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.149, cap: 60, grow2: 1.15, max: 200 },
+  { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.166, cap: 70, grow2: 1.15, max: 200 },
+  { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.158, cap: 60, grow2: 1.15, max: 200 },
+  { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.245, cap: 50, grow2: 1.15, max: 200 },
   { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, cap: 20, grow2: 1.4, max: 40 },
   { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.08, max: 420 },
   { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 1.55, cap: 20, grow2: 1.34, max: 40 },
 ];
 const TIER_MULT = [1, 3, 10, 30];
+var SOUL_MUL = 0.2; // 혼 1개의 기본 가치 배율 (전체 혼 양 조절)
 const TIER_NAME = ['떠도는 혼', '맑은 혼', '황금 혼', '원한 서린 혼'];
 const SHOP_IAP = [
   { id: 'jade100', name: '옥 100개', price: '₩1,200', jade: 100, icon: 'jade' },
@@ -71,7 +72,7 @@ const Game = (() => {
   const rebornMult = () => 1 + S.reborn * 1.5;
   const PEN = UPGRADES[0];
   const penMul = L => (1 + L * PEN.pa) * Math.pow(2, Math.floor(L / PEN.pd)); // 레벨당 +10%, 120레벨마다 ×2
-  const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
+  const valueBase = () => SOUL_MUL * penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
   const walk = () => (30 + le('step') * 3) * Life.mul('spawn') * Pets.mul('walk');
@@ -81,7 +82,7 @@ const Game = (() => {
   const mWalk = () => Math.min(56, 18 * (1 + lv('drill') * 0.035));
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.975, lv('drill')));
   const drillMul = () => 1 + lv('drill') * 0.03;
-  const OFFLINE_RATE = 0.12; // 자리 비운 동안 받는 비율 (켜 둔 실제 수입 대비 12%, 복귀 2배 광고로 24%)
+  const OFFLINE_RATE = 0.08; // 자리 비운 동안 받는 비율 (켜 둔 실제 수입 대비 8%, 복귀 2배 광고로 16%)
   const offHours = () => Math.min(8, 2 + lv('ledger') * 0.15); // 장부 레벨마다 9분, 최대 8시간
   function tierProbs() {
     const L = le('luck');
@@ -258,7 +259,7 @@ const Game = (() => {
     if (S.kind && S.name && !S.nickSet) S.nickSet = true; // 예전에 만든 캐릭터: 처음 정한 이름을 닉네임으로
     if (S.perm2) { S.perm2 = false; S.sealUntil = Math.max(S.sealUntil || 0, Date.now() + 7 * 86400e3); } // 영구 인장 → 7일 인장으로 바뀜
   }
-  // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 12%)
+  // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 8%)
   let awayFrom = 0;
   function offline() {
     const from = awayFrom || S.last; awayFrom = 0;
