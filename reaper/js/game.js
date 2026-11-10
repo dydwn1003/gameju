@@ -18,12 +18,12 @@ const RANKS = [
 // 강화(구매)할 때마다 능력치가 오르고 경험치 1. 경험치가 차면 업그레이드 레벨 ↑ (lmax 까지).
 // 업그레이드 레벨 합 + 1 = 전체 레벨 (만렙 99 = 모든 업그레이드 최대 = 염라대왕). sq: 비용 증가율이 강화할수록 조금씩 줄어듦
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120번 강화마다 ×2)', base: 8, grow: 1.04, sq: -0.905e-5, pa: 0.5, pd: 120, max: 1699, lmax: 30 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120번 강화마다 ×2)', base: 8, grow: 1.04, sq: -0.905e-5, pa: 0.7, pd: 120, max: 1699, lmax: 30 },
   { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.149, cap: 60, grow2: 1.15, max: 200, lmax: 10 },
   { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.166, cap: 70, grow2: 1.15, max: 200, lmax: 10 },
   { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.158, cap: 60, grow2: 1.15, max: 200, lmax: 10 },
   { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.245, cap: 50, grow2: 1.15, max: 200, lmax: 10 },
-  { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, cap: 20, grow2: 1.4, max: 40, lmax: 8 },
+  { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하 · 1명당 내 수확 +60%', base: 360, grow: 2.1, cap: 20, grow2: 1.4, max: 40, lmax: 8 },
   { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.08, max: 420, lmax: 14 },
   { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 1.55, cap: 20, grow2: 1.34, max: 40, lmax: 6 },
 ];
@@ -65,7 +65,7 @@ const Game = (() => {
   const capOf = id => { const U = UPGRADES.find(u => u.id === id); return U.cap || U.max; };
   const lc = id => Math.min(lv(id), capOf(id));
   // 걸음 · 부르기 · 손길 · 인연: 처음 강화는 크게 오르고 갈수록 오르는 폭이 좁아짐 (최대 강화에서 cap/2 효과)
-  const FRONT = 3, curve = x => (1 - Math.exp(-FRONT * x)) / (1 - Math.exp(-FRONT));
+  const FRONT = 4, curve = x => (1 - Math.exp(-FRONT * x)) / (1 - Math.exp(-FRONT));
   const leOf = (id, L) => { const c = capOf(id); return (c / 2) * curve(Math.min(L, c) / c); };
   const le = id => leOf(id, lv(id));
   const over = (id, L = lv(id)) => Math.max(0, L - capOf(id));
@@ -86,6 +86,9 @@ const Game = (() => {
   const mWalk = () => Math.min(56, 18 * (1 + 0.4 * Math.pow(lv('drill'), 0.6)));
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.975, 4 * Math.sqrt(lv('drill'))));
   const drillMulOf = L => 1 + 0.45 * Math.pow(L, 0.55); // 처음 강화가 크게
+  // 혼 나눔: 졸개가 거두는 혼은 줄이고, 저승사자 본인은 졸개를 거느릴수록 위세가 올라 더 많이 거둠
+  const MINION_SHARE = 0.5, MAIN_PER_MINION = 0.6;
+  const mainMul = () => 1 + MAIN_PER_MINION * minions();
   const drillMul = () => drillMulOf(lv('drill'));
   const OFFLINE_RATE = 0.12; // 자리 비운 동안 받는 비율 (켜 둔 실제 수입 대비 12%, 복귀 2배 광고로 24%)
   const offHoursOf = L => 2 + 6 * (1 - Math.exp(-L / 12)) / (1 - Math.exp(-40 / 12)); // 처음 강화가 크게, 최대 8시간
@@ -112,7 +115,7 @@ const Game = (() => {
     const shareM = tot ? mr / tot : 0;
     const scale = vis ? (minions() / vis) * drillMul() : 0;
     const v = Math.max(1, (noBoost ? valueBase() : value()) * avgTier()); // 혼 1개 최소 1
-    return coll * v * ((1 - shareM) + shareM * scale);
+    return coll * v * ((1 - shareM) * mainMul() + shareM * scale * MINION_SHARE);
   }
   const tapValue = () => value() * 1.5;
   const wraithDps = () => (incomePerSec() + value() * 2) * Life.mul('fight');
@@ -188,7 +191,8 @@ const Game = (() => {
   function roll() { const sp = Life.rollSpecial(RANKS[S.rank].region, le('luck')); return sp >= 0 ? { tier: 2, sp } : { tier: rollTier(), sp: -1 }; }
   function collect(tier, who, sp) {
     let v = value() * TIER_MULT[tier];
-    if (who === 'minion') { const vis = Math.min(5, minions()); v *= (minions() / Math.max(1, vis)) * drillMul(); }
+    if (who === 'minion') { const vis = Math.min(5, minions()); v *= (minions() / Math.max(1, vis)) * drillMul() * MINION_SHARE; }
+    else v *= mainMul(); // 저승사자 본인 (터치 포함)
     if (who === 'tap') { v = tapValue() * TIER_MULT[tier]; S.stats.tap++; }
     v = Math.max(1, v); // 처음에도 혼 1개는 최소 1 (가치가 1보다 작을 때 '+0' 으로 보이지 않게)
     gain(v); return v;
@@ -289,7 +293,7 @@ const Game = (() => {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult,
-    collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
+    collect, gain, mainMul, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();
 
