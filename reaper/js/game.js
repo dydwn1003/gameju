@@ -1,17 +1,19 @@
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 // 기준: 버프를 다 쓰는 플레이어(2배 부적 · 탕약 · 영물 · 꾸미기 · 도감 · 결재 · 파견 · 심판, 하루 4번 접속)가
-//       3분 · 20분 · 3시간 · 10시간 · 3일 · 6일 · 14일 · 30일에 승진 (모의 실행 sim_full)
+//       3분 · 20분 · 3시간 · 10시간 · 3일 · 6일 · 14일 · 30일에 승진 (모의 실행 tools/balance_sim_full.js)
+// minT: 게임을 시작한 뒤 이만큼(초) 지나야 승진 시험 가능 — 몰아서 해도 목표 일정보다 크게 빨라지지 않게 (목표의 약 70%)
+// mult: 계급별 수확 배수 (승진할 때마다 약 2.2배)
 const RANKS = [
-  { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 3, lv: 109, hp: 1.02e05, region: 1 },
-  { name: '차사', mult: 9, lv: 697, hp: 1.08e13, region: 2 },
-  { name: '선임 차사', mult: 27, lv: 769, hp: 2.02e14, region: 3 },
-  { name: '차사장', mult: 80, lv: 806, hp: 1.65e15, region: 4 },
-  { name: '판관', mult: 240, lv: 868, hp: 4.43e16, region: 5 },
-  { name: '명부 판관', mult: 720, lv: 898, hp: 3.91e17, region: 6 },
-  { name: '시왕', mult: 2200, lv: 941, hp: 3.43e18, region: 7 },
-  { name: '염라대왕', mult: 6500, lv: 976, hp: 2.63e19, region: 8 },
+  { name: '수습 차사', mult: 1, lv: 0, hp: 0, minT: 0, region: 0 },
+  { name: '말단 차사', mult: 2.5, lv: 109, hp: 1.02e05, minT: 120, region: 1 },
+  { name: '차사', mult: 6, lv: 683, hp: 8.31e12, minT: 900, region: 2 },
+  { name: '선임 차사', mult: 14, lv: 762, hp: 1.31e14, minT: 7200, region: 3 },
+  { name: '차사장', mult: 32, lv: 795, hp: 8.14e14, minT: 25200, region: 4 },
+  { name: '판관', mult: 72, lv: 850, hp: 8.26e15, minT: 172800, region: 5 },
+  { name: '명부 판관', mult: 160, lv: 879, hp: 5.46e16, minT: 345600, region: 6 },
+  { name: '시왕', mult: 360, lv: 915, hp: 3.49e17, minT: 864000, region: 7 },
+  { name: '염라대왕', mult: 800, lv: 946, hp: 1.95e18, minT: 1814400, region: 8 },
 ];
 const UPGRADES = [
   { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.125, max: 999 },
@@ -42,7 +44,7 @@ const JADE_SHOP = [
   { id: 'j_minion', name: '특급 졸개', cost: 300, minion: 1, desc: '졸개 1명 즉시 고용 (비용 없이)' },
 ];
 const ATTEND = [20, 30, 40, 50, 60, 80, 150];
-const AD_LIMIT = { boost: 8, jade: 5, skip: 12 };
+const AD_LIMIT = { boost: 8, jade: 5, skip: 12, wraith: 5 }; // 하루 광고 횟수
 
 const Game = (() => {
   const KEY = 'jeoseung_v1';
@@ -147,10 +149,11 @@ const Game = (() => {
   // ---------- 승진 ----------
   const nextRank = () => RANKS[S.rank + 1];
   const level = () => 1 + Object.values(S.upg).reduce((a, b) => a + b, 0);
-  const canTest = () => !!nextRank() && level() >= nextRank().lv;
+  const waitLeft = () => { const N = nextRank(); return N ? Math.max(0, ((S.created || 0) + (N.minT || 0) * 1000 - Date.now()) / 1000) : 0; }; // 시간 조건까지 남은 초
+  const canTest = () => !!nextRank() && level() >= nextRank().lv && waitLeft() <= 0;
   const testHp = () => nextRank() ? nextRank().hp * rebornMult() : 0;
   function promote() {
-    const N = nextRank(); if (!N || level() < N.lv) return false;
+    const N = nextRank(); if (!N || !canTest()) return false;
     S.rank++; S.lastBuy = Date.now();
     apply(); save();
     return true;
@@ -264,7 +267,7 @@ const Game = (() => {
   return {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
-    eff, cost, maxBuy, buy, nextRank, level, canTest, testHp, promote, canReborn, reborn, rebornMult,
+    eff, cost, maxBuy, buy, nextRank, level, canTest, waitLeft, testHp, promote, canReborn, reborn, rebornMult,
     collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();

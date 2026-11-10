@@ -1,4 +1,4 @@
-// 밸런스 모의 실행 (버프 전부 쓰는 플레이어). 실행: node tools/balance_sim_full.js run "[0,109,697,...]"  또는  solve "[180,1200,...초]"
+// 밸런스 모의 실행 (버프 전부 쓰는 플레이어). 실행: node tools/balance_sim_full.js run "[0,109,683,...]"  또는  solve "[180,1200,...초]"
 // 버프를 다 쓰는 플레이어 모의 실행:
 // 하루 4번 접속(첫날 60분, 이후 20분) · 접속 중 2배 부적(광고) · 탕약 ×1.5 · 운세 약간
 // 영물(보유 수 · 장착 등급) · 집무실 꾸미기 · 도감 보너스가 시간에 따라 자람
@@ -13,7 +13,7 @@ const res=await p.evaluate(([mode,arg])=>{
  // 시간(일)에 따른 곱: 영물 보유(+1%씩) + 장착 영물 수확량, 꾸미기(최대 +40%), 도감(최대 +50%)
  const M=d=>(1+lerp([[0,0.03],[1,0.12],[3,0.25],[7,0.38],[14,0.47],[30,0.53]],d)+lerp([[0,0.03],[1,0.1],[3,0.17],[7,0.29],[14,0.35],[30,0.51]],d))*(1+lerp([[0,0],[0.5,0.05],[3,0.2],[7,0.32],[14,0.4]],d))*(1+lerp([[0,0],[0.3,0.1],[2,0.3],[5,0.45],[10,0.5]],d));
  const ACT=d=>2*(d<0.1?1:1.5)*1.05; // 접속 중: 2배 부적 × 탕약 × 운세
- function run(lvs,stopRank){lvs.forEach((v,i)=>RANKS[i].lv=v);const S=Game.S;S.kind='m';S.souls=0;S.upg={};S.rank=0;S.reborn=0;S.boostUntil=0;
+ function run(lvs,stopRank){lvs.forEach((v,i)=>RANKS[i].lv=v);const S=Game.S;S.created=0;S.kind='m';S.souls=0;S.upg={};S.rank=0;S.reborn=0;S.boostUntil=0;
   const ids=UPGRADES.map(u=>u.id);const times=[],dmg=[];let t=0,last=0,docsLast=0,judgeDay=-1;
   const inc=()=>Game.incomePerSec(true);
   const buy=()=>{for(let k=0;k<80;k++){let best=null,bv=0;const base=inc();

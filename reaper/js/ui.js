@@ -165,7 +165,7 @@ const UI = (() => {
     let jade = 0;
     if (Math.random() < 0.25) { jade = 2 + Math.floor(Math.random() * 6); S().jade += jade; }
     float(p.x, p.y - 40, '+' + fmt(amt), 'big');
-    const t = toast(`👻 원귀 퇴치! <b>+${fmt(amt)}</b> 혼${jade ? ` · 옥 +${jade}` : ''}`, 6000, [{ label: '광고 보고 3배', cls: '', fn: () => ad(() => { Game.gain(amt * 2); toast(`보상 3배! +${fmt(amt * 2)}`); }) }]);
+    const t = toast(`👻 원귀 퇴치! <b>+${fmt(amt)}</b> 혼${jade ? ` · 옥 +${jade}` : ''}`, 6000, Game.adLeft('wraith') > 0 ? [{ label: `광고 보고 3배 (${Game.adLeft('wraith')})`, cls: '', fn: () => { if (Game.adLeft('wraith') <= 0) return; ad(() => { Game.useAd('wraith'); Game.gain(amt * 2); toast(`보상 3배! +${fmt(amt * 2)}`); }); } }] : []);
     Game.save();
   }
   function wraithGone() {
@@ -348,7 +348,7 @@ const UI = (() => {
         <div class="prog"><i style="width:${pct}%"></i></div>
         <div class="d">레벨 <b style="color:var(--soul)">${L}</b> / ${N.lv} <span style="color:var(--mute)">(수련을 1번 올릴 때마다 레벨 +1)</span><br>
         승진하면 옷차림이 바뀌고 수확량 <b style="color:var(--gold)">×${(N.mult / RANKS[s.rank].mult).toFixed(1)}</b>${RANKS[s.rank].region !== N.region ? ` · 새 지역 <b style="color:var(--gold)">${REGIONS[N.region].name}</b>` : ''}</div>
-        <button class="btn red" data-act="test" ${ok ? '' : 'disabled'}>${ok ? '승진하기' : `레벨 ${N.lv}에 승진할 수 있어요`}</button></div>`;
+        ${N.minT ? `<div class="d" style="margin-top:4px">⏳ 근무 기간 조건: 시작하고 <b>${fmtDays(N.minT)}</b> 지나야 승진 시험</div>` : ''}<button class="btn red" data-act="test" ${ok ? '' : 'disabled'}>${ok ? '승진하기' : L >= N.lv ? `⏳ ${fmtDays(Game.waitLeft())} 뒤에 승진할 수 있어요` : `레벨 ${N.lv}에 승진할 수 있어요`}</button></div>`;
     } else {
       html += `<div class="promo pbox"><div class="looks"><div><div class="lk-w"><canvas class="mg" id="mg-now" width="48" height="20"></canvas><canvas id="lk-now" width="44" height="51"></canvas></div><span>염라대왕</span></div></div><div class="t">염라대왕에 올랐다!</div>
         <div class="d">윤회하면 직급과 수련이 처음으로 돌아가지만<br>모든 수확량이 영구히 <b style="color:var(--gold)">×${(1 + (s.reborn + 1) * 1.5).toFixed(1)}</b> (지금 ×${Game.rebornMult().toFixed(1)})가 된다.<br>옥과 구매한 상품은 유지된다.</div>
