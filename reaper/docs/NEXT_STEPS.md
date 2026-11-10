@@ -22,6 +22,8 @@
 3. 그다음부터는 "안드로이드 빌드 돌려줘" 한마디면 내부 테스트로 자동 업로드돼요.
 
 ## 3. 서버 · 로그인 · 광고 값 넣기
+> **순서대로 따라 하는 안내: `docs/SETUP_GUIDE.md`** (A 로그인 → B 결제 → C 광고 → D 개인정보 → E 빌드)
+
 자세한 순서는 `docs/SUPABASE_SETUP.md` · `docs/APP_RELEASE.md` 에 있어요.
 - **Supabase:**
   - 프로젝트를 만들고 `server/schema.sql` 을 실행해요.
