@@ -188,7 +188,7 @@
 ### A-8. 계정 삭제 함수 (스토어 필수)
 1. **Edge Functions → Deploy a new function → Via Editor**
 2. `reaper/server/supabase/functions/delete-account/index.ts` 붙여 넣기 → 이름 `delete-account` → **Deploy function**
-3. **Verify JWT 는 켠 채로** (기본값 그대로)
+3. **Verify JWT** 는 기본값 그대로 두면 돼요. 함수가 로그인 토큰을 직접 확인해서 꺼도 안전해요. 계정 삭제가 "401"로 실패하면 끄세요.
 
 ### A-9. 운영자(나) 등록 — 새 앱으로 처음 로그인한 뒤
 1. **Authentication → Users** → 내 계정 줄의 **UID** 복사
