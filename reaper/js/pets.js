@@ -1,12 +1,12 @@
 // ===== 펫(저승사자를 보좌하는 영물) 뽑기: C ~ SSS =====
-// 펫은 하나 데리고 다니며 수확량 · 이동속도 · 수확속도를 올려준다. 모은 펫 종류마다 수확량 +1%.
+// 펫은 하나 데리고 다니며 수확량 · 이동속도 · 수확속도를 올려준다. 모은 펫 종류마다 수확량 +0.5%.
 const PET_GRADES = {
-  C: { rate: 0.58, col: '#a0a6b8', total: 0.08, dup: 3 },
-  B: { rate: 0.28, col: '#5ac06a', total: 0.15, dup: 5 },
-  A: { rate: 0.10, col: '#4a9aff', total: 0.28, dup: 10 },
-  S: { rate: 0.03, col: '#c070ff', total: 0.50, dup: 30 },
-  SS: { rate: 0.008, col: '#ffb030', total: 0.85, dup: 60 },
-  SSS: { rate: 0.002, col: '#ff4a6a', total: 1.5, dup: 120 },
+  C: { rate: 0.58, col: '#a0a6b8', total: 0.05, dup: 3 },
+  B: { rate: 0.28, col: '#5ac06a', total: 0.1, dup: 5 },
+  A: { rate: 0.10, col: '#4a9aff', total: 0.18, dup: 10 },
+  S: { rate: 0.03, col: '#c070ff', total: 0.32, dup: 30 },
+  SS: { rate: 0.008, col: '#ffb030', total: 0.55, dup: 60 },
+  SSS: { rate: 0.002, col: '#ff4a6a', total: 0.95, dup: 120 },
 };
 const PET_ORDER = ['C', 'B', 'A', 'S', 'SS', 'SSS'];
 // 등급이 높을수록 확률이 가파르게 낮아짐: C 58 · B 28 · A 10 · S 3 · SS 0.8 · SSS 0.2 (%)
@@ -74,14 +74,14 @@ const Pets = (() => {
   const S = () => Game.S;
   const P = id => PETS.find(p => p.id === id);
   function ensure() { const s = S(); s.pets = s.pets || {}; s.petEq = s.petEq || null; s.pity = s.pity || 0; s.petAd = s.petAd || { day: '', n: 0 }; s.petInv = s.petInv || {}; }
-  // 펫 능력치: [수확량, 이동속도, 수확속도] (별 하나당 +20%)
+  // 펫 능력치: [수확량, 이동속도, 수확속도] (별 하나당 +15%)
   function stats(id) {
-    const p = P(id), st = (S().pets || {})[id] || 1, t = PET_GRADES[p.g].total * (1 + 0.2 * (st - 1));
+    const p = P(id), st = (S().pets || {})[id] || 1, t = PET_GRADES[p.g].total * (1 + 0.15 * (st - 1));
     return EMPH[p.e].map(x => x * t);
   }
   function mul(kind) {
     const s = S(); if (!s || !s.pets) return 1;
-    const own = Object.keys(s.pets).length * 0.01;
+    const own = Object.keys(s.pets).length * 0.005;
     const st = s.petEq && s.pets[s.petEq] ? stats(s.petEq) : [0, 0, 0];
     if (kind === 'value') return 1 + st[0] + own;
     if (kind === 'walk') return 1 + st[1];

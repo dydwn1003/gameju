@@ -133,7 +133,7 @@ const UI = (() => {
     const v = Game.collect(s.tier, who);
     if (who === 'tap') tutEv('tap');
     Life.qEvent('soul'); if (who === 'tap') Life.qEvent('tap');
-    if (s.sp >= 0) { const first = Life.catchSpecial(s.sp); toast(first ? `📖 도감 등록! ${SPECIALS[s.sp].name}을 거뒀다 (혼 수확 +3%)` : `✨ ${SPECIALS[s.sp].name}을 거뒀다`, 3000); }
+    if (s.sp >= 0) { const first = Life.catchSpecial(s.sp); toast(first ? `📖 도감 등록! ${SPECIALS[s.sp].name}을 거뒀다 (혼 수확 +2%)` : `✨ ${SPECIALS[s.sp].name}을 거뒀다`, 3000); }
     let shown = v;
     if (parade) { parade.gained += v; if (who === 'tap') { parade.combo++; parade.comboT = 1.6; parade.max = Math.max(parade.max, parade.combo); const bonus = v * Math.min(4, parade.combo * 0.1); Game.gain(bonus); parade.gained += bonus; shown += bonus; } }
     if (who !== 'minion' || Math.random() < 0.7) float(x, y, '+' + fmt(shown), 't' + s.tier + (who === 'tap' ? ' tap' : ''));
@@ -392,7 +392,7 @@ const UI = (() => {
       let n = mult === 'max' ? Math.max(1, Game.maxBuy(U.id).n) : Math.min(mult, U.max - L);
       const c = maxed ? 0 : Game.cost(U.id, n);
       $(`#lv-${U.id}`).textContent = `Lv.${L}`;
-      const de = $(`#de-${U.id}`), dt = U.cap && L >= U.cap && ['step', 'call', 'hand', 'luck'].includes(U.id) ? '숙련: 레벨마다 혼 가치 +3%' : U.desc; if (de && de.textContent !== dt && de.dataset.k !== dt) { de.dataset.k = dt; de.textContent = dt; }
+      const de = $(`#de-${U.id}`), dt = U.cap && L >= U.cap && ['step', 'call', 'hand', 'luck'].includes(U.id) ? '숙련: 레벨마다 혼 가치 +2%' : U.desc; if (de && de.textContent !== dt && de.dataset.k !== dt) { de.dataset.k = dt; de.textContent = dt; }
       $(`#ef-${U.id}`).textContent = maxed ? Game.eff(U.id, L) + ' (최대)' : `${Game.eff(U.id, L)} → ${Game.eff(U.id, L + n)}`;
       $(`#co-${U.id}`).textContent = maxed ? '최대' : fmt(c);
       $(`#bl-${U.id}`).textContent = maxed ? '' : `+${n}`;
@@ -922,7 +922,7 @@ const UI = (() => {
       ${ex ? `<button class="btn dark" disabled>${n ? '획득 완료' : '🔒 ' + how(d)}</button>` : d.cash ? (s.rank >= d.rankReq ? `<button class="btn red" data-dcash="${d.id}">${priceOf('decor:' + d.id)}</button>` : `<button class="btn dark" disabled>🔒 ${RANKS[d.rankReq].name} 이상</button>`) : d.free ? '<button class="btn dark" disabled>무료 지급</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
     const pack = P => { const got = Decor.packBought(P.id); return `<div class="ds-pack ${got ? 'got' : ''}"><div class="ds-pi">${P.items.map(id => `<img class="px" src="${decoThumb(id, 2)}">`).join('')}</div><div class="ds-pt"><b>${P.name}</b><small>${P.items.map(id => Decor.D(id).name).join(' · ')}</small><small><s>옥 ${P.full}</s> → <b class="sale">30% 할인</b></small></div>${got ? '<button class="btn dark" disabled>구매 완료</button>' : `<button class="btn jade" data-dpack="${P.id}" ${s.jade >= P.price ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${P.price}</button>`}</div>`; };
     const list = shopCat === 'set' ? '' : DECOR.filter(d => shopCat === 'all' || (shopCat === 'floor' && !d.wall) || (shopCat === 'wall' && d.wall) || (shopCat === 'seat' && d.seat) || (shopCat === 'premium' && d.premium) || (shopCat === 'ex' && Decor.isEx(d)) || (shopCat === 'chair' && d.chair)).sort((a, b) => (a.free ? 0 : a.price || (a.cash ? 50000 + a.rankReq * 10 : 99999 + (a.rank || 0) * 10 + (a.story != null ? 100 + a.story : 0))) - (b.free ? 0 : b.price || (b.cash ? 50000 + b.rankReq * 10 : 99999 + (b.rank || 0) * 10 + (b.story != null ? 100 + b.story : 0))));
-    const box = modal(`<h2>🏮 소품 상점 <small style="font-size:11px;color:var(--mute)">${DECOR.filter(d => Decor.owned(d.id)).length}/${DECOR.length}종 보유</small></h2><p class="mute">옥으로 사요. 놓은 소품의 품격만큼 수확량이 올라요 (최대 +40%) · 보유 옥 <b style="color:var(--jade)">${fmt(s.jade)}</b></p>
+    const box = modal(`<h2>🏮 소품 상점 <small style="font-size:11px;color:var(--mute)">${DECOR.filter(d => Decor.owned(d.id)).length}/${DECOR.length}종 보유</small></h2><p class="mute">옥으로 사요. 놓은 소품의 품격만큼 수확량이 올라요 (최대 +25%) · 보유 옥 <b style="color:var(--jade)">${fmt(s.jade)}</b></p>
       <div class="ds-cats">${cats.map(([k, n]) => `<button data-dcat="${k}" class="${shopCat === k ? 'on' : ''}">${n}</button>`).join('')}</div>
       <div class="ds-scroll">${shopCat === 'all' || shopCat === 'set' ? `<div class="ds-packs">${DECOR_PACKS.map(pack).join('')}</div>` : ''}${list ? `<div class="ds-grid">${list.map(card).join('')}</div>` : ''}</div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
@@ -1076,7 +1076,7 @@ const UI = (() => {
       const n = Object.keys(s.dex).length;
       h += `<div class="ph"><h3>혼령 도감</h3><span class="sub">${n}/${SPECIALS.length}종 · 혼 수확 +${Math.round(Life.dexBonus() * 100)}%</span></div>
         <div class="dex">${SPECIALS.map(p => { const c = s.dex[p.i] || 0; return `<div class="pbox ${c ? '' : 'unk'}"><img class="px" src="${SPIC(p.i, !!c)}"><b>${c ? p.name : '???'}</b><small>${c ? `${c}마리${c >= 10 ? ' ★' : ''}` : REGIONS[p.region].name}</small></div>`; }).join('')}</div>
-        <p class="note">특별한 혼령은 아주 가끔 나타나요 (귀한 인연을 올리면 더 자주).<br>처음 거두면 혼 수확 +3%, 10마리 모으면 +2% 더. 근무지마다 나오는 혼령이 달라요.</p>`;
+        <p class="note">특별한 혼령은 아주 가끔 나타나요 (귀한 인연을 올리면 더 자주).<br>처음 거두면 혼 수확 +2%, 10마리 모으면 +1% 더. 근무지마다 나오는 혼령이 달라요.</p>`;
     }
     P.innerHTML = h;
     lifeTick();

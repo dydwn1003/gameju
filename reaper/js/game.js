@@ -1,28 +1,28 @@
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
 // lv: 승진 시험을 볼 수 있는 레벨(수련 총합), hp: 시험 원귀 체력
 // 기준: 버프를 다 쓰는 플레이어(2배 부적 · 탕약 · 영물 · 꾸미기 · 도감 · 결재 · 파견 · 심판, 하루 4번 접속)가
-//       3분 · 20분 · 2일 · 5일 · 9일 · 14일 · 21일 · 30일에 승진 (모의 실행 tools/balance_sim_full.js)
+//       3분 · 20분 · 2일 · 5일 · 9일 · 14일 · 21일 · 29일에 승진, 염라대왕 = 레벨 1500 (모의 실행 tools/balance_sim_full.js)
 //       하루 6시간 넘게 몰아서 해도 3계급 이후는 거의 같은 일정 (sim_binge)
 // mult: 계급별 수확 배수 (승진할 때마다 약 2.2배)
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 2.5, lv: 100, hp: 3.05e04, region: 1 },
-  { name: '차사', mult: 6, lv: 481, hp: 1.36e09, region: 2 },
-  { name: '선임 차사', mult: 14, lv: 834, hp: 2.23e13, region: 3 },
-  { name: '차사장', mult: 32, lv: 872, hp: 1.74e14, region: 4 },
-  { name: '판관', mult: 72, lv: 905, hp: 1.09e15, region: 5 },
-  { name: '명부 판관', mult: 160, lv: 932, hp: 5.97e15, region: 6 },
-  { name: '시왕', mult: 360, lv: 955, hp: 1.51e16, region: 7 },
-  { name: '염라대왕', mult: 800, lv: 982, hp: 7.89e16, region: 8 },
+  { name: '말단 차사', mult: 2.5, lv: 129, hp: 2.88e04, region: 1 },
+  { name: '차사', mult: 6, lv: 713, hp: 1.91e09, region: 2 },
+  { name: '선임 차사', mult: 14, lv: 1221, hp: 7.46e12, region: 3 },
+  { name: '차사장', mult: 32, lv: 1292, hp: 5.14e13, region: 4 },
+  { name: '판관', mult: 72, lv: 1353, hp: 3.03e14, region: 5 },
+  { name: '명부 판관', mult: 160, lv: 1406, hp: 1.62e15, region: 6 },
+  { name: '시왕', mult: 360, lv: 1458, hp: 8.20e15, region: 7 },
+  { name: '염라대왕', mult: 800, lv: 1500, hp: 2.06e16, region: 8 },
 ];
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (30레벨마다 ×2)', base: 8, grow: 1.1, max: 999 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (50레벨마다 ×2)', base: 8, grow: 1.0515, max: 2000 },
   { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.32, cap: 30, max: 100 },
   { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.36, cap: 35, max: 100 },
   { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.34, cap: 30, max: 100 },
   { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.55, cap: 25, max: 80 },
   { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, cap: 20, grow2: 1.4, max: 40 },
-  { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.3, max: 999 },
+  { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.14, max: 2000 },
   { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 2.4, cap: 10, grow2: 1.8, max: 20 },
 ];
 const TIER_MULT = [1, 3, 10, 30];
@@ -56,17 +56,18 @@ const Game = (() => {
     stats: { wraith: 0, tap: 0 },
   });
   const lv = id => S.upg[id] || 0;
-  // 숙련: 원래 최대(cap)를 넘긴 레벨은 효과 대신 혼 가치 +3%씩 (걸음 · 부르기 · 손길 · 인연)
+  // 숙련: 원래 최대(cap)를 넘긴 레벨은 효과 대신 혼 가치 +2%씩 (걸음 · 부르기 · 손길 · 인연)
   const MASTER = ['step', 'call', 'hand', 'luck'];
+  const MASTERY = 1.02; // 숙련 1레벨당 혼 가치 배수
   const capOf = id => { const U = UPGRADES.find(u => u.id === id); return U.cap || U.max; };
   const lc = id => Math.min(lv(id), capOf(id));
   const over = (id, L = lv(id)) => Math.max(0, L - capOf(id));
-  const masteryMul = () => MASTER.reduce((m, id) => m * Math.pow(1.03, over(id)), 1);
+  const masteryMul = () => MASTER.reduce((m, id) => m * Math.pow(MASTERY, over(id)), 1);
   const today = () => new Date().toISOString().slice(0, 10);
 
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
-  const penMul = L => (1 + L * 0.3) * Math.pow(2, Math.floor(L / 30)); // 레벨당 +30%, 30레벨마다 ×2
+  const penMul = L => (1 + L * 0.2) * Math.pow(2, Math.floor(L / 50)); // 레벨당 +20%, 50레벨마다 ×2
   const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
@@ -76,7 +77,7 @@ const Game = (() => {
   const minions = () => lv('minion');
   const mWalk = () => Math.min(56, 18 * (1 + lv('drill') * 0.05));
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.965, lv('drill')));
-  const drillMul = () => 1 + lv('drill') * 0.06;
+  const drillMul = () => 1 + lv('drill') * 0.04;
   const OFFLINE_RATE = 0.3; // 자리 비운 동안 받는 비율 (켜 둔 수입 대비)
   const offHours = () => Math.min(8, 2 + lv('ledger') * 0.3); // 장부 레벨마다 18분, 최대 8시간
   function tierProbs() {
@@ -108,7 +109,7 @@ const Game = (() => {
 
   // 업그레이드 효과 표기 (레벨 L 기준)
   function eff(id, L) {
-    if (MASTER.includes(id) && L > capOf(id)) return '숙련 ×' + Math.pow(1.03, L - capOf(id)).toFixed(2); // 혼 가치 배수
+    if (MASTER.includes(id) && L > capOf(id)) return '숙련 ×' + Math.pow(MASTERY, L - capOf(id)).toFixed(2); // 혼 가치 배수
     return effBase(id, L);
   }
   function effBase(id, L) {
@@ -119,7 +120,7 @@ const Game = (() => {
       case 'hand': return Math.max(0.18, 0.9 * Math.pow(0.93, L)).toFixed(2) + '초';
       case 'luck': { const p = 0.004 * (1 + 0.15 * L) + 0.015 * (1 + 0.12 * L) + 0.06 * (1 + 0.1 * L); return (p * 100).toFixed(1) + '%'; }
       case 'minion': return L + '명';
-      case 'drill': return '×' + (1 + L * 0.06).toFixed(2);
+      case 'drill': return '×' + (1 + L * 0.04).toFixed(2);
       case 'ledger': { const m = Math.round(Math.min(8, 2 + L * 0.3) * 60), H = Math.floor(m / 60), M = m % 60; return H + '시간' + (M ? ' ' + M + '분' : ''); }
     }
   }
@@ -275,7 +276,7 @@ const Game = (() => {
 function fmt(n) {
   n = Math.floor(n);
   if (n < 1e4) return n.toLocaleString('ko-KR');
-  const units = [['해', 1e20], ['경', 1e16], ['조', 1e12], ['억', 1e8], ['만', 1e4]];
+  const units = [['극', 1e48], ['재', 1e44], ['정', 1e40], ['간', 1e36], ['구', 1e32], ['양', 1e28], ['자', 1e24], ['해', 1e20], ['경', 1e16], ['조', 1e12], ['억', 1e8], ['만', 1e4]];
   for (const [u, v] of units) if (n >= v) { const x = n / v; const t = x >= 100 ? String(Math.floor(x)) : (x >= 10 ? x.toFixed(1) : x.toFixed(2)).replace(/\.?0+$/, ''); return t + u; }
   return String(n);
 }

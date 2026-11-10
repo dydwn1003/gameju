@@ -374,8 +374,8 @@ const Life = (() => {
     return pool[Math.floor(Math.random() * pool.length)].i;
   }
   function catchSpecial(i) { const s = S(), first = !s.dex[i]; s.dex[i] = (s.dex[i] || 0) + 1; Game.save(); return first; }
-  // 등록 1종당 혼 수확 +3%, 10마리 모으면 +2% 더
-  const dexBonus = () => Object.values(S().dex || {}).reduce((a, n) => a + (n > 0 ? 0.03 : 0) + (n >= 10 ? 0.02 : 0), 0);
+  // 등록 1종당 혼 수확 +2%, 10마리 모으면 +1% 더
+  const dexBonus = () => Object.values(S().dex || {}).reduce((a, n) => a + (n > 0 ? 0.02 : 0) + (n >= 10 ? 0.01 : 0), 0);
 
   // ---------- 효과 ----------
   function mul(kind) {

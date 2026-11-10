@@ -197,9 +197,9 @@ const Decor = (() => {
   const packBought = pid => !!((ensure().packs || {})[pid]);
   function place(id, gx, gy) { const dc = ensure(); if (spare(id) <= 0 || dc.placed.length >= maxPlace()) return false; dc.placed.push({ id, gx, gy }); Game.apply(); Game.save(); return true; }
   function remove(i) { const dc = ensure(); const p = dc.placed.splice(i, 1)[0]; Game.apply(); Game.save(); return p; }
-  // 품격: 배치한 소품의 합. 품격 1당 수확량 +0.25% (최대 +40%)
+  // 품격: 배치한 소품의 합. 품격 1당 수확량 +0.15% (최대 +25%)
   const score = () => ensure().placed.reduce((a, p) => a + (D(p.id) ? D(p.id).pt : 0), 0);
-  const mul = () => (S() && S().decor ? 1 + Math.min(0.4, score() * 0.0025) : 1);
+  const mul = () => (S() && S().decor ? 1 + Math.min(0.25, score() * 0.0015) : 1);
   const title = sc => sc >= 160 ? '저승 제일의 집무실' : sc >= 100 ? '화려한 집무실' : sc >= 50 ? '품위 있는 집무실' : sc >= 20 ? '아늑한 집무실' : '소박한 집무실';
   return { D, isEx, buyCash, ensure, grantRank, grantStory, grantQuest, img, packBought, owned, spare, placedCount, maxPlace, buy, buyPack, place, remove, score, mul, title };
 })();
