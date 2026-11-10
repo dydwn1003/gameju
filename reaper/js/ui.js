@@ -7,7 +7,8 @@ const UI = (() => {
   const IC = (name, sc = 3) => urls[name + sc] || (urls[name + sc] = toURL(name === 'petic' ? SP.pet(PETS.find(p => p.id === 'heukmyo'), 0) : name === 'flower' ? SP.plant(3, FLOWERS[1].pal, 'lotus') : ['soul', 'jade', 'scroll'].includes(name) ? SP.icon(name) : SP.ui(name), sc));
   const FIC = (fid, stage = 3, sc = 2) => { const k = 'f' + fid + stage + sc; return urls[k] || (urls[k] = toURL(SP.plant(stage, FLOWERS.find(f => f.id === fid).pal, fid), sc)); };
   const SPIC = (i, known, sc = 4) => { const k = 'sp' + i + known + sc; if (urls[k]) return urls[k]; let c = SP.special(i); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, sc)); };
-  let sub = 'garden', lifeSig = '', lifeT = 0, buffSig = '', parade = null;
+  let sub = 'garden', lifeSig = '', lifeT = 0, buffSig = '', parade = null, buffChips = '', buffLive = new Set();
+  const BUFF_EFF = { value: '×1.5', spawn: '×1.4', fight: '×3' };
   const S = () => Game.S;
   let tab = 'grow', mult = 1, nextWraith = 45, test = null, autoAcc = 0, hitSnd = 0, sndT = 0, stuckT = 0, previews = [];
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -104,6 +105,7 @@ const UI = (() => {
     setTimeout(noticeStartup, 1500); setInterval(refreshMail, 5 * 60e3); setTimeout(refreshMail, 4000);
     Board.listen(applyPlace); Board.init();
     $('#story-bar').addEventListener('click', storyTap);
+    $('#buffs').addEventListener('click', e => { const c = e.target.closest('[data-bf]'); if (c) toast(`${c.dataset.nm} · ${c.dataset.bf} · ⏱ ${c.querySelector('b').textContent}`, 2400); });
     $('#btn-set').addEventListener('click', settings);
     $('#cur-jade').addEventListener('click', () => { goTab('shop'); });
     $('#panel').addEventListener('click', onPanel);
@@ -241,7 +243,17 @@ const UI = (() => {
     Scene.config({ merchant: Life.merchantHere() });
     // 버프 표시 + 만료 시 설정 다시 적용
     const bs = ['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0);
-    $('#buffs').innerHTML = bs.map(k => `<span>${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}</span>`).join('') + (Life.fortuneMul() > 1 ? `<span>운세 ${S().fortune.last} ${fmtClock((S().fortune.until - Date.now()) / 1000)}</span>` : '') + (Game.sealLeft() > 0 ? `<span>염라의 인장 ×2 ${fmtDays(Game.sealLeft())}</span>` : '');
+    // 효과 중인 것 모두 남은 시간과 함께 (2배 부적 · 탕약 · 운세 · 염라의 인장) — 누르면 설명
+    const chips = [];
+    if (Game.boosting()) chips.push(['boost', '🧧', '2배 부적 ×2', fmtClock((S().boostUntil - Date.now()) / 1000), '수확량 · 화력 2배']);
+    bs.forEach(k => chips.push(['b-' + k, { value: '🍵', spawn: '🪷', fight: '🍶' }[k], `${BUFF_NAME[k]} ${BUFF_EFF[k]}`, fmtClock(Life.buffLeft(k)), { value: '혼 가치 1.5배', spawn: '혼령이 1.4배 빨리 나타나요', fight: '원귀 퇴치 화력 3배' }[k]]));
+    if (Life.fortuneMul() > 1) chips.push(['fortune', '🔮', `운세 ${S().fortune.last} ×${Life.fortuneMul()}`, fmtClock((S().fortune.until - Date.now()) / 1000), '오늘의 운세 효과']);
+    if (Game.sealLeft() > 0) chips.push(['seal', '📜', '염라의 인장 ×2', fmtDays(Game.sealLeft()), '모든 혼 수확 2배']);
+    const bsig = chips.map(c => c[0] + c[2]).join('|');
+    if (bsig !== buffChips) { buffChips = bsig; $('#buffs').innerHTML = chips.map(c => `<span class="bf bf-${c[0]}" data-bf="${c[4]}" data-nm="${c[2]}"><i>${c[1]}</i>${c[2]} <b>${c[3]}</b></span>`).join(''); }
+    else chips.forEach((c, i) => { const el = $('#buffs').children[i]; if (el) { const t = el.querySelector('b'); if (t.textContent !== c[3]) t.textContent = c[3]; } });
+    // 효과가 끝나면 알려 주기
+    const live = new Set(chips.map(c => c[0])); buffLive.forEach(k => { if (!live.has(k) && k !== 'seal') toast(`⏳ ${({ boost: '2배 부적', 'b-value': BUFF_NAME.value, 'b-spawn': BUFF_NAME.spawn, 'b-fight': BUFF_NAME.fight, fortune: '운세' })[k]} 효과가 끝났어요`, 2200); }); buffLive = live;
     const sig = bs.join() + Game.boosting() + (Game.sealLeft() > 0); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
     refresh(); officeBar(); officeTutCheck();
     if (++stuckT % 25 === 0) checkStuck();
