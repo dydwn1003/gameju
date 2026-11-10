@@ -956,3 +956,5 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .hb .dot.nb.on { animation: nbpop 1.2s ease-in-out infinite; }
 @keyframes nbpop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
 .new-tag { display: inline-block; margin-right: 5px; padding: 1px 4px 0; border-radius: 6px; background: #ff3a4a; color: #fff; font: 700 10px/13px Galmuri11, sans-serif; vertical-align: 2px; }
+
+.fuse-all { display: block; width: 100%; margin-top: 8px; }

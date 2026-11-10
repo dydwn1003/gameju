@@ -437,6 +437,7 @@ const UI = (() => {
     if (t.dataset.pull) { doPull(t.dataset.pull); return; }
     if (t.dataset.pet) { petInfo(t.dataset.pet); return; }
     if (t.dataset.fuse) { const [g, n] = t.dataset.fuse.split(':'); const r = Pets.fuse(g, +n); if (r) { gachaShow(r, { fuse: g }); render(); } return; }
+    if (t.dataset.fuseall) { fuseAllGo(t.dataset.fuseall === 'ALL' ? Object.keys(Pets.FUSE_UP) : [t.dataset.fuseall]); return; }
     if (t.dataset.eq) { if (Pets.equip(t.dataset.eq)) { Sound.play('buy'); toast(`${Pets.P(t.dataset.eq).name}을(를) 소환했어요`); render(); } else toast('아직 만나지 못한 영물이에요'); return; }
     if (lifeClick(t)) return;
     act(t.dataset.act);
@@ -1578,7 +1579,9 @@ const UI = (() => {
       <div class="ph"><h3>영물 도감</h3><span class="sub">${own}/${PETS.length}종 · 수확량 +${own}%</span></div><div class="petgrid">`;
     h += PETS.slice().sort((a, b) => PET_ORDER.indexOf(a.g) - PET_ORDER.indexOf(b.g)).map(p => { const st = s.pets[p.id], inv = s.petInv[p.id] || 0, canUp = st && st < 5 && inv >= Pets.starCost(p.id); return `<button class="pcell pbox ${st ? '' : 'unk'} ${s.petEq === p.id ? 'eq' : ''}" data-pet="${p.id}" style="--gc:${PET_GRADES[p.g].col}"><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span>${inv ? `<span class="pinv ${canUp ? 'up' : ''}">×${inv}</span>` : ''}<img class="px" src="${petIcon(p, !!st)}"><b>${st ? p.name : '???'}</b><small>${st ? '★'.repeat(st) : ''}${s.petEq === p.id ? ' 소환 중' : ''}</small></button>`; }).join('');
     h += '</div><div class="ph"><h3>영물 합성</h3><span class="sub">같은 등급 여분 3마리 → 1마리</span></div><div class="fuse pbox">';
-    h += Object.keys(Pets.FUSE_UP).map(g => { const n = Pets.spares(g), k = Math.floor(n / Pets.FUSE_N), nx = PET_ORDER[PET_ORDER.indexOf(g) + 1]; return `<div class="frow"><span class="gb" style="background:${PET_GRADES[g].col}">${g}</span><div class="fi"><b>여분 ${n}마리</b><small>${Math.round(Pets.FUSE_UP[g] * 100)}% 확률로 <i style="color:${PET_GRADES[nx].col}">${nx}</i> 등급!</small></div><button class="btn jade" data-fuse="${g}:1" ${k ? '' : 'disabled'}>1회</button><button class="btn red" data-fuse="${g}:99" ${k > 1 ? '' : 'disabled'}>모두 ${k > 1 ? k + '회' : ''}</button></div>`; }).join('');
+    h += Object.keys(Pets.FUSE_UP).map(g => { const n = Pets.spares(g), k = Math.floor(n / Pets.FUSE_N), nx = PET_ORDER[PET_ORDER.indexOf(g) + 1]; return `<div class="frow"><span class="gb" style="background:${PET_GRADES[g].col}">${g}</span><div class="fi"><b>여분 ${n}마리</b><small>${Math.round(Pets.FUSE_UP[g] * 100)}% 확률로 <i style="color:${PET_GRADES[nx].col}">${nx}</i> 등급!</small></div><button class="btn jade" data-fuse="${g}:1" ${k ? '' : 'disabled'}>1회</button><button class="btn red" data-fuseall="${g}" ${k ? '' : 'disabled'}>모두 합성</button></div>`; }).join('');
+    const anyFuse = Object.keys(Pets.FUSE_UP).some(g => Pets.spares(g) >= Pets.FUSE_N);
+    h += `<button class="btn red fuse-all" data-fuseall="ALL" ${anyFuse ? '' : 'disabled'}>✨ 전체 등급 모두 합성 (C → SS)</button>`;
     P.innerHTML = h + '</div><p class="note">칸을 누르면 소환하기 · 별 올리기를 할 수 있어요. 여분은 별 올리기(★2←1마리 … ★5←4마리)나 합성에 써요. 합성은 ★5 영물의 여분부터 먼저 써요.</p>';
     if (eq) previews.push({ c: $('#pet-big'), pet: eq });
   }
@@ -1600,6 +1603,13 @@ const UI = (() => {
     box.querySelector('#pi-eq').onclick = () => { Pets.equip(id); Sound.play('buy'); toast(`${p.name}을(를) 소환했어요`); closeModal(); render(); };
     box.querySelector('#pi-up').onclick = () => { if (Pets.starUp(id)) { Sound.play('promote'); toast(`${p.name} ★${S().pets[id]}!`); closeModal(); render(); petInfo(id); } };
   }
+  // 모두 합성: 결과가 많으면 눈에 띄는 것(등급 상승 · 새 영물 · 높은 등급)만 카드로, 나머지는 요약
+  function fuseAllGo(grades) {
+    const r = Pets.fuseAll(grades); if (!r) { toast('합성할 여분이 부족해요 (같은 등급 3마리 필요)'); return; }
+    const ups = r.filter(x => x.up).length, news = r.filter(x => x.isNew).length;
+    const pick = r.map((x, i) => ({ x, i, k: (x.up ? 100 : 0) + (x.isNew ? 50 : 0) + PET_ORDER.indexOf(Pets.P(x.id).g) })).sort((a, b) => b.k - a.k || a.i - b.i).slice(0, 10).map(o => o.x);
+    gachaShow(pick, { fuse: grades[grades.length - 1], fuseAll: grades, total: r.length, ups, news }); render();
+  }
   function gachaShow(res, opt) {
     opt = opt || {};
     const best = res.reduce((m, r) => Math.max(m, PET_ORDER.indexOf(Pets.P(r.id).g)), 0), bg = PET_ORDER[best], col = PET_GRADES[bg].col;
@@ -1609,7 +1619,7 @@ const UI = (() => {
     const o = overlay(`<div class="gs-bg" style="--c:${col}"></div><div class="gs-motes">${motes}</div>
       <div class="gs-stage" style="--c:${col}">${ring}<div class="gs-talisman"><b>召</b><span></span></div><div class="gs-pillar ${best >= 4 ? 'rainbow' : ''}"></div><div class="gs-flash"></div></div>
       <div class="gs-cards n${res.length} ${res.length > 10 ? 'many' : ''}" style="${res.length > 1 && res.length !== 10 ? `grid-template-columns:repeat(${Math.min(5, res.length)},1fr)` : ''}">${res.map((r, i) => { const p = Pets.P(r.id), c = PET_GRADES[p.g].col; return `<div class="gs-card gr-${p.g}" style="--c:${c};--i:${i}"><div class="gs-in"><div class="gs-back"><b>靈</b></div><div class="gs-front"><span class="gb" style="background:${c}">${p.g}</span><canvas width="12" height="11" data-gp="${r.id}"></canvas><b>${p.name}</b><small>${r.up ? (r.isNew ? '등급UP·NEW' : '등급 UP!') : r.isNew ? 'NEW!' : '여분 +1'}</small></div></div></div>`; }).join('')}</div>
-      <button class="gs-skip2" id="gs-skip">건너뛰기 ▶▶</button>${opt.fuse ? `<div class="gs-fuse">${res.some(r => r.up) ? '✨ 등급 상승 성공!' : '영물 합성 완료'}</div>` : ''}
+      <button class="gs-skip2" id="gs-skip">건너뛰기 ▶▶</button>${opt.fuse ? `<div class="gs-fuse">${opt.total ? `합성 ${opt.total}회 · 등급 상승 ${opt.ups}${opt.news ? ` · 새 영물 ${opt.news}` : ''}` : res.some(r => r.up) ? '✨ 등급 상승 성공!' : '영물 합성 완료'}</div>` : ''}
       <div class="gs-acts ${opt.fuse ? 'fz' : ''}"><button class="btn jade" id="gs-one">1회 더<em>${S().tickets ? '소환권' : '옥 ' + PULL_COST[1]}</em></button><button class="btn red" id="gs-ten">10회 더<em>옥 ${PULL_COST[10]}</em></button><button class="btn dark" id="ga-close">확인</button></div>`);
     o.querySelectorAll('[data-gp]').forEach(c => previews.push({ c, pet: Pets.P(c.dataset.gp), keep: 1 }));
     setTimeout(() => Sound.play('wraith'), 500);
@@ -1620,7 +1630,14 @@ const UI = (() => {
     const showActs = delay => setTimeout(() => { if (shown || o.dataset.gs !== tok || !o.querySelector('.gs-acts')) return; shown = true; const sk = o.querySelector('#gs-skip'); if (sk) sk.remove(); o.classList.add('acts-on'); }, delay);
     showActs(2900);
     o.querySelector('#gs-skip').onclick = () => { if (o.classList.contains('skip')) return; o.classList.add('skip'); o.querySelector('#gs-skip').disabled = true; showActs(700); };
-    if (opt.fuse) { const again = Math.floor(Pets.spares(opt.fuse) / Pets.FUSE_N); o.querySelector('#gs-one').innerHTML = `더 합성<em>여분 ${Pets.spares(opt.fuse)}</em>`; o.querySelector('#gs-one').disabled = !again; o.querySelector('#gs-ten').remove(); o.querySelector('#gs-one').onclick = () => { closeOverlay(); const r = Pets.fuse(opt.fuse, 1); if (r) gachaShow(r, opt); render(); }; return; }
+    if (opt.fuse) {
+      const fg = opt.fuseAll || [opt.fuse], left = fg.reduce((a, g) => a + Pets.spares(g), 0), again = fg.some(g => Pets.spares(g) >= Pets.FUSE_N);
+      o.querySelector('#gs-one').innerHTML = `1회 더<em>여분 ${Pets.spares(opt.fuse)}</em>`; o.querySelector('#gs-one').disabled = Pets.spares(opt.fuse) < Pets.FUSE_N;
+      o.querySelector('#gs-one').onclick = () => { closeOverlay(); const r = Pets.fuse(opt.fuse, 1); if (r) gachaShow(r, { fuse: opt.fuse }); render(); };
+      const te = o.querySelector('#gs-ten'); te.innerHTML = `모두 합성<em>여분 ${left}</em>`; te.disabled = !again; te.removeAttribute('data-short');
+      te.onclick = () => { closeOverlay(); fuseAllGo(fg); };
+      return;
+    }
     o.querySelector('#gs-one').onclick = () => { closeOverlay(); doPull(S().tickets ? 'ticket' : '1'); };
     o.querySelector('#gs-ten').onclick = () => { closeOverlay(); doPull('10'); };
     if (!S().tickets && S().jade < PULL_COST[1]) o.querySelector('#gs-one').dataset.short = 'jade';

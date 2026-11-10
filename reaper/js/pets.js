@@ -147,5 +147,12 @@ const Pets = (() => {
   const adLeft = () => { const a = S().petAd; if (a.day !== today()) { a.day = today(); a.n = 0; } return 2 - a.n; };
   function adPull() { if (adLeft() <= 0) return null; S().petAd.n++; return pull(1, true); }
   function equip(id) { if (!S().pets[id]) return false; S().petEq = id; Game.apply(); Game.save(); return true; }
-  return { P, ensure, stats, mul, pull, adPull, adLeft, equip, starUp, starCost, fuse, spares, FUSE_N, FUSE_UP };
+  // 모두 합성: 여분이 3마리 미만이 될 때까지 계속 (합성으로 새로 나온 여분 포함).
+  // 여러 등급이면 낮은 등급부터 → 등급 상승으로 올라간 영물도 다음 등급에서 이어서 합성
+  function fuseAll(grades) {
+    const res = [], list = PET_ORDER.filter(g => g in FUSE_UP && grades.includes(g));
+    for (const g of list) { let guard = 0; while (spares(g) >= FUSE_N && guard++ < 5000) { const r = fuse(g, 1); if (!r) break; res.push(...r); } }
+    return res.length ? res : null;
+  }
+  return { P, ensure, stats, mul, pull, adPull, adLeft, equip, starUp, starCost, fuse, fuseAll, spares, FUSE_N, FUSE_UP };
 })();
