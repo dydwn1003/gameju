@@ -6,24 +6,24 @@
 // mult: 계급별 수확 배수 (승진할 때마다 약 2.2배)
 const RANKS = [
   { name: '수습 차사', mult: 1, lv: 0, hp: 0, region: 0 },
-  { name: '말단 차사', mult: 2.5, lv: 102, hp: 4.53e04, region: 1 },
-  { name: '차사', mult: 6, lv: 675, hp: 7.91e12, region: 2 },
-  { name: '선임 차사', mult: 14, lv: 809, hp: 5.54e14, region: 3 },
-  { name: '차사장', mult: 32, lv: 842, hp: 4.29e15, region: 4 },
-  { name: '판관', mult: 72, lv: 870, hp: 2.65e16, region: 5 },
-  { name: '명부 판관', mult: 160, lv: 889, hp: 1.42e17, region: 6 },
-  { name: '시왕', mult: 360, lv: 913, hp: 3.63e17, region: 7 },
-  { name: '염라대왕', mult: 800, lv: 934, hp: 1.87e18, region: 8 },
+  { name: '말단 차사', mult: 2.5, lv: 100, hp: 3.05e04, region: 1 },
+  { name: '차사', mult: 6, lv: 481, hp: 1.36e09, region: 2 },
+  { name: '선임 차사', mult: 14, lv: 834, hp: 2.23e13, region: 3 },
+  { name: '차사장', mult: 32, lv: 872, hp: 1.74e14, region: 4 },
+  { name: '판관', mult: 72, lv: 905, hp: 1.09e15, region: 5 },
+  { name: '명부 판관', mult: 160, lv: 932, hp: 5.97e15, region: 6 },
+  { name: '시왕', mult: 360, lv: 955, hp: 1.51e16, region: 7 },
+  { name: '염라대왕', mult: 800, lv: 982, hp: 7.89e16, region: 8 },
 ];
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (25레벨마다 ×2)', base: 8, grow: 1.125, max: 999 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (30레벨마다 ×2)', base: 8, grow: 1.1, max: 999 },
   { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.32, cap: 30, max: 100 },
   { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.36, cap: 35, max: 100 },
   { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.34, cap: 30, max: 100 },
   { id: 'luck', name: '귀한 인연', icon: 'luck', desc: '귀한 혼령 출현 확률', base: 750, grow: 1.55, cap: 25, max: 80 },
   { id: 'minion', name: '졸개 차사 고용', icon: 'minion', desc: '자동으로 혼을 거두는 부하', base: 360, grow: 2.1, cap: 20, grow2: 1.4, max: 40 },
   { id: 'drill', name: '졸개 훈련', icon: 'drill', desc: '졸개 걸음·수확량 증가', base: 900, grow: 1.3, max: 999 },
-  { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 2.4, cap: 10, grow2: 1.8, max: 22 },
+  { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 2.4, cap: 10, grow2: 1.8, max: 20 },
 ];
 const TIER_MULT = [1, 3, 10, 30];
 const TIER_NAME = ['떠도는 혼', '맑은 혼', '황금 혼', '원한 서린 혼'];
@@ -38,8 +38,8 @@ const SHOP_IAP = [
 ];
 const JADE_SHOP = [
   // 시간 두루마리는 하루 구매 횟수 제한 + 두 번째부터 비싸짐 (한 달 진행 밸런스 보호)
-  { id: 'j_time2', name: '시간의 두루마리', cost: 60, prices: [60, 100], day: 2, hours: 2, desc: '2시간치 혼 즉시 획득' },
-  { id: 'j_time8', name: '큰 시간의 두루마리', cost: 250, prices: [250, 400], day: 2, hours: 5, desc: '5시간치 혼 즉시 획득' },
+  { id: 'j_time2', name: '시간의 두루마리', cost: 60, prices: [60, 100], day: 2, hours: 1, desc: '1시간치 혼 즉시 획득' },
+  { id: 'j_time8', name: '큰 시간의 두루마리', cost: 250, prices: [250, 400], day: 2, hours: 3, desc: '3시간치 혼 즉시 획득' },
   { id: 'j_boost', name: '2배 부적 30분', cost: 60, boost: 30, desc: '30분간 혼 수확 2배' },
   { id: 'j_minion', name: '특급 졸개', cost: 300, minion: 1, desc: '졸개 1명 즉시 고용 (비용 없이)' },
 ];
@@ -56,17 +56,17 @@ const Game = (() => {
     stats: { wraith: 0, tap: 0 },
   });
   const lv = id => S.upg[id] || 0;
-  // 숙련: 원래 최대(cap)를 넘긴 레벨은 효과 대신 혼 가치 +4%씩 (걸음 · 부르기 · 손길 · 인연)
+  // 숙련: 원래 최대(cap)를 넘긴 레벨은 효과 대신 혼 가치 +3%씩 (걸음 · 부르기 · 손길 · 인연)
   const MASTER = ['step', 'call', 'hand', 'luck'];
   const capOf = id => { const U = UPGRADES.find(u => u.id === id); return U.cap || U.max; };
   const lc = id => Math.min(lv(id), capOf(id));
   const over = (id, L = lv(id)) => Math.max(0, L - capOf(id));
-  const masteryMul = () => MASTER.reduce((m, id) => m * Math.pow(1.04, over(id)), 1);
+  const masteryMul = () => MASTER.reduce((m, id) => m * Math.pow(1.03, over(id)), 1);
   const today = () => new Date().toISOString().slice(0, 10);
 
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
-  const penMul = L => (1 + L * 0.45) * Math.pow(2, Math.floor(L / 25));
+  const penMul = L => (1 + L * 0.3) * Math.pow(2, Math.floor(L / 30)); // 레벨당 +30%, 30레벨마다 ×2
   const valueBase = () => penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
@@ -76,9 +76,9 @@ const Game = (() => {
   const minions = () => lv('minion');
   const mWalk = () => Math.min(56, 18 * (1 + lv('drill') * 0.05));
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.965, lv('drill')));
-  const drillMul = () => 1 + lv('drill') * 0.08;
+  const drillMul = () => 1 + lv('drill') * 0.06;
   const OFFLINE_RATE = 0.3; // 자리 비운 동안 받는 비율 (켜 둔 수입 대비)
-  const offHours = () => Math.min(13, 2 + lv('ledger') * 0.5); // 장부 레벨마다 30분, 최대 13시간
+  const offHours = () => Math.min(8, 2 + lv('ledger') * 0.3); // 장부 레벨마다 18분, 최대 8시간
   function tierProbs() {
     const L = lc('luck');
     const p3 = 0.004 * (1 + 0.15 * L), p2 = 0.015 * (1 + 0.12 * L), p1 = 0.06 * (1 + 0.1 * L);
@@ -108,19 +108,19 @@ const Game = (() => {
 
   // 업그레이드 효과 표기 (레벨 L 기준)
   function eff(id, L) {
-    if (MASTER.includes(id) && L > capOf(id)) return '숙련 ×' + Math.pow(1.04, L - capOf(id)).toFixed(2); // 혼 가치 배수
+    if (MASTER.includes(id) && L > capOf(id)) return '숙련 ×' + Math.pow(1.03, L - capOf(id)).toFixed(2); // 혼 가치 배수
     return effBase(id, L);
   }
   function effBase(id, L) {
     switch (id) {
-      case 'pen': { const m = (1 + L * 0.45) * Math.pow(2, Math.floor(L / 25)); return '×' + (m >= 100 ? fmt(m) : m.toFixed(2)); }
+      case 'pen': { const m = penMul(L); return '×' + (m >= 100 ? fmt(m) : m.toFixed(2)); }
       case 'step': return Math.round(18 + L * 2.2) + '보';
       case 'call': return Math.max(0.3, 2.4 * Math.pow(0.93, L)).toFixed(2) + '초';
       case 'hand': return Math.max(0.18, 0.9 * Math.pow(0.93, L)).toFixed(2) + '초';
       case 'luck': { const p = 0.004 * (1 + 0.15 * L) + 0.015 * (1 + 0.12 * L) + 0.06 * (1 + 0.1 * L); return (p * 100).toFixed(1) + '%'; }
       case 'minion': return L + '명';
-      case 'drill': return '×' + (1 + L * 0.08).toFixed(2);
-      case 'ledger': { const h = Math.min(13, 2 + L * 0.5); return (h % 1 ? Math.floor(h) + '시간 30분' : h + '시간'); }
+      case 'drill': return '×' + (1 + L * 0.06).toFixed(2);
+      case 'ledger': { const m = Math.round(Math.min(8, 2 + L * 0.3) * 60), H = Math.floor(m / 60), M = m % 60; return H + '시간' + (M ? ' ' + M + '분' : ''); }
     }
   }
   // ---------- 비용 ----------

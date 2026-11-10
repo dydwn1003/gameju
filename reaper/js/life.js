@@ -9,16 +9,16 @@ const RECIPES = [
   { id: 'mangtang', name: '망각탕', need: { mang: 3 }, buff: 'value', min: 30, desc: '30분간 혼 수확 +50%' },
   { id: 'lotustea', name: '연꽃차', need: { lotus: 2, mang: 2 }, buff: 'spawn', min: 30, desc: '30분간 혼령 출현·걸음 +40%' },
   { id: 'honju', name: '혼불주', need: { honbul: 2 }, buff: 'fight', min: 60, desc: '60분간 원귀 퇴치 화력 ×3' },
-  { id: 'saengdan', name: '생사단', need: { saengsa: 1, lotus: 2 }, instant: { hours: 4, jade: 20 }, desc: '4시간치 혼 + 옥 20 즉시 획득' },
+  { id: 'saengdan', name: '생사단', need: { saengsa: 1, lotus: 2 }, instant: { hours: 3, jade: 20 }, desc: '3시간치 혼 + 옥 20 즉시 획득' },
 ];
 const BUFF_NAME = { value: '망각탕', spawn: '연꽃차', fight: '혼불주' };
 // 파견: 가장 짧은 것도 3시간. 보상(hours = 몇 시간치 혼)은 걸리는 시간의 약 1/8. 칸이 최대 5개라 동시에 돌리면 쌓이므로 낮게 잡음
 const EXPEDITIONS = [
-  { id: 'e0', name: '이승 마을 순찰', rank: 0, hrs: 3, minion: 1, seed: { mang: 4 }, hours: 0.2, jade: 3 },
-  { id: 'e1', name: '서낭당 고갯길 수색', rank: 2, hrs: 6, minion: 3, seed: { lotus: 3, mang: 2 }, hours: 0.4, jade: 6 },
-  { id: 'e2', name: '삼도천 뱃길 순찰', rank: 4, hrs: 9, minion: 6, seed: { honbul: 2, lotus: 1 }, hours: 0.55, jade: 10 },
-  { id: 'e3', name: '저승문 경비', rank: 6, hrs: 14, minion: 10, seed: { saengsa: 1, honbul: 2 }, hours: 0.9, jade: 16 },
-  { id: 'e4', name: '명부전 심부름', rank: 7, hrs: 24, minion: 15, seed: { saengsa: 2, honbul: 1 }, hours: 1.5, jade: 30, dex: 1 },
+  { id: 'e0', name: '이승 마을 순찰', rank: 0, hrs: 3, minion: 1, seed: { mang: 4 }, hours: 0.15, jade: 3 },
+  { id: 'e1', name: '서낭당 고갯길 수색', rank: 2, hrs: 6, minion: 3, seed: { lotus: 3, mang: 2 }, hours: 0.3, jade: 6 },
+  { id: 'e2', name: '삼도천 뱃길 순찰', rank: 4, hrs: 9, minion: 6, seed: { honbul: 2, lotus: 1 }, hours: 0.4, jade: 10 },
+  { id: 'e3', name: '저승문 경비', rank: 6, hrs: 14, minion: 10, seed: { saengsa: 1, honbul: 2 }, hours: 0.65, jade: 16 },
+  { id: 'e4', name: '명부전 심부름', rank: 7, hrs: 24, minion: 15, seed: { saengsa: 2, honbul: 1 }, hours: 1.05, jade: 30, dex: 1 },
 ];
 const SPECIALS = [
   ['아이 혼', '댕기를 맨 꼬마 혼령', 0], ['할아버지 혼', '하얀 수염의 혼령', 0], ['선비 혼', '갓을 쓴 글공부 혼령', 1], ['신부 혼', '족두리를 쓴 혼령', 1],
@@ -57,7 +57,7 @@ const MERCHANT_POOL = [
   { id: 'm_saengsa', name: '생사화 씨앗 ×1', jade: 50, seed: { saengsa: 1 } },
   { id: 'm_mang', name: '망각초 씨앗 ×5', soul: 200, seed: { mang: 5 } },
   { id: 'm_lotus', name: '저승 연꽃 씨앗 ×3', soul: 900, seed: { lotus: 3 } },
-  { id: 'm_time', name: '3시간치 혼 보따리', jade: 60, hours: 3 },
+  { id: 'm_time', name: '2시간치 혼 보따리', jade: 60, hours: 2 },
   { id: 'm_jade', name: '옥 15개', soul: 1500, jadeGet: 15 },
   { id: 'm_honju', name: '혼불주 한 병 (60분 화력 ×3)', jade: 40, buff: ['fight', 60] },
   { id: 'm_mangtang', name: '망각탕 한 사발 (30분 수확 +50%)', soul: 600, buff: ['value', 30] },
@@ -156,7 +156,7 @@ const Life = (() => {
   // ---------- 집무실 결재함: 2시간마다 서류 1건 (최대 3건), 계급이 높을수록 보상 큼 ----------
   const DOC_EVERY = 2 * 3600e3;
   // 서류 1건 보상 = 몇 초치 혼. 처음엔 적게, 계급이 오를수록 늘어남 (2시간마다 1건, 최대 3건 쌓임)
-  const DOC_SEC = [30, 50, 75, 110, 150, 190, 240, 300, 360]; // 결재 1건 = 몇 초치 혼
+  const DOC_SEC = [21, 35, 53, 77, 105, 133, 168, 210, 252]; // 결재 1건 = 몇 초치 혼
   const docsCount = () => { const d = S() && S().docs; return d ? Math.min(3, Math.floor((now() - d.last) / DOC_EVERY)) : 0; };
   function claimDocs() {
     const n = docsCount(); if (!n) return null;
@@ -245,7 +245,7 @@ const Life = (() => {
   // ---------- 망자 심판 ----------
   const JUDGE_MAX = 5;
   // 심판 1건 보상 = 몇 초치 혼 (맞히면). 처음엔 적게, 계급이 오를수록 늘어남 (틀리면 1/5)
-  const JUDGE_SEC = [15, 25, 40, 60, 80, 105, 135, 165, 200]; // 심판 1건(정답) = 몇 초치 혼
+  const JUDGE_SEC = [10, 18, 28, 42, 56, 74, 95, 116, 140]; // 심판 1건(정답) = 몇 초치 혼
   function judgeDay() { const s = S(), day = new Date().toISOString().slice(0, 10); if (!s.judge || s.judge.day !== day) s.judge = { day, n: 0, ok: 0, total: (s.judge && s.judge.total) || 0, seen: (s.judge && s.judge.seen) || [] }; return s.judge; }
   const judgeLeft = () => S() ? JUDGE_MAX - judgeDay().n : 0;
   function judgeCase() {

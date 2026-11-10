@@ -160,7 +160,7 @@ const UI = (() => {
       render(); return;
     }
     S().stats.wraith++; Life.qEvent('wraith');
-    const amt = Math.max(Game.incomePerSec() * 12, Game.value() * 15); // 원귀 퇴치 보상
+    const amt = Math.max(Game.incomePerSec() * 8, Game.value() * 10); // 원귀 퇴치 보상
     Game.gain(amt);
     let jade = 0;
     if (Math.random() < 0.25) { jade = 2 + Math.floor(Math.random() * 6); S().jade += jade; }
@@ -392,7 +392,7 @@ const UI = (() => {
       let n = mult === 'max' ? Math.max(1, Game.maxBuy(U.id).n) : Math.min(mult, U.max - L);
       const c = maxed ? 0 : Game.cost(U.id, n);
       $(`#lv-${U.id}`).textContent = `Lv.${L}`;
-      const de = $(`#de-${U.id}`), dt = U.cap && L >= U.cap && ['step', 'call', 'hand', 'luck'].includes(U.id) ? '숙련: 레벨마다 혼 가치 +4%' : U.desc; if (de && de.textContent !== dt && de.dataset.k !== dt) { de.dataset.k = dt; de.textContent = dt; }
+      const de = $(`#de-${U.id}`), dt = U.cap && L >= U.cap && ['step', 'call', 'hand', 'luck'].includes(U.id) ? '숙련: 레벨마다 혼 가치 +3%' : U.desc; if (de && de.textContent !== dt && de.dataset.k !== dt) { de.dataset.k = dt; de.textContent = dt; }
       $(`#ef-${U.id}`).textContent = maxed ? Game.eff(U.id, L) + ' (최대)' : `${Game.eff(U.id, L)} → ${Game.eff(U.id, L + n)}`;
       $(`#co-${U.id}`).textContent = maxed ? '최대' : fmt(c);
       $(`#bl-${U.id}`).textContent = maxed ? '' : `+${n}`;
@@ -1622,7 +1622,7 @@ const UI = (() => {
   function ghostTap(x, y, gold) {
     if (!parade) return;
     parade.combo++; parade.comboT = 2; parade.max = Math.max(parade.max, parade.combo); parade.ghosts++;
-    const amt = Game.incomePerSec(true) * (gold ? 10 : 2) * (1 + Math.min(4, parade.combo * 0.1)); // 백귀야행 귀신 1마리
+    const amt = Game.incomePerSec(true) * (gold ? 7 : 1.4) * (1 + Math.min(4, parade.combo * 0.1)); // 백귀야행 귀신 1마리
     Game.gain(amt); parade.gained += amt; Life.qEvent('soul', 3);
     float(x, y, (gold ? '✨+' : '+') + fmt(amt), gold ? 'big' : 't2 tap'); Sound.play(gold ? 'promote' : 'kill');
     const cb = $('#parade-bar .cb'); if (cb) { cb.classList.remove('pop'); void cb.offsetWidth; cb.classList.add('pop'); }
