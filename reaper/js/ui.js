@@ -375,7 +375,7 @@ const UI = (() => {
         <button class="btn jade" data-act="jadeAd" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>광고 보기<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button></div>
     </div><div class="sec">옥 상점</div><div class="grid2">`;
     h += JADE_SHOP.map(J => `<div class="card pbox"><img class="px" src="${IC(J.hours ? 'scroll' : J.boost ? 'luck' : 'minion', J.hours ? 4 : 3)}"><div class="nm">${J.name}</div><div class="ds">${J.desc}${J.hours ? `<br><b style="color:var(--soul)">+${fmt(Game.incomePerSec(true) * 3600 * J.hours)}</b>` : ''}</div>
-      ${J.day ? `<div class="ds" style="color:var(--gold)">오늘 ${Game.jadeLeft(J.id)}/${J.day}회 남음</div>` : ''}<button class="btn jade" data-jade="${J.id}" ${Game.jadeCost(J.id) == null ? 'disabled' : s.jade >= Game.jadeCost(J.id) ? '' : 'data-short="jade"'}>${Game.jadeCost(J.id) == null ? '내일 다시' : `<img class="px" src="${IC('jade', 2)}">${Game.jadeCost(J.id)}`}</button></div>`).join('');
+      ${J.day ? `<div class="ds" style="color:var(--gold)">오늘 ${Game.jadeLeft(J.id)}/${J.day}회 남음</div>` : ''}${Game.jadeMaxed(J.id) ? '<div class="ds" style="color:var(--gold)">졸개가 최대예요</div>' : ''}<button class="btn jade" data-jade="${J.id}" ${Game.jadeCost(J.id) == null || Game.jadeMaxed(J.id) ? 'disabled' : s.jade >= Game.jadeCost(J.id) ? '' : 'data-short="jade"'}>${Game.jadeMaxed(J.id) ? '최대' : Game.jadeCost(J.id) == null ? '내일 다시' : `<img class="px" src="${IC('jade', 2)}">${Game.jadeCost(J.id)}`}</button></div>`).join('');
     h += `</div><div class="sec">패키지</div><div class="grid2">`;
     h += SHOP_IAP.map(P => { const left = Game.iapLeft(P.id), own = left <= 0, sl = P.seal ? Game.sealLeft() : 0; return `<div class="card pbox ${own ? 'owned' : ''}">${P.tag ? `<span class="tag">${P.tag}</span>` : ''}<img class="px" src="${IC(P.icon, P.icon === 'jade' ? 4 : 3)}"><div class="nm">${P.name}</div><div class="ds">${P.desc || '보석함에 바로 지급'}</div>
       ${P.daily ? `<div class="ds" style="color:var(--gold)">하루 ${P.daily}번 · 오늘 ${Math.max(0, left)}번 남음</div>` : ''}${sl > 0 ? `<div class="ds" style="color:var(--jade)">효과 남은 기간 ${fmtDays(sl)}</div>` : ''}
@@ -404,7 +404,7 @@ const UI = (() => {
       if (bar && N) { const b = document.querySelector('[data-act="test"]'); const ok = Game.canTest(); if (b && b.disabled === ok) renderRank($('#panel')); }
     }
     if (tab === 'life' && !force) lifeTick();
-    if (tab === 'shop' && !force) document.querySelectorAll('[data-jade]').forEach(b => { const c = Game.jadeCost(b.dataset.jade); b.disabled = c == null; b.toggleAttribute('data-short', c != null && s.jade < c); if (c != null && s.jade < c) b.dataset.short = 'jade'; });
+    if (tab === 'shop' && !force) document.querySelectorAll('[data-jade]').forEach(b => { const c = Game.jadeMaxed(b.dataset.jade) ? null : Game.jadeCost(b.dataset.jade); b.disabled = c == null; b.toggleAttribute('data-short', c != null && s.jade < c); if (c != null && s.jade < c) b.dataset.short = 'jade'; });
   }
   function onPanel(e) {
     const t = e.target.closest('button'); if (!t) return;
@@ -425,6 +425,7 @@ const UI = (() => {
     }
     if (t.dataset.jade) {
       const J = JADE_SHOP.find(j => j.id === t.dataset.jade);
+      if (Game.jadeMaxed(J.id)) { toast('졸개가 이미 최대예요'); return; }
       if (Game.jadeCost(J.id) == null) { toast('오늘은 다 샀어요. 내일 다시 살 수 있어요'); return; }
       confirmBox(`<h2>${J.name}</h2><p>${J.desc}</p><p>옥 ${Game.jadeCost(J.id)}개를 사용할까요?${J.day ? `<br><small style="color:var(--mute)">하루 ${J.day}회 · 오늘 ${Game.jadeLeft(J.id)}회 남음</small>` : ''}</p>`, () => {
         const r = Game.jadeBuy(J.id);
@@ -1094,11 +1095,11 @@ const UI = (() => {
       h += s.expe.map((x, i) => { const E = EXPEDITIONS.find(e => e.id === x.id), l = Life.expeLeft(x); return `<div class="row pbox"><div class="ic"><img class="px" src="${IC('minion', 3)}"></div><div class="info"><div class="nm">${E.name}</div><div class="ds" data-left-expe="${i}">${l > 0 ? fmtTime(l) + ' 남음' : '돌아왔어요!'}</div></div>
         ${l > 0 ? `<button class="btn sk" data-skip="expe:${i}">⏩ 단축</button>` : `<button class="btn red" data-claim="${i}">보상 받기</button>`}</div>`; }).join('');
       h += `<div class="sec">순찰지</div>` + EXPEDITIONS.map(E => {
-        const lockR = s.rank < E.rank, lockM = Game.minions() < E.minion, full = s.expe.length >= Life.slots();
+        const lockR = s.rank < E.rank, lockM = Game.minions() < E.minion, full = s.expe.length >= Life.slots(), tl = Life.expeTodayLeft(E.id), done = tl <= 0;
         const rw = [...Object.entries(E.seed).map(([k, v]) => `${fname(k)} 씨앗 ${v}`), E.jade ? `옥 ${E.jade}` : '', `${hrsLabel(E.hours)}치 혼`, E.dex ? '희귀 혼령 기록' : ''].filter(Boolean).join(' · ');
-        return `<div class="row pbox ${lockR ? 'maxed' : ''}"><div class="ic"><img class="px" src="${IC('gate', 3)}"></div><div class="info"><div class="nm">${E.name}<small>${fmtTime(E.hrs * 3600)}</small></div><div class="ds">졸개 ${E.minion}명 필요 · <b>${rw}</b></div></div>
-          <button class="btn" data-send="${E.id}" ${lockR || lockM || full ? 'disabled' : ''}>${lockR ? RANKS[E.rank].name + '부터' : lockM ? '졸개 부족' : full ? '칸 없음' : '보내기'}</button></div>`;
-      }).join('') + `<p class="note">파견을 보내도 졸개는 계속 혼을 거둬요. 선임 차사·명부 판관이 되면 파견 칸이 늘어나요.</p>`;
+        return `<div class="row pbox ${lockR ? 'maxed' : ''}"><div class="ic"><img class="px" src="${IC('gate', 3)}"></div><div class="info"><div class="nm">${E.name}<small>${fmtTime(E.hrs * 3600)}</small></div><div class="ds">졸개 ${E.minion}명 필요 · <b>${rw}</b></div>${lockR ? '' : `<div class="ds" style="color:var(--gold)">오늘 ${tl}/${Life.EXPE_DAY}회 남음</div>`}</div>
+          <button class="btn" data-send="${E.id}" ${lockR || lockM || full || done ? 'disabled' : ''}>${lockR ? RANKS[E.rank].name + '부터' : done ? '내일 다시' : lockM ? '졸개 부족' : full ? '칸 없음' : '보내기'}</button></div>`;
+      }).join('') + `<p class="note">파견을 보내도 졸개는 계속 혼을 거둬요. 순찰지마다 하루 3번까지 보낼 수 있어요. 선임 차사·명부 판관이 되면 파견 칸이 늘어나요.</p>`;
     } else {
       const n = Object.keys(s.dex).length;
       h += `<div class="ph"><h3>혼령 도감</h3><span class="sub">${n}/${SPECIALS.length}종 · 혼 수확 +${Math.round(Life.dexBonus() * 100)}%</span></div>

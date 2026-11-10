@@ -352,9 +352,13 @@ const Life = (() => {
 
   // ---------- 파견 ----------
   const slots = () => 1 + Math.floor(S().rank / 2); // 집무실 부하가 늘수록 파견 칸 증가 (1~5)
+  const EXPE_DAY = 3; // 순찰지마다 하루에 보낼 수 있는 횟수
+  function expeDay() { const s = S(), d = new Date().toISOString().slice(0, 10); if (!s.expeDay || s.expeDay.day !== d) s.expeDay = { day: d, n: {} }; return s.expeDay; }
+  const expeTodayLeft = id => Math.max(0, EXPE_DAY - (expeDay().n[id] || 0));
   function send(id) {
     const E = EXPEDITIONS.find(e => e.id === id), s = S();
-    if (s.expe.length >= slots() || s.rank < E.rank || Game.minions() < E.minion) return false;
+    if (s.expe.length >= slots() || s.rank < E.rank || Game.minions() < E.minion || expeTodayLeft(id) <= 0) return false;
+    const d = expeDay(); d.n[id] = (d.n[id] || 0) + 1;
     s.expe.push({ id, t: now() }); Game.save(); return true;
   }
   const expeLeft = x => Math.max(0, EXPEDITIONS.find(e => e.id === x.id).hrs * 3600 - (now() - x.t) / 1000);
@@ -394,5 +398,5 @@ const Life = (() => {
       brew: RECIPES.some(canBrew),
     };
   }
-  return { PROP, propReady, propLeft, useProp, timerLeft, skipCost, skipJade, skipAd, SKIP_AD, judgeLeft, judgeCase, judge, JUDGE_MAX, docsCount, claimDocs, docsNext, fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
+  return { PROP, propReady, propLeft, useProp, timerLeft, skipCost, skipJade, skipAd, SKIP_AD, judgeLeft, judgeCase, judge, JUDGE_MAX, docsCount, claimDocs, docsNext, fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeTodayLeft, EXPE_DAY, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
 })();

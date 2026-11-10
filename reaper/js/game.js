@@ -42,7 +42,7 @@ const JADE_SHOP = [
   { id: 'j_time2', name: '시간의 두루마리', cost: 60, prices: [60, 100], day: 2, hours: 1, desc: '1시간치 혼 즉시 획득' },
   { id: 'j_time8', name: '큰 시간의 두루마리', cost: 250, prices: [250, 400], day: 2, hours: 3, desc: '3시간치 혼 즉시 획득' },
   { id: 'j_boost', name: '2배 부적 30분', cost: 60, boost: 30, desc: '30분간 혼 수확 2배' },
-  { id: 'j_minion', name: '특급 졸개', cost: 300, minion: 1, desc: '졸개 1명 즉시 고용 (비용 없이)' },
+  { id: 'j_minion', name: '특급 졸개', cost: 300, minion: 1, desc: '졸개 1명 즉시 고용' },
 ];
 const ATTEND = [20, 30, 40, 50, 60, 80, 150];
 const AD_LIMIT = { boost: 8, jade: 5, skip: 12, wraith: 5 }; // 하루 광고 횟수
@@ -226,6 +226,8 @@ const Game = (() => {
   }
   function jbuyDay() { const d = new Date().toISOString().slice(0, 10); if (!S.jbuy || S.jbuy.day !== d) S.jbuy = { day: d, n: {} }; return S.jbuy; }
   // 오늘 남은 구매 횟수 (제한 없으면 Infinity) · 지금 가격 (다 샀으면 null)
+  // 특급 졸개: 졸개가 최대(고용 한도)면 더 살 수 없음
+  const jadeMaxed = id => { const J = JADE_SHOP.find(j => j.id === id); return !!(J && J.minion && lv('minion') >= capOf('minion')); };
   function jadeLeft(id) { const J = JADE_SHOP.find(j => j.id === id); return J.day ? J.day - (jbuyDay().n[id] || 0) : Infinity; }
   function jadeCost(id) { const J = JADE_SHOP.find(j => j.id === id); if (!J.prices) return J.cost; const k = jbuyDay().n[id] || 0; return k < J.prices.length ? J.prices[k] : null; }
   function jadeBuy(id) {
@@ -271,7 +273,7 @@ const Game = (() => {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, canTest, testHp, promote, canReborn, reborn, rebornMult,
-    collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, iapLeft, sealLeft, offline, OFFLINE_RATE,
+    collect, gain, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();
 
