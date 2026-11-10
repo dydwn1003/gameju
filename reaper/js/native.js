@@ -74,11 +74,18 @@ const Native = (() => {
     if (!A || !adReady) { onFail && onFail('광고를 준비 중이에요. 잠시 후 다시 눌러 주세요'); return; }
     if (adBusy) return; adBusy = true;
     let got = false; const subs = [];
-    const done = () => { subs.forEach(s => s.then(h => h.remove())); adBusy = false; prepareAd(); };
+    const done = () => { subs.forEach(s => s.then(h => h.remove())); adBusy = false; setTimeout(prepareAd, 400); }; // 광고가 완전히 닫힌 뒤 다음 광고 준비
     subs.push(A.addListener('onRewardedVideoAdReward', () => { got = true; }));
     subs.push(A.addListener('onRewardedVideoAdDismissed', () => { done(); if (got) onReward(); else onFail && onFail('끝까지 보면 보상을 받아요'); }));
     subs.push(A.addListener('onRewardedVideoAdFailedToShow', () => { done(); onFail && onFail('광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요'); }));
-    const ok = await (adLoaded || Promise.resolve(false));
+    // 미리 받아 둔 광고가 없거나 실패했으면 다시 받아 봄 (최대 2번, 각 10초)
+    const wait = p => Promise.race([p, new Promise(r => setTimeout(() => r(false), 10000))]);
+    let ok = false;
+    for (let i = 0; i < 2 && !ok; i++) {
+      if (!adLoaded || i > 0) prepareAd();
+      const slow = setTimeout(() => typeof toast === 'function' && toast('광고를 불러오는 중…', 1500), 700);
+      ok = await wait(adLoaded || Promise.resolve(false)); clearTimeout(slow);
+    }
     if (!ok) { done(); onFail && onFail('광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요'); return; }
     try { await A.showRewardVideoAd(); } catch (e) { done(); onFail && onFail('광고를 불러오지 못했어요'); }
   }
