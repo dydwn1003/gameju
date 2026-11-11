@@ -1732,8 +1732,8 @@ const UI = (() => {
     const s = S(), eq = s.petEq && s.pets[s.petEq] ? Pets.P(s.petEq) : null, own = Object.keys(s.pets).length;
     const stTxt = id => { const st = Pets.stats(id); return `수확량 +${Math.round(st[0] * 100)}% · 이동 +${Math.round(st[1] * 100)}% · 수확속도 +${Math.round(st[2] * 100)}%`; };
     let h = `<div class="petmain pbox">${eq ? `<canvas id="pet-big" ${PET_AURA[eq.g] ? 'class="pa" width="40" height="40"' : 'width="12" height="11"'}></canvas><div class="info"><div class="nm"><span class="gb" style="background:${PET_GRADES[eq.g].col}">${eq.g}</span> ${eq.name} <span class="stars">${'★'.repeat(s.pets[eq.id])}</span></div><div class="ds">${eq.desc}</div><div class="ds st">${stTxt(eq.id)}</div></div>` : '<div class="info"><div class="nm">소환한 영물이 없어요</div><div class="ds">아래에서 영물을 소환해 보세요. 소환하면 수확을 도와줘요.</div></div>'}</div>
-      <div class="gacha pbox"><div class="gt">영물 소환</div><div class="gd">${PET_ORDER.slice(0, 5).map(g => `${g} ${+(PET_GRADES[g].rate * 100).toFixed(1)}%`).join(' · ')} · <b style="color:${PET_GRADES.SSS.col}">SSS ${+(PET_GRADES.SSS.rate * 100).toFixed(1)}%</b><br>SS 이상 확정까지 <b>${PITY - s.pity}</b>회 · 같은 영물은 <b>여분</b>으로 쌓여요</div>
-        ${s.tickets ? `<button class="btn red ticket" data-pull="ticket">소환권으로 1회 <em>${s.tickets}장</em></button>` : ''}
+      <div class="gacha pbox"><div class="gt">영물 소환</div><div class="gd">${PET_ORDER.slice(0, 5).map(g => `${g} ${+(PET_GRADES[g].rate * 100).toFixed(1)}%`).join(' · ')} · <b style="color:${PET_GRADES.SSS.col}">SSS ${+(PET_GRADES.SSS.rate * 100).toFixed(1)}%</b><br>SS 이상 확정까지 <b>${PITY - s.pity}</b>회 · 같은 영물은 여분으로 쌓여요</div>
+        ${s.tickets ? `<div class="gtk"><button class="btn red ticket" data-pull="ticket">🎫 소환권 1회<em>${s.tickets}장 보유</em></button><button class="btn red ticket" data-pull="ticket10" ${s.tickets >= 10 ? '' : 'disabled'}>🎫 소환권 10회<em>${s.tickets}장 보유</em></button></div>` : ''}
         <div class="gb3"><button class="btn" data-pull="ad" ${Pets.adLeft() > 0 ? '' : 'disabled'}>무료 1회<em>AD ${Pets.adLeft()}/2</em></button>
         <button class="btn jade" data-pull="1" ${s.jade >= PULL_COST[1] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[1]} · 1회</button>
         <button class="btn red" data-pull="10" ${s.jade >= PULL_COST[10] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[10]} · 10회</button></div><div class="gd">10회 소환은 A등급 이상 1마리 확정</div></div>
@@ -1751,6 +1751,7 @@ const UI = (() => {
   function doPull(kind, opt) {
     if (kind === 'ad') { ad(() => { const r = Pets.adPull(); if (r) gachaShow(r); render(); }); return; }
     if (kind === 'ticket') { if (S().tickets <= 0) return; S().tickets--; const r = Pets.pull(1, true); gachaShow(r); render(); tutEv('pull'); return; }
+    if (kind === 'ticket10') { if ((S().tickets || 0) < 10) { Sound.play('no'); toast('소환권이 10장 필요해요'); return; } S().tickets -= 10; const r = Pets.pull(10, true); gachaShow(r); render(); tutEv('pull'); return; } // 10회는 옥과 같이 A 이상 1마리 확정
     if (!opt || !opt.ok) { askBuy('영물 소환', `영물을 ${kind}회 소환할까요?`, PULL_COST[kind], 0, () => doPull(kind, { ok: true })); return; }
     const r = Pets.pull(+kind); if (!r) { Sound.play('no'); toast('옥이 부족해요'); return; }
     gachaShow(r); render(); tutEv('pull');
@@ -1783,7 +1784,7 @@ const UI = (() => {
       <div class="gs-stage" style="--c:${col}">${ring}<div class="gs-talisman"><b>召</b><span></span></div><div class="gs-pillar ${best >= 4 ? 'rainbow' : ''}"></div><div class="gs-flash"></div></div>
       <div class="gs-cards n${res.length} ${res.length > 10 ? 'many' : ''}" style="${res.length > 1 && res.length !== 10 ? `grid-template-columns:repeat(${Math.min(5, res.length)},1fr)` : ''}">${res.map((r, i) => { const p = Pets.P(r.id), c = PET_GRADES[p.g].col; return `<div class="gs-card gr-${p.g}" style="--c:${c};--i:${i}"><div class="gs-in"><div class="gs-back"><b>靈</b></div><div class="gs-front"><span class="gb" style="background:${c}">${p.g}</span><canvas width="12" height="11" data-gp="${r.id}"></canvas><b>${p.name}</b><small>${r.up ? (r.isNew ? '등급UP·NEW' : '등급 UP!') : r.isNew ? 'NEW!' : '여분 +1'}</small></div></div></div>`; }).join('')}</div>
       <button class="gs-skip2" id="gs-skip">건너뛰기 ▶▶</button>${opt.fuse ? `<div class="gs-fuse">${opt.total ? `합성 ${opt.total}회 · 등급 상승 ${opt.ups}${opt.news ? ` · 새 영물 ${opt.news}` : ''}` : res.some(r => r.up) ? '✨ 등급 상승 성공!' : '영물 합성 완료'}</div>` : ''}
-      <div class="gs-acts ${opt.fuse ? 'fz' : ''}"><button class="btn jade" id="gs-one">1회 더<em>${S().tickets ? '소환권' : '옥 ' + PULL_COST[1]}</em></button><button class="btn red" id="gs-ten">10회 더<em>옥 ${PULL_COST[10]}</em></button><button class="btn dark" id="ga-close">확인</button></div>`);
+      <div class="gs-acts ${opt.fuse ? 'fz' : ''}"><button class="btn jade" id="gs-one">1회 더<em>${S().tickets ? '소환권' : '옥 ' + PULL_COST[1]}</em></button><button class="btn red" id="gs-ten">10회 더<em>${S().tickets >= 10 ? '소환권 10장' : '옥 ' + PULL_COST[10]}</em></button><button class="btn dark" id="ga-close">확인</button></div>`);
     o.querySelectorAll('[data-gp]').forEach(c => previews.push({ c, pet: Pets.P(c.dataset.gp), keep: 1 }));
     setTimeout(() => Sound.play('wraith'), 500);
     setTimeout(() => Sound.play(best >= 4 ? 'promote' : best >= 2 ? 'kill' : 'buy'), 1500);
@@ -1802,9 +1803,9 @@ const UI = (() => {
       return;
     }
     o.querySelector('#gs-one').onclick = () => { closeOverlay(); doPull(S().tickets ? 'ticket' : '1'); };
-    o.querySelector('#gs-ten').onclick = () => { closeOverlay(); doPull('10'); };
+    o.querySelector('#gs-ten').onclick = () => { closeOverlay(); doPull(S().tickets >= 10 ? 'ticket10' : '10'); };
     if (!S().tickets && S().jade < PULL_COST[1]) o.querySelector('#gs-one').dataset.short = 'jade';
-    if (S().jade < PULL_COST[10]) o.querySelector('#gs-ten').dataset.short = 'jade';
+    if (S().tickets < 10 && S().jade < PULL_COST[10]) o.querySelector('#gs-ten').dataset.short = 'jade';
   }
   // ---------- 백귀야행 ----------
   // 백귀야행: 하루 5번 + 옥 120개로 하루 3번 더
