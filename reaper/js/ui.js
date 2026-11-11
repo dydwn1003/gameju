@@ -233,7 +233,8 @@ const UI = (() => {
     dot('pet', Pets.adLeft() > 0 || S().jade >= PULL_COST[1] || S().tickets > 0);
     storyBar();
     const pr = S().parade || (S().parade = { next: Date.now() + 3 * 60e3, ad: { day: '', n: 0 } }), pl = (pr.next - Date.now()) / 1000;
-    $('#parade-t').textContent = parade ? '진행 중' : pl > 0 ? fmtClock(pl) : '';
+    const pdn = paradeDay().n >= PARADE_FREE;
+    $('#parade-t').textContent = parade ? '진행 중' : pdn ? (PARADE_BUY - paradeDay().buy > 0 ? `+${PARADE_BUY - paradeDay().buy}` : '내일') : pl > 0 ? fmtClock(pl) : '';
     $('#btn-parade .dot').classList.toggle('on', !parade && pl <= 0);
     $('#btn-parade').classList.toggle('active', !!parade);
     const al = Life.alerts(); dot('life', al.garden || al.expe);
@@ -1106,7 +1107,7 @@ const UI = (() => {
         const rw = [...Object.entries(E.seed).map(([k, v]) => `${fname(k)} 씨앗 ${v}`), E.jade ? `옥 ${E.jade}` : '', `${hrsLabel(E.hours)}치 혼`, E.dex ? '희귀 혼령 기록' : ''].filter(Boolean).join(' · ');
         return `<div class="row pbox ${lockR ? 'maxed' : ''}"><div class="ic"><img class="px" src="${IC('gate', 3)}"></div><div class="info"><div class="nm">${E.name}<small>${fmtTime(E.hrs * 3600)}</small></div><div class="ds">졸개 ${E.minion}명 필요 · <b>${rw}</b></div>${lockR ? '' : `<div class="ds" style="color:var(--gold)">오늘 ${tl}/${Life.EXPE_DAY}회 남음</div>`}</div>
           <button class="btn" data-send="${E.id}" ${lockR || lockM || full || done ? 'disabled' : ''}>${lockR ? RANKS[E.rank].name + '부터' : done ? '내일 다시' : lockM ? '졸개 부족' : full ? '칸 없음' : '보내기'}</button></div>`;
-      }).join('') + `<p class="note">파견을 보내도 졸개는 계속 혼을 거둬요. 순찰지마다 하루 3번까지 보낼 수 있어요. 승진할수록 파견 칸이 늘어나요. 옥으로 2칸 더 늘릴 수 있어요.</p>`;
+      }).join('') + `<p class="note">파견을 보내도 졸개는 계속 혼을 거둬요. 순찰지마다 하루 3번까지 보낼 수 있어요. 승진할수록 파견 칸이 늘어나요. 옥으로 4칸 더 늘릴 수 있어요.</p>`;
     } else {
       const n = Object.keys(s.dex).length;
       h += `<div class="ph"><h3>혼령 도감</h3><span class="sub">${n}/${SPECIALS.length}종 · 혼 수확 +${Math.round(Life.dexBonus() * 100)}%</span></div>
@@ -1511,7 +1512,7 @@ const UI = (() => {
     'cnt.harvest': ['[생활] → 꽃밭에서 씨앗을 심고, 다 자라면 눌러서 수확하세요.', 'garden'],
     'cnt.brew': ['[생활] → 주막에서 꽃으로 탕약을 달이세요. 꽃이 없으면 꽃밭에서 먼저 수확해요.', 'tavern'],
     'cnt.send': ['[생활] → 파견에서 순찰지를 골라 졸개를 보내세요.', 'expe'],
-    'cnt.parade': ['백귀야행은 30분마다 찾아와요. 오른쪽 👹 버튼에 표시가 뜨면 눌러서 들어가세요.', 'parade'],
+    'cnt.parade': ['백귀야행은 30분마다 찾아와요 (하루 5번). 오른쪽 👹 버튼에 표시가 뜨면 눌러서 들어가세요.', 'parade'],
     'cnt.judge': ['집무실에 들어가 망자 심판을 하세요. (하루 5명)', 'office'],
     reborn: ['[승진] 탭 아래쪽의 윤회하기를 누르세요.', 'rank'],
   };
@@ -1723,21 +1724,34 @@ const UI = (() => {
     if (S().jade < PULL_COST[10]) o.querySelector('#gs-ten').dataset.short = 'jade';
   }
   // ---------- 백귀야행 ----------
+  // 백귀야행: 하루 5번 + 옥 120개로 하루 5번 더
+  const PARADE_FREE = 5, PARADE_BUY = 5, PARADE_JADE = 120;
+  function paradeDay() { const pr = S().parade, d = new Date().toISOString().slice(0, 10); if (!pr.day || pr.day.d !== d) pr.day = { d, n: 0, buy: 0 }; return pr.day; }
+  const paradeMidnight = () => Date.parse(paradeDay().d) + 864e5;
   function paradeAsk() {
     if (parade) return;
-    const pr = S().parade, left = (pr.next - Date.now()) / 1000;
+    const pr = S().parade, pd = paradeDay(), left = (pr.next - Date.now()) / 1000;
+    if (pd.n >= PARADE_FREE) {
+      const bl = PARADE_BUY - pd.buy;
+      const box = modal(`<h2>백귀야행</h2><p>오늘 백귀야행 ${PARADE_FREE}번을 모두 마쳤어요.<br>옥으로 행렬을 한 번 더 부를 수 있어요. (하루 ${PARADE_BUY}번)</p>
+        <p class="mute">오늘 추가 ${pd.buy}/${PARADE_BUY} · 보유 옥 ${fmt(S().jade)}</p>
+        <div class="acts">${bl > 0 ? `<button class="btn jade" id="pa-buy" ${S().jade >= PARADE_JADE ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">옥 ${PARADE_JADE}개로 1번 더</button>` : '<button class="btn" disabled>오늘은 끝 · 내일 다시</button>'}<button class="btn dark" data-act="close">닫기</button></div>`);
+      const b = box.querySelector('#pa-buy'); if (b) b.onclick = () => { if (S().jade < PARADE_JADE) { Sound.play('no'); toast('옥이 부족해요'); return; } S().jade -= PARADE_JADE; closeModal(); startParade(true); };
+      return;
+    }
     if (left <= 0) { startParade(); return; }
     const today = new Date().toISOString().slice(0, 10); if (pr.ad.day !== today) pr.ad = { day: today, n: 0 };
     const box = modal(`<h2>백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 <b>지나가는 귀신</b>과 혼령을 마구 터치해 콤보를 쌓으세요.<br>금빛 귀신은 5배! 콤보가 높을수록 수확이 커져요 (최대 +400%).</p>
-      <p>다음 행렬까지 <b style="color:var(--gold)">${fmtTime(left)}</b></p>
+      <p>다음 행렬까지 <b style="color:var(--gold)">${fmtTime(left)}</b></p><p class="mute">오늘 ${pd.n}/${PARADE_FREE}번</p>
       <div class="acts"><button class="btn red" id="pa-ad" ${pr.ad.n < 3 ? '' : 'disabled'}>광고 보고 바로 부르기<em>${3 - pr.ad.n}/3</em></button><button class="btn jade" id="pa-jade" ${S().jade >= Life.skipCost(left) ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">옥 ${Life.skipCost(left)}개로 바로</button><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelector('#pa-jade').onclick = () => { if (Life.skipJade('parade', 0)) { closeModal(); startParade(); } else { Sound.play('no'); toast('옥이 부족해요'); } };
     box.querySelector('#pa-ad').onclick = () => { closeModal(); ad(() => { pr.ad.n++; startParade(); }); };
   }
-  function startParade() {
+  function startParade(paid) {
     if (parade || test) return;
     parade = { t: 25, combo: 0, comboT: 0, max: 0, gained: 0, ghosts: 0 };
-    S().parade.next = Date.now() + 30 * 60e3; Game.save();
+    const pd = paradeDay(); if (paid) pd.buy++; else pd.n++;
+    S().parade.next = pd.n >= PARADE_FREE ? paradeMidnight() : Date.now() + 30 * 60e3; Game.save(); // 오늘 5번을 다 하면 다음 행렬은 내일
     Scene.config({ parade: true }); Sound.play('wraith'); setTimeout(() => Sound.play('promote'), 300);
     $('#parade-bar').classList.add('on');
     if (sheetOpen()) closeSheet(); const bn = document.createElement('div'); bn.className = 'pa-banner'; bn.innerHTML = '<b>백 귀 야 행</b><small>지나가는 귀신과 혼령을 마구 터치!</small>'; $('#stage').appendChild(bn); setTimeout(() => bn.remove(), 2200);

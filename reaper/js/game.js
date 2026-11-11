@@ -18,7 +18,7 @@ const RANKS = [
 // 강화(구매)할 때마다 능력치가 오르고 경험치 1. 경험치가 차면 업그레이드 레벨 ↑ (lmax 까지).
 // 업그레이드 레벨 합 + 1 = 전체 레벨 (만렙 99 = 모든 업그레이드 최대 = 염라대왕). sq: 비용 증가율이 강화할수록 조금씩 줄어듦
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (120번 강화마다 ×2)', base: 8, grow: 1.04, sq: -0.905e-5, pa: 0.7, pb: 10, pd: 120, max: 1699, lmax: 30 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (128번 강화마다 ×2)', base: 8, grow: 1.04, sq: -0.905e-5, pa: 0.7, pb: 22, pd: 128, max: 1699, lmax: 30 },
   { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.149, cap: 60, grow2: 1.15, max: 200, lmax: 10 },
   { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.166, cap: 70, grow2: 1.15, max: 200, lmax: 10 },
   { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.158, cap: 60, grow2: 1.15, max: 200, lmax: 10 },
