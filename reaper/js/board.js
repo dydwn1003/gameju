@@ -16,7 +16,7 @@ const Board = (() => {
   // 내 기록 올리기 (바뀌었을 때만, 최대 1분에 한 번 · 승진 직후엔 바로)
   async function push(force) {
     if (!ready || !Game.S || !Game.S.kind || !Game.S.nickSet) return; // 닉네임을 정해야 순위에 오른다
-    const s = Game.S, row = { score: score(s), lv: Game.level(), rank: s.rank, rb: s.reborn || 0, kind: s.kind, nick: s.name, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 0 : 0, pt: Math.floor((s.playSec || 0) / 600) * 600 }; // pt: 실제 접속 시간(10분 단위)
+    const s = Game.S, row = { score: score(s), lv: Game.level(), rank: s.rank, rb: s.reborn || 0, kind: s.kind, nick: s.name, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 0 : 0, pt: Math.floor((s.playSec || 0) / 60) * 60 }; // pt: 실제 접속 시간(분 단위)
     const sig = JSON.stringify(row);
     if (sig === lastSent || (!force && Date.now() - lastAt < 60e3)) return;
     lastSent = sig; lastAt = Date.now();

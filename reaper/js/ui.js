@@ -592,6 +592,7 @@ const UI = (() => {
       ${row('집무실 품격', `${Decor.score()} (${Decor.title(Decor.score())})`, `수확량 ${pct(Decor.mul())}`)}
       ${row('지금 받는 버프', buffs.length ? buffs.join('<br>') : '없음')}
       <div class="st-sec">📊 기록</div>
+      ${row('플레이 시간', fmtPlay(s.playSec || 0), '게임을 실제로 켜 둔 시간')}
       ${row('퇴치한 원귀', fmt(s.stats ? s.stats.wraith : 0))}
       ${row('터치로 거둔 혼령', fmt(s.stats ? s.stats.tap : 0))}
       ${row('명판결', fmt(s.judge ? s.judge.total || 0 : 0) + '건')}
@@ -730,16 +731,16 @@ const UI = (() => {
   }
   const rankIcon = (kind, rank) => { const k = 'rk' + kind + rank; return urls[k] || (urls[k] = toURL(SP.tinyReaper(kind || 'm', rank || 0, 'down', 'idle', 0), 2)); };
   function rankRow(r, place, by) {
-    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}${r.pt && by !== 'pt' ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">${by === 'pt' ? '⏱ ' + (r.pt ? fmtPlay(r.pt) : '-') : 'Lv.' + r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
+    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}${r.pt != null && by !== 'pt' ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">${by === 'pt' ? '⏱ ' + (r.pt != null ? fmtPlay(r.pt) : '-') : 'Lv.' + r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
   }
   // 실제 접속 시간 표기
-  const fmtPlay = sec => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? `${h}시간` : `${Math.max(1, m)}분`; };
+  const fmtPlay = sec => { sec = sec || 0; const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : `${m}분`; };
   // 차사 프로필: 저승사자 + 발밑 마법진 + 함께하는 영물(기운)
   function profileModal(r, place) {
     const R = RANKS[Math.min(8, r.rank || 0)], pet = r.pet ? PETS.find(p => p.id === r.pet) : null;
     const row = (k, v) => `<div class="st-row"><span>${k}</span><b>${v}</b></div>`;
     const box = modal(`<div class="pf"><canvas id="pf-cv" width="120" height="84"></canvas><h2>${esc(r.me ? (S().name || r.name) : r.name)}${r.me && (S().name || r.name) !== '나' ? ' <em>나</em>' : ''}</h2><span class="badge">${R.name}</span>
-      <div class="pf-rows">${row('순위', place ? place + '위' : '-')}${row('레벨', 'Lv.' + (r.lv || 1))}${r.rb ? row('윤회', r.rb + '회') : ''}${row('플레이 시간', r.pt ? fmtPlay(r.pt) : '-')}${row('함께하는 영물', pet ? `${pet.name} ★${r.ps || 1} <small>(${pet.g})</small>` : '없음')}</div></div>
+      <div class="pf-rows">${row('순위', place ? place + '위' : '-')}${row('레벨', 'Lv.' + (r.lv || 1))}${r.rb ? row('윤회', r.rb + '회') : ''}${row('플레이 시간', r.pt != null ? fmtPlay(r.pt) : '-')}${row('함께하는 영물', pet ? `${pet.name} ★${r.ps || 1} <small>(${pet.g})</small>` : '없음')}</div></div>
       <div class="acts">${r.id && !r.me ? `<button class="btn red" id="pf-visit">🏘️ 집무실 놀러 가기</button>` : ''}<button class="btn dark" data-act="close">닫기</button></div>`);
     previews.push({ c: box.querySelector('#pf-cv'), prof: { kind: r.kind || 'm', rank: r.rank || 0, pet, star: r.ps || 1 } });
     const v = box.querySelector('#pf-visit'); if (v) v.onclick = () => { closeModal(); visitOffice(r.id); };
