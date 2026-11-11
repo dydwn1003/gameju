@@ -651,7 +651,7 @@ const UI = (() => {
   }
   async function mailModal() {
     const admin = Board.online() && await Board.checkOwner();
-    if (!Board.online()) { modal(`<h2>📮 우편함</h2><p>운영자 우편은 <b>로그인</b>하면 받을 수 있어요.<br><span class="mute">까치 우편은 마을의 까치를 눌러 받아요.</span></p><div class="acts">${loginBtn()}<button class="btn dark" data-act="close">닫기</button></div>`); bindLogin(); return; }
+    if (!Board.online()) { modal(`<h2>📮 우편함</h2><p>운영자 우편은 로그인하면 받을 수 있어요.<br><span class="mute">까치 우편은 마을의 까치를 눌러 받아요.</span></p><div class="acts">${loginBtn()}<button class="btn dark" data-act="close">닫기</button></div>`); bindLogin(); return; }
     let raw = []; try { raw = mailCache = await Board.mails(); } catch (e) { raw = mailCache || []; }
     // 운영자는 모든 우편을 보고(받는 사람 표시) 지울 수 있음. 받기는 대상일 때만
     const list = admin ? raw : myMails(raw), got = S().mailGot || {}, left = list.filter(m => !got[m.id] && mailFor(m));
@@ -722,7 +722,7 @@ const UI = (() => {
   }
   const rankIcon = (kind, rank) => { const k = 'rk' + kind + rank; return urls[k] || (urls[k] = toURL(SP.tinyReaper(kind || 'm', rank || 0, 'down', 'idle', 0), 2)); };
   function rankRow(r, place) {
-    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}</small></div><span class="rklv">Lv.${r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
+    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}</small></div><span class="rklv">Lv.${r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
   }
   // 닉네임 정하기 (순위·이웃 집무실에 보이는 이름)
   function nickModal(after) {
@@ -776,7 +776,7 @@ const UI = (() => {
       const rows = nbTab === 'friends' ? await Board.officesByIds(fr) : await Board.offices(nbTab === 'pop'); if (!document.body.contains(L)) return;
       if (!rows || !rows.length) { L.innerHTML = `<div class="rkload">${nbTab === 'friends' ? '아직 이웃이 없어요. 놀러 간 집무실에서 ➕ 이웃 추가를 눌러 보세요' : '아직 공개된 집무실이 없어요'}</div>`; return; }
       const list = nbTab === 'pop' ? rows : rows;
-      L.innerHTML = list.map((r, i) => { const t = nbTab === 'pop' ? Board.tierOf(i + 1) : 0, fd = fr.includes(r.id); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}">${nbTab === 'pop' ? `<span class="rkn">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span>` : ''}<img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me ? ' <em>나</em>' : ''}${fd ? ' 👥' : ''}</b><small>${Scene.officeName(r.rank)} · 품격 ${r.score || 0}</small></div><span class="nb-like">👍 ${r.likes || 0}</span>${r.me ? '' : `<button class="btn" data-visit="${esc(r.id)}">놀러 가기</button>`}</div>`; }).join('');
+      L.innerHTML = list.map((r, i) => { const t = nbTab === 'pop' ? Board.tierOf(i + 1) : 0, fd = fr.includes(r.id); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}">${nbTab === 'pop' ? `<span class="rkn">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span>` : ''}<img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}${fd ? ' 👥' : ''}</b><small>${Scene.officeName(r.rank)} · 품격 ${r.score || 0}</small></div><span class="nb-like">👍 ${r.likes || 0}</span>${r.me ? '' : `<button class="btn" data-visit="${esc(r.id)}">놀러 가기</button>`}</div>`; }).join('');
       L.querySelectorAll('[data-visit]').forEach(b => b.onclick = () => { closeModal(); visitOffice(b.dataset.visit); });
     } catch (e) { if (document.body.contains(L)) L.innerHTML = '<div class="rkload">불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</div>'; }
   }
@@ -1742,9 +1742,9 @@ const UI = (() => {
     }
     if (left <= 0) { startParade(); return; }
     const today = new Date().toISOString().slice(0, 10); if (pr.ad.day !== today) pr.ad = { day: today, n: 0 };
-    const box = modal(`<h2>백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 <b>지나가는 귀신</b>과 혼령을 마구 터치해 콤보를 쌓으세요.<br>금빛 귀신은 5배! 콤보가 높을수록 수확이 커져요 (최대 +400%).</p>
+    const box = modal(`<h2>백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 지나가는 귀신과 혼령을 마구 터치해 콤보를 쌓으세요.<br>금빛 귀신은 5배! 콤보가 높을수록 수확이 커져요 (최대 +400%).</p>
       <p>다음 행렬까지 <b style="color:var(--gold)">${fmtTime(left)}</b></p><p class="mute">오늘 ${pd.n}/${PARADE_FREE}번</p>
-      <div class="acts"><button class="btn red" id="pa-ad" ${pr.ad.n < 3 ? '' : 'disabled'}>광고 보고 바로 부르기<em>${3 - pr.ad.n}/3</em></button><button class="btn jade" id="pa-jade" ${S().jade >= Life.skipCost(left) ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">옥 ${Life.skipCost(left)}개로 바로</button><button class="btn dark" data-act="close">닫기</button></div>`);
+      <div class="acts col"><button class="btn red" id="pa-ad" ${pr.ad.n < 3 ? '' : 'disabled'}>광고 보고 바로 부르기<em>${3 - pr.ad.n}/3</em></button><button class="btn jade" id="pa-jade" ${S().jade >= Life.skipCost(left) ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">옥 ${Life.skipCost(left)}개로 바로 부르기</button><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelector('#pa-jade').onclick = () => { if (Life.skipJade('parade', 0)) { closeModal(); startParade(); } else { Sound.play('no'); toast('옥이 부족해요'); } };
     box.querySelector('#pa-ad').onclick = () => { closeModal(); ad(() => { pr.ad.n++; startParade(); }); };
   }

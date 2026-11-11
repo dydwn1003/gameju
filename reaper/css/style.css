@@ -976,3 +976,5 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 @keyframes gdpulse { 50% { box-shadow: 0 0 0 5px #ffd34a, 0 0 26px #ffd34a; } }
 .q-help { margin-top: 5px; padding: 6px 8px; border-radius: 8px; background: rgba(255, 211, 74, 0.1); border: 1px solid rgba(255, 211, 74, 0.35); font-size: 11px; line-height: 1.45; color: #ffe9a8; }
 .qrow .q-go { flex: none; align-self: center; margin-left: 8px; padding: 8px 10px; font-size: 12px; white-space: nowrap; }
+.mbox .acts.col { flex-direction: column; }
+.mbox .acts.col .btn { width: 100%; }
