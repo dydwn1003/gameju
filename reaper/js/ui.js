@@ -139,7 +139,7 @@ const UI = (() => {
     if (who !== 'minion' || Math.random() < 0.7) float(x, y, '+' + fmt(shown), 't' + s.tier + (who === 'tap' ? ' tap' : ''));
     const now = performance.now();
     if (who !== 'minion' || now - sndT > 400) { Sound.play('collect', s.tier); sndT = now; }
-    if (s.tier >= 2) toast(`${s.tier === 3 ? '🔥' : '✨'} ${TIER_NAME[s.tier]}을 거뒀다! <b>+${fmt(v)}</b>`, 1800);
+    // (황금 · 불꽃 혼 알림은 없앰 — 화면에 떠오르는 숫자로만)
   }
   function hitW(dmg, x, y, tap) {
     if (!Scene.wraithAlive()) return;
@@ -159,7 +159,7 @@ const UI = (() => {
     let jade = 0;
     if (Math.random() < 0.25) { jade = 2 + Math.floor(Math.random() * 6); S().jade += jade; }
     float(p.x, p.y - 40, '+' + fmt(amt), 'big');
-    const t = toast(`👻 원귀 퇴치! <b>+${fmt(amt)}</b> 혼${jade ? ` · 옥 +${jade}` : ''}`, 6000, Game.adLeft('wraith') > 0 ? [{ label: `광고 보고 3배 (${Game.adLeft('wraith')})`, cls: '', fn: () => { if (Game.adLeft('wraith') <= 0) return; ad(() => { Game.useAd('wraith'); Game.gain(amt * 2); toast(`보상 3배! +${fmt(amt * 2)}`); }); } }] : []);
+    got(`👻 원귀 퇴치! +${fmt(amt)} 혼${jade ? ` · 옥 +${jade}` : ''}`, { soft: true, emo: '👻', actions: Game.adLeft('wraith') > 0 ? [{ label: `광고 보고 3배 (${Game.adLeft('wraith')})`, cls: 'jade', fn: () => { if (Game.adLeft('wraith') <= 0) return; ad(() => { Game.useAd('wraith'); Game.gain(amt * 2); got(`보상 3배! +${fmt(amt * 2)}`, { ic: 'soul' }); }); } }] : [] });
     Game.save();
   }
   function wraithGone() {}
@@ -172,7 +172,7 @@ const UI = (() => {
       if (autoAcc >= 0.5) { autoAcc = 0; hitW(Game.wraithDps() * 0.5); }
     } else if (!test) {
       nextWraith -= dt;
-      if (nextWraith <= 0) { nextWraith = rnd(70, 110); Scene.spawnWraith(Math.max(Game.value() * 50, Game.incomePerSec() * 8), 22); toast('👻 원귀가 나타났다! 터치해서 퇴치하자', 2200); }
+      if (nextWraith <= 0) { nextWraith = rnd(70, 110); Scene.spawnWraith(Math.max(Game.value() * 50, Game.incomePerSec() * 8), 22); }
     }
   }
   // 승진은 시험 없이: 레벨을 채우면 승진 탭의 '승진하기'로 바로 승진
@@ -226,7 +226,7 @@ const UI = (() => {
     if (bsig !== buffChips) { buffChips = bsig; $('#buffs').innerHTML = chips.map(c => `<span class="bf bf-${c[0]}" data-bf="${c[4]}" data-nm="${c[2]}"><i>${c[1]}</i>${c[2]} <b>${c[3]}</b></span>`).join(''); }
     else chips.forEach((c, i) => { const el = $('#buffs').children[i]; if (el) { const t = el.querySelector('b'); if (t.textContent !== c[3]) t.textContent = c[3]; } });
     // 효과가 끝나면 알려 주기
-    const live = new Set(chips.map(c => c[0])); buffLive.forEach(k => { if (!live.has(k) && k !== 'seal') toast(`⏳ ${({ boost: '2배 부적', 'b-value': BUFF_NAME.value, 'b-spawn': BUFF_NAME.spawn, 'b-fight': BUFF_NAME.fight, fortune: '운세' })[k]} 효과가 끝났어요`, 2200); }); buffLive = live;
+    const live = new Set(chips.map(c => c[0])); buffLive.forEach(k => { if (false) toast(''); }); buffLive = live;
     const sig = bs.join() + Game.boosting() + (Game.sealLeft() > 0); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
     refresh(); officeBar(); officeTutCheck();
     if (++stuckT % 25 === 0) checkStuck();
@@ -385,7 +385,7 @@ const UI = (() => {
   function onPanel(e) {
     const t = e.target.closest('button, [data-dexi]'); if (!t) return;
     if (t.dataset.mult) { mult = t.dataset.mult === 'max' ? 'max' : +t.dataset.mult; render(); return; }
-    if (t.dataset.mcap) { const c = Game.minionCapCost(); askBuy('졸개 정원 늘리기', '고용할 수 있는 졸개를 5명 늘릴까요?', c, 0, () => { if (Game.buyMinionCap()) { Sound.play('buy'); toast(`졸개 정원이 ${Game.minionCap()}명으로 늘었어요!`); } else { Sound.play('no'); toast('옥이 부족해요'); } render(); }); return; }
+    if (t.dataset.mcap) { const c = Game.minionCapCost(); askBuy('졸개 정원 늘리기', '고용할 수 있는 졸개를 5명 늘릴까요?', c, 0, () => { if (Game.buyMinionCap()) { Sound.play('buy'); got(`졸개 정원이 ${Game.minionCap()}명으로 늘었어요!`, { ic: 'minion' }); } else { Sound.play('no'); toast('옥이 부족해요'); } render(); }); return; }
     if (t.dataset.buy) {
       const id = t.dataset.buy;
       const L0 = Game.lv(id), u0 = Game.ulv(id), g0 = Game.level();
@@ -397,7 +397,7 @@ const UI = (() => {
         const u1 = Game.ulv(id), g1 = Game.level(), UU = UPGRADES.find(x => x.id === id);
         if (g1 > g0) { float(st.width / 2, st.height * 0.42, `Lv.${g1}`, 'lvup'); toast(`🎉 ${UU.name} Lv.${u1}! 차사 레벨 ${g1}`); }
         else float(st.width / 2, st.height * 0.42, `강화 +${Game.lv(id) - L0}`, 'lvup');
-        if (id === 'minion') { toast('졸개 차사가 합류했다!'); render(); }
+        if (id === 'minion') { render(); }
         refresh(true);
       } else Sound.play('no');
       return;
@@ -408,7 +408,7 @@ const UI = (() => {
       if (Game.jadeCost(J.id) == null) { toast('오늘은 다 샀어요. 내일 다시 살 수 있어요'); return; }
       confirmBox(`<h2>${J.name}</h2><p>${J.desc}</p><p>옥 ${Game.jadeCost(J.id)}개를 사용할까요?${J.day ? `<br><small style="color:var(--mute)">하루 ${J.day}회 · 오늘 ${Game.jadeLeft(J.id)}회 남음</small>` : ''}</p>`, () => {
         const r = Game.jadeBuy(J.id);
-        if (r) { Sound.play('buy'); toast(typeof r === 'number' ? `+${fmt(r)} 혼` : `${J.name} 사용!`); render(); } else { Sound.play('no'); render(); }
+        if (r) { Sound.play('buy'); got(typeof r === 'number' ? `+${fmt(r)} 혼` : `${J.name} 사용!`, { ic: typeof r === 'number' ? 'soul' : 'luck' }); render(); } else { Sound.play('no'); render(); }
       });
       return;
     }
@@ -426,8 +426,8 @@ const UI = (() => {
     if (a === 'test') { if (!Game.canTest()) return; const old = S().rank, R0 = RANKS[old].region; if (Game.promote()) { Scene.pillar(); promoted(RANKS[S().rank].region !== R0, old); Board.push(true); } render(); }
     else if (a === 'reborn') confirmBox(`<h2>윤회</h2><p>직급·수련·보유한 혼이 처음으로 돌아갑니다.<br>모든 수확량이 영구히 ×${(1 + (S().reborn + 1) * 1.5).toFixed(1)}가 됩니다.</p>`, () => { Game.reborn(); Sound.play('promote'); toast('윤회했다! 새로운 생이 시작된다'); render(); });
     else if (a === 'boostAd') { closeModal(); boostAd(); }
-    else if (a === 'jadeFree') { if (Game.adLeft('jfree') <= 0) return; Game.useAd('jfree'); S().jade += FREE_JADE; Game.save(); Sound.play('buy'); toast(`옥 +${FREE_JADE}`); render(); }
-    else if (a === 'jadeAd') { if (Game.adLeft('jade') <= 0) return; ad(() => { Game.useAd('jade'); S().jade += FREE_JADE; Game.save(); toast(`옥 +${FREE_JADE}`); render(); }); }
+    else if (a === 'jadeFree') { if (Game.adLeft('jfree') <= 0) return; Game.useAd('jfree'); S().jade += FREE_JADE; Game.save(); Sound.play('buy'); got(`옥 +${FREE_JADE}`, { ic: 'jade' }); render(); }
+    else if (a === 'jadeAd') { if (Game.adLeft('jade') <= 0) return; ad(() => { Game.useAd('jade'); S().jade += FREE_JADE; Game.save(); got(`옥 +${FREE_JADE}`, { ic: 'jade' }); render(); }); }
     else if (a === 'close') closeModal();
   }
 
@@ -477,8 +477,8 @@ const UI = (() => {
       <div class="offer pbox"><div class="info"><b>작은 공양</b><div class="mute" style="font-size:10px">10분치 혼 → 옥 10 · 오늘 ${o.small}/3번</div></div><button class="btn" id="of-s" ${o.small <= 0 ? 'disabled' : s.souls >= o.smallCost ? '' : 'data-short="souls"'}><img class="px" src="${IC('soul', 2)}">${fmt(o.smallCost)}</button></div>
       <div class="offer pbox"><div class="info"><b>큰 공양</b><div class="mute" style="font-size:10px">1시간치 혼 → 옥 50 + 소환권 1 · 오늘 ${o.big}/1번</div></div><button class="btn red" id="of-b" ${o.big <= 0 ? 'disabled' : s.souls >= o.bigCost ? '' : 'data-short="souls"'}><img class="px" src="${IC('soul', 2)}">${fmt(o.bigCost)}</button></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    box.querySelector('#of-s').onclick = () => { closeModal(); askBuy('작은 공양', '혼을 바치고 옥 10을 받을까요?', 0, Life.offerState().smallCost, () => { if (Life.offer('small')) { Sound.play('buy'); toast('공양을 올렸다. 옥 +10'); } else { Sound.play('no'); toast('혼이 부족해요'); } offerModal(); }, offerModal); };
-    box.querySelector('#of-b').onclick = () => { closeModal(); askBuy('큰 공양', '혼을 바치고 옥 50 + 소환권 1을 받을까요?', 0, Life.offerState().bigCost, () => { if (Life.offer('big')) { Sound.play('promote'); toast('큰 공양! 옥 +50 · 소환권 +1'); } else { Sound.play('no'); toast('혼이 부족해요'); } offerModal(); }, offerModal); };
+    box.querySelector('#of-s').onclick = () => { closeModal(); askBuy('작은 공양', '혼을 바치고 옥 10을 받을까요?', 0, Life.offerState().smallCost, () => { if (Life.offer('small')) { Sound.play('buy'); got('공양을 올렸다. 옥 +10', { ic: 'jade' }); } else { Sound.play('no'); toast('혼이 부족해요'); } offerModal(); }, offerModal); };
+    box.querySelector('#of-b').onclick = () => { closeModal(); askBuy('큰 공양', '혼을 바치고 옥 50 + 소환권 1을 받을까요?', 0, Life.offerState().bigCost, () => { if (Life.offer('big')) { Sound.play('promote'); got('큰 공양! 옥 +50 · 소환권 +1', { ic: 'jade' }); } else { Sound.play('no'); toast('혼이 부족해요'); } offerModal(); }, offerModal); };
   }
   // ---------- 시간 단축 창 (모든 타이머 공통) ----------
   const SKIP_NAME = { plot: '꽃이 자라는', expe: '파견에서 돌아오는', docs: '다음 결재 서류가 올라오는', mail: '다음 까치 편지가 오는', parade: '다음 백귀야행까지 남은' };
@@ -632,7 +632,7 @@ const UI = (() => {
     const box = modal(`<h2>📮 우편함</h2><div class="ml-list">${list.length ? list.map(m => `<div class="ml-row ${got[m.id] ? 'got' : ''}"><div class="ml-i"><b>${!got[m.id] && mailFor(m) ? '<span class="new-tag">N</span>' : ''}${esc(m.title)}</b><small>${fmtDate(m.at)}${m.until ? ` · ${fmtDate(m.until)}까지` : ''}${admin && m.to && m.to !== 'all' ? ` · 👥 ${MAIL_TO[m.to] || m.to}${m.to === 'user' && m.nicks ? ` (${esc(m.nicks.join(', '))})` : ''}` : ''}</small>${m.body ? `<p>${esc(m.body)}</p>` : ''}<div class="ml-r">${rewardChips(m).map(c => `<span>${c}</span>`).join('')}</div></div>${got[m.id] ? '<button class="btn dark" disabled>받음</button>' : mailFor(m) ? `<button class="btn red" data-mg="${esc(m.id)}">받기</button>` : '<button class="btn dark" disabled>대상 아님</button>'}${admin ? `<button class="nt-del" data-mdel="${esc(m.id)}">삭제</button>` : ''}</div>`).join('') : '<div class="rkload">받은 우편이 없어요</div>'}</div>
       ${admin ? '<button class="btn" id="ml-send">📤 우편 보내기 (운영자)</button>' : ''}
       <div class="acts">${left.length > 1 ? '<button class="btn red" id="ml-all">모두 받기</button>' : ''}<button class="btn dark" data-act="close">닫기</button></div>`);
-    const done = n => { Sound.play('promote'); toast(`우편 ${n}통을 받았어요!`); closeModal(); render(); refreshMail(); mailModal(); };
+    const done = n => { Sound.play('promote'); closeModal(); render(); refreshMail(); got(`우편 ${n}통을 받았어요!`, { emo: '📮', then: mailModal }); };
     box.querySelectorAll('[data-mg]').forEach(b => b.onclick = () => { const m = list.find(x => x.id === b.dataset.mg); if (m && claimMail(m)) done(1); });
     const all = box.querySelector('#ml-all'); if (all) all.onclick = () => { let n = 0; left.forEach(m => { if (claimMail(m)) n++; }); done(n); };
     const sd = box.querySelector('#ml-send'); if (sd) sd.onclick = () => { closeModal(); adminMail(); };
@@ -782,7 +782,7 @@ const UI = (() => {
     $('#vs-rand').onclick = () => randomVisit();
     $('#vs-fr').onclick = async () => { const added = await Board.toggleFriend(o.id); const b = $('#vs-fr'); b.textContent = added ? '👥 이웃' : '➕ 이웃 추가'; b.classList.toggle('dark', added); Sound.play(added ? 'buy' : 'open'); toast(added ? `${esc(o.name)}님을 이웃으로 추가했어요! 이웃 목록에서 바로 놀러 갈 수 있어요` : '이웃에서 뺐어요'); };
     // 방문 보상: 하루 3곳까지 처음 놀러 간 집무실마다 옥 +5
-    const R = visitR(); if (!R.ids.includes(o.id) && R.ids.length < 3) { R.ids.push(o.id); S().jade += 5; Game.save(); setTimeout(() => toast(`🎁 방문 보상 옥 +5 (오늘 ${R.ids.length}/3)`, 2600), 900); }
+    const R = visitR(); if (!R.ids.includes(o.id) && R.ids.length < 3) { R.ids.push(o.id); S().jade += 5; Game.save(); setTimeout(() => got(`🎁 방문 보상 옥 +5 (오늘 ${R.ids.length}/3)`, { ic: 'jade', soft: true }), 900); }
     else setTimeout(() => toast(`${esc(o.name)}님의 집무실에 놀러 왔어요! 빈 의자에 앉아 볼 수 있어요`, 2600), 900);
   }
   // 방명록: 내 글은 고치기 · 지우기, 남의 글은 신고 · 차단 (구글 플레이 · 앱스토어 사용자 콘텐츠 정책)
@@ -939,8 +939,8 @@ const UI = (() => {
     box.querySelectorAll('[data-dcash]').forEach(b => b.onclick = () => { const d = Decor.D(b.dataset.dcash); askOwned(d, () => { closeModal(); confirmBox(`<h2>${d.name}</h2><p>${d.desc}</p><div class="big" style="color:var(--gold)">${priceOf('decor:' + d.id)}</div>${payNote()}`, () => pay('decor:' + d.id), '구매'); }); });
     box.querySelectorAll('[data-dbuy]').forEach(b => b.onclick = () => { const d = Decor.D(b.dataset.dbuy), n = Decor.owned(d.id), sc0 = box.querySelector('.ds-scroll').scrollTop; closeModal();
       askBuy('소품 구매', `${d.name}${eul(d.name)} 살까요?${n ? `<br><span class="mute">이미 ${n}개 갖고 있어요</span>` : ''}`, d.price, 0, () => buyIt(d), () => { decoShop(); const ns = $('#modal .ds-scroll'); if (ns) ns.scrollTop = sc0; }); });
-    const buyIt = d => { const scEl = $('#modal .ds-scroll'); if (Decor.buy(d.id)) { Sound.play('buy'); toast(`${d.name} 구입! 아래 목록에서 끌어다 놓아 보세요`); const sc = scEl ? scEl.scrollTop : 0; closeModal(); decoBar(); decoShop(); const ns = $('#modal .ds-scroll'); if (ns) ns.scrollTop = sc; } else { Sound.play('no'); toast('옥이 부족해요'); } };
-    box.querySelectorAll('[data-dpack]').forEach(b => b.onclick = () => { const P = DECOR_PACKS.find(x => x.id === b.dataset.dpack); closeModal(); confirmBox(`<h2>${P.name}</h2><p>${P.items.map(id => Decor.D(id).name).join(', ')}</p><p><s style="color:var(--mute)">옥 ${P.full}</s> → <b style="color:var(--jade)">옥 ${P.price}</b> (30% 할인 · 한 번만)</p>`, () => { if (Decor.buyPack(P.id)) { Sound.play('promote'); toast(`${P.name} 구입 완료!`); decoBar(); } else { Sound.play('no'); toast('옥이 부족해요'); } decoShop(); }, '구매'); });
+    const buyIt = d => { const scEl = $('#modal .ds-scroll'); if (Decor.buy(d.id)) { Sound.play('buy'); setTimeout(() => got(`${d.name} 구입! 아래 목록에서 끌어다 놓아 보세요`, { emo: '🏮', then: decoShop }), 50); const sc = scEl ? scEl.scrollTop : 0; closeModal(); decoBar(); decoShop(); const ns = $('#modal .ds-scroll'); if (ns) ns.scrollTop = sc; } else { Sound.play('no'); toast('옥이 부족해요'); } };
+    box.querySelectorAll('[data-dpack]').forEach(b => b.onclick = () => { const P = DECOR_PACKS.find(x => x.id === b.dataset.dpack); closeModal(); confirmBox(`<h2>${P.name}</h2><p>${P.items.map(id => Decor.D(id).name).join(', ')}</p><p><s style="color:var(--mute)">옥 ${P.full}</s> → <b style="color:var(--jade)">옥 ${P.price}</b> (30% 할인 · 한 번만)</p>`, () => { if (Decor.buyPack(P.id)) { Sound.play('promote'); got(`${P.name} 구입 완료!`, { emo: '🏮' }); decoBar(); } else { Sound.play('no'); toast('옥이 부족해요'); } decoShop(); }, '구매'); });
   }
   function judgeModal() {
     const c = Life.judgeCase();
@@ -968,7 +968,7 @@ const UI = (() => {
     const r = Life.claimDocs();
     if (!r) { speedUp('docs', 0, () => Life.docsCount() && claimDocs()); return; }
     Sound.play('promote'); Scene.burstAt && Scene.burstAt(innerWidth / 2, 160, '#ffe08a', 20);
-    toast(`📜 결재 ${r.n}건 완료! 혼 +${fmt(r.souls)} · 옥 +${r.jade}`, 3000); Life.qEvent('docs', r.n); officeBar();
+    got(`📜 결재 ${r.n}건 완료! 혼 +${fmt(r.souls)} · 옥 +${r.jade}`, { emo: '📜' }); Life.qEvent('docs', r.n); officeBar();
   }
   // 지도 소품 살펴보기
   function useProp(o) {
@@ -978,7 +978,8 @@ const UI = (() => {
     Scene.burstAt(o.x, o.y, r.jade || r.ticket ? '#7fffb0' : '#ffe08a', 14);
     if (r.souls) float(o.x, o.y - 10, '+' + fmt(r.souls), 'big');
     if (r.wraith) { Scene.spawnWraith(Math.max(Game.value() * 50, Game.incomePerSec() * 10), 22); }
-    toast(r.msg + [r.jade ? ` · 옥 +${r.jade}` : '', r.seed ? ` · ${r.seed}` : '', r.ticket ? ' · 소환권 +1' : ''].join(''), 2600);
+    const pmsg = r.msg + [r.jade ? ` · 옥 +${r.jade}` : '', r.seed ? ` · ${r.seed}` : '', r.ticket ? ' · 소환권 +1' : ''].join('');
+    if (r.jade || r.seed || r.ticket || r.souls || r.buff) got(pmsg, { emo: '✨', soft: true }); else toast(pmsg, 2600);
     if (r.buff) Game.apply();
   }
   function openLife(k) { sub = k; goTab('life'); }
@@ -1006,7 +1007,7 @@ const UI = (() => {
       openLife('garden');
       if (i >= S().plots) { toast('잠긴 밭이에요. 옥으로 열 수 있어요'); return; }
       const st = Life.plotState(i);
-      if (st.ready) { const n = Life.harvest(i); Life.qEvent('harvest'); Sound.play('collect', 2); toast(`${st.f.name} ${n}송이 수확!`); renderLife($('#panel')); }
+      if (st.ready) { const n = Life.harvest(i); Life.qEvent('harvest'); Sound.play('collect', 2); got(`${st.f.name} ${n}송이 수확!`, { emo: '🌸' }); renderLife($('#panel')); }
       else if (st.empty) lifeClick({ dataset: { plantpick: String(i) } });
       else speedUp('plot', i);
     }
@@ -1019,8 +1020,8 @@ const UI = (() => {
         <button class="btn jade" data-q="${i}" ${ok && !x.claimed ? '' : 'disabled'}>${x.claimed ? '완료' : `<img class="px" src="${IC('jade', 2)}">${P.jade}`}</button></div>`; }).join('')}
       <div class="qrow pbox"><div class="info"><b>모든 의뢰 완료 보너스</b></div><button class="btn red" data-qb="1" ${all && !q.bonus ? '' : 'disabled'}>${q.bonus ? '받음' : `옥 ${QUEST_BONUS}`}</button></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const j = Life.qClaim(+b.dataset.q); if (j) { Sound.play('buy'); toast(`의뢰 완료! 옥 +${j}`); } questModal(); });
-    const bb = box.querySelector('[data-qb]'); if (bb) bb.onclick = () => { const j = Life.qBonus(); if (j) { Sound.play('promote'); const qd = Decor.grantQuest(); toast(`오늘 의뢰를 모두 끝냈다! 옥 +${j}${qd ? ` · 🏮 의뢰 보상 소품 「${qd.name}」` : ''}`, 3800); } questModal(); };
+    box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const j = Life.qClaim(+b.dataset.q); if (j) { Sound.play('buy'); got(`의뢰 완료! 옥 +${j}`, { ic: 'jade', then: questModal }); } else questModal(); });
+    const bb = box.querySelector('[data-qb]'); if (bb) bb.onclick = () => { const j = Life.qBonus(); if (j) { Sound.play('promote'); const qd = Decor.grantQuest(); got(`오늘 의뢰를 모두 끝냈다! 옥 +${j}${qd ? ` · 🏮 의뢰 보상 소품 「${qd.name}」` : ''}`, { ic: 'jade', then: questModal }); } else questModal(); };
   }
   function merchantModal() {
     if (!Life.merchantHere()) { toast('도깨비 상인은 지금 없어요. 가끔 노점에 들러요'); return; }
@@ -1030,7 +1031,7 @@ const UI = (() => {
         return `<div class="offer pbox"><div class="info"><b>${o.name}</b></div><button class="btn ${pr.jade ? 'jade' : ''}" data-buyo="${id}" ${sold ? 'disabled' : !ok ? `data-short="${pr.jade ? 'jade' : 'souls'}"` : ''}>${sold ? '구매함' : `<img class="px" src="${IC(pr.jade ? 'jade' : 'soul', 2)}">${fmt(pr.jade || pr.soul)}`}</button></div>`; }).join('')}
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelectorAll('[data-buyo]').forEach(b => b.onclick = () => { const o = MERCHANT_POOL.find(x => x.id === b.dataset.buyo), pr = Life.offerPrice(o); closeModal();
-      askBuy('도깨비 상인', `${o.name}${eul(o.name)} 살까요?`, pr.jade || 0, pr.soul || 0, () => { if (Life.merchantBuy(o.id)) { Sound.play('buy'); toast('거래 완료!'); } else { Sound.play('no'); toast(pr.jade ? '옥이 부족해요' : '혼이 부족해요'); } merchantModal(); }, merchantModal); });
+      askBuy('도깨비 상인', `${o.name}${eul(o.name)} 살까요?`, pr.jade || 0, pr.soul || 0, () => { if (Life.merchantBuy(o.id)) { Sound.play('buy'); got('거래 완료!', { emo: '👺' }); } else { Sound.play('no'); toast(pr.jade ? '옥이 부족해요' : '혼이 부족해요'); } merchantModal(); }, merchantModal); });
   }
   // ---------- 생활: 꽃밭 · 주막 · 파견 · 도감 ----------
   const fname = id => FLOWERS.find(f => f.id === id).name;
@@ -1104,16 +1105,16 @@ const UI = (() => {
   function lifeClick(t) {
     const d = t.dataset;
     if (d.sub) { sub = d.sub; Sound.play('open'); renderLife($('#panel')); return true; }
-    if (d.unlock) { askBuy('밭 늘리기', '새 밭을 일굴까요?', PLOT_COST[S().plots], 0, () => { if (Life.unlockPlot()) { Sound.play('buy'); toast('새 밭을 일궜어요!'); } else { Sound.play('no'); toast('옥이 부족해요'); } renderLife($('#panel')); }); return true; }
-    if (d.harvest) { const n = Life.harvest(+d.harvest); if (n) { Sound.play('collect', 2); Life.qEvent('harvest'); toast(`꽃 ${n}송이 수확!`); } renderLife($('#panel')); return true; }
+    if (d.unlock) { askBuy('밭 늘리기', '새 밭을 일굴까요?', PLOT_COST[S().plots], 0, () => { if (Life.unlockPlot()) { Sound.play('buy'); got('새 밭을 일궜어요!', { emo: '🌱' }); } else { Sound.play('no'); toast('옥이 부족해요'); } renderLife($('#panel')); }); return true; }
+    if (d.harvest) { const n = Life.harvest(+d.harvest); if (n) { Sound.play('collect', 2); Life.qEvent('harvest'); got(`꽃 ${n}송이 수확!`, { emo: '🌸' }); } renderLife($('#panel')); return true; }
     if (d.dexi != null) { dexInfo(+d.dexi); return true; }
     if (d.seed) { const f = FLOWERS.find(x => x.id === d.seed), j = f.soul ? 0 : f.jade, so = f.soul ? Life.seedSoulCost(f) : 0;
-      askBuy('씨앗 구매', `${f.name} 씨앗 1개를 살까요?`, j, so, () => { if (Life.buySeed(d.seed, 1)) { Sound.play('buy'); toast(`${f.name} 씨앗 +1`); } else { Sound.play('no'); toast(j ? '옥이 부족해요' : '혼이 부족해요'); } renderLife($('#panel')); }); return true; }
+      askBuy('씨앗 구매', `${f.name} 씨앗 1개를 살까요?`, j, so, () => { if (Life.buySeed(d.seed, 1)) { Sound.play('buy'); got(`${f.name} 씨앗 +1`, { emo: '🌱' }); } else { Sound.play('no'); toast(j ? '옥이 부족해요' : '혼이 부족해요'); } renderLife($('#panel')); }); return true; }
     if (d.brew) { const R0 = RECIPES.find(x => x.id === d.brew); confirmBox(`<h2>🍶 ${R0.name}</h2><p>${R0.desc}</p><p class="mute">재료: ${Object.entries(R0.need).map(([k, v]) => `${fname(k)} ${v}송이`).join(' · ')}</p><p>달일까요?</p>`, () => brewGo(d.brew), '달이기'); return true; }
-    if (d.slot) { askBuy('파견 칸 늘리기', '파견 칸을 1칸 늘릴까요?', Life.slotCost(), 0, () => { if (Life.buySlot()) { Sound.play('buy'); toast(`파견 칸이 늘었어요! (${Life.slots()}칸)`); } else { Sound.play('no'); toast('옥이 부족해요'); } renderLife($('#panel')); }); return true; }
+    if (d.slot) { askBuy('파견 칸 늘리기', '파견 칸을 1칸 늘릴까요?', Life.slotCost(), 0, () => { if (Life.buySlot()) { Sound.play('buy'); got(`파견 칸이 늘었어요! (${Life.slots()}칸)`, { ic: 'gate' }); } else { Sound.play('no'); toast('옥이 부족해요'); } renderLife($('#panel')); }); return true; }
     if (d.send) { if (Life.send(d.send)) { Sound.play('buy'); Life.qEvent('send'); toast('졸개를 순찰 보냈어요'); setTimeout(askPush, 1200); } renderLife($('#panel')); return true; }
     if (d.skip) { const [k, i] = d.skip.split(':'); speedUp(k, +i); return true; }
-    if (d.claim) { const r = Life.claim(+d.claim); if (r) { Sound.play('promote'); toast(`파견 보상: +${fmt(r.souls)} 혼${r.jade ? ` · 옥 +${r.jade}` : ''} · ${Object.entries(r.seeds).map(([k, v]) => fname(k) + ' 씨앗 ' + v).join(', ')}${r.dex ? ` · 📖 ${r.dex.name}` : ''}`, 4000); } renderLife($('#panel')); return true; }
+    if (d.claim) { const r = Life.claim(+d.claim); if (r) { Sound.play('promote'); got(`파견 보상: +${fmt(r.souls)} 혼${r.jade ? ` · 옥 +${r.jade}` : ''} · ${Object.entries(r.seeds).map(([k, v]) => fname(k) + ' 씨앗 ' + v).join(', ')}${r.dex ? ` · 📖 ${r.dex.name}` : ''}`, { ic: 'minion' }); } renderLife($('#panel')); return true; }
     if (d.plantpick) {
       const i = +d.plantpick, s = S(), have = FLOWERS.filter(f => s.seeds[f.id] > 0);
       const box = modal(`<h2>무엇을 심을까요?</h2>${have.length ? `<div class="seedpick">${have.map(f => `<button class="pbox" data-pf="${f.id}"><img class="px" src="${FIC(f.id, 3, 3)}"><b>${f.name}</b><small>${fmtTime(f.grow)} · 씨앗 ${s.seeds[f.id]}</small></button>`).join('')}</div>` : '<p>씨앗이 없어요. 씨앗 가게에서 사거나 파견으로 얻어 보세요.</p>'}
@@ -1139,7 +1140,7 @@ const UI = (() => {
   function boostAd() {
     if (Game.adLeft('boost') <= 0) { toast('오늘 광고 부적을 모두 썼어요. 상점에서 옥으로 살 수 있어요'); return; }
     const min = 10; // 광고 1번 = 2배 부적 10분 (하루 8번)
-    ad(() => { Game.useAd('boost'); Game.addBoost(min); Life.qEvent('ad'); Sound.play('promote'); toast(`2배 부적 ${min}분! 수확·화력 2배`); render(); });
+    ad(() => { Game.useAd('boost'); Game.addBoost(min); Life.qEvent('ad'); Sound.play('promote'); got(`2배 부적 ${min}분! 수확·화력 2배`, { ic: 'luck' }); render(); });
   }
 
   // ---------- 결제 ----------
@@ -1149,8 +1150,8 @@ const UI = (() => {
   const priceOf = gid => Native.price(gid) || LocalPrice.of(gid.startsWith('decor:') ? Decor.D(gid.slice(6)).cash : SHOP_IAP.find(p => p.id === gid).price);
   const payNote = () => testPay() ? '<p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>' : Native.isApp() ? `<p style="color:var(--mute);font-size:10px">${Native.platform() === 'ios' ? 'App Store' : 'Google Play'} 계정으로 결제돼요.</p>` : '';
   function grantPaid(gid) {
-    if (gid.startsWith('decor:')) { const d = Decor.D(gid.slice(6)); if (d && Decor.buyCash(d.id)) { Sound.play('promote'); toast(`${d.name} 구입! 책상 뒤에 놓아 보세요`); decoBar(); } }
-    else { const P = SHOP_IAP.find(p => p.id === gid); if (P && Game.iap(gid)) { Sound.play('promote'); toast(`${P.name} 지급 완료!`); } }
+    if (gid.startsWith('decor:')) { const d = Decor.D(gid.slice(6)); if (d && Decor.buyCash(d.id)) { Sound.play('promote'); got(`${d.name} 구입! 책상 뒤에 놓아 보세요`, { emo: '🏮' }); decoBar(); } }
+    else { const P = SHOP_IAP.find(p => p.id === gid); if (P && Game.iap(gid)) { Sound.play('promote'); got(`${P.name} 지급 완료!`, { emo: '🎁' }); } }
     Game.save(); if (S().kind) Cloud.pushSave(S(), true); render();
   }
   async function pay(gid) {
@@ -1177,7 +1178,7 @@ const UI = (() => {
       ${payNote()}<div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelectorAll('[data-bp]').forEach(b => b.onclick = () => { closeModal(); pay(b.dataset.bp); });
     box.querySelectorAll('[data-bj]').forEach(b => b.onclick = () => { const J = JADE_SHOP.find(x => x.id === b.dataset.bj), c = Game.jadeCost(J.id); closeModal();
-      askBuy(J.name, J.desc, c, 0, () => { const r = Game.jadeBuy(J.id); if (r) { Sound.play('buy'); toast(typeof r === 'number' ? `+${fmt(r)} 혼` : '사용!'); render(); } else { Sound.play('no'); toast('옥이 부족해요'); } }); });
+      askBuy(J.name, J.desc, c, 0, () => { const r = Game.jadeBuy(J.id); if (r) { Sound.play('buy'); got(typeof r === 'number' ? `+${fmt(r)} 혼` : `${J.name} 사용!`, { ic: typeof r === 'number' ? 'soul' : 'luck' }); render(); } else { Sound.play('no'); toast('옥이 부족해요'); } }); });
     const ad0 = box.querySelector('#bp-ad'); if (ad0) ad0.onclick = () => { closeModal(); if (jadeKind) act('jadeAd'); else boostAd(); };
     const fr0 = box.querySelector('#bp-free'); if (fr0) fr0.onclick = () => { closeModal(); act('jadeFree'); };
   }
@@ -1204,6 +1205,13 @@ const UI = (() => {
   function confirmBox(html, ok, label) {
     const box = modal(html + `<div class="acts"><button class="btn red" id="m-ok">${label || '확인'}</button><button class="btn dark" data-act="close">취소</button></div>`);
     box.querySelector('#m-ok').onclick = () => { closeModal(); ok(); };
+  }
+  // 얻은 것 · 산 것 알림 창 (확인을 누르면 닫힘). soft: 다른 창·대화가 떠 있으면 짧은 알림으로 대신
+  function got(html, opt = {}) {
+    if (opt.soft && ($('#modal').classList.contains('on') || document.querySelector('.tk-bg') || document.getElementById('tut') || parade)) return toast(html, 3000, opt.actions);
+    const box = modal(`<div class="got"><div class="got-ic">${opt.ic ? `<img class="px" src="${IC(opt.ic, 5)}">` : (opt.emo || '🎁')}</div><h2>${opt.title || '획득!'}</h2><p class="got-t">${html}</p></div><div class="acts">${(opt.actions || []).map((a, i) => `<button class="btn ${a.cls || 'jade'}" data-ga="${i}">${a.label}</button>`).join('')}<button class="btn red" id="got-ok">확인</button></div>`);
+    (opt.actions || []).forEach((a, i) => { box.querySelector(`[data-ga="${i}"]`).onclick = () => { closeModal(); a.fn(); }; });
+    box.querySelector('#got-ok').onclick = () => { closeModal(); if (opt.then) opt.then(); };
   }
   function toast(html, ms = 2200, actions) {
     const box = $('#toasts'); while (box.children.length > 3) box.firstChild.remove();
@@ -1401,7 +1409,7 @@ const UI = (() => {
     const box = modal(`<h2>출석부</h2><p>매일 들러 옥을 받아가세요. 7일째엔 큰 보상!</p>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0">${ATTEND.map((r, i) => `<div class="pbox" style="padding:6px 2px;font-size:10px;${i < cur ? 'opacity:.45' : ''}${st.can && i === st.streak ? ';box-shadow:0 0 0 2px var(--gold)' : ''}">${i + 1}일<br><img class="px" src="${IC('jade', 3)}" style="width:20px;margin:3px 0"><br>${r}${i < cur ? '<br>✔' : ''}</div>`).join('')}</div>
       <div class="acts"><button class="btn red" id="a-go" ${st.can ? '' : 'disabled'}>${st.can ? '출석하기' : '내일 또 만나요'}</button></div>`);
-    box.querySelector('#a-go').onclick = () => { const r = Game.attend(); if (r) { Sound.play('buy'); toast(`출석 보상 옥 +${r}`); closeModal(); } };
+    box.querySelector('#a-go').onclick = () => { const r = Game.attend(); if (r) { Sound.play('buy'); closeModal(); got(`출석 보상 옥 +${r}`, { ic: 'jade' }); } };
   }
 
   // ---------- 스토리 ----------
@@ -1755,7 +1763,7 @@ const UI = (() => {
       <div class="big"><img class="px" src="${IC('soul', 3)}">+${fmt(p.gained + bonus)}</div>
       <p>잡은 귀신 <b style="color:var(--gold)">${p.ghosts}</b> · 최고 콤보 <b style="color:var(--gold)">${p.max}</b> · 콤보 보너스 +${fmt(bonus)}${jade ? ` · 옥 +${jade}` : ''}</p>
       <div class="acts"><button class="btn dark" data-act="close">확인</button><button class="btn red" id="pa-x2">광고 보고 보너스 2배<em>AD</em></button></div>`, true);
-    box.querySelector('#pa-x2').onclick = () => { closeModal(); ad(() => { Game.gain(p.gained + bonus); toast(`백귀야행 보상 2배! +${fmt(p.gained + bonus)}`); }); };
+    box.querySelector('#pa-x2').onclick = () => { closeModal(); ad(() => { Game.gain(p.gained + bonus); got(`백귀야행 보상 2배! +${fmt(p.gained + bonus)}`, { ic: 'soul' }); }); };
   }
   function checkOffline() {
     const o = Game.offline(); if (!o || o.amt <= 0) { Game.save(); return; }
@@ -1764,7 +1772,7 @@ const UI = (() => {
       <div class="big"><img class="px" src="${IC('soul', 3)}">+${fmt(o.amt)}</div>
       <div class="acts"><button class="btn dark" id="o-get">받기</button><button class="btn red" id="o-ad">광고 보고 2배<em>AD</em></button></div>`, true);
     box.querySelector('#o-get').onclick = () => { Game.gain(o.amt); Game.save(); closeModal(); Sound.play('collect', 2); };
-    box.querySelector('#o-ad').onclick = () => { closeModal(); ad(() => { Game.gain(o.amt * 2); Game.save(); toast(`보상 2배! +${fmt(o.amt * 2)}`); Sound.play('promote'); }); };
+    box.querySelector('#o-ad').onclick = () => { closeModal(); ad(() => { Game.gain(o.amt * 2); Game.save(); got(`보상 2배! +${fmt(o.amt * 2)}`, { ic: 'soul' }); Sound.play('promote'); }); };
   }
   // 성장이 막혔을 때 한 번씩 도움 제안 (20분에 1회)
   function checkStuck() {

@@ -978,3 +978,10 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .qrow .q-go { flex: none; align-self: center; margin-left: 8px; padding: 8px 10px; font-size: 12px; white-space: nowrap; }
 .mbox .acts.col { flex-direction: column; }
 .mbox .acts.col .btn { width: 100%; }
+/* 획득 알림 창 */
+.got { text-align: center; }
+.got-ic { font-size: 44px; line-height: 1; margin: 4px 0 6px; }
+.got-ic img { height: 48px; }
+.got h2 { margin: 2px 0 8px; }
+.got-t { font-size: 15px; line-height: 1.5; color: #fff; }
+.got-t b { color: var(--gold); }
