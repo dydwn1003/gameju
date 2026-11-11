@@ -24,10 +24,26 @@ Deno.serve(async (req) => {
   const { data, error } = await admin.auth.getUser(jwt);
   const id = data?.user?.id;
   if (error || !id) return json({ error: 'unauthorized' }, 401);
+  // 카카오 연결 끊기: 다음에 카카오로 로그인하면 동의 창이 처음처럼 다시 뜬다
+  // 비밀값 KAKAO_ADMIN_KEY (카카오 디벨로퍼스의 Admin 키) 가 Secrets 에 있을 때만. 실패해도 계정 삭제는 계속한다
+  const kakaoKey = Deno.env.get('KAKAO_ADMIN_KEY') ?? '';
+  const kakao = (data.user.identities ?? []).find((i) => i.provider === 'kakao');
+  const kakaoId = kakao ? String(kakao.identity_data?.provider_id ?? kakao.identity_data?.sub ?? kakao.id ?? '') : '';
+  let kakaoUnlinked = false;
+  if (kakaoKey && kakaoId) {
+    try {
+      const r = await fetch('https://kapi.kakao.com/v1/user/unlink', {
+        method: 'POST',
+        headers: { Authorization: `KakaoAK ${kakaoKey}`, 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' },
+        body: new URLSearchParams({ target_id_type: 'user_id', target_id: kakaoId }),
+      });
+      kakaoUnlinked = r.ok;
+    } catch (_) { /* 카카오 응답이 없어도 계정 삭제는 진행 */ }
+  }
   // 테이블들은 auth.users 에 on delete cascade 로 묶여 있지만, 순서대로 확실히 지운다
   await admin.from('docs').delete().eq('owner', id);
   await admin.from('saves').delete().eq('user_id', id);
   const del = await admin.auth.admin.deleteUser(id);
   if (del.error) return json({ error: 'delete failed' }, 500);
-  return json({ ok: true });
+  return json({ ok: true, kakaoUnlinked });
 });

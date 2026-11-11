@@ -27,19 +27,21 @@ const Cloud = (() => {
   // 로그인 성공: 앱을 다시 켜지 않고 화면(UI)이 바로 기록을 맞춤 (UI 가 setOnLogin 으로 넘겨 줌)
   const loggedIn = () => { if (onLogin) onLogin(); else location.reload(); };
   // ---------- 로그인 ----------
+  // 로그인할 때마다 계정 선택 창을 띄움 (로그아웃·계정 삭제 뒤 바로 자동 로그인되지 않게, 다른 계정으로 바꿀 수 있게)
+  const PROMPT = { kakao: { prompt: 'select_account' }, google: { prompt: 'select_account' } };
   async function signIn(p) {
     if (!sb) return;
     if (Native.isApp()) {
       if (p === 'apple' && Native.platform() === 'ios') return appleNative();
       const back = APP.authRedirect;
       if (p === 'naver') return Native.openUrl(`${CLOUD.url}/functions/v1/${CLOUD.naverFunction}/start?redirect=${encodeURIComponent(back)}`);
-      const { data, error } = await sb.auth.signInWithOAuth({ provider: p, options: { redirectTo: back, skipBrowserRedirect: true } });
+      const { data, error } = await sb.auth.signInWithOAuth({ provider: p, options: { redirectTo: back, skipBrowserRedirect: true, queryParams: PROMPT[p] } });
       if (error || !data || !data.url) throw error || new Error('login');
       return Native.openUrl(data.url);
     }
     const back = location.origin + location.pathname;
     if (p === 'naver') { location.href = `${CLOUD.url}/functions/v1/${CLOUD.naverFunction}/start?redirect=${encodeURIComponent(back)}`; return; }
-    await sb.auth.signInWithOAuth({ provider: p, options: { redirectTo: back } });
+    await sb.auth.signInWithOAuth({ provider: p, options: { redirectTo: back, queryParams: PROMPT[p] } });
   }
   // iOS: 아이폰 기본 'Apple로 계속하기' 창 → Apple 이 준 ID 토큰으로 Supabase 로그인 (Secret Key · Services ID 필요 없음)
   // nonce: Apple 에는 sha256 값을, Supabase 에는 원래 값을 줌 (Supabase 가 다시 해시해서 맞춰 봄)
