@@ -118,7 +118,7 @@ const UI = (() => {
     $('#me-card').addEventListener('click', statsModal);
     $('#btn-notice').addEventListener('click', () => noticeModal(false));
     $('#btn-mail').addEventListener('click', mailModal);
-    setTimeout(noticeStartup, 1500); setInterval(refreshMail, 5 * 60e3); setTimeout(refreshMail, 4000);
+    setTimeout(noticeStartup, 1500); setInterval(refreshMail, 60e3); setTimeout(refreshMail, 4000); document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(refreshMail, 800); }); // 새 우편 · 공지 N 표시: 1분마다 + 게임으로 돌아올 때
     Board.listen(applyPlace); Board.init();
     $('#story-bar').addEventListener('click', storyTap);
     $('#buffs').addEventListener('click', e => { const c = e.target.closest('[data-bf]'); if (c) toast(`${c.dataset.nm} · ${c.dataset.bf} · ⏱ ${c.querySelector('b').textContent}`, 2400); });
@@ -133,7 +133,7 @@ const UI = (() => {
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
     Native.setPause(() => { Sound.pause(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
-    Native.setResume(() => { Sound.resume(); Push.back(); });
+    Native.setResume(() => { Sound.resume(); Push.back(); setTimeout(refreshMail, 800); });
     Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
     Native.setPay(gid => grantPaid(gid), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); });
     render(); hud();
@@ -652,7 +652,7 @@ const UI = (() => {
     return true;
   }
   const myMails = list => (list || []).filter(mailFor);
-  async function refreshMail() { if (!Board.online()) return; try { mailCache = await Board.mails(); const got = S().mailGot || {}; $('#btn-mail .dot').classList.toggle('on', myMails(mailCache).some(m => !got[m.id])); const nl = await loadNotices(); $('#btn-notice .dot').classList.toggle('on', nl.some(n => (n.at || 0) > (S().noticeSeen || 0))); } catch (e) {} }
+  async function refreshMail() { if (!Board.online()) return; try { mailCache = await Board.mails(); const gotM = S().mailGot || {}; $('#btn-mail .dot').classList.toggle('on', myMails(mailCache).some(m => !gotM[m.id])); const nl = await loadNotices(); $('#btn-notice .dot').classList.toggle('on', nl.some(n => (n.at || 0) > (S().noticeSeen || 0))); } catch (e) {} }
   const rewardChips = m => [m.jade ? `💎 옥 ${m.jade}` : '', m.tickets ? `🎫 소환권 ${m.tickets}` : '', m.hours ? `🔥 ${m.hours}시간치 혼` : '', m.decor && Decor.D(m.decor) ? `🏮 ${Decor.D(m.decor).name}` : ''].filter(Boolean);
   function claimMail(m) {
     const s = S(); s.mailGot = s.mailGot || {}; if (s.mailGot[m.id] || !mailFor(m)) return false; s.mailGot[m.id] = Date.now();
@@ -665,8 +665,8 @@ const UI = (() => {
     if (!Board.online()) { modal(`<h2>📮 우편함</h2><p>운영자 우편은 로그인하면 받을 수 있어요.<br><span class="mute">까치 우편은 마을의 까치를 눌러 받아요.</span></p><div class="acts">${loginBtn()}<button class="btn dark" data-act="close">닫기</button></div>`); bindLogin(); return; }
     let raw = []; try { raw = mailCache = await Board.mails(); } catch (e) { raw = mailCache || []; }
     // 운영자는 모든 우편을 보고(받는 사람 표시) 지울 수 있음. 받기는 대상일 때만
-    const list = admin ? raw : myMails(raw), got = S().mailGot || {}, left = list.filter(m => !got[m.id] && mailFor(m));
-    const box = modal(`<h2>📮 우편함</h2><div class="ml-list">${list.length ? list.map(m => `<div class="ml-row ${got[m.id] ? 'got' : ''}"><div class="ml-i"><b>${!got[m.id] && mailFor(m) ? '<span class="new-tag">N</span>' : ''}${esc(m.title)}</b><small>${fmtDate(m.at)}${m.until ? ` · ${fmtDate(m.until)}까지` : ''}${admin && m.to && m.to !== 'all' ? ` · 👥 ${MAIL_TO[m.to] || m.to}${m.to === 'user' && m.nicks ? ` (${esc(m.nicks.join(', '))})` : ''}` : ''}</small>${m.body ? `<p>${esc(m.body)}</p>` : ''}<div class="ml-r">${rewardChips(m).map(c => `<span>${c}</span>`).join('')}</div></div>${got[m.id] ? '<button class="btn dark" disabled>받음</button>' : mailFor(m) ? `<button class="btn red" data-mg="${esc(m.id)}">받기</button>` : '<button class="btn dark" disabled>대상 아님</button>'}${admin ? `<button class="nt-del" data-mdel="${esc(m.id)}">삭제</button>` : ''}</div>`).join('') : '<div class="rkload">받은 우편이 없어요</div>'}</div>
+    const list = admin ? raw : myMails(raw), gotM = S().mailGot || {}, left = list.filter(m => !gotM[m.id] && mailFor(m));
+    const box = modal(`<h2>📮 우편함</h2><div class="ml-list">${list.length ? list.map(m => `<div class="ml-row ${gotM[m.id] ? 'got' : ''}"><div class="ml-i"><b>${!gotM[m.id] && mailFor(m) ? '<span class="new-tag">N</span>' : ''}${esc(m.title)}</b><small>${fmtDate(m.at)}${m.until ? ` · ${fmtDate(m.until)}까지` : ''}${admin && m.to && m.to !== 'all' ? ` · 👥 ${MAIL_TO[m.to] || m.to}${m.to === 'user' && m.nicks ? ` (${esc(m.nicks.join(', '))})` : ''}` : ''}</small>${m.body ? `<p>${esc(m.body)}</p>` : ''}<div class="ml-r">${rewardChips(m).map(c => `<span>${c}</span>`).join('')}</div></div>${gotM[m.id] ? '<button class="btn dark" disabled>받음</button>' : mailFor(m) ? `<button class="btn red" data-mg="${esc(m.id)}">받기</button>` : '<button class="btn dark" disabled>대상 아님</button>'}${admin ? `<button class="nt-del" data-mdel="${esc(m.id)}">삭제</button>` : ''}</div>`).join('') : '<div class="rkload">받은 우편이 없어요</div>'}</div>
       ${admin ? '<button class="btn" id="ml-send">📤 우편 보내기 (운영자)</button>' : ''}
       <div class="acts">${left.length > 1 ? '<button class="btn red" id="ml-all">모두 받기</button>' : ''}<button class="btn dark" data-act="close">닫기</button></div>`);
     const done = n => { Sound.play('promote'); closeModal(); render(); refreshMail(); got(`우편 ${n}통을 받았어요!`, { emo: '📮', then: mailModal }); };
