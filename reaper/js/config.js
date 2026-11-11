@@ -34,7 +34,7 @@ const APP = {
   admob: {
     android: 'ca-app-pub-7300932926935302/9313976058', // 보상형 광고 단위 (안드로이드)
     ios: 'ca-app-pub-7300932926935302/4346388700', // 보상형 광고 단위 (iOS)
-    testing: true, // 출시 빌드에서는 false
+    testing: false, // 출시 빌드: 실제 광고 (개발 중 테스트 광고는 true)
   },
   // 스토어에 등록할 상품 ID (구글 플레이 콘솔 · 앱스토어 커넥트에 똑같이 만들기)
   // type: consumable(여러 번 구매) · nonconsumable(한 번만, 복원 가능)

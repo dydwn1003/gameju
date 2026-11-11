@@ -29,17 +29,17 @@
 **설명 (버전 화면)** (753/4000자)
 ```
 🏮 명부를 들고 떠도는 혼을 거두는 꼬마 저승사자!
-수습 차사로 시작해 승진 시험을 통과하고, 저승 최고 자리인 염라대왕까지 올라가 보세요.
+수습 차사로 시작해 레벨을 올려 승진하며, 저승 최고 자리인 염라대왕까지 올라가 보세요.
 
 ■ 터치 한 번, 꺼 둬도 쑥쑥
 • 혼령을 터치해 거두고, 졸개 차사를 고용해 자동으로 모아요
 • 게임을 꺼 둬도 저승 장부에 혼이 쌓여요 (최대 8시간)
-• 명부 필력 · 축지법 · 거둠의 손길 등 성장은 끝없이!
+• 명부 필력 · 축지법 · 거둠의 손길 등 다양한 강화로 쑥쑥 성장!
 
 ■ 9단계 승진과 저승 이야기
 • 수습 차사 → 차사 → 판관 → 시왕 → 염라대왕
 • 계급마다 새로운 지역과 이야기, 화려해지는 발밑 마법진
-• 승진 시험에서는 원귀를 퇴치해야 해요
+• 레벨 조건을 채우면 바로 승진, 계급마다 새로운 혜택
 
 ■ 영물 53종 수집
 • 흑묘, 까치, 구미호부터 SSS 신수까지
@@ -91,17 +91,17 @@ idle,clicker,pixel,incremental,afterlife,reaper,ghost,yokai,pets,gacha,cozy,offl
 **설명 (버전 화면)** (1400/4000자)
 ```
 🏮 A little grim reaper with a ledger, gathering wandering souls!
-Start as a Trainee Envoy, pass promotion tests and climb all the way to King Yeomra, ruler of the afterlife.
+Start as a Trainee Envoy, level up, earn promotions and climb all the way to King Yeomra, ruler of the afterlife.
 
 ■ Tap once, grow even while offline
 • Tap spirits to reap them, or hire minion envoys to collect automatically
 • Souls pile up in your ledger even when the game is closed (up to 8h)
-• Endless upgrades: Ledger Pen, Shrink-Earth Step, Reaping Hand and more
+• Plenty of upgrades: Ledger Pen, Shrink-Earth Step, Reaping Hand and more
 
 ■ 9 ranks and a Korean afterlife story
 • Trainee Envoy → Envoy → Judge → Ten Kings → King Yeomra
 • New regions and story chapters at every rank, with a flashier aura
-• Defeat vengeful ghosts to pass each promotion test
+• Reach the level goal to get promoted, with new perks at every rank
 
 ■ Collect 53 mythical pets
 • From black cats and magpies to nine-tailed foxes and SSS divine beasts
@@ -149,17 +149,17 @@ Contact: dydwn1003@gmail.com
 **설명 (버전 화면)** (592/4000자)
 ```
 🏮 冥簿を手にさまよう魂を集める、ちびっこ死神!
-見習い使者から始めて昇進試験に合格し、あの世の頂点・閻魔大王まで上りつめよう。
+見習い使者から始めてレベルを上げて昇進し、あの世の頂点・閻魔大王まで上りつめよう。
 
 ■ タップひとつ、放置でもぐんぐん
 • 霊をタップして回収、子分の使者を雇えば自動で集めてくれる
 • ゲームを閉じていても冥簿に魂がたまる(最大8時間)
-• 冥簿の筆力・縮地法・刈り取りの手など、成長はどこまでも!
+• 冥簿の筆力・縮地法・刈り取りの手など、多彩な強化でぐんぐん成長!
 
 ■ 9段階の昇進とあの世の物語
 • 見習い使者 → 使者 → 判官 → 十王 → 閻魔大王
 • 階級ごとに新しい地域と物語、足元の魔法陣もどんどん豪華に
-• 昇進試験では怨霊を退治しよう
+• レベル条件を満たせばすぐ昇進、階級ごとに新しい特典
 
 ■ 霊獣53種をコレクション
 • 黒猫やカササギから九尾の狐、SSSの神獣まで
@@ -207,17 +207,17 @@ Contact: dydwn1003@gmail.com
 **설명 (버전 화면)** (480/4000자)
 ```
 🏮 手持冥簿、收集游荡魂魄的小小勾魂使者!
-从见习差使开始,通过晋升考试,一路登上冥府之巅——阎罗王。
+从见习差使开始,提升等级不断晋升,一路登上冥府之巅——阎罗王。
 
 ■ 轻点一下,离线也能成长
 • 点击魂灵即可收取,雇佣小鬼差还能自动收集
 • 关闭游戏时魂魄也会在冥簿中累积(最长8小时)
-• 冥簿笔力、缩地法、收魂之手……成长永无止境!
+• 冥簿笔力、缩地法、收魂之手……多种强化助你快速成长!
 
 ■ 9级晋升与冥府故事
 • 见习差使 → 差使 → 判官 → 十王 → 阎罗王
 • 每个官阶都有新地区与新剧情,脚下法阵也越来越华丽
-• 晋升考试中需要击退怨鬼
+• 达到等级条件即可晋升,每个官阶都有新福利
 
 ■ 收集53种灵兽
 • 从黑猫、喜鹊到九尾狐,再到SSS神兽
@@ -265,17 +265,17 @@ Contact: dydwn1003@gmail.com
 **설명 (버전 화면)** (480/4000자)
 ```
 🏮 手持冥簿、收集遊蕩魂魄的小小勾魂使者!
-從見習差使開始,通過晉升考試,一路登上冥府之巔——閻羅王。
+從見習差使開始,提升等級不斷晉升,一路登上冥府之巔——閻羅王。
 
 ■ 輕點一下,離線也能成長
 • 點擊魂靈即可收取,僱用小鬼差還能自動收集
 • 關閉遊戲時魂魄也會在冥簿中累積(最長8小時)
-• 冥簿筆力、縮地法、收魂之手……成長永無止境!
+• 冥簿筆力、縮地法、收魂之手……多種強化助你快速成長!
 
 ■ 9級晉升與冥府故事
 • 見習差使 → 差使 → 判官 → 十王 → 閻羅王
 • 每個官階都有新地區與新劇情,腳下法陣也越來越華麗
-• 晉升考試中需要擊退怨鬼
+• 達到等級條件即可晉升,每個官階都有新福利
 
 ■ 收集53種靈獸
 • 從黑貓、喜鵲到九尾狐,再到SSS神獸
