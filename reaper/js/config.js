@@ -20,7 +20,7 @@ const APP = {
   privacyUrl: 'privacy.html',
   // 업데이트 안내 창의 '스토어 가기' 주소
   // iosId: App Store Connect → 앱 → 앱 정보 → 'Apple ID' (숫자, 비밀값 아님). 비워 두면 앱스토어 검색으로 열어요.
-  store: { android: 'com.jeoseungsaja.idle', iosId: '', name: '저승사자 키우기' },
+  store: { android: 'com.jeoseungsaja.idle', iosId: '6832605954', name: '저승사자 키우기' },
   supportEmail: 'dydwn1003@gmail.com', // 문의 받을 이메일 (스토어 등록에도 씀)
   version: '1.0.0',  // 앱 안에 포함된 개인정보처리방침 (스토어에는 웹 주소를 따로 적어요)
   // 구글 로그인 클라이언트 ID (공개용 값 · 보안 비밀번호는 여기에 넣지 않음)
