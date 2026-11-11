@@ -252,9 +252,10 @@ const Game = (() => {
   function iapDay() { const d = new Date().toISOString().slice(0, 10); if (!S.iapDay || S.iapDay.day !== d) S.iapDay = { day: d, n: {} }; return S.iapDay; }
   function iapLeft(id) { const P = SHOP_IAP.find(p => p.id === id); if (P.once) return S.bought[id] ? 0 : 1; return P.daily ? P.daily - (iapDay().n[id] || 0) : Infinity; }
   const sealLeft = () => Math.max(0, ((S.sealUntil || 0) - Date.now()) / 1000);
-  function iap(id) {
+  // paid: 실제로 결제된 지급 → 하루 한도로 막지 않음 (한 번만 사는 상품을 이미 가졌을 때만 막음)
+  function iap(id, paid) {
     const P = SHOP_IAP.find(p => p.id === id);
-    if (iapLeft(id) <= 0) return false;
+    if (paid ? (P.once && S.bought[id]) : iapLeft(id) <= 0) return false;
     if (P.daily) { const d = iapDay(); d.n[id] = (d.n[id] || 0) + 1; }
     if (P.seal) S.sealUntil = Math.max(Date.now(), S.sealUntil || 0) + P.seal * 86400e3;
     S.bought[id] = (S.bought[id] || 0) + 1;

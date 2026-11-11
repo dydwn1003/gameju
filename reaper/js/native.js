@@ -120,13 +120,26 @@ const Native = (() => {
 
   // ---------- 인앱 결제 ----------
   // 지급은 onGrant(게임 상품 id) 로 넘기고, 같은 거래를 두 번 지급하지 않도록 거래 번호를 기억해 둔다.
-  let store = null, onGrant = null, onRestoreOwned = null, payReady = false;
+  let store = null, onGrant = null, onRestoreOwned = null, onTxDone = null, payReady = false, pendingTx = [], buying = false, restoring = false;
   // 상품 목록: config.js 의 APP.products + 현금 의자(소품) 는 'decor:<id>' → 스토어 id 'chair_<id>'
   const prods = () => { if (prods.m) return prods.m; const m = Object.assign({}, APP.products); (typeof DECOR !== 'undefined' ? DECOR : []).filter(d => d.cash).forEach(d => (m['decor:' + d.id] = { id: 'chair_' + d.id, type: 'consumable' })); return (prods.m = m); };
   const byStoreId = sid => Object.keys(prods()).find(k => prods()[k].id === sid);
   const doneKey = 'reaper_tx_done';
   const doneTx = () => { try { return JSON.parse(localStorage.getItem(doneKey) || '[]'); } catch (e) { return []; } };
   const markTx = id => { try { const a = doneTx(); a.push(id); localStorage.setItem(doneKey, JSON.stringify(a.slice(-300))); } catch (e) {} };
+  // 이미 지급한 거래인지: 이 기기 기록 + 게임 저장(계정에 함께 저장되어 다시 설치해도 남음)
+  const isDone = key => doneTx().includes(key) || !!(onTxDone && onTxDone(key));
+  // 결제 승인 처리: 지급 → 저장 → 거래 끝내기 (게임이 준비되기 전에 온 거래는 끝내지 않고 기다렸다가 지급)
+  function handleTx(tx) {
+    const sid = tx.products && tx.products[0] && tx.products[0].id, gid = byStoreId(sid);
+    const key = tx.transactionId || tx.purchaseId || (sid ? sid + ':' + (tx.purchaseDate ? +new Date(tx.purchaseDate) : '') : '');
+    if (!gid) { tx.finish(); return; }
+    if (!onGrant) { if (!pendingTx.includes(tx)) pendingTx.push(tx); return; }
+    if (key && isDone(key)) { tx.finish(); return; } // 같은 거래 두 번 지급 안 함
+    try { onGrant(gid, key); } catch (e) { return; } // 지급 중 오류면 끝내지 않음 → 다음에 다시 지급 시도
+    if (key) markTx(key);
+    tx.finish();
+  }
   function initStore() {
     const go = () => {
       if (!window.CdvPurchase) return;
@@ -135,15 +148,7 @@ const Native = (() => {
       const plat = platform() === 'ios' ? Platform.APPLE_APPSTORE : Platform.GOOGLE_PLAY;
       store.register(Object.values(prods()).map(p => ({ id: p.id, platform: plat, type: p.type === 'consumable' ? ProductType.CONSUMABLE : ProductType.NON_CONSUMABLE })));
       store.when()
-        .approved(tx => {
-          const key = tx.transactionId || '';
-          const gid = byStoreId(tx.products && tx.products[0] && tx.products[0].id);
-          if (gid && key && !doneTx().includes(key)) {
-            if (onGrant) onGrant(gid);
-            markTx(key);
-          }
-          tx.finish();
-        })
+        .approved(tx => handleTx(tx))
         .productUpdated(() => { if (onPriceChange) onPriceChange(); });
       store.initialize([plat]).then(() => { payReady = true; ownedCheck(); if (onPriceChange) onPriceChange(); });
     };
@@ -163,6 +168,10 @@ const Native = (() => {
   }
   async function buy(gid) {
     if (!payOn()) return '결제를 준비 중이에요. 잠시 후 다시 시도해 주세요';
+    if (buying) return '결제를 진행하고 있어요. 잠시만 기다려 주세요'; // 버튼을 여러 번 눌러도 한 번만
+    buying = true; try { return await buyNow(gid); } finally { buying = false; }
+  }
+  async function buyNow(gid) {
     if (!prods()[gid]) return '상품 정보가 없어요';
     const p = store.get(prods()[gid].id), o = p && p.getOffer && p.getOffer();
     if (!o) return '스토어에서 상품을 찾지 못했어요';
@@ -170,12 +179,12 @@ const Native = (() => {
     if (err) return err.code === window.CdvPurchase.ErrorCode.PAYMENT_CANCELLED ? '' : (err.message || '결제에 실패했어요');
     return '';
   }
-  async function restore() { if (!payOn()) return false; await store.restorePurchases(); ownedCheck(); return true; }
+  async function restore() { if (!payOn() || restoring) return false; restoring = true; try { await store.restorePurchases(); ownedCheck(); return true; } catch (e) { return false; } finally { restoring = false; } }
 
   return {
     isApp, platform, plugin: P, init, hideSplash, openUrl, appBuild, openStore, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
     notifyPerm, notifyAsk, notifyClear, notifySchedule,
-    setPay: (grant, owned, priceChange) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; },
+    setPay: (grant, owned, priceChange, txDone) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; onTxDone = txDone; const q = pendingTx; pendingTx = []; q.forEach(handleTx); if (payOn()) ownedCheck(); },
   };
 })();

@@ -135,7 +135,7 @@ const UI = (() => {
     Native.setPause(() => { Sound.pause(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
     Native.setResume(() => { Sound.resume(); Push.back(); setTimeout(refreshMail, 800); });
     Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
-    Native.setPay(gid => grantPaid(gid), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); });
+    Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));
     render(); hud();
     // 로그인 성공 → 다시 켜지 않고 그 자리에서 서버 기록을 맞춤
     Cloud.setOnLogin(() => { closeModal(); toast('☁️ 로그인했어요', 1600); Board.init(); cloudSync(); });
@@ -1232,9 +1232,11 @@ const UI = (() => {
   const testPay = () => !Native.isApp() && (!!window.claude || !Cloud.enabled());
   const priceOf = gid => Native.price(gid) || LocalPrice.of(gid.startsWith('decor:') ? Decor.D(gid.slice(6)).cash : SHOP_IAP.find(p => p.id === gid).price);
   const payNote = () => testPay() ? '<p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>' : Native.isApp() ? `<p style="color:var(--mute);font-size:10px">${Native.platform() === 'ios' ? 'App Store' : 'Google Play'} 계정으로 결제돼요.</p>` : '';
-  function grantPaid(gid) {
-    if (gid.startsWith('decor:')) { const d = Decor.D(gid.slice(6)); if (d && Decor.buyCash(d.id)) { Sound.play('promote'); got(`${d.name} 구입! 책상 뒤에 놓아 보세요`, { emo: '🏮' }); decoBar(); } }
-    else { const P = SHOP_IAP.find(p => p.id === gid); if (P && Game.iap(gid)) { Sound.play('promote'); got(`${P.name} 지급 완료!`, { emo: '🎁' }); } }
+  // 결제 지급 (key: 스토어 거래 번호 → 게임 저장에도 기록해 두 번 지급하지 않음)
+  function grantPaid(gid, key) {
+    const s = S(); if (key) { s.txDone = s.txDone || []; if (s.txDone.includes(key)) return; s.txDone.push(key); if (s.txDone.length > 300) s.txDone = s.txDone.slice(-300); }
+    if (gid.startsWith('decor:')) { const d = Decor.D(gid.slice(6)); if (d && Decor.buyCash(d.id, true)) { Sound.play('promote'); got(`${d.name} 구입! 책상 뒤에 놓아 보세요`, { emo: '🏮' }); decoBar(); } }
+    else { const P = SHOP_IAP.find(p => p.id === gid); if (P && Game.iap(gid, true)) { Sound.play('promote'); got(`${P.name} 지급 완료!`, { emo: '🎁' }); } }
     Game.save(); if (S().kind) Cloud.pushSave(S(), true); render();
   }
   async function pay(gid) {
