@@ -318,7 +318,7 @@ const UI = (() => {
     const P = $('#panel'); previews = previews.filter(p => p.keep && document.body.contains(p.c));
     const seg = `<div class="seg">${[1, 10, 'max'].map(m => `<button data-mult="${m}" class="${mult === m ? 'on' : ''}">${m === 'max' ? 'MAX' : '×' + m}</button>`).join('')}</div>`;
     if (tab === 'grow') {
-      P.innerHTML = `<div class="ph"><h3>저승사자 수련</h3>${seg}</div>` + ['pen', 'call', 'hand', 'step', 'luck', 'ledger'].map(id => upRow(UPGRADES.find(u => u.id === id))).join('');
+      P.innerHTML = `<div class="ph"><h3>저승사자 수련 <span class="sub" id="main-boost">위세 ×${Game.mainBoost().toFixed(2)}</span></h3>${seg}</div>` + ['pen', 'call', 'hand', 'step', 'luck', 'ledger'].map(id => upRow(UPGRADES.find(u => u.id === id))).join('') + '<p class="note">수련 업그레이드 레벨이 1 오를 때마다 저승사자 본인의 수확이 13%씩 늘어요 (위세). 졸개에게는 붙지 않아요.</p>';
     } else if (tab === 'minion') {
       const n = Game.minions();
       P.innerHTML = `<div class="ph"><h3>졸개 차사 <span class="sub">${n}/${Game.minionCap()}명</span></h3>${seg}</div>
@@ -387,6 +387,7 @@ const UI = (() => {
   // 버튼 상태만 갱신 (DOM을 다시 만들지 않아 터치가 끊기지 않음)
   function refresh(force) {
     const s = S(); if (!s) return;
+    const mb = document.getElementById('main-boost'); if (mb) { const t = `위세 ×${Game.mainBoost().toFixed(2)}`; if (mb.dataset.k !== t) { mb.dataset.k = t; mb.textContent = t; } }
     UPGRADES.forEach(U => {
       const btn = document.querySelector(`[data-buy="${U.id}"]`); if (!btn) return;
       const L = Game.lv(U.id), um = Game.umax(U.id), maxed = L >= um;

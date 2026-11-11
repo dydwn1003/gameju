@@ -18,7 +18,7 @@ const RANKS = [
 // 강화(구매)할 때마다 능력치가 오르고 경험치 1. 경험치가 차면 업그레이드 레벨 ↑ (lmax 까지).
 // 업그레이드 레벨 합 + 1 = 전체 레벨 (만렙 99 = 모든 업그레이드 최대 = 염라대왕). sq: 비용 증가율이 강화할수록 조금씩 줄어듦
 const UPGRADES = [
-  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (121번 강화마다 ×2)', base: 8, grow: 1.04, sq: -0.905e-5, pa: 0.7, pb: 22, pd: 121, max: 1699, lmax: 30 },
+  { id: 'pen', name: '명부 필력', icon: 'pen', desc: '혼 1개당 수확량 (119번 강화마다 ×2)', base: 8, grow: 1.04, sq: -0.905e-5, pa: 0.7, pb: 22, pd: 119, max: 1699, lmax: 30 },
   { id: 'step', name: '축지법', icon: 'step', desc: '저승사자 걸음 속도', base: 30, grow: 1.149, cap: 60, grow2: 1.15, max: 200, lmax: 10 },
   { id: 'call', name: '혼불 부르기', icon: 'call', desc: '혼령이 나타나는 속도', base: 40, grow: 1.166, cap: 70, grow2: 1.15, max: 200, lmax: 10 },
   { id: 'hand', name: '거둠의 손길', icon: 'hand', desc: '거두는 시간 단축 · 주변 혼령 함께 거두기', base: 40, grow: 1.158, cap: 60, grow2: 1.15, max: 200, lmax: 10 },
@@ -28,7 +28,7 @@ const UPGRADES = [
   { id: 'ledger', name: '저승 장부', icon: 'ledger', desc: '자리 비운 동안 쌓이는 최대 시간', base: 1200, grow: 1.55, cap: 20, grow2: 1.34, max: 40, lmax: 6 },
 ];
 const TIER_MULT = [1, 3, 10, 30];
-var SOUL_MUL = 2.2; // 혼 1개의 기본 가치 배율 (전체 혼 양 조절)
+var SOUL_MUL = 0.95; // 혼 1개의 기본 가치 배율 (전체 혼 양 조절)
 const TIER_NAME = ['떠도는 혼', '맑은 혼', '황금 혼', '원한 서린 혼'];
 const SHOP_IAP = [
   { id: 'jade100', name: '옥 100개', price: '₩1,200', jade: 100, icon: 'jade' },
@@ -96,6 +96,9 @@ const Game = (() => {
   const mReap = () => Math.max(0.35, 1.5 * Math.pow(0.975, 4 * Math.sqrt(lv('drill'))));
   // 졸개 1명 = 같은 업그레이드의 저승사자 1/5 × 훈련 효율 → 훈련을 다 하면 졸개 5명 = 저승사자 1명
   const MINION_RATIO = 0.2;
+  // 저승사자 위세: 수련(필력·축지법·혼불·손길·인연) 업그레이드 레벨 1당 본인 수확 +MAIN_PER_LV (졸개에는 안 붙음)
+  const MAIN_UPS = ['pen', 'step', 'call', 'hand', 'luck'], MAIN_PER_LV = 0.13;
+  const mainBoost = () => 1 + MAIN_PER_LV * MAIN_UPS.reduce((a, id) => a + ulv(id), 0);
   const drillMulOf = L => 0.5 + 0.5 * (1 - Math.exp(-L / 80)); // 졸개 훈련 효율: 50% → 100% (처음 강화가 크게)
   const drillMul = () => drillMulOf(lv('drill'));
   const OFFLINE_RATE = 0.12; // 자리 비운 동안 받는 비율 (켜 둔 실제 수입 대비 12%, 복귀 2배 광고로 24%)
@@ -123,7 +126,7 @@ const Game = (() => {
     const shareM = tot ? mr / tot : 0;
     const mainColl = coll * (1 - shareM), visColl = coll * shareM;
     const minionRate = MINION_RATIO * drillMul() * minions() * Math.min(main, cap); // 졸개 전체 몫 (저승사자 기준 × 1/5 × 훈련 효율 × 인원)
-    return { mainColl, visColl, minionRate };
+    return { mainColl: mainColl * mainBoost(), visColl, minionRate };
   }
   // 초당 수익 추정 (화면 표시 · 오프라인 계산)
   function incomePerSec(noBoost) {
@@ -207,7 +210,7 @@ const Game = (() => {
   function roll() { const sp = Life.rollSpecial(RANKS[S.rank].region, le('luck')); return sp >= 0 ? { tier: 2, sp } : { tier: rollTier(), sp: -1 }; }
   function collect(tier, who, sp) {
     let v = value() * TIER_MULT[tier];
-    if (who === 'minion') v *= minionPick();
+    if (who === 'minion') v *= minionPick(); else v *= mainBoost(); // 저승사자 본인 (터치 포함)
     if (who === 'tap') { v = tapValue() * TIER_MULT[tier]; S.stats.tap++; }
     v = Math.max(1, v); // 처음에도 혼 1개는 최소 1 (가치가 1보다 작을 때 '+0' 으로 보이지 않게)
     gain(v); return v;
@@ -308,7 +311,7 @@ const Game = (() => {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult,
-    collect, gain, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
+    collect, gain, mainBoost, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();
 
