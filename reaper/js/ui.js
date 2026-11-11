@@ -1313,6 +1313,11 @@ const UI = (() => {
         if (P.pet) { const pm = SP.pet(P.pet, f2), k2 = 2, pw = pm.width * k2, ph = pm.height * k2, px2 = Math.round(W * 0.75 - pw / 2), py2 = H - 8 - ph - (P.pet.fly ? 4 + Math.sin(t * 4) * 2 : 0); drawPetAura(g, px2 + pw / 2, py2 + ph, pw, ph, P.pet.g, P.star, t, 1); g.drawImage(pm, px2, py2, pw, ph); }
         return;
       }
+      if (p.pet && p.aura) { // 영물 + 기운 (S 등급부터)
+        const pm = SP.pet(p.pet, Math.floor(t * 3)), W = p.c.width, H = p.c.height, bob = p.pet.fly ? Math.round(Math.sin(t * 4) * 1.5) : 0;
+        const x = Math.round(W / 2 - pm.width / 2), y = H - 3 - pm.height + bob;
+        drawPetAura(g, W / 2, y + pm.height, pm.width, pm.height, p.pet.g, p.aura, t, 1); g.drawImage(pm, x, y); return;
+      }
       const f = Math.floor(t * 3 + (p.ph || 0));
       const img = p.pet ? SP.pet(p.pet, f) : p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.rank != null ? p.rank : S().rank, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4);
       g.drawImage(img, 0, 0, p.c.width, p.c.height);
@@ -1699,20 +1704,21 @@ const UI = (() => {
     Pets.ensure();
     const s = S(), eq = s.petEq && s.pets[s.petEq] ? Pets.P(s.petEq) : null, own = Object.keys(s.pets).length;
     const stTxt = id => { const st = Pets.stats(id); return `수확량 +${Math.round(st[0] * 100)}% · 이동 +${Math.round(st[1] * 100)}% · 수확속도 +${Math.round(st[2] * 100)}%`; };
-    let h = `<div class="petmain pbox">${eq ? `<canvas id="pet-big" width="12" height="11"></canvas><div class="info"><div class="nm"><span class="gb" style="background:${PET_GRADES[eq.g].col}">${eq.g}</span> ${eq.name} <span class="stars">${'★'.repeat(s.pets[eq.id])}</span></div><div class="ds">${eq.desc}</div><div class="ds st">${stTxt(eq.id)}</div></div>` : '<div class="info"><div class="nm">소환한 영물이 없어요</div><div class="ds">아래에서 영물을 소환해 보세요. 소환하면 수확을 도와줘요.</div></div>'}</div>
+    let h = `<div class="petmain pbox">${eq ? `<canvas id="pet-big" ${PET_AURA[eq.g] ? 'class="pa" width="40" height="40"' : 'width="12" height="11"'}></canvas><div class="info"><div class="nm"><span class="gb" style="background:${PET_GRADES[eq.g].col}">${eq.g}</span> ${eq.name} <span class="stars">${'★'.repeat(s.pets[eq.id])}</span></div><div class="ds">${eq.desc}</div><div class="ds st">${stTxt(eq.id)}</div></div>` : '<div class="info"><div class="nm">소환한 영물이 없어요</div><div class="ds">아래에서 영물을 소환해 보세요. 소환하면 수확을 도와줘요.</div></div>'}</div>
       <div class="gacha pbox"><div class="gt">영물 소환</div><div class="gd">${PET_ORDER.slice(0, 5).map(g => `${g} ${+(PET_GRADES[g].rate * 100).toFixed(1)}%`).join(' · ')} · <b style="color:${PET_GRADES.SSS.col}">SSS ${+(PET_GRADES.SSS.rate * 100).toFixed(1)}%</b><br>SS 이상 확정까지 <b>${PITY - s.pity}</b>회 · 같은 영물은 <b>여분</b>으로 쌓여요</div>
         ${s.tickets ? `<button class="btn red ticket" data-pull="ticket">소환권으로 1회 <em>${s.tickets}장</em></button>` : ''}
         <div class="gb3"><button class="btn" data-pull="ad" ${Pets.adLeft() > 0 ? '' : 'disabled'}>무료 1회<em>AD ${Pets.adLeft()}/2</em></button>
         <button class="btn jade" data-pull="1" ${s.jade >= PULL_COST[1] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[1]} · 1회</button>
         <button class="btn red" data-pull="10" ${s.jade >= PULL_COST[10] ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${PULL_COST[10]} · 10회</button></div><div class="gd">10회 소환은 A등급 이상 1마리 확정</div></div>
       <div class="ph"><h3>영물 도감</h3><span class="sub">${own}/${PETS.length}종 · 수확량 +${+(own * 0.5).toFixed(1)}%</span></div><div class="petgrid">`;
-    h += PETS.slice().sort((a, b) => PET_ORDER.indexOf(a.g) - PET_ORDER.indexOf(b.g)).map(p => { const st = s.pets[p.id], inv = s.petInv[p.id] || 0, canUp = st && st < 5 && inv >= Pets.starCost(p.id); return `<button class="pcell pbox ${st ? '' : 'unk'} ${s.petEq === p.id ? 'eq' : ''}" data-pet="${p.id}" style="--gc:${PET_GRADES[p.g].col}"><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span>${inv ? `<span class="pinv ${canUp ? 'up' : ''}">×${inv}</span>` : ''}<img class="px" src="${petIcon(p, !!st)}"><b>${st ? p.name : '???'}</b><small>${st ? '★'.repeat(st) : ''}${s.petEq === p.id ? ' 소환 중' : ''}</small></button>`; }).join('');
+    h += PETS.slice().sort((a, b) => PET_ORDER.indexOf(a.g) - PET_ORDER.indexOf(b.g)).map(p => { const st = s.pets[p.id], inv = s.petInv[p.id] || 0, canUp = st && st < 5 && inv >= Pets.starCost(p.id); return `<button class="pcell pbox ${st ? '' : 'unk'} ${s.petEq === p.id ? 'eq' : ''}" data-pet="${p.id}" style="--gc:${PET_GRADES[p.g].col}"><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span>${inv ? `<span class="pinv ${canUp ? 'up' : ''}">×${inv}</span>` : ''}${st && PET_AURA[p.g] ? `<canvas class="px pa" data-pa="${p.id}" width="40" height="40"></canvas>` : `<img class="px" src="${petIcon(p, !!st)}">`}<b>${st ? p.name : '???'}</b><small>${st ? '★'.repeat(st) : ''}${s.petEq === p.id ? ' 소환 중' : ''}</small></button>`; }).join('');
     h += '</div><div class="ph"><h3>영물 합성</h3><span class="sub">같은 등급 여분 3마리 → 1마리</span></div><div class="fuse pbox">';
     h += Object.keys(Pets.FUSE_UP).map(g => { const n = Pets.spares(g), k = Math.floor(n / Pets.FUSE_N), nx = PET_ORDER[PET_ORDER.indexOf(g) + 1]; return `<div class="frow"><span class="gb" style="background:${PET_GRADES[g].col}">${g}</span><div class="fi"><b>여분 ${n}마리</b><small>${Math.round(Pets.FUSE_UP[g] * 100)}% 확률로 <i style="color:${PET_GRADES[nx].col}">${nx}</i> 등급!</small></div><button class="btn jade" data-fuse="${g}:1" ${k ? '' : 'disabled'}>1회</button><button class="btn red" data-fuseall="${g}" ${k ? '' : 'disabled'}>모두 합성</button></div>`; }).join('');
     const anyFuse = Object.keys(Pets.FUSE_UP).some(g => Pets.spares(g) >= Pets.FUSE_N);
     h += `<button class="btn red fuse-all" data-fuseall="ALL" ${anyFuse ? '' : 'disabled'}>✨ 전체 등급 모두 합성 (C → SS)</button>`;
     P.innerHTML = h + '</div><p class="note">칸을 누르면 소환하기 · 별 올리기를 할 수 있어요. 여분은 별 올리기(★2←1마리 … ★5←4마리)나 합성에 써요. 합성은 ★5 영물의 여분부터 먼저 써요.</p>';
-    if (eq) previews.push({ c: $('#pet-big'), pet: eq });
+    if (eq) previews.push({ c: $('#pet-big'), pet: eq, aura: PET_AURA[eq.g] ? s.pets[eq.id] : 0 });
+    P.querySelectorAll('canvas[data-pa]').forEach(c => previews.push({ c, pet: Pets.P(c.dataset.pa), aura: s.pets[c.dataset.pa] || 1 }));
   }
   function petIcon(p, known) { const k = 'pi' + p.id + known; if (urls[k]) return urls[k]; let c = SP.pet(p, 0); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, 4)); }
   function doPull(kind, opt) {
@@ -1726,10 +1732,10 @@ const UI = (() => {
     const p = Pets.P(id), s = S(), st = s.pets[id];
     if (!st) { modal(`<div class="pinfo"><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ???</h2><p class="mute">${p.g}등급 영물</p><p class="lore">아직 만나지 못한 영물이에요. 영물 소환으로 만날 수 있어요.</p></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
     const inv = s.petInv[id] || 0, c = Pets.starCost(id), sv = Pets.stats(id);
-    const box = modal(`<div class="pinfo"><canvas id="pi-big" width="12" height="11"></canvas><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</h2><div class="stars">${'★'.repeat(st)}${'☆'.repeat(5 - st)}</div><p class="mute">${p.desc}</p>${PET_LORE[id] ? `<p class="lore">${PET_LORE[id]}</p>` : ''}
+    const box = modal(`<div class="pinfo"><canvas id="pi-big" ${PET_AURA[p.g] ? 'class="pa" width="40" height="40"' : 'width="12" height="11"'}></canvas><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</h2><div class="stars">${'★'.repeat(st)}${'☆'.repeat(5 - st)}</div><p class="mute">${p.desc}</p>${PET_LORE[id] ? `<p class="lore">${PET_LORE[id]}</p>` : ''}
       <p class="mute">수확량 +${Math.round(sv[0] * 100)}% · 이동 +${Math.round(sv[1] * 100)}% · 수확속도 +${Math.round(sv[2] * 100)}%<br>여분 <b style="color:var(--gold)">${inv}</b>마리${st < 5 ? `<br>별 올리기에 ${c}마리 필요 (능력치 +15%)` : ' · 최대 별!'}</p></div>
       <div class="acts"><button class="btn" id="pi-eq" ${s.petEq === id ? 'disabled' : ''}>${s.petEq === id ? '소환 중' : '소환하기'}</button><button class="btn red" id="pi-up" ${st < 5 && inv >= c ? '' : 'disabled'}>★ 올리기</button><button class="btn dark" data-act="close">닫기</button></div>`);
-    previews.push({ c: box.querySelector('#pi-big'), pet: p });
+    previews.push({ c: box.querySelector('#pi-big'), pet: p, aura: PET_AURA[p.g] ? st : 0 });
     box.querySelector('#pi-eq').onclick = () => { Pets.equip(id); Sound.play('buy'); toast(`${p.name}을(를) 소환했어요`); closeModal(); render(); };
     box.querySelector('#pi-up').onclick = () => { if (Pets.starUp(id)) { Sound.play('promote'); toast(`${p.name} ★${S().pets[id]}!`); closeModal(); render(); petInfo(id); } };
   }

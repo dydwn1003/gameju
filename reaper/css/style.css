@@ -999,3 +999,7 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .mh-ic { grid-row: span 2; font-size: 30px; text-align: center; }
 .mh-b b { font-size: 15px; } .mh-b small { font-size: 11px; color: var(--mute); }
 .rk-tabs { margin: 4px 0 6px; }
+/* 영물 기운이 있는 그림 (S 등급부터) */
+.pcell canvas.pa { width: 52px; height: 52px; margin: -10px auto -2px; display: block; image-rendering: pixelated; }
+.petmain canvas.pa { width: 80px; height: 80px; flex: 0 0 80px; }
+.pinfo canvas.pa { width: 120px; height: 120px; }
