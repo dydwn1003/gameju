@@ -221,3 +221,22 @@ begin
   return '답변 완료 (문의 ' || p_id || ')' || v_mail;
 end $$;
 revoke all on function public.reply_inquiry(bigint, text, integer, integer, numeric, text) from public, anon, authenticated;
+
+-- ===== 새 버전 안내 (게임을 켤 때 '새 버전이 나왔어요' 창) =====
+-- select set_app_version('android', 140);            -- 140 보다 낮은 빌드는 안내 창 (닫기 가능)
+-- select set_app_version('android', 140, 135);       -- 135 보다 낮은 빌드는 닫기 없이 꼭 업데이트
+-- select set_app_version('ios', 12, 0, '새 영물이 추가됐어요!');  -- 안내 문구도 바꾸기
+-- select data from public.docs where path = 'config/version';     -- 지금 설정 보기
+create or replace function public.set_app_version(p_platform text, p_latest integer, p_min integer default 0, p_msg text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare cur jsonb;
+begin
+  if p_platform not in ('android', 'ios') then raise exception 'p_platform 은 android 또는 ios 로 써 주세요'; end if;
+  select data into cur from public.docs where path = 'config/version';
+  cur := coalesce(cur, '{}'::jsonb) || jsonb_build_object(p_platform, jsonb_build_object('latest', p_latest, 'min', coalesce(p_min, 0)));
+  if p_msg is not null then cur := cur || jsonb_build_object('msg', p_msg); end if;
+  insert into public.docs (path, col, doc_id, data) values ('config/version', 'config', 'version', cur)
+  on conflict (path) do update set data = excluded.data, updated_at = now();
+  return cur;
+end $$;
+revoke execute on function public.set_app_version(text, integer, integer, text) from public, anon, authenticated;

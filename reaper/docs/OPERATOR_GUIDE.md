@@ -59,6 +59,24 @@ select reply_inquiry(12, '오류 보상이에요.', p_jade => 100, p_tickets => 
 2. **애플**: 애플은 개발자가 직접 환불할 수 없어요 → 답변으로 "reportaproblem.apple.com 에서 환불 요청" 안내, 또는 우편으로 보상
 3. 같은 결제가 두 번 들어왔다면 그대로 두기 (사용자에게 손해 없음)
 
+### 새 버전 안내 (게임을 켤 때 '새 버전이 나왔어요' 창)
+스토어에 새 버전을 올리고 **심사가 끝나 배포된 뒤** 아래를 실행하세요. (최신 `server/schema.sql` 을 한 번 실행해 두어야 함)
+```sql
+-- 안드로이드: 빌드 140 보다 낮으면 안내 창 (스토어 가기 / 닫기)
+select set_app_version('android', 140);
+-- 꼭 업데이트해야 할 때: 135 보다 낮은 빌드는 닫기 없이 '스토어 가기'만
+select set_app_version('android', 140, 135);
+-- 아이폰 (빌드 번호는 앱스토어 커넥트 / TestFlight 의 빌드 번호)
+select set_app_version('ios', 12);
+-- 안내 문구 바꾸기 (두 기기 공통)
+select set_app_version('android', 140, 0, '새 영물과 이벤트가 추가됐어요!');
+-- 지금 설정 보기
+select data from public.docs where path = 'config/version';
+```
+- 빌드 번호 = 깃허브 릴리스 이름 끝 숫자 (예: `reaper-apk-reaper-1.0.0-140` → 140)
+- 이 안내 창은 이 기능이 들어간 빌드부터 보여요.
+- 아이폰 '스토어 가기'가 앱 페이지로 바로 가려면 `js/config.js` 의 `store.iosId` 에 앱스토어 커넥트 → 앱 정보 → **Apple ID**(숫자)를 넣어 주세요. 비워 두면 앱스토어 검색 화면으로 열려요.
+
 ## 4. 지켜 주세요
 - **service_role / secret 키는 어디에도 붙여 넣지 않기** (SQL Editor 는 키 없이 돼요)
 - 문의에 담긴 이메일 · 기기 정보는 답변 목적으로만 보기

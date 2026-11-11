@@ -79,6 +79,22 @@ const UI = (() => {
     fill.style.width = '100%'; wc.style.left = 'calc(100% - 8px)'; msg.textContent = '근무 시작!';
     await new Promise(r => setTimeout(r, 250)); clearInterval(walk);
     L.classList.add('out'); setTimeout(() => L.remove(), 600);
+    setTimeout(updateCheck, 1500);
+  }
+  // ---------- 새 버전 안내: 서버의 config/version 과 내 앱 빌드 번호를 비교 ----------
+  // data: { android: { latest, min }, ios: { latest, min }, msg } — latest 보다 낮으면 안내(닫기 가능), min 보다 낮으면 닫기 없이
+  async function updateCheck() {
+    if (!Native.isApp() || !Cloud.ready()) return;
+    try {
+      const plat = Native.platform(), mine = await Native.appBuild(); if (!mine) return;
+      const doc = await Cloud.db.doc('config/version').get(); if (!doc.exists) return;
+      const d = doc.data() || {}, v = d[plat] || {}, latest = +v.latest || 0, min = +v.min || 0;
+      if (mine >= latest && mine >= min) return;
+      const force = mine < min;
+      const box = modal(`<div class="got"><div class="got-ic">🆕</div><h2>새 버전이 나왔어요</h2><p class="got-t">${d.msg ? esc(d.msg) : '더 나아진 저승사자 키우기를 만나 보세요!'}</p><p class="mute">${force ? '이 버전은 더 이상 이용할 수 없어요. 업데이트해 주세요.' : '스토어에서 최신 버전으로 업데이트해 주세요.'}</p></div>
+        <div class="acts"><button class="btn red" id="up-go">스토어 가기</button>${force ? '' : '<button class="btn dark" data-act="close">닫기</button>'}</div>`, force);
+      box.querySelector('#up-go').onclick = () => Native.openStore();
+    } catch (e) { /* 서버에 못 닿으면 조용히 넘어감 */ }
   }
   // ---------- 시작 ----------
   function initGame() {

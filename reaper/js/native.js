@@ -30,6 +30,15 @@ const Native = (() => {
     exitAsk = Date.now(); if (typeof toast === 'function') toast('한 번 더 누르면 게임이 종료돼요');
   }
   const hideSplash = () => { const S = P('SplashScreen'); if (S) S.hide().catch(() => {}); };
+  // 설치된 앱의 빌드 번호 (안드로이드 versionCode · iOS 빌드 번호). 웹이면 0
+  async function appBuild() { const A = P('App'); if (!A || !isApp()) return 0; try { const i = await A.getInfo(); return parseInt(i.build, 10) || 0; } catch (e) { return 0; } }
+  // 스토어 열기: 구글 → 플레이 스토어 앱, 애플 → 앱스토어 앱
+  function openStore() {
+    const st = APP.store || {};
+    if (platform() === 'ios') location.href = st.iosId ? `itms-apps://apps.apple.com/app/id${st.iosId}` : `itms-apps://search.itunes.apple.com/WebObjects/MZSearch.woa/wa/search?media=software&term=${encodeURIComponent(st.name || '')}`;
+    else if (platform() === 'android') location.href = `market://details?id=${st.android}`;
+    else window.open(`https://play.google.com/store/apps/details?id=${st.android}`, '_blank');
+  }
   async function openUrl(url) { const B = P('Browser'); if (B) await B.open({ url, presentationStyle: 'popover' }); else location.href = url; }
   async function closeBrowser() { const B = P('Browser'); if (B) try { await B.close(); } catch (e) {} }
 
@@ -164,7 +173,7 @@ const Native = (() => {
   async function restore() { if (!payOn()) return false; await store.restorePurchases(); ownedCheck(); return true; }
 
   return {
-    isApp, platform, plugin: P, init, hideSplash, openUrl, closeBrowser, rewardAd, price, buy, restore, payOn,
+    isApp, platform, plugin: P, init, hideSplash, openUrl, appBuild, openStore, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
     notifyPerm, notifyAsk, notifyClear, notifySchedule,
     setPay: (grant, owned, priceChange) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; },
