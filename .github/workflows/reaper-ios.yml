@@ -128,6 +128,38 @@ jobs:
               raise SystemExit(1)
           PY
 
+      - name: 예전 개발 인증서 정리 (한도 초과 방지)
+        if: env.CHECK_ONLY != 'true'
+        run: |
+          # 빌드마다 새 컴퓨터라 Apple Development 인증서가 하나씩 쌓임 → 한도에 걸리지 않게 개발용만 지움
+          # (배포용 Apple Distribution 은 건드리지 않음. 개발 인증서를 지워도 올라간 빌드에는 영향 없음)
+          "$RUNNER_TEMP/jwt/bin/python" - <<'PY'
+          import os, time, json, jwt, urllib.request, urllib.error
+          key = open(os.environ['ASC_KEY_PATH']).read()
+          token = jwt.encode(
+              {'iss': os.environ['ASC_ISSUER_ID'].strip(), 'iat': int(time.time()),
+               'exp': int(time.time()) + 600, 'aud': 'appstoreconnect-v1'},
+              key, algorithm='ES256',
+              headers={'kid': os.environ['ASC_KEY_ID'].strip(), 'typ': 'JWT'})
+          H = {'Authorization': f'Bearer {token}'}
+          url = 'https://api.appstoreconnect.apple.com/v1/certificates?limit=200&filter[certificateType]=DEVELOPMENT,IOS_DEVELOPMENT'
+          try:
+              certs = json.load(urllib.request.urlopen(urllib.request.Request(url, headers=H)))['data']
+          except urllib.error.HTTPError as e:
+              print(f'::warning::인증서 목록을 못 읽었어요 (Apple 응답 {e.code}). 정리 없이 계속해요.'); raise SystemExit(0)
+          n = 0
+          for c in certs:
+              a = c['attributes']
+              if a.get('certificateType') not in ('DEVELOPMENT', 'IOS_DEVELOPMENT'): continue
+              try:
+                  urllib.request.urlopen(urllib.request.Request(
+                      f"https://api.appstoreconnect.apple.com/v1/certificates/{c['id']}", headers=H, method='DELETE'))
+                  n += 1
+              except urllib.error.HTTPError as e:
+                  print(f"::warning::{a.get('name')} 지우기 실패 ({e.code})")
+          print(f'개발 인증서 {len(certs)}개 중 {n}개 정리')
+          PY
+
       - name: 아카이브 (자동 서명)
         if: env.CHECK_ONLY != 'true'
         run: |
