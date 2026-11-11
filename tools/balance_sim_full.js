@@ -32,8 +32,8 @@ const res=await p.evaluate(([mode,arg,OV])=>{
    S.mcap=MODE==='whale'||MODE==='payer'?4:Math.min(4,Math.floor(d/(MODE==='casual'?6:2)));
    if(st>last){const away=st-last;S.souls+=inc()*MM(d)*Math.min(away,Game.offHours()*3600)*Game.OFFLINE_RATE;
      // 파견: 칸 수 × 하루 약 2.5시간치(돌아올 때 받음)
-     // 옥으로 늘린 파견 칸 (1칸 옥 100): 과금은 바로 4칸, 꾸준히 하는 사람은 1~2일차, 가볍게 하는 사람은 7일차에 2칸
-     const slots=1+Math.floor(S.rank/2)+(MODE==='whale'||MODE==='payer'?4:MODE==='casual'?(d>=7?2:0):(d>=2?4:d>=1?2:0)); S.souls+=inc()*MM(d)*3600*0.875*slots*Math.min(away,86400)/86400;
+     // 옥으로 늘린 파견 칸 (옥 200·400): 과금은 바로 2칸, 꾸준히 하는 사람은 1~2일차, 가볍게 하는 사람은 7일차에 1칸
+     const slots=1+Math.floor(S.rank/2)+(MODE==='whale'||MODE==='payer'?2:MODE==='casual'?(d>=7?1:0):(d>=2?2:d>=1?1:0)); S.souls+=inc()*MM(d)*3600*0.875*slots*Math.min(away,86400)/86400;
      t=st;}
    // 결재 서류
    const nd=Math.min(3,Math.floor((st-docsLast)/7200)); if(nd>0){S.souls+=inc()*MM(d)*DOC_SEC[Math.min(8,S.rank)]*nd; docsLast=nd>=3?st:docsLast+nd*7200;}

@@ -370,8 +370,8 @@ const Life = (() => {
   const buffLeft = k => Math.max(0, ((S().buffs || {})[k] || 0) - now()) / 1000;
 
   // ---------- 파견 ----------
-  const SLOT_JADE = [100, 100, 100, 100]; // 옥으로 늘리는 파견 칸 (1칸에 옥 100, 최대 4칸)
-  const slots = () => 1 + Math.floor(S().rank / 2) + (S().expeSlots || 0); // 집무실 부하가 늘수록 파견 칸 증가 (1~5) + 옥으로 늘린 칸 (최대 +4)
+  const SLOT_JADE = [200, 400]; // 옥으로 늘리는 파견 칸 (최대 2칸 · 예전에 더 산 칸은 그대로 인정)
+  const slots = () => 1 + Math.floor(S().rank / 2) + (S().expeSlots || 0); // 집무실 부하가 늘수록 파견 칸 증가 (1~5) + 옥으로 늘린 칸 (최대 +2)
   const slotCost = () => SLOT_JADE[S().expeSlots || 0] || 0; // 0이면 더 못 늘림
   function buySlot() { const s = S(), c = slotCost(); if (!c || s.jade < c) return false; s.jade -= c; s.expeSlots = (s.expeSlots || 0) + 1; Game.save(); return true; }
   const EXPE_DAY = 3; // 순찰지마다 하루에 보낼 수 있는 횟수
