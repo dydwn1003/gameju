@@ -1451,8 +1451,9 @@ const UI = (() => {
   function storyIntro() {
     const c = Story.cur(); if (c.end || c.intro) return;
     const o = overlay(`<div class="tk-bg"></div><div class="ch-card"><small>제 ${c.ch + 1}장</small><b>${c.C.title}</b></div>`); Sound.play('promote');
-    setTimeout(() => talk(c.C.intro, () => { Story.seenIntro(); if (S().tut === 0) tutStart(); else toast(`📜 새 퀘스트: ${Story.cur().Q.t}`, 3000); }), 1600);
+    setTimeout(() => talk(c.C.intro, () => { Story.seenIntro(); if (S().tut === 0) tutStart(); else newQuestToast(); }), 1600);
   }
+  function newQuestToast() { const c = Story.cur(); if (c.end || c.done) return; toast(`📜 새 퀘스트: ${c.Q.t}`, 4500, questHelp(c.Q) ? [{ label: '🧭 바로 가기', cls: '', fn: () => questGo(Story.cur().Q) }] : undefined); }
   function storyBar() {
     const c = Story.cur(), e = $('#story-bar');
     if (c.end) { e.innerHTML = '📜 이야기 완결 · 윤회로 새 생을'; e.classList.remove('done'); return; }
@@ -1468,6 +1469,7 @@ const UI = (() => {
       toast(`퀘스트 완료! ${Story.rewardText(R)}${res.got.souls ? ` (+${fmt(res.got.souls)})` : ''}`, 3000);
       if (res.chapterDone) { const gd = Decor.grantStory(res.doneCh); if (gd.length) setTimeout(() => toast(`🏮 이야기 기념 소품 「${gd.map(d => d.name).join(', ')}」을(를) 받았어요! 집무실을 꾸며 보세요`, 4200), 400); }
       if (res.chapterDone) talk(res.outro, () => res.mem ? memoryCard(res.mem, Story.memories().length, () => setTimeout(storyIntro, 300)) : setTimeout(storyIntro, 300));
+      if (!res.chapterDone) setTimeout(newQuestToast, 900);
       storyBar(); return;
     }
     if (c.Q.k === 'clue') { if (S().tut !== 'done' && S().tut != null) return; Scene.focusClue(c.ch); toast('✦ 지도에서 빛나는 단서를 찾아 눌러 보세요', 2600); if (sheetOpen()) closeSheet(); return; }
@@ -1490,12 +1492,63 @@ const UI = (() => {
     const box = modal(`<h2>📜 이야기 다시 보기</h2><div class="rp-list">${STORY.slice(0, n).map((C, i) => `<div class="rp-row"><span>제 ${i + 1}장 · ${C.title}</span><button class="btn" data-rp="${i}:intro">시작</button>${i < S().story.ch ? `<button class="btn dark" data-rp="${i}:outro">끝</button>` : ''}</div>`).join('')}</div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => { const [i, k] = b.dataset.rp.split(':'); closeModal(); talk(STORY[+i][k]); });
   }
+  // ---------- 메인 퀘스트 길잡이: 하는 방법 + 바로 가기 ----------
+  const QUEST_HELP = {
+    'cnt.soul': ['떠다니는 혼령은 저승사자와 졸개가 알아서 거둬요. 직접 톡 누르면 더 빨리 모여요.', 'soul'],
+    'cnt.tap': ['화면에 떠다니는 혼령을 손가락으로 톡 누르세요.', 'soul'],
+    pen: ['아래 [성장] 탭에서 명부 필력의 강화 버튼을 눌러 경험치를 100%까지 채우세요.', 'grow'],
+    lv: ['[성장] · [졸개] 탭에서 강화하면 업그레이드 레벨이 오르고, 그 합이 차사 레벨이에요. 싼 강화부터 눌러 보세요.', 'grow'],
+    minion: ['아래 [졸개] 탭에서 졸개 차사 고용을 누르세요.', 'minion'],
+    'cnt.wraith': ['원귀는 1~2분마다 나타나요. 나타나면 빠르게 연타해서 퇴치하세요!', 'wraith'],
+    clue: ['지도 위에서 빛나는 ✦ 단서를 찾아 누르세요.', 'clue'],
+    rank: ['[승진] 탭에서 차사 레벨 조건을 채운 뒤, 승진 시험(판관 결투)을 이기세요.', 'rank'],
+    rankNow: ['[승진] 탭에서 차사 레벨 조건을 채운 뒤, 승진 시험(판관 결투)을 이기세요.', 'rank'],
+    pets: ['아래 [펫] 탭에서 소환권이나 옥으로 영물을 불러오세요.', 'pet'],
+    'cnt.prop': ['지도의 나무 · 항아리 · 장승 위에 반짝임이 뜨면 눌러서 살펴보세요.', 'prop'],
+    dex: ['가끔 나타나는 특별한 혼령을 거두거나 파견 보상으로 얻으면 도감에 등록돼요.', 'dex'],
+    'cnt.harvest': ['[생활] → 꽃밭에서 씨앗을 심고, 다 자라면 눌러서 수확하세요.', 'garden'],
+    'cnt.brew': ['[생활] → 주막에서 꽃으로 탕약을 달이세요. 꽃이 없으면 꽃밭에서 먼저 수확해요.', 'tavern'],
+    'cnt.send': ['[생활] → 파견에서 순찰지를 골라 졸개를 보내세요.', 'expe'],
+    'cnt.parade': ['백귀야행은 30분마다 찾아와요. 오른쪽 👹 버튼에 표시가 뜨면 눌러서 들어가세요.', 'parade'],
+    'cnt.judge': ['집무실에 들어가 망자 심판을 하세요. (하루 5명)', 'office'],
+    reborn: ['[승진] 탭 아래쪽의 윤회하기를 누르세요.', 'rank'],
+  };
+  const questHelp = Q => QUEST_HELP[Q.k] || null;
+  let guideEl = null, guideT = 0;
+  function guideOff() { if (guideEl) { guideEl.remove(); guideEl = null; } clearTimeout(guideT); }
+  // 손가락으로 가리키기: 선택자(요소) 또는 화면 좌표 {x, y}
+  function guidePoint(t, ms = 5000) {
+    guideOff();
+    let r;
+    if (typeof t === 'string') { const e = document.querySelector(t); if (!e) return; e.scrollIntoView && e.scrollIntoView({ block: 'nearest' }); r = e.getBoundingClientRect(); }
+    else { const c = $('#stage').getBoundingClientRect(); r = { left: c.left + t.x - 20, top: c.top + t.y - 20, width: 40, height: 40 }; }
+    guideEl = document.createElement('div'); guideEl.id = 'guide';
+    guideEl.innerHTML = `<div class="gd-ring" style="left:${r.left - 4}px;top:${r.top - 4}px;width:${r.width + 8}px;height:${r.height + 8}px"></div><div class="tut-hand" style="left:${r.left + r.width / 2 - 10}px;top:${r.top + r.height - 4}px">👆</div>`;
+    document.body.appendChild(guideEl);
+    guideT = setTimeout(guideOff, ms);
+    setTimeout(() => addEventListener('pointerdown', guideOff, { once: true }), 300);
+  }
+  function questGo(Q) {
+    const h = questHelp(Q); if (!h) return;
+    closeModal();
+    const g = h[1], inMenu = { grow: ['grow', '[data-buy="pen"]'], minion: ['minion', '[data-buy="minion"]'], rank: ['rank', '#tabs [data-tab="rank"]'], pet: ['pet', '[data-pull]'] }[g];
+    if (Q.k === 'lv') { goTab('grow'); setTimeout(() => { const best = UPGRADES.filter(U => { const e = document.querySelector(`[data-buy="${U.id}"]`); return e && !e.disabled; }).sort((a, b) => Game.cost(a.id) - Game.cost(b.id))[0]; guidePoint(best ? `[data-buy="${best.id}"]` : '#tabs [data-tab="grow"]'); }, 350); }
+    else if (inMenu) { goTab(inMenu[0]); setTimeout(() => guidePoint(document.querySelector(inMenu[1]) ? inMenu[1] : `#tabs [data-tab="${inMenu[0]}"]`), 350); }
+    else if (g === 'garden' || g === 'tavern' || g === 'expe' || g === 'dex') { openLife(g); if (g === 'garden') Scene.focus('garden'); setTimeout(() => guidePoint(`[data-sub="${g}"]`, 3000), 350); }
+    else if (g === 'clue') { if (sheetOpen()) closeSheet(); Scene.focusClue(Story.cur().ch); setTimeout(() => guidePoint(Scene.clueScreen(Story.cur().ch)), 200); toast('✦ 지도에서 빛나는 단서를 찾아 눌러 보세요', 2600); }
+    else if (g === 'prop') { if (sheetOpen()) closeSheet(); const p = Scene.focusProp(); if (p) setTimeout(() => guidePoint(Scene.focusProp() || p), 200); else toast('지금은 살펴볼 소품이 없어요. 조금 뒤에 다시 반짝여요', 2600); }
+    else if (g === 'soul') { if (sheetOpen()) closeSheet(); Scene.soulNear(); setTimeout(() => { const p = Scene.nearestSoul(); if (p) guidePoint(p, 3500); }, 150); }
+    else if (g === 'wraith') { if (sheetOpen()) closeSheet(); toast(`👻 다음 원귀까지 약 ${Math.max(1, Math.ceil(nextWraith))}초. 나타나면 연타!`, 3000); }
+    else if (g === 'parade') { if (sheetOpen()) closeSheet(); guidePoint('#btn-parade'); const pl = (S().parade.next - Date.now()) / 1000; toast(parade ? '백귀야행 진행 중!' : pl > 0 ? `👹 백귀야행까지 ${fmtClock(pl)}` : '👹 지금 백귀야행에 들어갈 수 있어요!', 3000); }
+    else if (g === 'office') { if (sheetOpen()) closeSheet(); if (S().rank < 1) { toast('집무실은 말단 차사로 승진하면 열려요', 2600); return; } if (!Scene.inOffice()) guidePoint('#btn-office'); else guidePoint('#of-judge'); }
+  }
   function storyModal() {
     const c = Story.cur();
     const box = modal(`<h2>제 ${c.ch + 1}장 · ${c.C.title}</h2>
-      ${c.C.quests.map((q, i) => `<div class="qrow pbox ${i < c.q ? 'mute' : ''}"><div class="info"><b>${i < c.q ? '✔ ' : i === c.q ? '▶ ' : ''}${q.t}</b>${i === c.q ? ` <span class="mute">${fmt(c.have)}/${fmt(c.need)}</span><div class="bar"><i style="width:${Math.min(100, (c.have / c.need) * 100)}%"></i></div>` : ''}<div class="mute" style="font-size:10px;margin-top:3px">보상: ${Story.rewardText(q.r)}</div></div></div>`).join('')}
+      ${c.C.quests.map((q, i) => `<div class="qrow pbox ${i < c.q ? 'mute' : ''}"><div class="info"><b>${i < c.q ? '✔ ' : i === c.q ? '▶ ' : ''}${q.t}</b>${i === c.q ? ` <span class="mute">${fmt(c.have)}/${fmt(c.need)}</span><div class="bar"><i style="width:${Math.min(100, (c.have / c.need) * 100)}%"></i></div>` : ''}${i === c.q && !c.done && questHelp(q) ? `<div class="q-help">💡 <span>${questHelp(q)[0]}</span></div>` : ''}<div class="mute" style="font-size:10px;margin-top:3px">보상: ${Story.rewardText(q.r)}</div></div>${i === c.q && !c.done && questHelp(q) ? '<button class="btn red q-go" id="st-go">🧭 바로 가기</button>' : ''}</div>`).join('')}
       <div class="acts"><button class="btn dark" id="st-replay">이야기 다시 보기</button><button class="btn dark" id="st-mem">❖ 기억 ${Story.memories().length}/${Story.memTotal}</button><button class="btn red" data-act="close">닫기</button></div>`);
     box.querySelector('#st-replay').onclick = () => { closeModal(); replayModal(); };
+    const go = box.querySelector('#st-go'); if (go) go.onclick = () => questGo(c.Q);
     box.querySelector('#st-mem').onclick = () => { closeModal(); memoriesModal(); };
   }
 

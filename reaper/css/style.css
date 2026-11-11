@@ -969,3 +969,10 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .row .info .xpb { height: 4px; margin-top: 4px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
 .row .info .xpb i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #6fb0ff, #b48cff); transition: width .25s; }
 .row.maxed .info .xpb i { background: var(--gold); }
+
+/* 메인 퀘스트 길잡이 */
+#guide { position: fixed; inset: 0; z-index: 66; pointer-events: none; }
+#guide .gd-ring { position: fixed; border-radius: 12px; box-shadow: 0 0 0 3px #ffd34a, 0 0 18px #ffd34a; animation: gdpulse 1s ease-in-out infinite; }
+@keyframes gdpulse { 50% { box-shadow: 0 0 0 5px #ffd34a, 0 0 26px #ffd34a; } }
+.q-help { margin-top: 5px; padding: 6px 8px; border-radius: 8px; background: rgba(255, 211, 74, 0.1); border: 1px solid rgba(255, 211, 74, 0.35); font-size: 11px; line-height: 1.45; color: #ffe9a8; }
+.qrow .q-go { flex: none; align-self: center; margin-left: 8px; padding: 8px 10px; font-size: 12px; white-space: nowrap; }

@@ -741,6 +741,8 @@ const Scene = (() => {
     ghostsOnScreen() { return ghosts.filter(gh => !gh.dead).map(gh => ({ x: (gh.x - camX) * S, y: (gh.y - 8 - camY) * S, gold: gh.gold })); },
     clueScreen(ch) { const p = clueSpot(ch); return { x: (p.x - camX) * S, y: (p.y - 6 - camY) * S }; },
     propsOnScreen() { return objs.filter(o => o.prop && vis(o.x + o.img.width / 2, o.base, 0)).map(o => ({ kind: o.prop, key: o.key, x: (o.x + o.img.width / 2 - camX) * S, y: (o.base - 6 - camY) * S })); },
+    // 저승사자와 가장 가까운 살펴볼 수 있는(반짝이는) 소품으로 화면 이동 → 화면 좌표
+    focusProp() { const r = objs.filter(o => o.prop && hooks.propReady && hooks.propReady(o.key)).sort((a, b) => Math.hypot(a.x - reaper.x, a.base - reaper.y) - Math.hypot(b.x - reaper.x, b.base - reaper.y))[0]; if (!r) return null; const cx = r.x + r.img.width / 2; camX = cx - W / 2; camY = r.base - H / 2; follow = false; followAt = time + 8; return { x: (cx - camX) * S, y: (r.y - camY) * S }; },
     focusClue(ch) { const p = clueSpot(ch); camX = p.x - W / 2; camY = p.y - H / 2; follow = false; followAt = time + 8; },
     focus(id) { const p = POIS.find(q => q.id === id) || POIS.find(q => q.id === 'stall'); if (p) { camX = p.x + p.w / 2 - W / 2; camY = p.y + p.h / 2 - H / 2; follow = false; followAt = time + 8; } },
     burstAt(xc, yc, col, n) { burst(xc / S + camX, yc / S + camY, col, n, 40); },
