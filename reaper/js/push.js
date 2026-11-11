@@ -44,6 +44,8 @@ const Push = (() => {
     if (first) add(20, first.left, '🌸 꽃밭에 꽃이 피었어요', `${first.f.name}${josa(first.f.name)} 활짝 피었어요. 수확해서 탕약을 달여 보세요!`, 3, '꽃 수확');
     // 4) 집무실 결재 서류 3건 가득
     if (s.docs) { const n = Life.docsCount(); if (n < 3) add(30, Life.docsNext() + (2 - n) * 2 * 3600, '📂 결재 서류가 가득 쌓였어요', '판관 나리가 결재를 기다려요. 서류 3건을 처리하고 보상을 받으세요.', 4, '결재 서류'); }
+    // 5-1) 까치 편지 도착 (우편함이 비어 있을 때 다음 편지)
+    if (s.mail && Life.mailCount() === 0) add(33, Life.mailNext(), '🐦 까치가 편지를 물고 왔어요', '저승 곳곳에서 모은 선물이 들어 있어요. 들어와서 열어 보세요!', 6, '까치 우편');
     // 5) 까치 우편함 가득
     if (s.mail) { const n = Life.mailCount(); if (n < MAIL_MAX) add(31, Life.mailNext() + (MAIL_MAX - 1 - n) * 4 * 3600, '🐦 까치 우편함이 가득 찼어요', '까치가 선물을 잔뜩 물어 왔어요. 우편함이 넘치기 전에 열어 보세요!', 5, '까치 우편'); }
     // 6) 백귀야행

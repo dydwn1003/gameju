@@ -194,8 +194,28 @@ const UI = (() => {
   // 승진은 시험 없이: 레벨을 채우면 승진 탭의 '승진하기'로 바로 승진
 
   // ---------- HUD ----------
+  // 까치 우편 알림 창: 새 편지가 오면 (켜 둔 동안) 또는 게임을 켰을 때 편지가 있으면
+  let mailSeen = null, mailBootT = 0;
+  function mailWatch() {
+    const s = S(); if (!s || !s.kind || (s.tut !== 'done' && s.tut != null)) return;
+    const n = Life.mailCount();
+    if (mailSeen == null) { mailSeen = n; if (n > 0) mailBootT = Date.now() + 4000; return; } // 켤 때 있던 편지는 잠깐 뒤에 한 번
+    if (mailBootT && Date.now() >= mailBootT) { mailBootT = 0; mailPop(n); }
+    if (n > mailSeen) mailPop(n);
+    mailSeen = n;
+  }
+  function mailPop(n) {
+    if (!n) return;
+    const busy = $('#modal').classList.contains('on') || document.querySelector('.tk-bg') || document.getElementById('tut') || parade || Scene.inOffice();
+    if (busy) { toast(`🐦 까치 우편 ${n}통이 왔어요!`, 5000, [{ label: '읽기', cls: '', fn: mailOpen }]); return; }
+    Sound.play('open');
+    const box = modal(`<div class="got"><div class="got-ic">🐦</div><h2>까치 우편이 왔어요!</h2><p class="got-t">까치가 저승 곳곳에서 선물을 물어 왔어요. (${n}통)</p><p class="mute">4시간마다 1통, 최대 3통까지 쌓여요</p></div>
+      <div class="acts"><button class="btn red" id="ml-read">읽기</button><button class="btn dark" data-act="close">나중에</button></div>`);
+    box.querySelector('#ml-read').onclick = () => { closeModal(); mailOpen(); };
+  }
   function hud() {
     if (!S()) return;
+    mailWatch();
     $('#v-soul').textContent = fmt(S().souls);
     $('#v-jade').textContent = fmt(S().jade);
     // (초당 혼 표시는 없앰 — 실제 수확량은 혼령을 거둘 때마다 들어와 예상치와 차이가 나서)
