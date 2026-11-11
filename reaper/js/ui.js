@@ -1098,6 +1098,7 @@ const UI = (() => {
       h += `<p class="note">같은 탕약을 또 마시면 시간이 늘어나요 (최대 4시간). 혼불주는 원귀 퇴치 화력이 3배!</p>`;
     } else if (sub === 'expe') {
       h += `<div class="ph"><h3>졸개 파견</h3><span class="sub">파견 칸 ${s.expe.length}/${Life.slots()} · 보유 졸개 ${Game.minions()}명</span></div>`;
+      { const sc = Life.slotCost(), ex = s.expeSlots || 0; h += `<div class="row pbox ${sc ? '' : 'maxed'}"><div class="ic"><img class="px" src="${IC('jade', 3)}"></div><div class="info"><div class="nm">파견 칸 늘리기<small>${ex}/${Life.SLOT_JADE.length}</small></div><div class="ds">옥으로 파견 칸을 영구히 1칸 늘려요</div></div>${sc ? `<button class="btn jade" data-slot="1" ${s.jade >= sc ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${sc}</button>` : '<button class="btn" disabled>MAX</button>'}</div>`; }
       h += s.expe.map((x, i) => { const E = EXPEDITIONS.find(e => e.id === x.id), l = Life.expeLeft(x); return `<div class="row pbox"><div class="ic"><img class="px" src="${IC('minion', 3)}"></div><div class="info"><div class="nm">${E.name}</div><div class="ds" data-left-expe="${i}">${l > 0 ? fmtTime(l) + ' 남음' : '돌아왔어요!'}</div></div>
         ${l > 0 ? `<button class="btn sk" data-skip="expe:${i}">⏩ 단축</button>` : `<button class="btn red" data-claim="${i}">보상 받기</button>`}</div>`; }).join('');
       h += `<div class="sec">순찰지</div>` + EXPEDITIONS.map(E => {
@@ -1105,7 +1106,7 @@ const UI = (() => {
         const rw = [...Object.entries(E.seed).map(([k, v]) => `${fname(k)} 씨앗 ${v}`), E.jade ? `옥 ${E.jade}` : '', `${hrsLabel(E.hours)}치 혼`, E.dex ? '희귀 혼령 기록' : ''].filter(Boolean).join(' · ');
         return `<div class="row pbox ${lockR ? 'maxed' : ''}"><div class="ic"><img class="px" src="${IC('gate', 3)}"></div><div class="info"><div class="nm">${E.name}<small>${fmtTime(E.hrs * 3600)}</small></div><div class="ds">졸개 ${E.minion}명 필요 · <b>${rw}</b></div>${lockR ? '' : `<div class="ds" style="color:var(--gold)">오늘 ${tl}/${Life.EXPE_DAY}회 남음</div>`}</div>
           <button class="btn" data-send="${E.id}" ${lockR || lockM || full || done ? 'disabled' : ''}>${lockR ? RANKS[E.rank].name + '부터' : done ? '내일 다시' : lockM ? '졸개 부족' : full ? '칸 없음' : '보내기'}</button></div>`;
-      }).join('') + `<p class="note">파견을 보내도 졸개는 계속 혼을 거둬요. 순찰지마다 하루 3번까지 보낼 수 있어요. 선임 차사·명부 판관이 되면 파견 칸이 늘어나요.</p>`;
+      }).join('') + `<p class="note">파견을 보내도 졸개는 계속 혼을 거둬요. 순찰지마다 하루 3번까지 보낼 수 있어요. 승진할수록 파견 칸이 늘어나요. 옥으로 2칸 더 늘릴 수 있어요.</p>`;
     } else {
       const n = Object.keys(s.dex).length;
       h += `<div class="ph"><h3>혼령 도감</h3><span class="sub">${n}/${SPECIALS.length}종 · 혼 수확 +${Math.round(Life.dexBonus() * 100)}%</span></div>
@@ -1133,6 +1134,7 @@ const UI = (() => {
     if (d.seed) { const f = FLOWERS.find(x => x.id === d.seed), j = f.soul ? 0 : f.jade, so = f.soul ? Life.seedSoulCost(f) : 0;
       askBuy('씨앗 구매', `${f.name} 씨앗 1개를 살까요?`, j, so, () => { if (Life.buySeed(d.seed, 1)) { Sound.play('buy'); toast(`${f.name} 씨앗 +1`); } else { Sound.play('no'); toast(j ? '옥이 부족해요' : '혼이 부족해요'); } renderLife($('#panel')); }); return true; }
     if (d.brew) { const R0 = RECIPES.find(x => x.id === d.brew); confirmBox(`<h2>🍶 ${R0.name}</h2><p>${R0.desc}</p><p class="mute">재료: ${Object.entries(R0.need).map(([k, v]) => `${fname(k)} ${v}송이`).join(' · ')}</p><p>달일까요?</p>`, () => brewGo(d.brew), '달이기'); return true; }
+    if (d.slot) { askBuy('파견 칸 늘리기', '파견 칸을 1칸 늘릴까요?', Life.slotCost(), 0, () => { if (Life.buySlot()) { Sound.play('buy'); toast(`파견 칸이 늘었어요! (${Life.slots()}칸)`); } else { Sound.play('no'); toast('옥이 부족해요'); } renderLife($('#panel')); }); return true; }
     if (d.send) { if (Life.send(d.send)) { Sound.play('buy'); Life.qEvent('send'); toast('졸개를 순찰 보냈어요'); setTimeout(askPush, 1200); } renderLife($('#panel')); return true; }
     if (d.skip) { const [k, i] = d.skip.split(':'); speedUp(k, +i); return true; }
     if (d.claim) { const r = Life.claim(+d.claim); if (r) { Sound.play('promote'); toast(`파견 보상: +${fmt(r.souls)} 혼${r.jade ? ` · 옥 +${r.jade}` : ''} · ${Object.entries(r.seeds).map(([k, v]) => fname(k) + ' 씨앗 ' + v).join(', ')}${r.dex ? ` · 📖 ${r.dex.name}` : ''}`, 4000); } renderLife($('#panel')); return true; }

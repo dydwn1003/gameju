@@ -370,7 +370,10 @@ const Life = (() => {
   const buffLeft = k => Math.max(0, ((S().buffs || {})[k] || 0) - now()) / 1000;
 
   // ---------- 파견 ----------
-  const slots = () => 1 + Math.floor(S().rank / 2); // 집무실 부하가 늘수록 파견 칸 증가 (1~5)
+  const SLOT_JADE = [300, 500]; // 옥으로 늘리는 파견 칸 (최대 2칸)
+  const slots = () => 1 + Math.floor(S().rank / 2) + (S().expeSlots || 0); // 집무실 부하가 늘수록 파견 칸 증가 (1~5) + 옥으로 늘린 칸 (최대 +2)
+  const slotCost = () => SLOT_JADE[S().expeSlots || 0] || 0; // 0이면 더 못 늘림
+  function buySlot() { const s = S(), c = slotCost(); if (!c || s.jade < c) return false; s.jade -= c; s.expeSlots = (s.expeSlots || 0) + 1; Game.save(); return true; }
   const EXPE_DAY = 3; // 순찰지마다 하루에 보낼 수 있는 횟수
   function expeDay() { const s = S(), d = new Date().toISOString().slice(0, 10); if (!s.expeDay || s.expeDay.day !== d) s.expeDay = { day: d, n: {} }; return s.expeDay; }
   const expeTodayLeft = id => Math.max(0, EXPE_DAY - (expeDay().n[id] || 0));
@@ -417,5 +420,5 @@ const Life = (() => {
       brew: RECIPES.some(canBrew),
     };
   }
-  return { PROP, propReady, propLeft, useProp, timerLeft, skipCost, skipJade, skipAd, SKIP_AD, judgeLeft, judgeCase, judge, JUDGE_MAX, docsCount, claimDocs, docsNext, fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeTodayLeft, EXPE_DAY, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
+  return { slotCost, buySlot, SLOT_JADE, PROP, propReady, propLeft, useProp, timerLeft, skipCost, skipJade, skipAd, SKIP_AD, judgeLeft, judgeCase, judge, JUDGE_MAX, docsCount, claimDocs, docsNext, fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeTodayLeft, EXPE_DAY, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
 })();
