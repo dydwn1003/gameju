@@ -20,7 +20,7 @@ const res=await p.evaluate(([mode,arg,OV])=>{
   const ids=UPGRADES.map(u=>u.id);const times=[],dmg=[];let t=0,last=0,docsLast=0,judgeDay=-1;
   const inc=()=>Game.incomePerSec(true);
   const buy=()=>{for(let k=0;k<80;k++){let best=null,bv=0;const base=inc();
-    for(const id of ids){const U=UPGRADES.find(u=>u.id===id);if(Game.lv(id)>=U.max)continue;const c=Game.cost(id);if(c>S.souls)continue;
+    for(const id of ids){const U=UPGRADES.find(u=>u.id===id);if(Game.lv(id)>=Game.umax(id))continue;const c=Game.cost(id);if(c>S.souls)continue;
      let v; if(id==='ledger'){v=c<=base*MM(t/864e2)*1800?1e9:0;} else {S.upg[id]=Game.lv(id)+1;const dd=inc()-base;S.upg[id]--;v=dd/c; if(v<=0&&c<=base*MM(t/864e2)*600)v=1e-30/c;}
      if(v>bv){bv=v;best=id;}}
     if(!best)break;S.souls-=Game.cost(best);S.upg[best]=Game.lv(best)+1;}};
@@ -28,6 +28,8 @@ const res=await p.evaluate(([mode,arg,OV])=>{
   const D0=[[0,60],[3,20],[6.5,20],[10,20],[14,20]], SESS=[[0,20],[4.5,20],[10,20],[14,20]];
   for(let day=0;day<60;day++){const SS=day?SESS:D0;for(let si=0;si<SS.length;si++){
    const st=(day*24+SS[si][0])*3600, dur=SS[si][1]*60, d=st/864e2;
+   // 졸개 정원(옥 120~480): 과금은 바로 40명, 꾸준히 하는 사람은 이틀마다 +5, 가볍게 하는 사람은 엿새마다 +5
+   S.mcap=MODE==='whale'||MODE==='payer'?4:Math.min(4,Math.floor(d/(MODE==='casual'?6:2)));
    if(st>last){const away=st-last;S.souls+=inc()*MM(d)*Math.min(away,Game.offHours()*3600)*Game.OFFLINE_RATE;
      // 파견: 칸 수 × 하루 약 2.5시간치(돌아올 때 받음)
      // 옥으로 늘린 파견 칸 (1칸 옥 100): 과금은 바로 4칸, 꾸준히 하는 사람은 1~2일차, 가볍게 하는 사람은 7일차에 2칸

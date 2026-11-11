@@ -220,7 +220,7 @@ const UI = (() => {
     $('#boost-t').textContent = b ? fmtClock((S().boostUntil - Date.now()) / 1000) : '';
     $('#btn-attend .dot').classList.toggle('on', Game.attendState().can);
     // 탭 알림 점
-    const can = ids => ids.some(id => { const U = UPGRADES.find(u => u.id === id); return Game.lv(id) < U.max && Game.cost(id) <= S().souls; });
+    const can = ids => ids.some(id => { const U = UPGRADES.find(u => u.id === id); return Game.lv(id) < Game.umax(id) && Game.cost(id) <= S().souls; });
     dot('grow', can(['pen', 'step', 'call', 'hand', 'luck', 'ledger']));
     dot('minion', can(['minion', 'drill']));
     dot('rank', Game.canTest() || Game.canReborn());
@@ -321,10 +321,10 @@ const UI = (() => {
       P.innerHTML = `<div class="ph"><h3>저승사자 수련</h3>${seg}</div>` + ['pen', 'call', 'hand', 'step', 'luck', 'ledger'].map(id => upRow(UPGRADES.find(u => u.id === id))).join('');
     } else if (tab === 'minion') {
       const n = Game.minions();
-      P.innerHTML = `<div class="ph"><h3>졸개 차사 <span class="sub">${n}/20명</span></h3>${seg}</div>
+      P.innerHTML = `<div class="ph"><h3>졸개 차사 <span class="sub">${n}/${Game.minionCap()}명</span></h3>${seg}</div>
         <div class="minions-view pbox" id="mview">${n ? '' : '<span class="empty">아직 졸개가 없어요. 고용하면 혼을 대신 거두고, 자리를 비워도 일해요.</span>'}</div>
-        ${upRow(UPGRADES.find(u => u.id === 'minion'))}${upRow(UPGRADES.find(u => u.id === 'drill'))}
-        <p class="note">화면에는 졸개가 최대 4명까지 보이고, 나머지는 보이지 않는 곳에서 함께 일합니다.<br>자리를 비운 동안에는 수확 효율 60%로 최대 ${Game.offHours()}시간까지 쌓여요.</p>`;
+        ${upRow(UPGRADES.find(u => u.id === 'minion'))}${(() => { const mc = Game.minionCapCost(), cap = Game.minionCap(); return `<div class="row pbox ${mc ? '' : 'maxed'}"><div class="ic"><img class="px" src="${IC('jade', 3)}"></div><div class="info"><div class="nm">졸개 정원 늘리기<small>${cap}/40명</small></div><div class="ds">옥으로 고용할 수 있는 졸개를 5명 늘려요</div></div>${mc ? `<button class="btn jade" data-mcap="1" ${S().jade >= mc ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${mc}</button>` : '<button class="btn" disabled>MAX</button>'}</div>`; })()}${upRow(UPGRADES.find(u => u.id === 'drill'))}
+        <p class="note">화면에는 졸개가 최대 4명까지 보이고, 나머지는 보이지 않는 곳에서 함께 일합니다.<br>졸개는 처음 20명까지 고용할 수 있고, 옥으로 정원을 늘리면 최대 40명까지 늘어나요.</p>`;
       const mv = $('#mview');
       for (let i = 0; i < n; i++) { const c = document.createElement('canvas'); c.width = 14; c.height = 19; mv.appendChild(c); previews.push({ c, mini: true, ph: i }); }
     } else if (tab === 'rank') {
@@ -389,8 +389,8 @@ const UI = (() => {
     const s = S(); if (!s) return;
     UPGRADES.forEach(U => {
       const btn = document.querySelector(`[data-buy="${U.id}"]`); if (!btn) return;
-      const L = Game.lv(U.id), maxed = L >= U.max;
-      let n = mult === 'max' ? Math.max(1, Game.maxBuy(U.id).n) : Math.min(mult, U.max - L);
+      const L = Game.lv(U.id), um = Game.umax(U.id), maxed = L >= um;
+      let n = mult === 'max' ? Math.max(1, Game.maxBuy(U.id).n) : Math.min(mult, um - L);
       const c = maxed ? 0 : Game.cost(U.id, n);
       const X = Game.uxp(U.id); $(`#lv-${U.id}`).textContent = `Lv.${X.lv}`;
       const xt = $(`#xt-${U.id}`); if (xt) xt.textContent = X.need ? `경험치 ${Math.floor(X.cur / X.need * 100)}%` : '최대 레벨';
@@ -412,6 +412,7 @@ const UI = (() => {
   function onPanel(e) {
     const t = e.target.closest('button, [data-dexi]'); if (!t) return;
     if (t.dataset.mult) { mult = t.dataset.mult === 'max' ? 'max' : +t.dataset.mult; render(); return; }
+    if (t.dataset.mcap) { const c = Game.minionCapCost(); askBuy('졸개 정원 늘리기', '고용할 수 있는 졸개를 5명 늘릴까요?', c, 0, () => { if (Game.buyMinionCap()) { Sound.play('buy'); toast(`졸개 정원이 ${Game.minionCap()}명으로 늘었어요!`); } else { Sound.play('no'); toast('옥이 부족해요'); } render(); }); return; }
     if (t.dataset.buy) {
       const id = t.dataset.buy;
       const L0 = Game.lv(id), u0 = Game.ulv(id), g0 = Game.level();
@@ -1795,7 +1796,7 @@ const UI = (() => {
     const s = S(); if (!s.kind || $('#modal').classList.contains('on') || test) return;
     if (Date.now() - s.lastBuy < 180000 || Date.now() - s.stuckShown < 20 * 60000) return;
     const inc = Game.incomePerSec();
-    const cheapest = Math.min(...UPGRADES.filter(U => Game.lv(U.id) < U.max).map(U => Game.cost(U.id)));
+    const cheapest = Math.min(...UPGRADES.filter(U => Game.lv(U.id) < Game.umax(U.id)).map(U => Game.cost(U.id)));
     const N = Game.nextRank();
     if (cheapest <= s.souls + inc * 120 || Game.canTest()) return;
     s.stuckShown = Date.now(); Game.save();
