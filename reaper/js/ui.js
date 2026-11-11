@@ -1731,8 +1731,8 @@ const UI = (() => {
     if (S().jade < PULL_COST[10]) o.querySelector('#gs-ten').dataset.short = 'jade';
   }
   // ---------- 백귀야행 ----------
-  // 백귀야행: 하루 5번 + 옥 120개로 하루 5번 더
-  const PARADE_FREE = 5, PARADE_BUY = 5, PARADE_JADE = 120;
+  // 백귀야행: 하루 5번 + 옥 120개로 하루 3번 더
+  const PARADE_FREE = 5, PARADE_BUY = 3, PARADE_JADE = 120; // 하루 5번 + 옥으로 3번 더
   function paradeDay() { const pr = S().parade, d = new Date().toISOString().slice(0, 10); if (!pr.day || pr.day.d !== d) pr.day = { d, n: 0, buy: 0 }; return pr.day; }
   const paradeMidnight = () => Date.parse(paradeDay().d) + 864e5;
   function paradeAsk() {
@@ -1746,7 +1746,12 @@ const UI = (() => {
       const b = box.querySelector('#pa-buy'); if (b) b.onclick = () => { if (S().jade < PARADE_JADE) { Sound.play('no'); toast('옥이 부족해요'); return; } S().jade -= PARADE_JADE; closeModal(); startParade(true); };
       return;
     }
-    if (left <= 0) { startParade(); return; }
+    if (left <= 0) {
+      const box = modal(`<h2>👹 백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 지나가는 귀신과 혼령을 마구 터치해 콤보를 쌓으세요.</p><p>백귀야행을 부를까요?</p>
+        <div class="acts col"><button class="btn red" id="pa-go">부르기<em>${PARADE_FREE - pd.n}/${PARADE_FREE}</em></button><button class="btn dark" data-act="close">닫기</button></div>`);
+      box.querySelector('#pa-go').onclick = () => { closeModal(); startParade(); };
+      return;
+    }
     const today = new Date().toISOString().slice(0, 10); if (pr.ad.day !== today) pr.ad = { day: today, n: 0 };
     const box = modal(`<h2>백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 지나가는 귀신과 혼령을 마구 터치해 콤보를 쌓으세요.<br>금빛 귀신은 5배! 콤보가 높을수록 수확이 커져요 (최대 +400%).</p>
       <p>다음 행렬까지 <b style="color:var(--gold)">${fmtTime(left)}</b></p><p class="mute">오늘 ${pd.n}/${PARADE_FREE}번</p>
