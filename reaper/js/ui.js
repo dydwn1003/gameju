@@ -183,6 +183,7 @@ const UI = (() => {
     placeLabels(); tutPlace();
     paradeTick(dt);
     if (!S().kind) return;
+    if (!document.hidden && dt < 1) S().playSec = (S().playSec || 0) + dt; // 실제로 켜 둔 시간
     if (Scene.wraithAlive()) {
       autoAcc += dt;
       if (autoAcc >= 0.5) { autoAcc = 0; hitW(Game.wraithDps() * 0.5); }
@@ -572,7 +573,7 @@ const UI = (() => {
     const pet = s.petEq && s.pets && s.pets[s.petEq] ? Pets.P(s.petEq) : null, pst = pet ? Pets.stats(pet.id) : [0, 0, 0];
     const buffs = [Game.boosting() ? `2배 부적 ×2` : '', Game.sealLeft() > 0 ? `염라의 인장 ×2 (${fmtDays(Game.sealLeft())})` : '', Life.fortuneMul() > 1 ? `운세 ${s.fortune.last} ×${Life.fortuneMul()}` : '', ...['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0).map(k => `${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}`)].filter(Boolean);
     const row = (k, v, sub) => `<div class="st-row"><span>${k}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
-    const box = modal(`<div class="st-head"><canvas id="st-por" width="44" height="51"></canvas><div><b>${esc(s.name || '')}</b><span class="badge">${R.name}</span><small>Lv.${Game.level()} · ${REGIONS[R.region].name}${s.reborn ? ` · 윤회 ${s.reborn}회` : ''}</small>${N ? `<div class="prog"><i style="width:${Math.min(100, Game.level() / N.lv * 100)}%"></i></div><small>다음 계급 <b style="color:var(--gold)">${N.name}</b>까지 Lv.${N.lv}</small>` : '<small style="color:var(--gold)">최고 계급!</small>'}</div></div>
+    const box = modal(`<div class="st-head"><canvas id="st-por" class="pf-mini" width="120" height="84"></canvas><div><b>${esc(s.name || '')}</b><span class="badge">${R.name}</span><small>Lv.${Game.level()} · ${REGIONS[R.region].name}${s.reborn ? ` · 윤회 ${s.reborn}회` : ''}</small>${N ? `<div class="prog"><i style="width:${Math.min(100, Game.level() / N.lv * 100)}%"></i></div><small>다음 계급 <b style="color:var(--gold)">${N.name}</b>까지 Lv.${N.lv}</small>` : '<small style="color:var(--gold)">최고 계급!</small>'}</div></div>
       <div class="st-sec">⚡ 수확</div>
       ${row('혼 1개 가치', fmt(Game.value() * Game.avgTier()), `평균 등급 ×${f1(Game.avgTier())}`)}
       ${row('수확 시간', f1(Game.reap()) + '초', '거두는 데 걸리는 시간')}
@@ -599,7 +600,7 @@ const UI = (() => {
       ${row('명판결', fmt(s.judge ? s.judge.total || 0 : 0) + '건')}
       ${Board.place() ? row('순위', Board.place() + '위') : ''}
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    previews.push({ c: box.querySelector('#st-por'), kind: s.kind || 'm', pose: 'idle' });
+    previews.push({ c: box.querySelector('#st-por'), prof: { kind: s.kind || 'm', rank: s.rank, pet, star: pet ? s.pets[pet.id] : 1 } });
   }
 
   // ---------- 공지사항 · 전체 우편 ----------
@@ -732,7 +733,19 @@ const UI = (() => {
   }
   const rankIcon = (kind, rank) => { const k = 'rk' + kind + rank; return urls[k] || (urls[k] = toURL(SP.tinyReaper(kind || 'm', rank || 0, 'down', 'idle', 0), 2)); };
   function rankRow(r, place) {
-    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}</small></div><span class="rklv">Lv.${r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
+    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}${r.pt ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">Lv.${r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
+  }
+  // 실제 접속 시간 표기
+  const fmtPlay = sec => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? `${h}시간` : `${Math.max(1, m)}분`; };
+  // 차사 프로필: 저승사자 + 발밑 마법진 + 함께하는 영물(기운)
+  function profileModal(r, place) {
+    const R = RANKS[Math.min(8, r.rank || 0)], pet = r.pet ? PETS.find(p => p.id === r.pet) : null;
+    const row = (k, v) => `<div class="st-row"><span>${k}</span><b>${v}</b></div>`;
+    const box = modal(`<div class="pf"><canvas id="pf-cv" width="120" height="84"></canvas><h2>${esc(r.me ? (S().name || r.name) : r.name)}${r.me && (S().name || r.name) !== '나' ? ' <em>나</em>' : ''}</h2><span class="badge">${R.name}</span>
+      <div class="pf-rows">${row('순위', place ? place + '위' : '-')}${row('레벨', 'Lv.' + (r.lv || 1))}${r.rb ? row('윤회', r.rb + '회') : ''}${row('플레이 시간', r.pt ? fmtPlay(r.pt) : '-')}${row('함께하는 영물', pet ? `${pet.name} ★${r.ps || 1} <small>(${pet.g})</small>` : '없음')}</div></div>
+      <div class="acts">${r.id && !r.me ? `<button class="btn red" id="pf-visit">🏘️ 집무실 놀러 가기</button>` : ''}<button class="btn dark" data-act="close">닫기</button></div>`);
+    previews.push({ c: box.querySelector('#pf-cv'), prof: { kind: r.kind || 'm', rank: r.rank || 0, pet, star: r.ps || 1 } });
+    const v = box.querySelector('#pf-visit'); if (v) v.onclick = () => { closeModal(); visitOffice(r.id); };
   }
   // 닉네임 정하기 (순위·이웃 집무실에 보이는 이름)
   function nickModal(after) {
@@ -748,16 +761,18 @@ const UI = (() => {
       S().name = n; S().nickSet = true; Game.save(); Board.push(true); Board.pushOffice(); Sound.play('promote'); closeModal(); toast(`「${esc(n)}」(으)로 정했어요!`); after && after();
     };
   }
+  const mineProf = () => { const s = S(); return { name: s.nickSet ? s.name : '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 1 : 1, pt: s.playSec || 0 }; };
   async function rankModal() {
     if (Board.online() && !S().nickSet) { nickModal(rankModal); return; }
-    const s = S(), mine = { name: s.nickSet ? s.name : '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true };
+    const s = S(), mine = mineProf();
     const box = modal(`<h2>🏆 저승 명예의 전당</h2><p class="mute">레벨 순위 · 윤회한 차사가 먼저예요</p><div class="rklist" id="rk-list"><div class="rkload">순위를 불러오는 중…</div></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     const L = box.querySelector('#rk-list');
-    if (!Board.online()) { setTimeout(bindLogin, 0); L.innerHTML = rankRow(mine, 0) + `<p class="note">로그인하면 다른 차사들과 순위를 겨룰 수 있어요. 지금은 내 기록만 보여요.</p>${Cloud.ready() ? `<div class="acts">${loginBtn()}</div>` : ''}`; return; }
+    if (!Board.online()) { setTimeout(() => { bindLogin(); L.querySelectorAll('[data-prof]').forEach(el => el.addEventListener('click', () => { Sound.play('open'); profileModal(mineProf(), 0); })); }, 0); L.innerHTML = rankRow(mine, 0) + `<p class="note">로그인하면 다른 차사들과 순위를 겨룰 수 있어요. 지금은 내 기록만 보여요.</p>${Cloud.ready() ? `<div class="acts">${loginBtn()}</div>` : ''}`; return; }
     try {
       const r = await Board.top(); if (!document.body.contains(L)) return;
       if (!r || !r.rows.length) { L.innerHTML = '<div class="rkload">아직 순위에 오른 차사가 없어요</div>'; return; }
       L.innerHTML = r.rows.map((x, i) => rankRow(x, i + 1)).join('') + (r.rows.some(x => x.me) ? '' : `<div class="rkgap">⋯</div>${rankRow(mine, r.my)}`);
+      L.querySelectorAll('[data-prof]').forEach(el => el.addEventListener('click', e => { if (e.target.closest('[data-visit]')) return; const k = +el.dataset.prof, x = k >= 1 && k <= r.rows.length ? r.rows[k - 1] : mine; Sound.play('open'); profileModal(x.me ? Object.assign({}, mineProf(), { id: x.id }) : x, k); }));
       box.querySelector('h2').insertAdjacentHTML('afterend', `<div class="rkmy">내 순위 <b>${r.my}위</b></div>`);
       L.querySelectorAll('[data-visit]').forEach(b => b.onclick = () => { closeModal(); visitOffice(b.dataset.visit); });
     } catch (e) { if (document.body.contains(L)) L.innerHTML = rankRow(mine, 0) + '<p class="note">순위를 불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</p>'; }
@@ -1290,6 +1305,14 @@ const UI = (() => {
         }
         drawMagic(g, cx, cy, p.magic, t, p.msc || 1); return;
       }
+      if (p.prof) { // 프로필: 마법진 → 영물 기운 → 저승사자 · 영물
+        const P = p.prof, W = p.c.width, H = p.c.height, f2 = Math.floor(t * 3), im = SP.reaper(P.kind, P.rank, 'idle', f2 % 4), ft = feetOf(P.kind, P.rank);
+        const rx = Math.round(W * 0.36 - im.width / 2), ry = H - 8 - im.height, fx = rx + ft.x * im.width, fy = ry + ft.y * im.height;
+        drawMagic(g, fx, fy, P.rank, t, 1.6);
+        g.drawImage(im, rx, ry);
+        if (P.pet) { const pm = SP.pet(P.pet, f2), k2 = 2, pw = pm.width * k2, ph = pm.height * k2, px2 = Math.round(W * 0.75 - pw / 2), py2 = H - 8 - ph - (P.pet.fly ? 4 + Math.sin(t * 4) * 2 : 0); drawPetAura(g, px2 + pw / 2, py2 + ph, pw, ph, P.pet.g, P.star, t, 1); g.drawImage(pm, px2, py2, pw, ph); }
+        return;
+      }
       const f = Math.floor(t * 3 + (p.ph || 0));
       const img = p.pet ? SP.pet(p.pet, f) : p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.rank != null ? p.rank : S().rank, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4);
       g.drawImage(img, 0, 0, p.c.width, p.c.height);
@@ -1533,7 +1556,7 @@ const UI = (() => {
     clue: ['지도 위에서 빛나는 ✦ 단서를 찾아 누르세요.', 'clue'],
     rank: ['[승진] 탭에서 차사 레벨 조건을 채우면 승진하기 버튼으로 바로 승진해요.', 'rank'],
     rankNow: ['[승진] 탭에서 차사 레벨 조건을 채우면 승진하기 버튼으로 바로 승진해요.', 'rank'],
-    pets: ['아래 [펫] 탭에서 소환권이나 옥으로 영물을 불러오세요.', 'pet'],
+    pets: ['아래 [영물] 탭에서 소환권이나 옥으로 영물을 불러오세요.', 'pet'],
     'cnt.prop': ['지도의 나무 · 항아리 · 장승 위에 반짝임이 뜨면 눌러서 살펴보세요.', 'prop'],
     dex: ['가끔 나타나는 특별한 혼령을 거두거나 파견 보상으로 얻으면 도감에 등록돼요.', 'dex'],
     'cnt.harvest': ['[생활] → 꽃밭에서 씨앗을 심고, 다 자라면 눌러서 수확하세요.', 'garden'],
@@ -1587,7 +1610,7 @@ const UI = (() => {
     { text: '떠도는 <b>혼령</b>을 톡 눌러 거둬 보세요!', target: 'soul', ev: 'tap' },
     { text: '<b>땅</b>을 누르면 저승사자가 그곳으로 걸어가요. 한 번 눌러 보세요!', target: 'ground', ev: 'move' },
     { text: '모은 혼으로 <b>명부 필력</b>을 올리면 혼을 더 많이 거둬요. 눌러 보세요!', target: '[data-buy="pen"]', ev: 'buy', grant: 'souls', tab: 'grow' },
-    { text: '아래 <b>펫</b> 탭을 눌러 보세요. 저승사자를 돕는 영물이 있어요!', target: '#tabs [data-tab="pet"]', ev: 'tab:pet' },
+    { text: '아래 <b>영물</b> 탭을 눌러 보세요. 저승사자를 돕는 영물이 있어요!', target: '#tabs [data-tab="pet"]', ev: 'tab:pet' },
     { text: '첫 영물은 <b>무료</b>! 소환권으로 불러 보세요.', target: '[data-pull="ticket"]', ev: 'pull', grant: 'ticket' },
     { text: '화면 위 <b>퀘스트</b>를 따라가면 옥과 소환권을 받아요. 이제 마음껏 근무하세요!', target: '#story-bar', ev: 'ok', last: true },
   ];

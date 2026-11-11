@@ -40,3 +40,42 @@ function drawMagic(ctx, cx, cy, rank, t, scale) {
 }
 // 위로 피어오르는 빛가루를 낼지 (명부 판관 이상)
 const magicMotes = rank => (MAGIC[Math.min(rank, 8)] || {}).motes || 0;
+
+// ===== 영물 기운: S 은은한 기운 · SS 일렁이는 불꽃 · SSS 초사이어인처럼 치솟는 기운 =====
+// SSS 는 ★ 에 따라 1단계(★1~2) · 2단계(★3~4, 번개) · 3단계(★5, 더 크고 붉은 불꽃 + 솟는 불티)
+// (cx, by): 영물 발밑 가운데, w·h: 영물 그림 크기, sc: 도트 1칸 크기
+const PET_AURA = {
+  S: { c: ['#c070ff', '#f0d8ff'], fl: 0.35, n: 10, a: 0.8 },
+  SS: { c: ['#ffb030', '#fff0a0', '#ff7a30'], fl: 0.6, n: 9, a: 0.6 },
+  SSS: { c: ['#ffd34a', '#fff6c0', '#ff9a30'], fl: 0.95, n: 11, a: 0.75 },
+};
+function petAuraStage(grade, star) { return grade !== 'SSS' ? 0 : star >= 5 ? 3 : star >= 3 ? 2 : 1; }
+function drawPetAura(ctx, cx, by, w, h, grade, star, t, sc) {
+  const A = PET_AURA[grade]; if (!A) return;
+  sc = sc || 1; const st = petAuraStage(grade, star || 1), big = st === 3 ? 1.35 : st === 2 ? 1.15 : 1;
+  const cols = st === 3 ? ['#ff4a3a', '#ffd34a', '#fff6c0'] : A.c;
+  const rx = w * 0.55 * big, top = by - h * (1 + A.fl * big), cy = by - h * 0.45;
+  const px = (x, y, c, a, s) => { ctx.globalAlpha = a; ctx.fillStyle = c; const q = (s || 1) * sc; ctx.fillRect(Math.round(x / sc) * sc, Math.round(y / sc) * sc, q, q); };
+  // 몸을 감싸는 은은한 빛 (도트 디더)
+  const ry = h * 0.7 * big;
+  for (let yy = -ry; yy <= ry; yy += sc) for (let xx = -rx; xx <= rx; xx += sc) { const d = Math.hypot(xx / rx, yy / ry); if (d < 1 && ((Math.round(xx / sc) + Math.round(yy / sc)) & 1)) px(cx + xx, cy + yy, cols[0], A.a * 0.35 * (1 - d)); }
+  if (grade === 'S') { // 은은하게 도는 빛 알갱이
+    for (let i = 0; i < A.n; i++) { const q = i / A.n * Math.PI * 2 + t * 1.6, x = cx + Math.cos(q) * rx, y = cy + Math.sin(q) * ry * 0.8; px(x, y, cols[i % 2], 0.55 + 0.4 * Math.sin(t * 5 + i), 2); }
+    ctx.globalAlpha = 1; return;
+  }
+  // 위로 치솟는 불꽃 (SS · SSS): 몸 둘레를 빈틈없이 감싸고, 가운데가 가장 높게 일렁임
+  for (let x = cx - rx; x <= cx + rx; x += sc) {
+    const f = (x - cx) / rx, edge = Math.max(0, 1 - f * f), col = Math.round(x / sc);
+    const flick = 0.6 + 0.25 * Math.sin(t * 11 + col * 1.3) + 0.15 * Math.sin(t * 23 + col * 0.7);
+    const hh = (by - top) * (0.25 + 0.75 * edge) * flick;
+    for (let k = 0; k < hh; k += sc) { const r = k / hh, c = r < 0.45 ? cols[0] : r < 0.8 ? (cols[2] || cols[0]) : cols[1]; px(x, by - k, c, A.a * (r < 0.85 ? 0.9 - r * 0.5 : 0.35)); }
+    if (((col + Math.floor(t * 8)) % 4) === 0) px(x, by - hh - sc * (1 + (col % 3)), cols[1], 0.7); // 끝에서 튀는 불꽃
+  }
+  if (st >= 2) { // 번개 (2단계부터)
+    for (let b = 0; b < (st === 3 ? 3 : 2); b++) { if (Math.sin(t * 7 + b * 2.1) < 0.2) continue; let x = cx + (b - 1) * rx * 0.8, y = top + h * 0.1; for (let k = 0; k < 6; k++) { const nx = x + (((k + b + Math.floor(t * 10)) % 3) - 1) * 2 * sc, ny = y + h * 0.18; for (let s = 0; s <= 4; s++) px(x + (nx - x) * s / 4, y + (ny - y) * s / 4, '#bfe8ff', 0.95); x = nx; y = ny; } }
+  }
+  if (st === 3) { // 솟구치는 불티
+    for (let i = 0; i < 10; i++) { const life = (t * 0.9 + i * 0.37) % 1, x = cx + Math.sin(i * 12.9) * rx * 1.1, y = by - life * (by - top) * 1.3; px(x, y, i % 2 ? '#fff6c0' : '#ff7a30', 1 - life); }
+  }
+  ctx.globalAlpha = 1;
+}

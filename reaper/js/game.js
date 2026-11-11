@@ -226,7 +226,7 @@ const Game = (() => {
     Scene.setRegion(RANKS[S.rank].region);
     if (S.kind) Scene.setKind(S.kind);
     Scene.setRank(S.rank);
-    Scene.setPet(S.petEq && S.pets && S.pets[S.petEq] ? Pets.P(S.petEq) : null);
+    Scene.setPet(S.petEq && S.pets && S.pets[S.petEq] ? Object.assign({}, Pets.P(S.petEq), { star: S.pets[S.petEq] }) : null);
   }
 
   // ---------- 광고 ----------
