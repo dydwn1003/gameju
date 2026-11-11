@@ -201,7 +201,7 @@ const UI = (() => {
     if (!previews.some(p => p.c === $('#me-por'))) previews.push({ c: $('#me-por'), kind: S().kind || 'm', pose: 'idle', keep: 1, me: 1 });
     previews.forEach(p => { if (p.me) p.kind = S().kind || 'm'; });
     if (Game.canTest() && S().notified !== S().rank) { S().notified = S().rank; toast(`📜 레벨 ${Game.nextRank().lv} 달성! 승진할 수 있어요 (승진 탭)`, 3500); }
-    dot('shop', Game.adLeft('jade') > 0);
+    dot('shop', Game.adLeft('jfree') > 0 || Game.adLeft('jade') > 0);
     dot('pet', Pets.adLeft() > 0 || S().jade >= PULL_COST[1] || S().tickets > 0);
     storyBar();
     const pr = S().parade || (S().parade = { next: Date.now() + 3 * 60e3, ad: { day: '', n: 0 } }), pl = (pr.next - Date.now()) / 1000;
@@ -344,8 +344,8 @@ const UI = (() => {
     let h = `<div class="sec">무료 보상</div><div class="grid2">
       <div class="card pbox"><img class="px" src="${IC('luck', 3)}"><div class="nm">2배 부적 10분</div><div class="ds">혼 수확·화력 2배</div>
         <button class="btn" data-act="boostAd" ${Game.adLeft('boost') > 0 ? '' : 'disabled'}>광고 보기<em>${Game.adLeft('boost')}/${AD_LIMIT.boost}</em></button></div>
-      <div class="card pbox"><img class="px" src="${IC('jade', 4)}"><div class="nm">옥 10개</div><div class="ds">하루 ${AD_LIMIT.jade}번까지</div>
-        <button class="btn jade" data-act="jadeAd" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>광고 보기<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button></div>
+      <div class="card pbox"><img class="px" src="${IC('jade', 4)}"><div class="nm">옥 ${FREE_JADE}개</div><div class="ds">매일 무료 ${AD_LIMIT.jfree}번 · 광고 ${AD_LIMIT.jade}번</div>
+        ${Game.adLeft('jfree') > 0 ? `<button class="btn jade" data-act="jadeFree">무료 받기<em>${Game.adLeft('jfree')}/${AD_LIMIT.jfree}</em></button>` : `<button class="btn jade" data-act="jadeAd" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>광고 보기<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button>`}</div>
     </div><div class="sec">옥 상점</div><div class="grid2">`;
     h += JADE_SHOP.map(J => `<div class="card pbox"><img class="px" src="${IC(J.hours ? 'scroll' : J.boost ? 'luck' : 'minion', J.hours ? 4 : 3)}"><div class="nm">${J.name}</div><div class="ds">${J.desc}${J.hours ? `<br><b style="color:var(--soul)">+${fmt(Game.incomePerSec(true) * 3600 * J.hours)}</b>` : ''}</div>
       ${J.day ? `<div class="ds" style="color:var(--gold)">오늘 ${Game.jadeLeft(J.id)}/${J.day}회 남음</div>` : ''}${Game.jadeMaxed(J.id) ? '<div class="ds" style="color:var(--gold)">졸개가 최대예요</div>' : ''}<button class="btn jade" data-jade="${J.id}" ${Game.jadeCost(J.id) == null || Game.jadeMaxed(J.id) ? 'disabled' : s.jade >= Game.jadeCost(J.id) ? '' : 'data-short="jade"'}>${Game.jadeMaxed(J.id) ? '최대' : Game.jadeCost(J.id) == null ? '내일 다시' : `<img class="px" src="${IC('jade', 2)}">${Game.jadeCost(J.id)}`}</button></div>`).join('');
@@ -426,7 +426,8 @@ const UI = (() => {
     if (a === 'test') { if (!Game.canTest()) return; const old = S().rank, R0 = RANKS[old].region; if (Game.promote()) { Scene.pillar(); promoted(RANKS[S().rank].region !== R0, old); Board.push(true); } render(); }
     else if (a === 'reborn') confirmBox(`<h2>윤회</h2><p>직급·수련·보유한 혼이 처음으로 돌아갑니다.<br>모든 수확량이 영구히 ×${(1 + (S().reborn + 1) * 1.5).toFixed(1)}가 됩니다.</p>`, () => { Game.reborn(); Sound.play('promote'); toast('윤회했다! 새로운 생이 시작된다'); render(); });
     else if (a === 'boostAd') { closeModal(); boostAd(); }
-    else if (a === 'jadeAd') { if (Game.adLeft('jade') <= 0) return; ad(() => { Game.useAd('jade'); S().jade += 10; Game.save(); toast('옥 +10'); render(); }); }
+    else if (a === 'jadeFree') { if (Game.adLeft('jfree') <= 0) return; Game.useAd('jfree'); S().jade += FREE_JADE; Game.save(); Sound.play('buy'); toast(`옥 +${FREE_JADE}`); render(); }
+    else if (a === 'jadeAd') { if (Game.adLeft('jade') <= 0) return; ad(() => { Game.useAd('jade'); S().jade += FREE_JADE; Game.save(); toast(`옥 +${FREE_JADE}`); render(); }); }
     else if (a === 'close') closeModal();
   }
 
@@ -1171,13 +1172,14 @@ const UI = (() => {
     const row = P => `<div class="bp-row"><img class="px" src="${IC(P.icon || 'jade', 3)}"><div><b>${P.name}</b><small>${P.desc || ''}</small></div>${P.tag ? `<em>${P.tag}</em>` : ''}<button class="btn red" data-bp="${P.id}">${priceOf(P.id)}</button></div>`;
     const jadeOpts = !jadeKind ? JADE_SHOP.filter(J => J.hours || J.boost).map(J => { const c = Game.jadeCost(J.id); return c == null ? '' : `<div class="bp-row"><img class="px" src="${IC(J.hours ? 'scroll' : 'luck', 3)}"><div><b>${J.name}</b><small>${J.desc}${J.hours ? ' · +' + fmt(Game.incomePerSec(true) * 3600 * J.hours) : ''}</small></div><button class="btn jade" data-bj="${J.id}" ${s.jade >= c ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${c}</button></div>`; }).join('') : '';
     const box = modal(`<div class="bp-head"><b>${jadeKind ? '💎 옥이 부족해요' : '🔥 혼이 부족해요'}</b><small>보유 ${jadeKind ? `옥 <i class="red">${fmt(s.jade)}</i>` : `혼 <i class="red">${fmt(s.souls)}</i>`}</small></div>
-      ${jadeKind ? `<div class="bp-ad"><span>📺 광고 보고 옥 10개</span><button class="btn" id="bp-ad" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>무료<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button></div>` : `<div class="bp-ad"><span>📺 광고 보고 2배 부적</span><button class="btn" id="bp-ad" ${Game.adLeft('boost') > 0 ? '' : 'disabled'}>무료<em>${Game.adLeft('boost')}/${AD_LIMIT.boost}</em></button></div>${jadeOpts}`}
+      ${jadeKind ? (Game.adLeft('jfree') > 0 ? `<div class="bp-ad"><span>🎁 매일 무료 옥 ${FREE_JADE}개</span><button class="btn" id="bp-free">받기<em>${Game.adLeft('jfree')}/${AD_LIMIT.jfree}</em></button></div>` : `<div class="bp-ad"><span>📺 광고 보고 옥 ${FREE_JADE}개</span><button class="btn" id="bp-ad" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>무료<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button></div>`) : `<div class="bp-ad"><span>📺 광고 보고 2배 부적</span><button class="btn" id="bp-ad" ${Game.adLeft('boost') > 0 ? '' : 'disabled'}>무료<em>${Game.adLeft('boost')}/${AD_LIMIT.boost}</em></button></div>${jadeOpts}`}
       <div class="sec">${jadeKind ? '옥 충전' : '빠르게 성장하기'}</div><div class="bp-list">${packs.map(row).join('')}</div>
       ${payNote()}<div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelectorAll('[data-bp]').forEach(b => b.onclick = () => { closeModal(); pay(b.dataset.bp); });
     box.querySelectorAll('[data-bj]').forEach(b => b.onclick = () => { const J = JADE_SHOP.find(x => x.id === b.dataset.bj), c = Game.jadeCost(J.id); closeModal();
       askBuy(J.name, J.desc, c, 0, () => { const r = Game.jadeBuy(J.id); if (r) { Sound.play('buy'); toast(typeof r === 'number' ? `+${fmt(r)} 혼` : '사용!'); render(); } else { Sound.play('no'); toast('옥이 부족해요'); } }); });
     const ad0 = box.querySelector('#bp-ad'); if (ad0) ad0.onclick = () => { closeModal(); if (jadeKind) act('jadeAd'); else boostAd(); };
+    const fr0 = box.querySelector('#bp-free'); if (fr0) fr0.onclick = () => { closeModal(); act('jadeFree'); };
   }
   // ---------- 모달 ----------
   function modal(html, noClose) {

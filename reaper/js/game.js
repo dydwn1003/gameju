@@ -47,7 +47,8 @@ const JADE_SHOP = [
   { id: 'j_minion', name: '특급 졸개', cost: 300, minion: 1, desc: '졸개 1명 즉시 고용' },
 ];
 const ATTEND = [20, 30, 40, 50, 60, 80, 150];
-const AD_LIMIT = { boost: 8, jade: 5, skip: 12, wraith: 5 }; // 하루 광고 횟수
+const AD_LIMIT = { boost: 8, jade: 3, jfree: 2, skip: 12, wraith: 5 }; // 하루 횟수 (jfree: 광고 없이 무료로 받는 옥)
+const FREE_JADE = 20; // 상점 무료 옥 · 광고 옥 1번에 받는 양
 
 const Game = (() => {
   const KEY = 'jeoseung_v1';

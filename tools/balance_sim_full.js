@@ -11,6 +11,8 @@ const res=await p.evaluate(([mode,arg,OV])=>{
  const MODE=OV.MODE||'full';delete OV.MODE;
  // 실험용: SESS 접속 패턴 [[시각,분],…] · NOAD 광고 부적 안 씀 · NOJADE 옥으로 정원/파견 칸 안 삼
  const XS=OV.SESS;delete OV.SESS;const NOAD=OV.NOAD;delete OV.NOAD;const NOJADE=OV.NOJADE;delete OV.NOJADE;
+ // QJ: 하루 의뢰 옥 → 옥 수입을 따라 졸개 정원·파견 칸을 실제로 사는 시점을 계산 (무과금 모드)
+ const QJ=OV.QJ;delete OV.QJ;const JOUT=window.__jlog=[];
  for(const id in OV)Object.assign(UPGRADES.find(u=>u.id===id),OV[id]);
  const DOC_SEC=[21,35,53,77,105,133,168,210,252], JUDGE_SEC=[10,18,28,42,56,74,95,116,140];
  const lerp=(pts,d)=>{for(let i=1;i<pts.length;i++){if(d<=pts[i][0]){const [d0,v0]=pts[i-1],[d1,v1]=pts[i];return v0+(v1-v0)*(d-d0)/(d1-d0);}}return pts[pts.length-1][1];};
@@ -20,7 +22,7 @@ const res=await p.evaluate(([mode,arg,OV])=>{
  // 광고 부적: 하루 8번 × 10분 = 80분 → 첫날(접속 140분)은 일부만, 이후(접속 80분)는 접속 내내 2배
  const ACT=d=>MODE==='casual'?1.05:(NOAD?1:(d<1?1+80/140:2))*(d<0.1?1:1.5)*1.05; // 접속 중: 2배 부적 × 탕약 × 운세 (가볍게 하는 사람은 버프 안 씀)
  function run(lvs,stopRank){lvs.forEach((v,i)=>RANKS[i].lv=v);const S=Game.S;S.created=0;S.kind='m';S.souls=0;S.upg={};S.rank=0;S.reborn=0;S.boostUntil=0;S.sealUntil=(MODE==='whale'||MODE==='payer')?Date.now()+1e12:0;
-  const ids=UPGRADES.map(u=>u.id);const times=[],dmg=[];let t=0,last=0,docsLast=0,judgeDay=-1;
+  const ids=UPGRADES.map(u=>u.id);const times=[],dmg=[];let t=0,last=0,docsLast=0,judgeDay=-1,jDay=-1,jade=0,jCap=0,jSlot=0;const jBuy=[['cap',120],['slot',200],['cap',240],['cap',360],['slot',400],['cap',480]];
   const inc=()=>Game.incomePerSec(true);
   const buy=()=>{for(let k=0;k<80;k++){let best=null,bv=0;const base=inc();
     for(const id of ids){const U=UPGRADES.find(u=>u.id===id);if(Game.lv(id)>=Game.umax(id))continue;const c=Game.cost(id);if(c>S.souls)continue;
@@ -32,11 +34,16 @@ const res=await p.evaluate(([mode,arg,OV])=>{
   for(let day=0;day<150;day++){const SS=day?SESS:D0;for(let si=0;si<SS.length;si++){
    const st=(day*24+SS[si][0])*3600, dur=SS[si][1]*60, d=st/864e2;
    // 졸개 정원(옥 120~480): 과금은 바로 40명, 꾸준히 하는 사람은 이틀마다 +5, 가볍게 하는 사람은 엿새마다 +5
+   const JECO=QJ!=null&&!NOJADE&&(MODE==='full'||MODE==='casual');
+   if(JECO&&jDay!==day){jDay=day; // 하루 옥 수입: 의뢰 + 상점 무료 40 + 광고 옥 60 + 출석 평균 61 + 결재 (2+직급)×8
+     jade+=(MODE==='casual'?QJ*0.75:QJ)+40+(NOAD||MODE==='casual'?0:60)+61+(2+S.rank)*8;
+     while(jBuy.length){const [k,c]=jBuy[0];if(jade<c)break;jade-=c;jBuy.shift();if(k==='cap')jCap++;else jSlot++;JOUT.push(k+' '+day+'일');}}
+   if(JECO){S.mcap=jCap;}else
    S.mcap=NOJADE?0:MODE==='whale'||MODE==='payer'?4:Math.min(4,Math.floor(d/(MODE==='casual'?6:2)));
    if(st>last){const away=st-last;S.souls+=inc()*MM(d)*Math.min(away,Game.offHours()*3600)*Game.OFFLINE_RATE;
      // 파견: 칸 수 × 하루 약 2.5시간치(돌아올 때 받음)
      // 옥으로 늘린 파견 칸 (옥 200·400): 과금은 바로 2칸, 꾸준히 하는 사람은 1~2일차, 가볍게 하는 사람은 7일차에 1칸
-     const slots=1+Math.floor(S.rank/2)+(NOJADE?0:1)*(MODE==='whale'||MODE==='payer'?2:MODE==='casual'?(d>=7?1:0):(d>=2?2:d>=1?1:0)); S.souls+=inc()*MM(d)*3600*0.875*slots*Math.min(away,86400)/86400;
+     const slots=1+Math.floor(S.rank/2)+(JECO?jSlot:(NOJADE?0:1)*(MODE==='whale'||MODE==='payer'?2:MODE==='casual'?(d>=7?1:0):(d>=2?2:d>=1?1:0))); S.souls+=inc()*MM(d)*3600*0.875*slots*Math.min(away,86400)/86400;
      t=st;}
    // 결재 서류
    const nd=Math.min(3,Math.floor((st-docsLast)/7200)); if(nd>0){S.souls+=inc()*MM(d)*DOC_SEC[Math.min(8,S.rank)]*nd; docsLast=nd>=3?st:docsLast+nd*7200;}
@@ -48,12 +55,12 @@ const res=await p.evaluate(([mode,arg,OV])=>{
    for(let x=0;x<dur;x+=10){t=st+x+10;const dd=t/864e2;S.souls+=(inc()*10+Game.value()*1.5*3*10*0.3)*MM(dd)*ACT(dd);buy();if(promo())return [times,dmg];}
    last=st+dur;}}
   return [times,dmg];}
- if(mode==='run'){window.__upg=[];const [tm,dm]=run(arg,8);return tm.map((x,i)=>[x,dm[i],window.__upg[i]]);}
+ if(mode==='run'){window.__upg=[];const [tm,dm]=run(arg,8);const r=tm.map((x,i)=>[x,dm[i],window.__upg[i]]);r.jlog=(window.__jlog||[]).join(', ');return {r,j:(window.__jlog||[]).join(', ')};}
  const tgt=arg, lvs=[0,1,2,3,4,5,6,7,8].map((_,i)=>i?9000+i:0);
  for(let k=1;k<=8;k++){let lo=lvs[k-1]+1,hi=99;
   while(lo<hi){const mid=(lo+hi+1)>>1;lvs[k]=mid;for(let j=k+1;j<=8;j++)lvs[j]=9000+j;const [tm]=run(lvs,k);const tk=tm[k-1];if(tk==null||tk>tgt[k-1])hi=mid-1;else lo=mid;}
   lvs[k]=lo;}
  return lvs;},[mode,arg,OV]);
 const f=s=>{const h=s/3600;return h<1?(s/60).toFixed(0)+'분':h<48?h.toFixed(1)+'시간':(h/24).toFixed(1)+'일';};
-if(mode==='run'){console.log(JSON.stringify(arg),'→',res.map(r=>f(r[0])).join(' , '));console.log('dmg',JSON.stringify(res.map(r=>+r[1].toPrecision(3))));if(process.env.UPG)res.forEach(r=>console.log(r[2]));}else console.log('lvs',JSON.stringify(res));
+if(mode==='run'){const J=res.j;const R0=res.r;console.log(JSON.stringify(arg),'→',R0.map(r=>f(r[0])).join(' , ')+(J?'  [옥 구매: '+J+']':''));console.log('dmg',JSON.stringify(R0.map(r=>+r[1].toPrecision(3))));if(process.env.UPG)R0.forEach(r=>console.log(r[2]));}else console.log('lvs',JSON.stringify(res));
 await b.close();})();
