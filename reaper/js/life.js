@@ -255,6 +255,7 @@ const Life = (() => {
   }
   const skipCost = secs => Math.max(20, Math.ceil(secs / 600) * 20); // 10분당 옥 20개
   function skipJade(kind, i) {
+    if (kind === 'mail') return false; // 까치 우편은 옥으로 단축할 수 없음 (광고 단축만)
     const l = timerLeft(kind, i), c = skipCost(l); if (l <= 0 || S().jade < c) return false;
     S().jade -= c; shiftTimer(kind, i, l + 1); return c;
   }
