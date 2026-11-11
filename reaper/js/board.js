@@ -132,7 +132,9 @@ const Board = (() => {
   async function notices() { if (!ready) return null; const snap = await timeout(db.collection('notices').orderBy('at', 'desc').limit(20).get()); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())); }
   async function postNotice(n) { const id = 'n' + Date.now(); await db.doc('notices/' + id).set(Object.assign({ at: Date.now() }, n)); return id; }
   async function delNotice(id) { await db.doc('notices/' + id).delete(); }
-  async function mails() { if (!ready) return null; const snap = await timeout(db.collection('mail').orderBy('at', 'desc').limit(60).get()); const now = Date.now(); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(m => !m.until || m.until > now); }
+  // 우편은 게스트도 읽을 수 있음 (로그인 없이 공개 키로 읽기 · 받은 기록은 내 저장에)
+  const mailDb = () => ready ? db : (typeof Cloud !== 'undefined' && Cloud.enabled() && Cloud.ready() ? Cloud.db : null);
+  async function mails() { const d = mailDb(); if (!d) return null; const snap = await timeout(d.collection('mail').orderBy('at', 'desc').limit(60).get()); const now = Date.now(); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(m => !m.until || m.until > now); }
   async function sendMail(m) { const id = 'm' + Date.now(); await db.doc('mail/' + id).set(Object.assign({ at: Date.now() }, m)); return id; }
   async function delMail(id) { await db.doc('mail/' + id).delete(); }
   // 닉네임 → 계정 id (특정 플레이어에게 우편 보낼 때). 못 찾은 닉네임은 missing 으로
@@ -143,5 +145,5 @@ const Board = (() => {
   async function refresh() { try { await top(); } catch (e) {} }
   // 순위 구간: 1 = 1위, 2 = 2~5위, 3 = 6~10위, 0 = 그 밖
   const tierOf = p => (p === 1 ? 1 : p >= 2 && p <= 5 ? 2 : p >= 6 && p <= 10 ? 3 : 0);
-  return { init, push, top, nickTaken, isOwner: () => owner, checkOwner: isOwner, notices, postNotice, delNotice, mails, sendMail, delMail, uidsByNick, total: () => total, pushOffice, offices, office, like, note, delNote, ownerDel, block, unblockAll, blockedCount, report, modHide, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, place: () => place, listen: f => (onPlace = f), _set: setPlace };
+  return { init, push, top, nickTaken, isOwner: () => owner, checkOwner: isOwner, notices, postNotice, delNotice, mails, sendMail, delMail, uidsByNick, total: () => total, pushOffice, offices, office, like, note, delNote, ownerDel, block, unblockAll, blockedCount, report, modHide, myLikes, guestbook, friends, toggleFriend, officesByIds, myId: () => uid, tierOf, online: () => ready, canMail: () => !!mailDb(), place: () => place, listen: f => (onPlace = f), _set: setPlace };
 })();

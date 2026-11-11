@@ -2,12 +2,13 @@
 
 > Supabase → **SQL Editor** → 아래 한 줄을 붙여 넣고 **Run**.
 > 처음 한 번은 최신 `server/schema.sql` 전체를 실행해 두어야 `send_mail` 이 생겨요.
-> 우편은 **로그인한 사람만** 받아요 (게스트는 로그인하면 받음). 한 사람이 한 우편을 한 번만 받아요.
+> 우편은 **게스트도** 받아요 (인터넷만 연결돼 있으면). 한 사람이 한 우편을 **한 번만** 받아요.
+> `p_souls`(혼 개수)는 2026-11-11 이후 `schema.sql` 을 다시 실행해야 생겨요.
 
 ## 기본 모양
 
 ```sql
-select send_mail('제목', '받는 사람', p_jade => 옥, p_tickets => 소환권, p_hours => 혼(시간치), p_days => 받을 기간(일), p_body => '내용');
+select send_mail('제목', '받는 사람', p_jade => 옥, p_tickets => 소환권, p_souls => 혼(개수), p_hours => 혼(시간치), p_days => 받을 기간(일), p_body => '내용');
 ```
 
 | 받는 사람 | 누가 받나 |
@@ -22,6 +23,7 @@ select send_mail('제목', '받는 사람', p_jade => 옥, p_tickets => 소환�
 |---|---|---|
 | `p_jade` | 옥 | 0 |
 | `p_tickets` | 영물 소환권 | 0 |
+| `p_souls` | 혼 (정해진 개수, 예: 500) | 0 |
 | `p_hours` | 몇 시간치 혼 (받는 사람의 현재 수입 기준) | 0 |
 | `p_decor` | 꾸미기 소품 id (예: `'cc5'`) | 없음 |
 | `p_days` | 받을 수 있는 기간(일) | 7 |
@@ -45,6 +47,11 @@ select send_mail('🙏 테스트 참여 감사 선물', 'old', p_jade => 500, p_
 ```
 
 ### 신규 환영
+**신규 가입 선물** (보낸 뒤 14일 동안 처음 시작하는 사람, 게스트 포함, 1인 1회)
+```sql
+select send_mail('👋 신규 차사 환영 선물', 'new', p_jade => 300, p_tickets => 10, p_souls => 500, p_days => 14, p_body => '저승사자 키우기에 오신 걸 환영해요! 첫걸음에 보탬이 되길 바라요.');
+```
+
 **새로 시작한 차사 환영 선물** (보낸 뒤 30일 동안 새로 시작하는 사람)
 ```sql
 select send_mail('👋 신규 차사 환영 선물', 'new', p_jade => 200, p_tickets => 3, p_days => 30);

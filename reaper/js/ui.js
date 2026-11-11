@@ -675,17 +675,17 @@ const UI = (() => {
     return true;
   }
   const myMails = list => (list || []).filter(mailFor);
-  async function refreshMail() { if (!Board.online()) return; try { mailCache = await Board.mails(); const gotM = S().mailGot || {}; generalNew = myMails(mailCache).some(m => !gotM[m.id]); mailWatch(); const nl = await loadNotices(); $('#btn-notice .dot').classList.toggle('on', nl.some(n => (n.at || 0) > (S().noticeSeen || 0))); } catch (e) {} }
-  const rewardChips = m => [m.jade ? `💎 옥 ${m.jade}` : '', m.tickets ? `🎫 소환권 ${m.tickets}` : '', m.hours ? `🔥 ${m.hours}시간치 혼` : '', m.decor && Decor.D(m.decor) ? `🏮 ${Decor.D(m.decor).name}` : ''].filter(Boolean);
+  async function refreshMail() { if (!Board.canMail()) return; try { mailCache = await Board.mails(); const gotM = S().mailGot || {}; generalNew = myMails(mailCache).some(m => !gotM[m.id]); mailWatch(); const nl = await loadNotices(); $('#btn-notice .dot').classList.toggle('on', nl.some(n => (n.at || 0) > (S().noticeSeen || 0))); } catch (e) {} }
+  const rewardChips = m => [m.jade ? `💎 옥 ${m.jade}` : '', m.souls ? `🔥 혼 ${fmt(m.souls)}` : '', m.tickets ? `🎫 소환권 ${m.tickets}` : '', m.hours ? `🔥 ${m.hours}시간치 혼` : '', m.decor && Decor.D(m.decor) ? `🏮 ${Decor.D(m.decor).name}` : ''].filter(Boolean);
   function claimMail(m) {
     const s = S(); s.mailGot = s.mailGot || {}; if (s.mailGot[m.id] || !mailFor(m)) return false; s.mailGot[m.id] = Date.now();
-    if (m.jade) s.jade += +m.jade; if (m.tickets) s.tickets = (s.tickets || 0) + (+m.tickets); if (m.hours) Game.gain(Game.incomePerSec(true) * 3600 * m.hours);
+    if (m.jade) s.jade += +m.jade; if (m.souls) Game.gain(+m.souls); if (m.tickets) s.tickets = (s.tickets || 0) + (+m.tickets); if (m.hours) Game.gain(Game.incomePerSec(true) * 3600 * m.hours);
     if (m.decor && Decor.D(m.decor)) { const dc = Decor.ensure(); dc.own[m.decor] = (dc.own[m.decor] || 0) + 1; }
     Game.save(); return true;
   }
   async function mailModal() {
     const admin = Board.online() && await Board.checkOwner();
-    if (!Board.online()) { modal(`<h2>📮 우편함</h2><p>운영자 우편은 로그인하면 받을 수 있어요.<br><span class="mute">까치 우편은 마을의 까치를 눌러 받아요.</span></p><div class="acts">${loginBtn()}<button class="btn dark" data-act="close">닫기</button></div>`); bindLogin(); return; }
+    if (!Board.canMail()) { modal(`<h2>📮 우편함</h2><p>운영자 우편은 로그인하면 받을 수 있어요.<br><span class="mute">까치 우편은 마을의 까치를 눌러 받아요.</span></p><div class="acts">${loginBtn()}<button class="btn dark" data-act="close">닫기</button></div>`); bindLogin(); return; }
     let raw = []; try { raw = mailCache = await Board.mails(); } catch (e) { raw = mailCache || []; }
     // 운영자는 모든 우편을 보고(받는 사람 표시) 지울 수 있음. 받기는 대상일 때만
     const list = admin ? raw : myMails(raw), gotM = S().mailGot || {}, left = list.filter(m => !gotM[m.id] && mailFor(m));
