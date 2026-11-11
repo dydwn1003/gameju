@@ -601,6 +601,31 @@ const UI = (() => {
     previews.push({ c: box.querySelector('#st-por'), prof: { kind: s.kind || 'm', rank: s.rank, pet, star: pet ? s.pets[pet.id] : 1 } });
   }
 
+  // ---------- 구매 복원: 설명 → 확인 → 결과 ----------
+  function restoreModal() {
+    const s = S(), seal = Game.sealLeft(), boost = Game.boosting() ? Math.max(0, (s.boostUntil - Date.now()) / 1000) : 0, b = s.bought || {};
+    const row = (k, v) => `<div class="st-row"><span>${k}</span><b>${v}</b></div>`;
+    const box = modal(`<h2>🔄 구매 복원</h2><p>휴대폰을 바꾸거나 앱을 다시 설치했을 때, 지금 스토어 계정으로 산 한 번만 사는 상품을 다시 받아요.</p>
+      <div class="st-sec">복원되는 상품</div>
+      ${row('🚫 광고 제거', s.noAds ? '✔ 적용 중' : '복원 대상')}
+      ${row('🎁 신입 차사 패키지', b.starter ? '✔ 구매 기록 있음' : '복원 대상')}
+      <p class="mute" style="font-size:11px">신입 차사 패키지는 다시 지급되지 않고, 이미 산 상품으로 표시돼요.</p>
+      <div class="st-sec">복원되지 않는 상품</div>
+      <p class="mute" style="font-size:11px">옥 · 승진 응원 패키지 · 염라의 인장 · 특제 의자는 사는 순간 바로 지급되는 상품이라 복원 대상이 아니에요. 로그인해 두면 게임 기록과 함께 보관돼요.</p>
+      <div class="st-sec">지금 남은 기간</div>
+      ${row('👑 염라의 인장 (혼 수확 2배)', seal ? fmtDays(seal) : '없음')}
+      ${row('🧧 2배 부적', boost ? fmtClock(boost) : '없음')}
+      <p>구매 복원을 할까요?</p>
+      <div class="acts"><button class="btn red" id="rs-go">복원하기</button><button class="btn dark" data-act="close">취소</button></div>`);
+    box.querySelector('#rs-go').onclick = async () => {
+      const before = { ads: !!s.noAds, st: !!b.starter }; closeModal(); toast('구매 내역을 확인하는 중…', 2000);
+      const ok = await Native.restore(); await new Promise(r => setTimeout(r, 1500));
+      if (!ok) { got('스토어에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.', { emo: '⚠️', title: '복원하지 못했어요' }); return; }
+      const t = S(), items = [!before.ads && t.noAds ? '🚫 광고 제거' : '', !before.st && (t.bought || {}).starter ? '🎁 신입 차사 패키지 (구매 기록)' : ''].filter(Boolean);
+      got(items.length ? `복원된 상품<br><b>${items.join('<br>')}</b>` : '새로 복원할 상품이 없어요.<br><span class="mute">이 스토어 계정으로 산 한 번만 사는 상품이 없거나, 이미 적용돼 있어요.</span>', { emo: '🔄', title: items.length ? '복원 완료!' : '복원 확인 완료' });
+      render();
+    };
+  }
   // ---------- 공지사항 · 전체 우편 ----------
   // 오늘 하루 그만보기: 한국 시간(UTC+9) 다음 날 00시까지 숨김
   const nextKstMidnight = () => { const D = 864e5, K = 9 * 3600e3; return Math.floor((Date.now() + K) / D) * D + D - K; };
@@ -1403,7 +1428,7 @@ const UI = (() => {
       }, '영구 삭제'), 50), '계속'));
     on('#s-ask', () => { closeModal(); askModal(); });
     on('#s-priv', () => { closeModal(); privacyModal(); });
-    on('#s-restore', async () => { toast('구매 내역을 확인하는 중…', 1500); const ok = await Native.restore(); toast(ok ? '구매 내역을 복원했어요' : '스토어에 연결하지 못했어요', 2200); render(); });
+    on('#s-restore', () => { closeModal(); restoreModal(); });
     on('#s-look', () => charSelect(false));
     on('#s-lang', () => { closeModal(); langPicker(false); });
     if (Board.online()) Board.blockedCount().then(n => { const r = box.querySelector('#s-blkrow'); if (r && n) { r.style.display = ''; box.querySelector('#s-blkn').textContent = n; } }).catch(() => {});
