@@ -93,7 +93,7 @@ const UI = (() => {
     document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => { if (sheetDrag.moved) return; if (tab === b.dataset.tab && sheetOpen()) { closeSheet(); Sound.play('open'); return; } goTab(b.dataset.tab); Sound.play('open'); tutEv('tab:' + tab); }));
     $('#sheet-h').addEventListener('click', () => { if (sheetDrag.moved) return; closeSheet(); Sound.play('open'); });
     sheetSwipe(); document.addEventListener('dragstart', e => e.preventDefault()); // 아이콘 이미지가 끌려가며 터치가 취소되지 않게
-    $('#btn-boost').addEventListener('click', boostAd);
+    $('#btn-boost').addEventListener('click', boostAsk);
     $('#btn-attend').addEventListener('click', attendModal);
     $('#btn-quest').addEventListener('click', questModal);
     $('#btn-parade').addEventListener('click', paradeAsk);
@@ -1136,6 +1136,13 @@ const UI = (() => {
     let n = 3;
     modal(`<div class="adbox"><p style="color:var(--mute)">광고 시청 중 (테스트)</p><div class="cnt" id="adcnt">${n}</div><p>실제 출시 때는 구글 보상형 광고가 나옵니다.</p></div>`, true);
     const iv = setInterval(() => { n--; const e = $('#adcnt'); if (e) e.textContent = n; if (n <= 0) { clearInterval(iv); closeModal(); onReward(); } }, 1000);
+  }
+  // 화면의 2배 부적 버튼: 먼저 물어보고 광고 보기
+  function boostAsk() {
+    const n = Game.adLeft('boost'), left = Game.boosting() ? Math.max(0, (S().boostUntil - Date.now()) / 1000) : 0;
+    const box = modal(`<h2>🧧 2배 부적 10분</h2><p>광고를 보면 10분 동안 혼 수확·화력이 2배가 돼요.<br><span class="mute">하루 ${AD_LIMIT.boost}번까지 · 남은 시간에 이어서 늘어나요</span></p>${left ? `<p>지금 남은 시간 <b style="color:var(--gold)">${fmtClock(left)}</b></p>` : ''}
+      <div class="acts"><button class="btn red" id="bs-ad" ${n > 0 ? '' : 'disabled'}>광고 보기<em>${n}/${AD_LIMIT.boost}</em></button><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelector('#bs-ad').onclick = () => { closeModal(); boostAd(); };
   }
   function boostAd() {
     if (Game.adLeft('boost') <= 0) { toast('오늘 광고 부적을 모두 썼어요. 상점에서 옥으로 살 수 있어요'); return; }
