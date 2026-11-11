@@ -153,12 +153,6 @@ const UI = (() => {
   function wraithTap(x, y) { hitW(Game.tapDmg(), x, y, true); }
   function onKill(p) {
     Sound.play('kill');
-    if (test) {
-      test = null; $('#test-bar').classList.remove('on'); setTimeout(() => Scene.exitArena(), 1200);
-      const R0 = RANKS[S().rank].region;
-      const oldRank = S().rank; if (Game.promote()) { Scene.pillar(); promoted(RANKS[S().rank].region !== R0, oldRank); }
-      render(); return;
-    }
     S().stats.wraith++; Life.qEvent('wraith');
     const amt = Math.max(Game.incomePerSec() * 8, Game.value() * 10); // 원귀 퇴치 보상
     Game.gain(amt);
@@ -168,9 +162,7 @@ const UI = (() => {
     const t = toast(`👻 원귀 퇴치! <b>+${fmt(amt)}</b> 혼${jade ? ` · 옥 +${jade}` : ''}`, 6000, Game.adLeft('wraith') > 0 ? [{ label: `광고 보고 3배 (${Game.adLeft('wraith')})`, cls: '', fn: () => { if (Game.adLeft('wraith') <= 0) return; ad(() => { Game.useAd('wraith'); Game.gain(amt * 2); toast(`보상 3배! +${fmt(amt * 2)}`); }); } }] : []);
     Game.save();
   }
-  function wraithGone() {
-    if (test) failTest();
-  }
+  function wraithGone() {}
   function tick(dt) {
     placeLabels(); tutPlace();
     paradeTick(dt);
@@ -182,28 +174,8 @@ const UI = (() => {
       nextWraith -= dt;
       if (nextWraith <= 0) { nextWraith = rnd(70, 110); Scene.spawnWraith(Math.max(Game.value() * 50, Game.incomePerSec() * 8), 22); toast('👻 원귀가 나타났다! 터치해서 퇴치하자', 2200); }
     }
-    if (test) {
-      test.t -= dt;
-      $('#test-bar').innerHTML = `승진 시험 · 원귀 퇴치 <span style="color:#fff">${Math.max(0, test.t).toFixed(1)}초</span>`;
-      if (test.t <= 0 && Scene.wraithAlive()) failTest();
-    }
   }
-  function startTest() {
-    const N = Game.nextRank(); if (!N || !Game.canTest() || test) return;
-    test = { t: 30 };
-    Scene.enterArena(); toast('⚔️ 명부전 시험장에 들어섰다!', 2000);
-    setTimeout(() => Scene.spawnWraith(Game.testHp(), 31), 700);
-    $('#test-bar').classList.add('on');
-    toast('⚔️ 승진 시험 시작! 30초 안에 원귀를 퇴치하라 (연타!)', 2500);
-  }
-  function failTest() {
-    setTimeout(() => Scene.exitArena(), 900);
-    test = null; $('#test-bar').classList.remove('on');
-    Sound.play('no');
-    modal(`<h2>승진 시험 실패…</h2><p>원귀가 사라졌다.<br>명부 필력과 졸개를 키워 화력을 높이자.</p>
-      <p style="color:var(--gold)">2배 부적을 쓰면 화력도 2배가 된다!</p>
-      <div class="acts"><button class="btn red" data-act="boostAd">2배 부적 (광고)</button><button class="btn dark" data-act="close">닫기</button></div>`, true);
-  }
+  // 승진은 시험 없이: 레벨을 채우면 승진 탭의 '승진하기'로 바로 승진
 
   // ---------- HUD ----------
   function hud() {
@@ -318,13 +290,13 @@ const UI = (() => {
     const P = $('#panel'); previews = previews.filter(p => p.keep && document.body.contains(p.c));
     const seg = `<div class="seg">${[1, 10, 'max'].map(m => `<button data-mult="${m}" class="${mult === m ? 'on' : ''}">${m === 'max' ? 'MAX' : '×' + m}</button>`).join('')}</div>`;
     if (tab === 'grow') {
-      P.innerHTML = `<div class="ph"><h3>저승사자 수련 <span class="sub" id="main-boost">위세 ×${Game.mainBoost().toFixed(2)}</span></h3>${seg}</div>` + ['pen', 'call', 'hand', 'step', 'luck', 'ledger'].map(id => upRow(UPGRADES.find(u => u.id === id))).join('') + '<p class="note">수련 업그레이드 레벨이 1 오를 때마다 저승사자 본인의 수확이 13%씩 늘어요 (위세). 졸개에게는 붙지 않아요.</p>';
+      P.innerHTML = `<div class="ph"><h3>저승사자 수련 <span class="sub" id="main-boost">위세 ×${Game.mainBoost().toFixed(2)}</span></h3>${seg}</div>` + ['pen', 'call', 'hand', 'step', 'luck', 'ledger'].map(id => upRow(UPGRADES.find(u => u.id === id))).join('') + '<p class="note">수련 업그레이드 레벨이 1 오를 때마다 저승사자 본인의 수확이 18%씩 늘어요 (위세). 졸개에게는 붙지 않아요.</p>';
     } else if (tab === 'minion') {
       const n = Game.minions();
       P.innerHTML = `<div class="ph"><h3>졸개 차사 <span class="sub">${n}/${Game.minionCap()}명</span></h3>${seg}</div>
         <div class="minions-view pbox" id="mview">${n ? '' : '<span class="empty">아직 졸개가 없어요. 고용하면 혼을 대신 거두고, 자리를 비워도 일해요.</span>'}</div>
-        ${upRow(UPGRADES.find(u => u.id === 'minion'))}${(() => { const mc = Game.minionCapCost(), cap = Game.minionCap(); return `<div class="row pbox ${mc ? '' : 'maxed'}"><div class="ic"><img class="px" src="${IC('jade', 3)}"></div><div class="info"><div class="nm">졸개 정원 늘리기<small>${cap}/40명</small></div><div class="ds">옥으로 고용할 수 있는 졸개를 5명 늘려요</div></div>${mc ? `<button class="btn jade" data-mcap="1" ${S().jade >= mc ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${mc}</button>` : '<button class="btn" disabled>MAX</button>'}</div>`; })()}${upRow(UPGRADES.find(u => u.id === 'drill'))}
-        <p class="note">화면에는 졸개가 최대 4명까지 보이고, 나머지는 보이지 않는 곳에서 함께 일합니다.<br>졸개는 처음 20명까지 고용할 수 있고, 옥으로 정원을 늘리면 최대 40명까지 늘어나요.</p>`;
+        ${upRow(UPGRADES.find(u => u.id === 'minion'))}${(() => { const mc = Game.minionCapCost(), cap = Game.minionCap(); return `<div class="row pbox ${mc ? '' : 'maxed'}"><div class="ic"><img class="px" src="${IC('jade', 3)}"></div><div class="info"><div class="nm">졸개 정원 늘리기<small>${cap}/40명</small></div><div class="ds">옥으로 정원을 5명 늘려요 · 21번째부터는 <b>정예 졸개</b> (1명이 졸개 1.75명 몫)</div></div>${mc ? `<button class="btn jade" data-mcap="1" ${S().jade >= mc ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${mc}</button>` : '<button class="btn" disabled>MAX</button>'}</div>`; })()}${upRow(UPGRADES.find(u => u.id === 'drill'))}
+        <p class="note">화면에는 졸개가 최대 4명까지 보이고, 나머지는 보이지 않는 곳에서 함께 일합니다.<br>졸개는 처음 20명까지 고용할 수 있고, 옥으로 정원을 늘리면 최대 40명까지 늘어나요. 21번째부터는 정예 졸개라 1명이 졸개 1.75명 몫을 거둬요.</p>`;
       const mv = $('#mview');
       for (let i = 0; i < n; i++) { const c = document.createElement('canvas'); c.width = 14; c.height = 19; mv.appendChild(c); previews.push({ c, mini: true, ph: i }); }
     } else if (tab === 'rank') {
@@ -1506,8 +1478,8 @@ const UI = (() => {
     minion: ['아래 [졸개] 탭에서 졸개 차사 고용을 누르세요.', 'minion'],
     'cnt.wraith': ['원귀는 1~2분마다 나타나요. 나타나면 빠르게 연타해서 퇴치하세요!', 'wraith'],
     clue: ['지도 위에서 빛나는 ✦ 단서를 찾아 누르세요.', 'clue'],
-    rank: ['[승진] 탭에서 차사 레벨 조건을 채운 뒤, 승진 시험(판관 결투)을 이기세요.', 'rank'],
-    rankNow: ['[승진] 탭에서 차사 레벨 조건을 채운 뒤, 승진 시험(판관 결투)을 이기세요.', 'rank'],
+    rank: ['[승진] 탭에서 차사 레벨 조건을 채우면 승진하기 버튼으로 바로 승진해요.', 'rank'],
+    rankNow: ['[승진] 탭에서 차사 레벨 조건을 채우면 승진하기 버튼으로 바로 승진해요.', 'rank'],
     pets: ['아래 [펫] 탭에서 소환권이나 옥으로 영물을 불러오세요.', 'pet'],
     'cnt.prop': ['지도의 나무 · 항아리 · 장승 위에 반짝임이 뜨면 눌러서 살펴보세요.', 'prop'],
     dex: ['가끔 나타나는 특별한 혼령을 거두거나 파견 보상으로 얻으면 도감에 등록돼요.', 'dex'],
