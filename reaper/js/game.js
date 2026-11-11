@@ -43,7 +43,7 @@ const JADE_SHOP = [
   // 시간 두루마리는 하루 2번까지 (한 달 진행 밸런스 보호)
   { id: 'j_time2', name: '시간의 두루마리', cost: 120, prices: [120, 120], day: 2, hours: 1, desc: '1시간치 혼 즉시 획득' },
   { id: 'j_time8', name: '큰 시간의 두루마리', cost: 430, prices: [430, 430], day: 2, hours: 3, desc: '3시간치 혼 즉시 획득' },
-  { id: 'j_boost', name: '2배 부적 30분', cost: 120, boost: 30, desc: '30분간 혼 수확 2배' },
+  { id: 'j_boost', name: '2배 부적 30분', cost: 240, boost: 30, desc: '30분간 혼 수확 2배' },
   { id: 'j_minion', name: '특급 졸개', cost: 300, minion: 1, desc: '졸개 1명 즉시 고용' },
 ];
 const ATTEND = [20, 30, 40, 50, 60, 80, 150];

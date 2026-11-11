@@ -340,9 +340,9 @@ const UI = (() => {
     [['#of-now', s.rank], ['#of-next', s.rank + 1]].forEach(([q, t]) => { const c = $(q); if (!c) return; const g2 = c.getContext('2d'); g2.imageSmoothingEnabled = false; g2.drawImage(Scene.officeThumb(t, 150, 104), 0, 0); });
   }
   function renderShop(P) {
-    const s = S(), newbie = Date.now() - s.created < 864e5;
+    const s = S();
     let h = `<div class="sec">무료 보상</div><div class="grid2">
-      <div class="card pbox"><img class="px" src="${IC('luck', 3)}"><div class="nm">2배 부적 ${newbie ? 20 : 10}분</div><div class="ds">혼 수확·화력 2배${newbie ? '<br><span style="color:var(--gold)">신입 특전: 시간 2배!</span>' : ''}</div>
+      <div class="card pbox"><img class="px" src="${IC('luck', 3)}"><div class="nm">2배 부적 10분</div><div class="ds">혼 수확·화력 2배</div>
         <button class="btn" data-act="boostAd" ${Game.adLeft('boost') > 0 ? '' : 'disabled'}>광고 보기<em>${Game.adLeft('boost')}/${AD_LIMIT.boost}</em></button></div>
       <div class="card pbox"><img class="px" src="${IC('jade', 4)}"><div class="nm">옥 10개</div><div class="ds">하루 ${AD_LIMIT.jade}번까지</div>
         <button class="btn jade" data-act="jadeAd" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>광고 보기<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button></div>
@@ -1137,7 +1137,7 @@ const UI = (() => {
   }
   function boostAd() {
     if (Game.adLeft('boost') <= 0) { toast('오늘 광고 부적을 모두 썼어요. 상점에서 옥으로 살 수 있어요'); return; }
-    const min = Date.now() - S().created < 864e5 ? 20 : 10;
+    const min = 10; // 광고 1번 = 2배 부적 10분 (하루 8번)
     ad(() => { Game.useAd('boost'); Game.addBoost(min); Life.qEvent('ad'); Sound.play('promote'); toast(`2배 부적 ${min}분! 수확·화력 2배`); render(); });
   }
 

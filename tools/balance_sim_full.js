@@ -17,7 +17,8 @@ const res=await p.evaluate(([mode,arg,OV])=>{
  // 시간(일)에 따른 곱: 영물 보유(+0.5%씩) + 장착 영물 수확량, 꾸미기(최대 +25%), 도감(최대 +30%)
  const M=d=>(1+0.5*lerp([[0,0.03],[1,0.12],[3,0.25],[7,0.38],[14,0.47],[30,0.53]],d)+0.56*lerp([[0,0.03],[1,0.1],[3,0.17],[7,0.29],[14,0.35],[30,0.51]],d))*(1+0.625*lerp([[0,0],[0.5,0.05],[3,0.2],[7,0.32],[14,0.4]],d))*(1+0.6*lerp([[0,0],[0.3,0.1],[2,0.3],[5,0.45],[10,0.5]],d));
  const M0=M; const MM=d=>MODE==='whale'?M0(Math.max(d,30)):MODE==='casual'?1+(M0(d)-1)*0.6:M0(d); // 과금: 영물·소품 최고치 바로, 무과금 가볍게: 60%
- const ACT=d=>MODE==='casual'?1.05:(NOAD?1:2)*(d<0.1?1:1.5)*1.05; // 접속 중: 2배 부적 × 탕약 × 운세 (가볍게 하는 사람은 버프 안 씀)
+ // 광고 부적: 하루 8번 × 10분 = 80분 → 첫날(접속 140분)은 일부만, 이후(접속 80분)는 접속 내내 2배
+ const ACT=d=>MODE==='casual'?1.05:(NOAD?1:(d<1?1+80/140:2))*(d<0.1?1:1.5)*1.05; // 접속 중: 2배 부적 × 탕약 × 운세 (가볍게 하는 사람은 버프 안 씀)
  function run(lvs,stopRank){lvs.forEach((v,i)=>RANKS[i].lv=v);const S=Game.S;S.created=0;S.kind='m';S.souls=0;S.upg={};S.rank=0;S.reborn=0;S.boostUntil=0;S.sealUntil=(MODE==='whale'||MODE==='payer')?Date.now()+1e12:0;
   const ids=UPGRADES.map(u=>u.id);const times=[],dmg=[];let t=0,last=0,docsLast=0,judgeDay=-1;
   const inc=()=>Game.incomePerSec(true);

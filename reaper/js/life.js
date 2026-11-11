@@ -47,20 +47,20 @@ const SPECIALS = [
   ['도깨비 혼', '뿔 달린 장난꾸러기 혼령', 7], ['용의 혼', '용의 뿔이 난 혼령', 8], ['태고의 혼', '아주 오래된 보랏빛 혼령', 8],
 ].map(([name, desc, region], i) => ({ i, name, desc, region, lore: SPECIAL_LORE[i] }));
 const PLOT_COST = [0, 0, 0, 100, 200, 400]; // 옥으로 여는 밭
-// 일일 의뢰 (게시판): 하루 4개, 모두 끝내면 보너스
+// 일일 의뢰 (게시판): 하루 4개, 모두 끝내면 보너스 — 하루 약 옥 450
 const QUEST_POOL = [
-  { id: 'soul', name: '혼 거두기', need: [500, 1000, 2000], jade: 15 },
-  { id: 'tap', name: '혼령을 직접 터치해서 거두기', need: [20, 40], jade: 15 },
-  { id: 'wraith', name: '원귀 퇴치하기', need: [2, 3], jade: 20 },
-  { id: 'harvest', name: '꽃밭에서 꽃 수확하기', need: [2, 3], jade: 20 },
-  { id: 'brew', name: '주막에서 탕약 달이기', need: [1, 2], jade: 20 },
-  { id: 'send', name: '졸개 파견 보내기', need: [1, 2], jade: 20 },
-  { id: 'buy', name: '수련 올리기', need: [15, 30], jade: 15 },
-  { id: 'ad', name: '2배 부적 쓰기', need: [1], jade: 25 },
-  { id: 'judge', name: '집무실에서 망자 심판하기', need: [2, 3], jade: 20 },
-  { id: 'docs', name: '집무실 결재 서류 처리하기', need: [1], jade: 20 },
+  { id: 'soul', name: '혼 거두기', need: [500, 1000, 2000], jade: 80 },
+  { id: 'tap', name: '혼령을 직접 터치해서 거두기', need: [20, 40], jade: 80 },
+  { id: 'wraith', name: '원귀 퇴치하기', need: [2, 3], jade: 90 },
+  { id: 'harvest', name: '꽃밭에서 꽃 수확하기', need: [2, 3], jade: 90 },
+  { id: 'brew', name: '주막에서 탕약 달이기', need: [1, 2], jade: 90 },
+  { id: 'send', name: '졸개 파견 보내기', need: [1, 2], jade: 90 },
+  { id: 'buy', name: '수련 올리기', need: [15, 30], jade: 80 },
+  { id: 'ad', name: '2배 부적 쓰기', need: [1], jade: 100 },
+  { id: 'judge', name: '집무실에서 망자 심판하기', need: [2, 3], jade: 90 },
+  { id: 'docs', name: '집무실 결재 서류 처리하기', need: [1], jade: 90 },
 ];
-const QUEST_BONUS = 60;
+const QUEST_BONUS = 100; // 하루 의뢰 4개(80~100) + 보너스 100 ≈ 옥 450
 // 무당 운세 (하루 1번 무료 + 광고로 1번 더)
 const FORTUNES = [
   { name: '대길', p: 0.06, mul: 2, min: 60, text: '하늘이 돕는 날! 1시간 동안 혼 수확 2배' },
