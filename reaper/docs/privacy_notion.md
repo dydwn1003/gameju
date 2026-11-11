@@ -15,9 +15,10 @@
 | 구분 | 항목 | 목적 |
 |---|---|---|
 | 소셜 로그인 (선택) | 로그인 서비스(구글 · 카카오 · Apple)에서 받는 고유 식별자, 이메일 주소(제공 시), 닉네임 | 계정 만들기, 여러 기기에서 기록 이어 하기, 본인 확인 |
-| 게임 기록 | 게임 닉네임, 진행 상황(계급 · 재화 · 소품 · 펫 등), 순위 점수, 집무실 꾸미기, 방명록 글 | 저장 · 불러오기, 순위표와 집무실 방문 등 다른 이용자와 함께하는 기능 |
+| 게임 기록 | 게임 닉네임, 진행 상황(계급 · 재화 · 소품 · 펫 등), 순위 점수, 플레이 시간, 집무실 꾸미기, 방명록 글 | 저장 · 불러오기, 순위표와 집무실 방문 등 다른 이용자와 함께하는 기능 |
 | 결제 | 구매한 상품, 거래 번호 (카드 정보 등 결제 수단은 Google Play · App Store 가 처리하며 운영자는 받지 않음) | 상품 지급, 환불 · 결제 문의 처리 |
-| 광고 | 광고 식별자(Android 광고 ID · iOS IDFA, 이용자가 허용한 경우), 기기 정보 | 보상형 광고 표시 (Google AdMob) |
+| 광고 | 광고 식별자(Android 광고 ID · iOS IDFA, 이용자가 허용한 경우), 기기 정보, IP 주소로 추정한 대략적인 위치, 광고 이용 기록 | 보상형 광고 표시와 광고 성과 측정 (Google AdMob) |
+| 오류 · 성능 | 앱 충돌 기록, 실행 성능 정보 (광고 SDK 가 수집) | 오류 확인과 앱 안정성 개선 |
 | 1:1 문의 | 문의 내용, 기기 · 앱 버전 정보 | 문의 답변, 오류 확인 |
 
 게스트로 플레이하면 기록은 이용자의 기기에만 저장되고 운영자에게 보내지지 않습니다.
@@ -78,9 +79,10 @@ Gatju Mobile (갓주모바일) ("we") respects the privacy of everyone who plays
 | Category | Data | Purpose |
 |---|---|---|
 | Social login (optional) | Unique ID, email address (if provided) and nickname from the login service (Google, Kakao, Apple) | Create your account, continue on other devices, verify identity |
-| Game records | Nickname, progress (rank, currencies, items, pets, etc.), ranking score, office decoration, guestbook posts | Save/load, leaderboards, office visits and other shared features |
+| Game records | Nickname, progress (rank, currencies, items, pets, etc.), ranking score, play time, office decoration, guestbook posts | Save/load, leaderboards, office visits and other shared features |
 | Purchases | Purchased items and transaction IDs (payment methods such as card details are handled by Google Play / App Store; we never receive them) | Deliver items, handle refunds and payment inquiries |
-| Advertising | Advertising ID (Android Advertising ID / iOS IDFA, if you allow it), device information | Show rewarded ads (Google AdMob) |
+| Advertising | Advertising ID (Android Advertising ID / iOS IDFA, if you allow it), device information, approximate location estimated from IP address, ad interaction data | Show rewarded ads and measure ad performance (Google AdMob) |
+| Diagnostics | Crash logs and performance data (collected by the ad SDK) | Find errors and improve app stability |
 | Support inquiries | Message content, device and app version | Answer inquiries, fix bugs |
 
 If you play as a guest, your records stay only on your device and are not sent to us.
@@ -141,9 +143,10 @@ Gatju Mobile(갓주모바일)(以下「運営者」)は、モバイルゲーム�
 | 区分 | 項目 | 目的 |
 |---|---|---|
 | ソーシャルログイン(任意) | ログインサービス(Google・Kakao・Apple)から受け取る固有ID、メールアドレス(提供された場合)、ニックネーム | アカウント作成、複数端末での引き継ぎ、本人確認 |
-| ゲーム記録 | ニックネーム、進行状況(階級・通貨・小物・ペットなど)、ランキングスコア、執務室の飾り付け、ゲストブックの投稿 | セーブ・ロード、ランキングや執務室訪問など他のプレイヤーと遊ぶ機能 |
+| ゲーム記録 | ニックネーム、進行状況(階級・通貨・小物・ペットなど)、ランキングスコア、プレイ時間、執務室の飾り付け、ゲストブックの投稿 | セーブ・ロード、ランキングや執務室訪問など他のプレイヤーと遊ぶ機能 |
 | 決済 | 購入した商品、取引番号(カード情報などの決済手段は Google Play・App Store が処理し、運営者は受け取りません) | 商品の付与、返金・決済のお問い合わせ対応 |
-| 広告 | 広告ID(Android 広告ID・iOS IDFA、許可した場合)、端末情報 | リワード広告の表示(Google AdMob) |
+| 広告 | 広告ID(Android 広告ID・iOS IDFA、許可した場合)、端末情報、IPアドレスから推定したおおよその位置、広告の利用履歴 | リワード広告の表示と広告効果の測定(Google AdMob) |
+| エラー・パフォーマンス | クラッシュ記録、動作パフォーマンス情報(広告SDKが収集) | エラーの確認とアプリの安定性向上 |
 | お問い合わせ | お問い合わせ内容、端末・アプリのバージョン | 回答、不具合の確認 |
 
 ゲストでプレイした場合、記録は端末内にのみ保存され、運営者には送信されません。
@@ -204,9 +207,10 @@ Gatju Mobile(갓주모바일)(以下称"运营者")重视使用手机游戏《�
 | 类别 | 项目 | 目的 |
 |---|---|---|
 | 社交登录(可选) | 从登录服务(Google、Kakao、Apple)获得的唯一标识、电子邮箱(如提供)、昵称 | 创建账号、多设备继续游戏、身份确认 |
-| 游戏记录 | 昵称、进度(官阶、货币、道具、宠物等)、排行分数、办公室装饰、留言板内容 | 存档与读取、排行榜、拜访办公室等与其他玩家互动的功能 |
+| 游戏记录 | 昵称、进度(官阶、货币、道具、宠物等)、排行分数、游戏时长、办公室装饰、留言板内容 | 存档与读取、排行榜、拜访办公室等与其他玩家互动的功能 |
 | 支付 | 购买的商品、交易编号(银行卡等支付信息由 Google Play、App Store 处理,运营者不会获取) | 发放商品、处理退款及支付咨询 |
-| 广告 | 广告标识符(Android 广告 ID、iOS IDFA,经用户允许时)、设备信息 | 展示激励广告(Google AdMob) |
+| 广告 | 广告标识符(Android 广告 ID、iOS IDFA,经用户允许时)、设备信息、根据 IP 地址推测的大致位置、广告互动记录 | 展示激励广告及衡量广告效果(Google AdMob) |
+| 错误与性能 | 崩溃记录、运行性能信息(由广告 SDK 收集) | 排查错误、提升应用稳定性 |
 | 客服咨询 | 咨询内容、设备及应用版本 | 回复咨询、排查问题 |
 
 以游客身份游玩时,记录仅保存在您的设备上,不会发送给运营者。
