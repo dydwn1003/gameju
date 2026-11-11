@@ -114,7 +114,7 @@ const Cloud = (() => {
           else if (op === '>') q = SORT_COLS.includes(f) ? q.gt(f, v) : q.gt(`data->>${f}`, v);
           else if (op === 'array-contains') q = q.contains('data', { [f]: [v] });
         }
-        if (order) q = SORT_COLS.includes(order[0]) ? q.order(order[0], { ascending: order[1] !== 'desc', nullsFirst: false }) : q.order(`data->>${order[0]}`, { ascending: order[1] !== 'desc' });
+        if (order) q = SORT_COLS.includes(order[0]) ? q.order(order[0], { ascending: order[1] !== 'desc', nullsFirst: false }) : q.order(`data->${order[0]}`, { ascending: order[1] !== 'desc', nullsFirst: false }); // jsonb 로 정렬해야 숫자가 숫자 순서로
         q = q.limit(lim);
         const { data, error } = await q; if (error) throw error; return snap(data || []);
       },

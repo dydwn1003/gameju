@@ -117,7 +117,7 @@ const UI = (() => {
     $('#btn-rankb').addEventListener('click', rankModal);
     $('#me-card').addEventListener('click', statsModal);
     $('#btn-notice').addEventListener('click', () => noticeModal(false));
-    $('#btn-mail').addEventListener('click', mailModal);
+    $('#btn-mail').addEventListener('click', mailHub);
     setTimeout(noticeStartup, 1500); setInterval(refreshMail, 60e3); setTimeout(refreshMail, 4000); document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(refreshMail, 800); }); // 새 우편 · 공지 N 표시: 1분마다 + 게임으로 돌아올 때
     Board.listen(applyPlace); Board.init();
     $('#story-bar').addEventListener('click', storyTap);
@@ -195,24 +195,18 @@ const UI = (() => {
   // 승진은 시험 없이: 레벨을 채우면 승진 탭의 '승진하기'로 바로 승진
 
   // ---------- HUD ----------
-  // 까치 우편 알림 창: 새 편지가 오면 (켜 둔 동안) 또는 게임을 켰을 때 편지가 있으면
-  let mailSeen = null, mailBootT = 0;
-  function mailWatch() {
-    const s = S(); if (!s || !s.kind || (s.tut !== 'done' && s.tut != null)) return;
-    const n = Life.mailCount();
-    if (mailSeen == null) { mailSeen = n; if (n > 0) mailBootT = Date.now() + 4000; return; } // 켤 때 있던 편지는 잠깐 뒤에 한 번
-    if (mailBootT && Date.now() >= mailBootT) { mailBootT = 0; mailPop(n); }
-    if (n > mailSeen) mailPop(n);
-    mailSeen = n;
-  }
-  function mailPop(n) {
-    if (!n) return;
-    const busy = $('#modal').classList.contains('on') || document.querySelector('.tk-bg') || document.getElementById('tut') || parade || Scene.inOffice();
-    if (busy) { toast(`🐦 까치 우편 ${n}통이 왔어요!`, 5000, [{ label: '읽기', cls: '', fn: mailOpen }]); return; }
-    Sound.play('open');
-    const box = modal(`<div class="got"><div class="got-ic">🐦</div><h2>까치 우편이 왔어요!</h2><p class="got-t">까치가 저승 곳곳에서 선물을 물어 왔어요. (${n}통)</p><p class="mute">4시간마다 1통, 최대 3통까지 쌓여요</p></div>
-      <div class="acts"><button class="btn red" id="ml-read">읽기</button><button class="btn dark" data-act="close">나중에</button></div>`);
-    box.querySelector('#ml-read').onclick = () => { closeModal(); mailOpen(); };
+  // 우편함 N: 운영자 우편(새 우편) 또는 까치 우편(편지가 있으면)
+  let generalNew = false;
+  function mailWatch() { const d = $('#btn-mail .dot'); if (d) d.classList.toggle('on', generalNew || (!!S() && !!S().kind && Life.mailCount() > 0)); }
+  // 📮 우편함: 일반 우편 / 까치 우편 고르기
+  function mailHub() {
+    const n = Life.mailCount(), nx = Life.mailNext();
+    const box = modal(`<h2>📮 우편함</h2><div class="mh">
+      <button class="mh-b pbox" id="mh-gen"><span class="mh-ic">📜</span><b>일반 우편${generalNew ? ' <span class="new-tag">N</span>' : ''}</b><small>운영자가 보낸 선물 · 이벤트 보상</small></button>
+      <button class="mh-b pbox" id="mh-kk"><span class="mh-ic">🐦</span><b>까치 우편${n ? ' <span class="new-tag">N</span>' : ''}</b><small>${n ? `편지 ${n}통이 와 있어요` : `다음 편지까지 ${fmtTime(nx)}`} · 4시간마다 1통</small></button></div>
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelector('#mh-gen').onclick = () => { closeModal(); mailModal(); };
+    box.querySelector('#mh-kk').onclick = () => { closeModal(); mailOpen(); };
   }
   function hud() {
     if (!S()) return;
@@ -652,7 +646,7 @@ const UI = (() => {
     return true;
   }
   const myMails = list => (list || []).filter(mailFor);
-  async function refreshMail() { if (!Board.online()) return; try { mailCache = await Board.mails(); const gotM = S().mailGot || {}; $('#btn-mail .dot').classList.toggle('on', myMails(mailCache).some(m => !gotM[m.id])); const nl = await loadNotices(); $('#btn-notice .dot').classList.toggle('on', nl.some(n => (n.at || 0) > (S().noticeSeen || 0))); } catch (e) {} }
+  async function refreshMail() { if (!Board.online()) return; try { mailCache = await Board.mails(); const gotM = S().mailGot || {}; generalNew = myMails(mailCache).some(m => !gotM[m.id]); mailWatch(); const nl = await loadNotices(); $('#btn-notice .dot').classList.toggle('on', nl.some(n => (n.at || 0) > (S().noticeSeen || 0))); } catch (e) {} }
   const rewardChips = m => [m.jade ? `💎 옥 ${m.jade}` : '', m.tickets ? `🎫 소환권 ${m.tickets}` : '', m.hours ? `🔥 ${m.hours}시간치 혼` : '', m.decor && Decor.D(m.decor) ? `🏮 ${Decor.D(m.decor).name}` : ''].filter(Boolean);
   function claimMail(m) {
     const s = S(); s.mailGot = s.mailGot || {}; if (s.mailGot[m.id] || !mailFor(m)) return false; s.mailGot[m.id] = Date.now();
@@ -732,8 +726,8 @@ const UI = (() => {
     o.querySelector('#rk-go').onclick = () => { closeOverlay(); Sound.play('open'); };
   }
   const rankIcon = (kind, rank) => { const k = 'rk' + kind + rank; return urls[k] || (urls[k] = toURL(SP.tinyReaper(kind || 'm', rank || 0, 'down', 'idle', 0), 2)); };
-  function rankRow(r, place) {
-    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}${r.pt ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">Lv.${r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
+  function rankRow(r, place, by) {
+    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}${r.pt && by !== 'pt' ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">${by === 'pt' ? '⏱ ' + (r.pt ? fmtPlay(r.pt) : '-') : 'Lv.' + r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
   }
   // 실제 접속 시간 표기
   const fmtPlay = sec => { const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? `${h}시간` : `${Math.max(1, m)}분`; };
@@ -762,20 +756,22 @@ const UI = (() => {
     };
   }
   const mineProf = () => { const s = S(); return { name: s.nickSet ? s.name : '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 1 : 1, pt: s.playSec || 0 }; };
-  async function rankModal() {
-    if (Board.online() && !S().nickSet) { nickModal(rankModal); return; }
+  async function rankModal(by) {
+    by = by === 'pt' ? 'pt' : 'lv';
+    if (Board.online() && !S().nickSet) { nickModal(() => rankModal(by)); return; }
     const s = S(), mine = mineProf();
-    const box = modal(`<h2>🏆 저승 명예의 전당</h2><p class="mute">레벨 순위 · 윤회한 차사가 먼저예요</p><div class="rklist" id="rk-list"><div class="rkload">순위를 불러오는 중…</div></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    const box = modal(`<h2>🏆 저승 명예의 전당</h2><div class="subtabs rk-tabs"><button data-rkby="lv" class="${by === 'lv' ? 'on' : ''}">레벨 순위</button><button data-rkby="pt" class="${by === 'pt' ? 'on' : ''}">플레이 시간</button></div><p class="mute">${by === 'pt' ? '게임을 실제로 켜 둔 시간 순위예요' : '레벨 순위 · 윤회한 차사가 먼저예요'}</p><div class="rklist" id="rk-list"><div class="rkload">순위를 불러오는 중…</div></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelectorAll('[data-rkby]').forEach(b => b.onclick = () => { if (b.dataset.rkby === by) return; Sound.play('open'); closeModal(); rankModal(b.dataset.rkby); });
     const L = box.querySelector('#rk-list');
-    if (!Board.online()) { setTimeout(() => { bindLogin(); L.querySelectorAll('[data-prof]').forEach(el => el.addEventListener('click', () => { Sound.play('open'); profileModal(mineProf(), 0); })); }, 0); L.innerHTML = rankRow(mine, 0) + `<p class="note">로그인하면 다른 차사들과 순위를 겨룰 수 있어요. 지금은 내 기록만 보여요.</p>${Cloud.ready() ? `<div class="acts">${loginBtn()}</div>` : ''}`; return; }
+    if (!Board.online()) { setTimeout(() => { bindLogin(); L.querySelectorAll('[data-prof]').forEach(el => el.addEventListener('click', () => { Sound.play('open'); profileModal(mineProf(), 0); })); }, 0); L.innerHTML = rankRow(mine, 0, by) + `<p class="note">로그인하면 다른 차사들과 순위를 겨룰 수 있어요. 지금은 내 기록만 보여요.</p>${Cloud.ready() ? `<div class="acts">${loginBtn()}</div>` : ''}`; return; }
     try {
-      const r = await Board.top(); if (!document.body.contains(L)) return;
+      const r = await Board.top(by); if (!document.body.contains(L)) return;
       if (!r || !r.rows.length) { L.innerHTML = '<div class="rkload">아직 순위에 오른 차사가 없어요</div>'; return; }
-      L.innerHTML = r.rows.map((x, i) => rankRow(x, i + 1)).join('') + (r.rows.some(x => x.me) ? '' : `<div class="rkgap">⋯</div>${rankRow(mine, r.my)}`);
+      L.innerHTML = r.rows.map((x, i) => rankRow(x, i + 1, by)).join('') + (r.rows.some(x => x.me) ? '' : `<div class="rkgap">⋯</div>${rankRow(mine, r.my, by)}`);
       L.querySelectorAll('[data-prof]').forEach(el => el.addEventListener('click', e => { if (e.target.closest('[data-visit]')) return; const k = +el.dataset.prof, x = k >= 1 && k <= r.rows.length ? r.rows[k - 1] : mine; Sound.play('open'); profileModal(x.me ? Object.assign({}, mineProf(), { id: x.id }) : x, k); }));
-      box.querySelector('h2').insertAdjacentHTML('afterend', `<div class="rkmy">내 순위 <b>${r.my}위</b></div>`);
+      box.querySelector('.rk-tabs').insertAdjacentHTML('afterend', `<div class="rkmy">내 순위 <b>${r.my ? r.my + '위' : '50위 밖'}</b></div>`);
       L.querySelectorAll('[data-visit]').forEach(b => b.onclick = () => { closeModal(); visitOffice(b.dataset.visit); });
-    } catch (e) { if (document.body.contains(L)) L.innerHTML = rankRow(mine, 0) + '<p class="note">순위를 불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</p>'; }
+    } catch (e) { if (document.body.contains(L)) L.innerHTML = rankRow(mine, 0, by) + '<p class="note">순위를 불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</p>'; }
   }
   const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // ---------- 집무실 놀러 가기 ----------

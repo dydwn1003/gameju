@@ -993,3 +993,9 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .pf-rows { text-align: left; }
 .st-head canvas.pf-mini { width: 132px; height: 92px; flex: none; }
 .rkrow[data-prof] { cursor: pointer; }
+/* 우편함 고르기 */
+.mh { display: flex; flex-direction: column; gap: 10px; margin: 6px 0; }
+.mh-b { display: grid; grid-template-columns: 44px 1fr; grid-template-rows: auto auto; align-items: center; text-align: left; padding: 12px; gap: 2px 10px; cursor: pointer; color: inherit; font: inherit; }
+.mh-ic { grid-row: span 2; font-size: 30px; text-align: center; }
+.mh-b b { font-size: 15px; } .mh-b small { font-size: 11px; color: var(--mute); }
+.rk-tabs { margin: 4px 0 6px; }

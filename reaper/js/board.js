@@ -23,17 +23,19 @@ const Board = (() => {
     try { await db.doc('rank/' + uid).set(Object.assign(row, { at: Date.now() })); } catch (e) { lastSent = ''; }
   }
   // 상위 50명 + 내 순위
-  async function top() {
+  // by: 'lv' 레벨 순위(윤회 먼저) · 'pt' 플레이 시간 순위
+  async function top(by) {
+    const byPt = by === 'pt';
     if (!ready) return null;
     await push(true);
     const done = new Promise((res, rej) => setTimeout(() => rej(new Error('timeout')), 10000));
     const q = (async () => {
-      const snap = await db.collection('rank').orderBy('score', 'desc').limit(50).get();
+      const snap = await db.collection('rank').orderBy(byPt ? 'pt' : 'score', 'desc').limit(50).get();
       const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
       let my = rows.findIndex(r => r.id === uid) + 1;
-      if (!my && Game.S.nickSet) { const above = await db.collection('rank').where('score', '>', score(Game.S)).limit(1000).get(); my = above.size + 1; }
+      if (!my && Game.S.nickSet && !byPt) { const above = await db.collection('rank').where('score', '>', score(Game.S)).limit(1000).get(); my = above.size + 1; }
       let names = {}; try { names = await user.profiles(rows.map(r => r.id)); } catch (e) {}
-      setPlace(Game.S.nickSet ? my : 0, rows.length);
+      if (!byPt) setPlace(Game.S.nickSet ? my : 0, rows.length);
       return { rows: rows.map(r => Object.assign(r, { name: r.nick || (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid })), my, total: rows.length };
     })();
     return Promise.race([q, done]);
