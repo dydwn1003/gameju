@@ -348,7 +348,7 @@ const UI = (() => {
         ${Game.adLeft('jfree') > 0 ? `<button class="btn jade" data-act="jadeFree">무료 받기<em>${Game.adLeft('jfree')}/${AD_LIMIT.jfree}</em></button>` : `<button class="btn jade" data-act="jadeAd" ${Game.adLeft('jade') > 0 ? '' : 'disabled'}>광고 보기<em>${Game.adLeft('jade')}/${AD_LIMIT.jade}</em></button>`}</div>
     </div><div class="sec">옥 상점</div><div class="grid2">`;
     h += JADE_SHOP.map(J => `<div class="card pbox"><img class="px" src="${IC(J.hours ? 'scroll' : J.boost ? 'luck' : 'minion', J.hours ? 4 : 3)}"><div class="nm">${J.name}</div><div class="ds">${J.desc}${J.hours ? `<br><b style="color:var(--soul)">+${fmt(Game.incomePerSec(true) * 3600 * J.hours)}</b>` : ''}</div>
-      ${J.day ? `<div class="ds" style="color:var(--gold)">오늘 ${Game.jadeLeft(J.id)}/${J.day}회 남음</div>` : ''}${Game.jadeMaxed(J.id) ? '<div class="ds" style="color:var(--gold)">졸개가 최대예요</div>' : ''}<button class="btn jade" data-jade="${J.id}" ${Game.jadeCost(J.id) == null || Game.jadeMaxed(J.id) ? 'disabled' : s.jade >= Game.jadeCost(J.id) ? '' : 'data-short="jade"'}>${Game.jadeMaxed(J.id) ? '최대' : Game.jadeCost(J.id) == null ? '내일 다시' : `<img class="px" src="${IC('jade', 2)}">${Game.jadeCost(J.id)}`}</button></div>`).join('');
+      ${J.day ? `<div class="ds" style="color:var(--gold)">오늘 ${Game.jadeLeft(J.id)}/${J.day}회 남음</div>` : ''}${J.minion ? `<div class="ds">졸개 ${Game.minions()}/${Game.minionCap()}명</div>` : ''}${Game.jadeMaxed(J.id) ? (Game.minionCapCost() ? `<div class="ds" style="color:var(--gold)">정원이 가득 찼어요</div><button class="btn jade" data-mcap="1"><img class="px" src="${IC('jade', 2)}">정원 +5 · ${Game.minionCapCost()}</button>` : '<div class="ds" style="color:var(--gold)">졸개가 최대예요 (40명)</div>') : ''}${J.minion && Game.jadeMaxed(J.id) && Game.minionCapCost() ? '' : `<button class="btn jade" data-jade="${J.id}" ${Game.jadeCost(J.id) == null || Game.jadeMaxed(J.id) ? 'disabled' : s.jade >= Game.jadeCost(J.id) ? '' : 'data-short="jade"'}>${Game.jadeMaxed(J.id) ? '최대' : Game.jadeCost(J.id) == null ? '내일 다시' : `<img class="px" src="${IC('jade', 2)}">${Game.jadeCost(J.id)}`}</button>`}</div>`).join('');
     h += `</div><div class="sec">패키지</div><div class="grid2">`;
     h += SHOP_IAP.map(P => { const left = Game.iapLeft(P.id), own = left <= 0, sl = P.seal ? Game.sealLeft() : 0; return `<div class="card pbox ${own ? 'owned' : ''}">${P.tag ? `<span class="tag">${P.tag}</span>` : ''}<img class="px" src="${IC(P.icon, P.icon === 'jade' ? 4 : 3)}"><div class="nm">${P.name}</div><div class="ds">${P.desc || '보석함에 바로 지급'}</div>
       ${P.daily ? `<div class="ds" style="color:var(--gold)">하루 ${P.daily}번 · 오늘 ${Math.max(0, left)}번 남음</div>` : ''}${sl > 0 ? `<div class="ds" style="color:var(--jade)">효과 남은 기간 ${fmtDays(sl)}</div>` : ''}
@@ -404,7 +404,7 @@ const UI = (() => {
     }
     if (t.dataset.jade) {
       const J = JADE_SHOP.find(j => j.id === t.dataset.jade);
-      if (Game.jadeMaxed(J.id)) { toast('졸개가 이미 최대예요'); return; }
+      if (Game.jadeMaxed(J.id)) { toast(Game.minionCapCost() ? '정원이 가득 찼어요. 정원을 늘리면 더 고용할 수 있어요' : '졸개가 이미 최대예요 (40명)'); return; }
       if (Game.jadeCost(J.id) == null) { toast('오늘은 다 샀어요. 내일 다시 살 수 있어요'); return; }
       confirmBox(`<h2>${J.name}</h2><p>${J.desc}</p><p>옥 ${Game.jadeCost(J.id)}개를 사용할까요?${J.day ? `<br><small style="color:var(--mute)">하루 ${J.day}회 · 오늘 ${Game.jadeLeft(J.id)}회 남음</small>` : ''}</p>`, () => {
         const r = Game.jadeBuy(J.id);
