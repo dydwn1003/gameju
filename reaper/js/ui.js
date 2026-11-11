@@ -526,7 +526,10 @@ const UI = (() => {
   }
   function mailOpen() {
     const n = Life.mailCount();
-    if (!n) { speedUp('mail', 0, () => Life.mailCount() && mailOpen()); return; }
+    if (!n) { // 까치 우편은 단축 없이 4시간마다
+      modal(`<div class="got"><div class="got-ic">🐦</div><h2>까치 우편</h2><p class="got-t">다음 편지까지 <b>${fmtTime(Life.mailNext())}</b></p><p class="mute">까치는 4시간마다 편지를 1통씩 물어 와요 (최대 3통)</p></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+      return;
+    }
     const g = Life.openMail(); Sound.play('promote');
     modal(`<h2>까치 우편 ${g.length}통</h2><p>까치가 저승 곳곳에서 선물을 물어 왔어요.</p>${g.map(x => `<div class="offer pbox"><div class="info"><b>🎁 ${x}</b></div></div>`).join('')}<p class="mute" style="font-size:10px">4시간마다 1통, 최대 3통까지 쌓여요</p><div class="acts"><button class="btn red" data-act="close">받기</button></div>`);
   }

@@ -260,7 +260,7 @@ const Life = (() => {
     S().jade -= c; shiftTimer(kind, i, l + 1); return c;
   }
   const SKIP_AD = 30 * 60;
-  function skipAd(kind, i) { const l = timerLeft(kind, i); if (l <= 0) return false; shiftTimer(kind, i, Math.min(l + 1, SKIP_AD)); return true; }
+  function skipAd(kind, i) { if (kind === 'mail') return false; const l = timerLeft(kind, i); if (l <= 0) return false; shiftTimer(kind, i, Math.min(l + 1, SKIP_AD)); return true; }
 
   // ---------- 망자 심판 ----------
   const JUDGE_MAX = 5;
