@@ -48,17 +48,17 @@ const SPECIALS = [
 ].map(([name, desc, region], i) => ({ i, name, desc, region, lore: SPECIAL_LORE[i] }));
 const PLOT_COST = [0, 0, 0, 100, 200, 400]; // 옥으로 여는 밭
 // 일일 의뢰 (게시판): 하루 4개, 모두 끝내면 보너스 — 하루 약 옥 150
-const QUEST_POOL = [
-  { id: 'soul', name: '혼 거두기', need: [500, 1000, 2000], jade: 25 },
-  { id: 'tap', name: '혼령을 직접 터치해서 거두기', need: [20, 40], jade: 25 },
-  { id: 'wraith', name: '원귀 퇴치하기', need: [2, 3], jade: 30 },
-  { id: 'harvest', name: '꽃밭에서 꽃 수확하기', need: [2, 3], jade: 30 },
-  { id: 'brew', name: '주막에서 탕약 달이기', need: [1, 2], jade: 30 },
-  { id: 'send', name: '졸개 파견 보내기', need: [1, 2], jade: 30 },
+const QUEST_POOL = [ // 모두 쉽게: 어느 계급이든 하루에 가볍게 끝낼 수 있는 양 (office: 집무실이 열린 뒤에만 나옴)
+  { id: 'soul', name: '혼 거두기', need: [200, 300], jade: 25 },
+  { id: 'tap', name: '혼령을 직접 터치해서 거두기', need: [15, 25], jade: 25 },
+  { id: 'wraith', name: '원귀 퇴치하기', need: [1, 2], jade: 30 },
+  { id: 'harvest', name: '꽃밭에서 꽃 수확하기', need: [1, 2], jade: 30 },
+  { id: 'brew', name: '주막에서 탕약 달이기', need: [1], jade: 30 },
+  { id: 'send', name: '졸개 파견 보내기', need: [1], jade: 30 },
   { id: 'buy', name: '수련 올리기', need: [5], jade: 25 }, // 고레벨일수록 한 번 올리기가 비싸서 5번만
   { id: 'ad', name: '2배 부적 쓰기', need: [1], jade: 35 },
-  { id: 'judge', name: '집무실에서 망자 심판하기', need: [2, 3], jade: 30 },
-  { id: 'docs', name: '집무실 결재 서류 처리하기', need: [1], jade: 30 },
+  { id: 'judge', name: '집무실에서 망자 심판하기', need: [2], jade: 30, office: 1 },
+  { id: 'docs', name: '집무실 결재 서류 처리하기', need: [1], jade: 30, office: 1 },
 ];
 const QUEST_BONUS = 35; // 하루 의뢰 4개(25~35) + 보너스 35 ≈ 옥 150
 // 무당 운세 (하루 1번 무료 + 광고로 1번 더)
@@ -292,7 +292,7 @@ const Life = (() => {
     }
     let seed = [...day].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0;
     const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    const pool = QUEST_POOL.slice(), list = [];
+    const pool = QUEST_POOL.filter(q => !q.office || (s.rank || 0) >= 1), list = []; // 집무실(말단 차사 승진) 전에는 집무실 의뢰 빼기
     while (list.length < 4) { const q = pool.splice(Math.floor(r() * pool.length), 1)[0]; list.push({ id: q.id, need: q.need[Math.floor(r() * q.need.length)], have: 0, claimed: false }); }
     s.quest = { day, list, bonus: false };
   }
