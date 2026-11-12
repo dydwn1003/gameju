@@ -1,3 +1,5 @@
+// 하루 기준: 한국 시간 자정(00:00 KST)에 출석 · 의뢰 · 광고 횟수 등이 초기화
+const kstDay = (t = Date.now()) => new Date(t + 9 * 3600e3).toISOString().slice(0, 10);
 // ===== 저승사자 키우기: 상태 · 경제 · 저장 · 오프라인 보상 =====
 // lv: 승진할 수 있는 전체 레벨(업그레이드 레벨 합 + 1, 최대 99), hp: (예전 승진 시험용, 지금은 쓰지 않음)
 // 기준: 버프를 다 쓰는 플레이어(2배 부적 · 탕약 · 영물 · 꾸미기 · 도감 · 결재 · 파견 · 심판, 하루 4번 접속)가
@@ -71,7 +73,7 @@ const Game = (() => {
   const le = id => leOf(id, lv(id));
   const over = (id, L = lv(id)) => Math.max(0, L - capOf(id));
   const masteryMul = () => MASTER.reduce((m, id) => m * Math.pow(MASTERY, over(id)), 1);
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => kstDay();
 
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
@@ -238,7 +240,7 @@ const Game = (() => {
   function attendState() {
     const a = S.attend, t = today();
     if (a.day === t) return { can: false, streak: a.streak };
-    const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    const y = kstDay(Date.now() - 864e5);
     const streak = a.day === y ? a.streak % 7 : 0;
     return { can: true, streak, reward: ATTEND[streak] };
   }
@@ -249,7 +251,7 @@ const Game = (() => {
 
   // ---------- 상점 ----------
   // 하루 구매 제한(daily)이 있는 상품: 오늘 몇 번 더 살 수 있는지
-  function iapDay() { const d = new Date().toISOString().slice(0, 10); if (!S.iapDay || S.iapDay.day !== d) S.iapDay = { day: d, n: {} }; return S.iapDay; }
+  function iapDay() { const d = kstDay(); if (!S.iapDay || S.iapDay.day !== d) S.iapDay = { day: d, n: {} }; return S.iapDay; }
   function iapLeft(id) { const P = SHOP_IAP.find(p => p.id === id); if (P.once) return S.bought[id] ? 0 : 1; return P.daily ? P.daily - (iapDay().n[id] || 0) : Infinity; }
   const sealLeft = () => Math.max(0, ((S.sealUntil || 0) - Date.now()) / 1000);
   // paid: 실제로 결제된 지급 → 하루 한도로 막지 않음 (한 번만 사는 상품을 이미 가졌을 때만 막음)
@@ -267,7 +269,7 @@ const Game = (() => {
     if (P.noAds) S.noAds = true;
     apply(); save(); return true;
   }
-  function jbuyDay() { const d = new Date().toISOString().slice(0, 10); if (!S.jbuy || S.jbuy.day !== d) S.jbuy = { day: d, n: {} }; return S.jbuy; }
+  function jbuyDay() { const d = kstDay(); if (!S.jbuy || S.jbuy.day !== d) S.jbuy = { day: d, n: {} }; return S.jbuy; }
   // 오늘 남은 구매 횟수 (제한 없으면 Infinity) · 지금 가격 (다 샀으면 null)
   // 특급 졸개: 졸개가 최대(고용 한도)면 더 살 수 없음
   const jadeMaxed = id => { const J = JADE_SHOP.find(j => j.id === id); return !!(J && J.minion && lv('minion') >= minionCap()); };

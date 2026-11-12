@@ -199,7 +199,7 @@ const Pets = (() => {
     for (let i = 0; i < n; i++) res.push(pullOne(n === 10 && i === 9 && !res.some(r => PET_ORDER.indexOf(P(r.id).g) >= 2) ? 'A' : null));
     Game.apply(); Game.save(); return res;
   }
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => kstDay();
   const adLeft = () => { const a = S().petAd; if (a.day !== today()) { a.day = today(); a.n = 0; } return 2 - a.n; };
   function adPull() { if (adLeft() <= 0) return null; S().petAd.n++; return pull(1, true); }
   function equip(id) { if (!S().pets[id]) return false; S().petEq = id; Game.apply(); Game.save(); return true; }

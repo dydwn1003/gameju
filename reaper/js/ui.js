@@ -126,13 +126,14 @@ const UI = (() => {
     $('#cur-jade').addEventListener('click', () => { goTab('shop'); });
     $('#panel').addEventListener('click', onPanel);
     setInterval(hud, 200);
-    setInterval(() => { if (!document.hidden) { Game.save(); Board.push(); if (S().kind) Cloud.pushSave(S()); } }, 5000);
+    setInterval(() => { if (!document.hidden) { Game.save(); Board.push(); Stats.send(); if (S().kind) Cloud.pushSave(S()); } }, 5000);
+    setTimeout(() => Stats.session(), 3000); // 이번 접속 기록 (익명 이용 통계)
     setInterval(drawPreviews, 160);
     document.addEventListener('visibilitychange', () => { if (document.hidden) { Game.save(); if (S().kind) Cloud.pushSave(S(), true); } else checkOffline(); });
     window.addEventListener('pagehide', () => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
-    Native.setPause(() => { Sound.pause(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
+    Native.setPause(() => { Sound.pause(); Stats.send(true); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
     Native.setResume(() => { Sound.resume(); Push.back(); setTimeout(refreshMail, 800); });
     Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
     Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));
@@ -184,6 +185,7 @@ const UI = (() => {
     paradeTick(dt);
     if (!S().kind) return;
     if (!document.hidden && dt < 1) S().playSec = (S().playSec || 0) + dt; // 실제로 켜 둔 시간
+    Stats.tick(dt);
     if (Scene.wraithAlive()) {
       autoAcc += dt;
       if (autoAcc >= 0.5) { autoAcc = 0; hitW(Game.wraithDps() * 0.5); }
@@ -836,7 +838,7 @@ const UI = (() => {
     if (!cand.length) { toast('놀러 갈 집무실이 아직 없어요'); return; }
     visitOffice(cand[Math.floor(Math.random() * cand.length)].id);
   }
-  function visitR() { const d = new Date().toISOString().slice(0, 10); if (!S().visitR || S().visitR.day !== d) S().visitR = { day: d, ids: [] }; return S().visitR; }
+  function visitR() { const d = kstDay(); if (!S().visitR || S().visitR.day !== d) S().visitR = { day: d, ids: [] }; return S().visitR; }
   async function visitOffice(id) {
     toast('🏘️ 집무실로 가는 중…', 1200);
     let o = null; try { o = await Board.office(id); } catch (e) {}
@@ -1810,7 +1812,7 @@ const UI = (() => {
   // ---------- 백귀야행 ----------
   // 백귀야행: 하루 5번 + 옥 120개로 하루 3번 더
   const PARADE_FREE = 5, PARADE_BUY = 3, PARADE_JADE = 120; // 하루 5번 + 옥으로 3번 더
-  function paradeDay() { const pr = S().parade, d = new Date().toISOString().slice(0, 10); if (!pr.day || pr.day.d !== d) pr.day = { d, n: 0, buy: 0 }; return pr.day; }
+  function paradeDay() { const pr = S().parade, d = kstDay(); if (!pr.day || pr.day.d !== d) pr.day = { d, n: 0, buy: 0 }; return pr.day; }
   const paradeMidnight = () => Date.parse(paradeDay().d) + 864e5;
   function paradeAsk() {
     if (parade) return;
@@ -1829,7 +1831,7 @@ const UI = (() => {
       box.querySelector('#pa-go').onclick = () => { closeModal(); startParade(); };
       return;
     }
-    const today = new Date().toISOString().slice(0, 10); if (pr.ad.day !== today) pr.ad = { day: today, n: 0 };
+    const today = kstDay(); if (pr.ad.day !== today) pr.ad = { day: today, n: 0 };
     const box = modal(`<h2>백귀야행</h2><p>귀신 행렬이 지나가며 혼령이 쏟아지는 밤!<br>25초 동안 지나가는 귀신과 혼령을 마구 터치해 콤보를 쌓으세요.<br>금빛 귀신은 5배! 콤보가 높을수록 수확이 커져요 (최대 +400%).</p>
       <p>다음 행렬까지 <b style="color:var(--gold)">${fmtTime(left)}</b></p><p class="mute">오늘 ${pd.n}/${PARADE_FREE}번</p>
       <div class="acts col"><button class="btn red" id="pa-ad" ${pr.ad.n < 3 ? '' : 'disabled'}>광고 보고 바로 부르기<em>${3 - pr.ad.n}/3</em></button><button class="btn jade" id="pa-jade" ${S().jade >= Life.skipCost(left) ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">옥 ${Life.skipCost(left)}개로 바로 부르기</button><button class="btn dark" data-act="close">닫기</button></div>`);

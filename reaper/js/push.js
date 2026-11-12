@@ -50,8 +50,8 @@ const Push = (() => {
     if (s.mail) { const n = Life.mailCount(); if (n < MAIL_MAX) add(31, Life.mailNext() + (MAIL_MAX - 1 - n) * 4 * 3600, '🐦 까치 우편함이 가득 찼어요', '까치가 선물을 잔뜩 물어 왔어요. 우편함이 넘치기 전에 열어 보세요!', 5, '까치 우편'); }
     // 6) 백귀야행
     if (s.parade && s.parade.next > now) add(32, (s.parade.next - now) / 1000, '👹 백귀야행이 나타났어요', '요괴 행렬이 저승 길을 지나가요. 지금 들어오면 보상을 받을 수 있어요!', 7, '백귀야행');
-    // 7) 출석 (출석 보상은 매일 아침 9시에 바뀜)
-    const nextDay = new Date(now); nextDay.setUTCHours(24, 0, 0, 0); // 한국 시각 아침 9시
+    // 7) 출석 (출석 보상은 매일 한국 시간 자정에 바뀜 · 밤에는 조용한 시간 규칙으로 아침에 알림)
+    const k = new Date(now + 9 * 3600e3); k.setUTCHours(24, 0, 0, 0); const nextDay = new Date(k.getTime() - 9 * 3600e3); // 한국 시각 자정 (출석 초기화)
     add(40, (nextDay.getTime() - now) / 1000 + 30 * 60, '📅 오늘의 출석 보상', `출석부에 도장을 찍고 옥을 받아 가세요. 연속 출석하면 7일째 옥 ${ATTEND[6]}개!`, 8, '출석');
     // 8) 오래 안 들어올 때
     add(50, 24 * 3600, '🕯️ 저승이 조용하네요…', `${who}이 안 계신 사이 원귀들이 늘어나고 있어요.`, 9, '');

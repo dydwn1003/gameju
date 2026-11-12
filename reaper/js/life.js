@@ -133,7 +133,7 @@ const Life = (() => {
     s.mail = s.mail || { last: now() - MAIL_EVERY };
     s.docs = s.docs || { last: now() - 2 * 3600e3 };
   }
-  const dayStr = () => new Date().toISOString().slice(0, 10);
+  const dayStr = () => kstDay();
 
   // ---------- 무당: 오늘의 운세 ----------
   function fortuneLeft() { const f = S().fortune; if (f.day !== dayStr()) { f.day = dayStr(); f.n = 0; } return 2 - f.n; }
@@ -266,7 +266,7 @@ const Life = (() => {
   const JUDGE_MAX = 5;
   // 심판 1건 보상 = 몇 초치 혼 (맞히면). 처음엔 적게, 계급이 오를수록 늘어남 (틀리면 1/5)
   const JUDGE_SEC = [10, 18, 28, 42, 56, 74, 95, 116, 140]; // 심판 1건(정답) = 몇 초치 혼
-  function judgeDay() { const s = S(), day = new Date().toISOString().slice(0, 10); if (!s.judge || s.judge.day !== day) s.judge = { day, n: 0, ok: 0, total: (s.judge && s.judge.total) || 0, seen: (s.judge && s.judge.seen) || [] }; return s.judge; }
+  function judgeDay() { const s = S(), day = kstDay(); if (!s.judge || s.judge.day !== day) s.judge = { day, n: 0, ok: 0, total: (s.judge && s.judge.total) || 0, seen: (s.judge && s.judge.seen) || [] }; return s.judge; }
   const judgeLeft = () => S() ? JUDGE_MAX - judgeDay().n : 0;
   function judgeCase() {
     const j = judgeDay(); if (j.n >= JUDGE_MAX) return null;
@@ -285,7 +285,7 @@ const Life = (() => {
 
   // ---------- 일일 의뢰 ----------
   function questDay() {
-    const s = S(), day = new Date().toISOString().slice(0, 10);
+    const s = S(), day = kstDay();
     if (s.quest && s.quest.day === day) return;
     let seed = [...day].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0;
     const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -376,7 +376,7 @@ const Life = (() => {
   const slotCost = () => SLOT_JADE[S().expeSlots || 0] || 0; // 0이면 더 못 늘림
   function buySlot() { const s = S(), c = slotCost(); if (!c || s.jade < c) return false; s.jade -= c; s.expeSlots = (s.expeSlots || 0) + 1; Game.save(); return true; }
   const EXPE_DAY = 3; // 순찰지마다 하루에 보낼 수 있는 횟수
-  function expeDay() { const s = S(), d = new Date().toISOString().slice(0, 10); if (!s.expeDay || s.expeDay.day !== d) s.expeDay = { day: d, n: {} }; return s.expeDay; }
+  function expeDay() { const s = S(), d = kstDay(); if (!s.expeDay || s.expeDay.day !== d) s.expeDay = { day: d, n: {} }; return s.expeDay; }
   const expeTodayLeft = id => Math.max(0, EXPE_DAY - (expeDay().n[id] || 0));
   function send(id) {
     const E = EXPEDITIONS.find(e => e.id === id), s = S();

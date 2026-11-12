@@ -6,7 +6,7 @@
 
 # 저승사자 키우기 개인정보처리방침
 
-시행일: 2026년 11월 10일
+시행일: 2026년 11월 12일
 
 갓주모바일(이하 "운영자")은 모바일 게임 「저승사자 키우기」(이하 "게임")를 이용하는 분의 개인정보를 소중히 다루며, 「개인정보 보호법」 등 관련 법령을 지킵니다.
 
@@ -20,8 +20,9 @@
 | 광고 | 광고 식별자(Android 광고 ID · iOS IDFA, 이용자가 허용한 경우), 기기 정보, IP 주소로 추정한 대략적인 위치, 광고 이용 기록 | 보상형 광고 표시와 광고 성과 측정 (Google AdMob) |
 | 오류 · 성능 | 앱 충돌 기록, 실행 성능 정보 (광고 SDK 가 수집) | 오류 확인과 앱 안정성 개선 |
 | 1:1 문의 | 문의 내용, 기기 · 앱 버전 정보 | 문의 답변, 오류 확인 |
+| 이용 통계 (익명) | 앱이 만든 무작위 기기 번호, 접속 날짜, 플레이 시간 · 접속 횟수, 기기 종류(iOS · Android) · 앱 버전 · 언어, 계급 · 레벨, 로그인 여부 (이름 · 이메일 · 광고 ID 는 포함하지 않음) | 접속 통계와 서비스 개선 |
 
-게스트로 플레이하면 기록은 이용자의 기기에만 저장되고 운영자에게 보내지지 않습니다.
+게스트로 플레이하면 게임 기록은 이용자의 기기에만 저장되고 운영자에게 보내지지 않습니다. 단, 위의 익명 이용 통계는 게스트도 보내집니다.
 
 ## 2. 보관 기간
 
@@ -70,7 +71,7 @@
 
 # Grim Reaper Idle — Privacy Policy
 
-Effective date: November 10, 2026
+Effective date: November 12, 2026
 
 Gatju Mobile (갓주모바일) ("we") respects the privacy of everyone who plays the mobile game "Grim Reaper Idle" (저승사자 키우기, the "Game") and complies with applicable laws, including the Korean Personal Information Protection Act.
 
@@ -84,8 +85,9 @@ Gatju Mobile (갓주모바일) ("we") respects the privacy of everyone who plays
 | Advertising | Advertising ID (Android Advertising ID / iOS IDFA, if you allow it), device information, approximate location estimated from IP address, ad interaction data | Show rewarded ads and measure ad performance (Google AdMob) |
 | Diagnostics | Crash logs and performance data (collected by the ad SDK) | Find errors and improve app stability |
 | Support inquiries | Message content, device and app version | Answer inquiries, fix bugs |
+| Usage statistics (anonymous) | A random device number created by the app, dates played, play time and number of sessions, device type (iOS/Android), app version, language, rank/level, whether you are logged in (no name, email or advertising ID) | Usage statistics and service improvement |
 
-If you play as a guest, your records stay only on your device and are not sent to us.
+If you play as a guest, your game records stay only on your device and are not sent to us, except for the anonymous usage statistics above.
 
 ## 2. Retention
 
@@ -134,7 +136,7 @@ If this policy changes, we will announce it in the Game's notices at least 7 day
 
 # 冥土の使者を育てよう(저승사자 키우기)プライバシーポリシー
 
-施行日: 2026年11月10日
+施行日: 2026年11月12日
 
 Gatju Mobile(갓주모바일)(以下「運営者」)は、モバイルゲーム「冥土の使者を育てよう」(以下「本ゲーム」)をご利用の皆さまの個人情報を大切に扱い、韓国「個人情報保護法」などの関連法令を遵守します。
 
@@ -148,8 +150,9 @@ Gatju Mobile(갓주모바일)(以下「運営者」)は、モバイルゲーム�
 | 広告 | 広告ID(Android 広告ID・iOS IDFA、許可した場合)、端末情報、IPアドレスから推定したおおよその位置、広告の利用履歴 | リワード広告の表示と広告効果の測定(Google AdMob) |
 | エラー・パフォーマンス | クラッシュ記録、動作パフォーマンス情報(広告SDKが収集) | エラーの確認とアプリの安定性向上 |
 | お問い合わせ | お問い合わせ内容、端末・アプリのバージョン | 回答、不具合の確認 |
+| 利用統計(匿名) | アプリが作成したランダムな端末番号、プレイした日付、プレイ時間・起動回数、端末の種類(iOS・Android)・アプリのバージョン・言語、階級・レベル、ログインの有無(名前・メールアドレス・広告IDは含みません) | 利用状況の集計とサービス改善 |
 
-ゲストでプレイした場合、記録は端末内にのみ保存され、運営者には送信されません。
+ゲストでプレイした場合、ゲーム記録は端末内にのみ保存され、運営者には送信されません。ただし、上記の匿名の利用統計はゲストでも送信されます。
 
 ## 2. 保存期間
 
@@ -198,7 +201,7 @@ Gatju Mobile(갓주모바일)(以下「運営者」)は、モバイルゲーム�
 
 # 冥府使者养成记(저승사자 키우기)隐私政策
 
-生效日期: 2026年11月10日
+生效日期: 2026年11月12日
 
 Gatju Mobile(갓주모바일)(以下称"运营者")重视使用手机游戏《冥府使者养成记》(以下称"本游戏")的每一位用户的个人信息,并遵守韩国《个人信息保护法》等相关法律。
 
@@ -212,8 +215,9 @@ Gatju Mobile(갓주모바일)(以下称"运营者")重视使用手机游戏《�
 | 广告 | 广告标识符(Android 广告 ID、iOS IDFA,经用户允许时)、设备信息、根据 IP 地址推测的大致位置、广告互动记录 | 展示激励广告及衡量广告效果(Google AdMob) |
 | 错误与性能 | 崩溃记录、运行性能信息(由广告 SDK 收集) | 排查错误、提升应用稳定性 |
 | 客服咨询 | 咨询内容、设备及应用版本 | 回复咨询、排查问题 |
+| 使用统计(匿名) | 应用生成的随机设备编号、游玩日期、游玩时长与启动次数、设备类型(iOS、Android)、应用版本、语言、官阶与等级、是否登录(不包含姓名、邮箱、广告 ID) | 使用情况统计与服务改进 |
 
-以游客身份游玩时,记录仅保存在您的设备上,不会发送给运营者。
+以游客身份游玩时,游戏记录仅保存在您的设备上,不会发送给运营者。但上述匿名使用统计在游客模式下也会发送。
 
 ## 2. 保存期限
 

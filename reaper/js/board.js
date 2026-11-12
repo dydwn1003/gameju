@@ -43,7 +43,7 @@ const Board = (() => {
   // ===== 집무실 놀러 가기 =====
   // offices/{내 id}: 내 집무실 모습 · visits/{내 id}: 내가 누른 좋아요와 남긴 방명록 (각자 자기 문서만 씀)
   let myVisits = null, lastOffice = '';
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => kstDay();
   const timeout = (p, ms = 10000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
   async function pushOffice() {
     if (!ready || !Game.S || !Game.S.kind || !Game.S.nickSet) return;
