@@ -55,7 +55,7 @@ const QUEST_POOL = [
   { id: 'harvest', name: '꽃밭에서 꽃 수확하기', need: [2, 3], jade: 30 },
   { id: 'brew', name: '주막에서 탕약 달이기', need: [1, 2], jade: 30 },
   { id: 'send', name: '졸개 파견 보내기', need: [1, 2], jade: 30 },
-  { id: 'buy', name: '수련 올리기', need: [15, 30], jade: 25 },
+  { id: 'buy', name: '수련 올리기', need: [5], jade: 25 }, // 고레벨일수록 한 번 올리기가 비싸서 5번만
   { id: 'ad', name: '2배 부적 쓰기', need: [1], jade: 35 },
   { id: 'judge', name: '집무실에서 망자 심판하기', need: [2, 3], jade: 30 },
   { id: 'docs', name: '집무실 결재 서류 처리하기', need: [1], jade: 30 },
@@ -286,7 +286,10 @@ const Life = (() => {
   // ---------- 일일 의뢰 ----------
   function questDay() {
     const s = S(), day = kstDay();
-    if (s.quest && s.quest.day === day) return;
+    if (s.quest && s.quest.day === day) { // 오늘 받은 의뢰도 바뀐 목표(더 낮아진 것)에 맞춤
+      s.quest.list.forEach(q => { const P = QUEST_POOL.find(x => x.id === q.id); if (!P) return; const mx = Math.max(...P.need); if (q.need > mx) q.need = mx; if (q.have > q.need) q.have = q.need; });
+      return;
+    }
     let seed = [...day].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0;
     const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const pool = QUEST_POOL.slice(), list = [];
