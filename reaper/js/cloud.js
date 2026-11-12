@@ -90,14 +90,23 @@ const Cloud = (() => {
   async function pullSave() {
     if (!uid()) return null;
     const { data, error } = await sb.from('saves').select('data, updated_at').eq('user_id', uid()).maybeSingle();
-    if (error || !data) return null; return { data: data.data, at: new Date(data.updated_at).getTime() };
+    if (error) throw error; // 읽기 실패와 '기록 없음'을 구분 (실패했는데 없다고 보고 덮어쓰지 않게)
+    if (!data) return null; return { data: data.data, at: new Date(data.updated_at).getTime() };
   }
+  // 마지막으로 서버와 맞춘 기록의 지문 (계정마다, 이 기기에만): 다음에 켤 때 '서버가 바뀌었나 · 이 기기가 바뀌었나'를 가림
+  const syncKey = () => 'reaper_sync_' + uid();
+  function syncBase() { try { return JSON.parse(localStorage.getItem(syncKey()) || 'null'); } catch (e) { return null; } }
+  function setSyncBase(fp) { try { if (uid() && fp) localStorage.setItem(syncKey(), JSON.stringify({ fp, at: Date.now() })); } catch (e) {} }
+  let inflight = null, synced = false; // synced: 켤 때 서버 기록과 맞추기를 끝내야 올림 (맞추기 전에 이 기기 기록으로 덮어쓰지 않게)
   async function pushSave(state, force) {
-    if (!uid() || pushing) return false;
+    if (!uid() || !synced) return false;
+    if (pushing) { if (!force) return false; try { await inflight; } catch (e) {} return pushSave(state, true); } // 꼭 올려야 할 저장(앱을 닫을 때 · 로그아웃)은 올리던 것이 끝난 뒤 이어서
     if (!force && Date.now() - lastPush < 30e3) return false;
     pushing = true; lastPush = Date.now();
-    try { const { error } = await sb.from('saves').upsert({ user_id: uid(), data: state, updated_at: new Date().toISOString() }); return !error; }
-    catch (e) { return false; } finally { pushing = false; }
+    const fp = typeof Game !== 'undefined' ? Game.fingerprint(state) : '';
+    const body = { user_id: uid(), data: JSON.parse(JSON.stringify(state)), updated_at: new Date().toISOString() }; // 보내는 순간의 모습으로 고정
+    inflight = (async () => { try { const { error } = await sb.from('saves').upsert(body); if (!error) { setSyncBase(fp); return true; } return false; } catch (e) { return false; } finally { pushing = false; } })();
+    return inflight;
   }
 
   // ---------- 공유 데이터: claude.ai db 와 같은 모양으로 ----------
@@ -138,5 +147,5 @@ const Cloud = (() => {
   };
   // 서버 함수 부르기 (게스트도 공개 키로 부를 수 있는 것만: track 등)
   async function rpc(fn, args) { if (!sb) return false; try { const { error } = await sb.rpc(fn, args); return !error; } catch (e) { return false; } }
-  return { enabled, init, ready: () => !!sb, rpc, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, db, user, onChange: f => listeners.push(f), setOnLogin: f => { onLogin = f; } };
+  return { enabled, init, ready: () => !!sb, rpc, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, syncBase, setSyncBase, setSynced: v => { synced = !!v; }, isSynced: () => synced, db, user, onChange: f => listeners.push(f), setOnLogin: f => { onLogin = f; } };
 })();

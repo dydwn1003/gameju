@@ -42,16 +42,34 @@ const UI = (() => {
     }, '알림 받기');
   }
   // 로그인 직후: 서버 기록과 이 기기 기록 맞추기
-  const saveSummary = d => d && d.kind ? `${esc(d.name || '')} · ${RANKS[Math.min(8, d.rank || 0)].name}${d.reborn ? ` · 윤회 ${d.reborn}` : ''}` : '기록 없음';
-  async function cloudSync() {
-    let cloud = null; try { cloud = await Cloud.pullSave(); } catch (e) {}
+  const saveSummary = d => d && d.kind ? `${esc(d.name || '')} · ${RANKS[Math.min(8, d.rank || 0)].name}${d.reborn ? ` · 윤회 ${d.reborn}` : ''}<br>누적 혼 ${fmt(d.total || 0)} · 옥 ${fmt(d.jade || 0)}` : '기록 없음';
+  let syncRetry = 0;
+  async function cloudSync(retry) {
+    let cloud = null;
+    try { cloud = await Cloud.pullSave(); }
+    catch (e) { // 서버를 못 읽음: 이 기기 기록으로 계속하되 서버에는 올리지 않고, 잠시 뒤 다시 맞춤
+      Cloud.setSynced(false); closeModal(); if (!retry) afterLoad();
+      clearTimeout(syncRetry); syncRetry = setTimeout(() => { if (Cloud.signedIn() && !Cloud.isSynced()) cloudSync(true); }, 60e3); return;
+    }
+    const after = () => { if (!retry) afterLoad(); };
     const local = S(), hasLocal = !!local.kind, hasCloud = !!(cloud && cloud.data && cloud.data.kind);
-    const useCloud = () => { Game.replace(cloud.data); closeModal(); render(); hud(); Board.init(); toast('☁️ 서버에 저장된 기록을 불러왔어요', 2600); afterLoad(); };
-    const useLocal = () => { Cloud.pushSave(S(), true); closeModal(); Board.init(); toast('☁️ 이 기기 기록을 계정에 저장했어요', 2600); afterLoad(); };
+    const useCloud = quiet => { Cloud.setSynced(true); Game.replace(cloud.data); Cloud.setSyncBase(Game.fingerprint(cloud.data)); closeModal(); render(); hud(); Board.init(); if (!quiet) toast('☁️ 서버에 저장된 기록을 불러왔어요', 2600); afterLoad(); };
+    const useLocal = quiet => { Cloud.setSynced(true); Cloud.pushSave(S(), true); closeModal(); Board.init(); if (!quiet) toast('☁️ 이 기기 기록을 계정에 저장했어요', 2600); after(); };
     if (hasCloud && !hasLocal) return useCloud();
     if (!hasCloud && hasLocal) return useLocal();
-    if (!hasCloud && !hasLocal) { closeModal(); charSelect(true); return; }
-    if (Math.abs((cloud.data.last || 0) - (local.last || 0)) < 60e3 && cloud.data.rank === local.rank) return useLocal();
+    if (!hasCloud && !hasLocal) { Cloud.setSynced(true); closeModal(); charSelect(true); return; }
+    // 같은 게임(처음 만든 시각이 같음)이면 묻지 않고 알아서 맞춤. 시간(last)이 아니라 '진행 모습'으로 비교
+    // (앱을 닫을 때 서버 저장이 끝나기 전에 꺼지면 서버가 조금 뒤처지는데, 예전엔 시간 차이로 매번 물어봤음)
+    if ((cloud.data.created || 0) === (local.created || 0)) {
+      const base = Cloud.syncBase(), lf = Game.loadedFp(), cf = Game.fingerprint(cloud.data);
+      if (cf === lf) return useLocal(true);                            // 똑같음
+      if (base) {
+        const cloudChanged = cf !== base.fp, localChanged = lf !== base.fp;
+        if (!cloudChanged) return useLocal(true);                      // 서버는 그대로 → 이 기기가 최신 (닫을 때 못 올린 것)
+        if (!localChanged) return useCloud();                          // 이 기기는 그대로 → 다른 기기에서 더 함
+      } else return (cloud.data.total || 0) > Game.loadedTotal() ? useCloud() : useLocal(true); // 처음 비교: 더 많이 진행한 쪽
+      // 두 기기에서 따로 진행함 → 아래에서 고르기
+    }
     const box = modal(`<h2>☁️ 어떤 기록으로 할까요?</h2><p>계정과 이 기기에 서로 다른 기록이 있어요.</p>
       <div class="sv-pick"><button id="sv-cloud"><b>계정(서버) 기록</b><span>${saveSummary(cloud.data)}</span><small>${fmtDate(cloud.at)} 저장</small></button><button id="sv-local"><b>이 기기 기록</b><span>${saveSummary(local)}</span><small>${fmtDate(local.last || Date.now())} 저장</small></button></div>
       <p class="mute" style="font-size:10px">고르지 않은 쪽 기록은 사라져요</p>`, true);
@@ -139,7 +157,7 @@ const UI = (() => {
     Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));
     render(); hud();
     // 로그인 성공 → 다시 켜지 않고 그 자리에서 서버 기록을 맞춤
-    Cloud.setOnLogin(() => { closeModal(); toast('☁️ 로그인했어요', 1600); Board.init(); cloudSync(); });
+    Cloud.setOnLogin(() => { Cloud.setSynced(false); closeModal(); toast('☁️ 로그인했어요', 1600); Board.init(); cloudSync(); });
     if (!S().kind && !I18N.chosen()) { langPicker(true); } // 처음 켜면 언어부터 고르기
     else if (!S().kind) startFlow();
     else if (!Cloud.signedIn()) afterLoad(); // 로그인했으면 서버 기록을 맞춘 뒤에
@@ -1225,7 +1243,7 @@ const UI = (() => {
   function boostAd() {
     if (Game.adLeft('boost') <= 0) { toast('오늘 광고 부적을 모두 썼어요. 상점에서 옥으로 살 수 있어요'); return; }
     const min = 10; // 광고 1번 = 2배 부적 10분 (하루 8번)
-    ad(() => { Game.useAd('boost'); Game.addBoost(min); Life.qEvent('ad'); Sound.play('promote'); got(`2배 부적 ${min}분! 수확·화력 2배`, { ic: 'luck' }); render(); });
+    ad(() => { Game.useAd('boost'); Game.addBoost(min); Sound.play('promote'); got(`2배 부적 ${min}분! 수확·화력 2배`, { ic: 'luck' }); render(); });
   }
 
   // ---------- 결제 ----------
@@ -1895,5 +1913,5 @@ const UI = (() => {
       .querySelector('#st-pkg').onclick = () => { closeModal(); iapBox('promo'); };
   }
 
-  return { init, toast };
+  return { init, toast, _cloudSync: () => cloudSync() }; // _cloudSync: 저장 맞추기 시험용
 })();

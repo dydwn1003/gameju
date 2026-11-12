@@ -221,7 +221,8 @@ const Game = (() => {
     v = Math.max(1, v); // 처음에도 혼 1개는 최소 1 (가치가 1보다 작을 때 '+0' 으로 보이지 않게)
     gain(v); return v;
   }
-  function addBoost(min) { S.boostUntil = Math.max(Date.now(), S.boostUntil) + min * 60000; S.boostUntil = Math.min(S.boostUntil, Date.now() + 180 * 60000); apply(); save(); }
+  // 2배 부적: 광고 · 옥 구매 · 패키지 모두 일일 의뢰 '2배 부적 쓰기'에 셈
+  function addBoost(min) { S.boostUntil = Math.max(Date.now(), S.boostUntil) + min * 60000; S.boostUntil = Math.min(S.boostUntil, Date.now() + 180 * 60000); if (typeof Life !== 'undefined') Life.qEvent('ad'); apply(); save(); }
 
   function apply() {
     Scene.config({ spawn: spawn(), walk: walk(), reap: reap(), minions: minions(), mWalk: mWalk(), mReap: mReap(), roll, maxSouls: 18 + Math.min(18, Math.floor(le('call') / 2)), reapR: Math.min(26, 14 + le('hand') * 0.4), reapMax: 3 + Math.floor(le('hand') / 6), speed: boosting() ? 1.3 : 1 });
@@ -288,12 +289,20 @@ const Game = (() => {
   }
 
   // ---------- 저장 ----------
+  // 기록의 '진행 모습' 지문: 같은 게임의 두 저장이 실제로 다른지(진행이 달라졌는지) 비교할 때 씀. 시간(last)은 넣지 않음
+  let loadedFp = '', loadedTotal = 0;
+  function fingerprint(d) {
+    if (!d) return '';
+    const k = JSON.stringify([Math.floor(d.total || 0), d.jade || 0, d.tickets || 0, d.rank || 0, d.reborn || 0, d.upg || {}, d.pets || {}, d.petInv || {}, d.bought || {}, d.name || '']);
+    let h = 0; for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + ':' + k.length;
+  }
   // 다른 저장(클라우드)으로 통째로 바꾸기
   function replace(obj) { S = Object.assign(fresh(), obj || {}); awayFrom = S.last || 0; Life.ensure(); Pets.ensure(); Story.ensure(); if (typeof Decor !== 'undefined') Decor.ensure(); migrate(); save(); apply(); }
   function save() { if (!S) return; S.last = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
   function load() {
     try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
     if (!S) S = fresh();
+    loadedFp = fingerprint(S); loadedTotal = S.total || 0; // 켜자마자(자동 수확 · 오프라인 보상 전) 이 기기 기록의 모습 → 서버 기록과 비교할 때 씀
     awayFrom = S.last || 0; // 켜자마자 다른 곳에서 저장해도 자리 비운 시간이 사라지지 않게 미리 기억
     Life.ensure(); Pets.ensure(); Story.ensure(); if (typeof Decor !== 'undefined') Decor.ensure();
     migrate();
@@ -318,7 +327,7 @@ const Game = (() => {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult,
-    collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
+    collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, fingerprint, loadedFp: () => loadedFp, loadedTotal: () => loadedTotal, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();
 
