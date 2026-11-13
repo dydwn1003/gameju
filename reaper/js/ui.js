@@ -1224,7 +1224,7 @@ const UI = (() => {
   // ---------- 광고 (테스트: 3초 대기) ----------
   function ad(onReward) {
     if (S().noAds) { onReward(); return; }
-    if (Native.isApp()) { Native.rewardAd(onReward, m => m && toast(m, 2400)); return; }
+    if (Native.isApp()) { Native.rewardAd(onReward, (m, code) => { if (code === 'nofill' && APP.admob.fallback !== false) noAdReward(onReward); else if (m) toast(m, 2400); }); return; }
     if (window.adBreak && window.H5_ADS) {
       window.adBreak({ type: 'reward', name: 'reward', beforeReward: show => show(), adViewed: onReward, adDismissed: () => toast('끝까지 보면 보상을 받아요') });
       return;
@@ -1232,6 +1232,13 @@ const UI = (() => {
     let n = 3;
     modal(`<div class="adbox"><p style="color:var(--mute)">광고 시청 중 (테스트)</p><div class="cnt" id="adcnt">${n}</div><p>실제 출시 때는 구글 보상형 광고가 나옵니다.</p></div>`, true);
     const iv = setInterval(() => { n--; const e = $('#adcnt'); if (e) e.textContent = n; if (n <= 0) { clearInterval(iv); closeModal(); onReward(); } }, 1000);
+  }
+  // 보여 줄 광고가 없을 때: 5초 기다리면 보상 (광고 대신). 하루 횟수 제한은 보상 쪽에서 그대로 셈
+  let noAdBusy = false;
+  function noAdReward(onReward) {
+    if (noAdBusy) return; noAdBusy = true; let n = 5;
+    modal(`<div class="adbox"><p>📺 지금은 보여 드릴 광고가 없어요</p><div class="cnt" id="adcnt">${n}</div><p class="mute">잠깐만 기다리면 보상을 드릴게요</p></div>`, true);
+    const iv = setInterval(() => { n--; const e = $('#adcnt'); if (e) e.textContent = n; if (n <= 0) { clearInterval(iv); noAdBusy = false; closeModal(); onReward(); } }, 1000);
   }
   // 화면의 2배 부적 버튼: 먼저 물어보고 광고 보기
   function boostAsk() {
