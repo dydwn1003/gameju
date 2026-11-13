@@ -147,12 +147,12 @@ const UI = (() => {
     setInterval(() => { if (!document.hidden) { Game.save(); Board.push(); Stats.send(); if (S().kind) Cloud.pushSave(S()); } }, 5000);
     setTimeout(() => Stats.session(), 3000); // 이번 접속 기록 (익명 이용 통계)
     setInterval(drawPreviews, 160);
-    document.addEventListener('visibilitychange', () => { if (document.hidden) { Game.save(); if (S().kind) Cloud.pushSave(S(), true); } else checkOffline(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); } else checkOffline(); });
     window.addEventListener('pagehide', () => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
-    Native.setPause(() => { Sound.pause(); Stats.send(true); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
-    Native.setResume(() => { Sound.resume(); Push.back(); setTimeout(refreshMail, 800); });
+    Native.setPause(() => { Sound.pause(); Stats.send(true); if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
+    Native.setResume(() => { Sound.resume(); Push.back(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
     Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
     Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));
     render(); hud();
@@ -198,7 +198,10 @@ const UI = (() => {
     Game.save();
   }
   function wraithGone() {}
+  let lastTickAt = 0;
   function tick(dt) {
+    // 화면이 1분 넘게 멈췄다가 다시 돌면(앱이 뒤에 있다 돌아옴) 그 사이를 자리 비운 시간으로 봄 — 신호가 하나도 안 와도 보상
+    const nowT = Date.now(); if (lastTickAt && nowT - lastTickAt > 60e3 && S().kind && !Native.adActive()) { Game.markAway(lastTickAt); setTimeout(checkOffline, 0); } lastTickAt = nowT;
     placeLabels(); tutPlace();
     paradeTick(dt);
     if (!S().kind) return;
@@ -1898,6 +1901,7 @@ const UI = (() => {
     box.querySelector('#pa-x2').onclick = () => { closeModal(); ad(() => { Game.gain(p.gained + bonus); got(`백귀야행 보상 2배! +${fmt(p.gained + bonus)}`, { ic: 'soul' }); }); };
   }
   function checkOffline() {
+    if (!S().kind || $('#modal .big') && $('#modal').classList.contains('on') && $('#o-get')) return; // 이미 보상 창이 떠 있으면 또 띄우지 않음
     const o = Game.offline(); if (!o || o.amt <= 0) { Game.save(); return; }
     Game.S.last = Date.now();
     const box = modal(`<h2>다녀오셨어요?</h2><p>자리를 비운 <b>${fmtTime(o.away)}</b> 동안<br>졸개들이 혼을 거뒀습니다.${o.capped ? `<br><span style="color:var(--mute);font-size:10px">(저승 장부 한도 ${Game.offHours()}시간까지만 쌓여요)</span>` : ''}</p>

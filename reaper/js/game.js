@@ -313,8 +313,11 @@ const Game = (() => {
   }
   // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 12%)
   let awayFrom = 0;
+  // 자리 비운 시각: 앱이 뒤로 가거나 멈춘 순간을 따로 적어 둠 (켜 둔 동안 5초마다 하는 저장이 S.last 를 바꿔도 사라지지 않게)
+  // 아이폰: 앱이 돌아올 때 타이머가 '다시 보임' 신호보다 먼저 돌면 S.last 가 지금으로 바뀌어 보상이 0이 되던 문제를 막음
+  function markAway(t = Date.now()) { if (!S) return; S.awayAt = S.awayAt ? Math.min(S.awayAt, t) : t; }
   function offline() {
-    const from = awayFrom || S.last; awayFrom = 0;
+    const marks = [awayFrom, S.awayAt].filter(Boolean), from = marks.length ? Math.min(...marks) : S.last; awayFrom = 0; S.awayAt = 0;
     const away = Math.max(0, (Date.now() - from) / 1000);
     if (!S.kind || away < 60) return null;
     const secs = Math.min(away, offHours() * 3600);
@@ -327,7 +330,7 @@ const Game = (() => {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult,
-    collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, fingerprint, loadedFp: () => loadedFp, loadedTotal: () => loadedTotal, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
+    collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, markAway, fingerprint, loadedFp: () => loadedFp, loadedTotal: () => loadedTotal, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();
 
