@@ -38,7 +38,7 @@ const UI = (() => {
     if ((await Native.notifyPerm()) === 'granted') { s.pushAsked = true; Game.save(); return; }
     s.pushAsked = true; Game.save();
     confirmBox('<h2>🔔 알림을 받을까요?</h2><p>저승 장부가 가득 차거나, 파견이 끝나거나, 꽃이 피면 알려 드려요.<br><small class="mute">밤 11시 ~ 아침 8시에는 울리지 않아요 · 설정에서 언제든 끌 수 있어요</small></p>', async () => {
-      const ok = await Native.notifyAsk(); s.push = ok; Game.save(); toast(ok ? '🔔 알림을 켰어요' : '알림이 꺼져 있어요. 설정에서 다시 켤 수 있어요', 2400);
+      const ok = await Native.notifyAsk(); s.push = ok; Game.save(); Push.back(); toast(ok ? '🔔 알림을 켰어요' : '알림이 꺼져 있어요. 설정에서 다시 켤 수 있어요', 2400);
     }, '알림 받기');
   }
   // 로그인 직후: 서버 기록과 이 기기 기록 맞추기
@@ -153,7 +153,7 @@ const UI = (() => {
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
     Native.setPause(() => { Sound.pause(); Stats.send(true); if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
     Native.setResume(() => { Sound.resume(); Push.back(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
-    Push.back(); // 앱을 켜면 예약해 둔 알림은 지움
+    Push.back(); setInterval(() => { if (!document.hidden) Push.keep(); }, 60e3); // 앱을 켜면 곧 울릴 알림은 지우고, 켜 둔 동안에도 알림을 미리 예약
     Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));
     render(); hud();
     // 로그인 성공 → 다시 켜지 않고 그 자리에서 서버 기록을 맞춤
@@ -1468,9 +1468,9 @@ const UI = (() => {
     if (Board.online()) Board.blockedCount().then(n => { const r = box.querySelector('#s-blkrow'); if (r && n) { r.style.display = ''; box.querySelector('#s-blkn').textContent = n; } }).catch(() => {});
     on('#s-unblk', () => confirmBox('<h2>차단 풀기</h2><p>차단한 사람을 모두 풀까요?</p>', async () => { await Board.unblockAll(); toast('차단을 모두 풀었어요'); }, '모두 풀기'));
     on('#s-push', async () => {
-      if (s.push !== false && s.pushAsked) { s.push = false; Game.save(); settings(); return; }
+      if (s.push !== false && s.pushAsked) { s.push = false; Game.save(); Push.back(); settings(); return; }
       s.pushAsked = true; const ok = (await Native.notifyPerm()) === 'granted' || (await Native.notifyAsk());
-      s.push = ok; Game.save(); if (!ok) toast('휴대폰 설정 → 앱 → 저승사자 키우기 → 알림을 켜 주세요', 3000); settings();
+      s.push = ok; Game.save(); Push.back(); if (!ok) toast('휴대폰 설정 → 앱 → 저승사자 키우기 → 알림을 켜 주세요', 3000); settings();
     });
     on('#s-snd', () => { s.sound = !s.sound; Sound.set(s.sound, s.bgm); Game.save(); settings(); });
     on('#s-bgm', () => { s.bgm = !s.bgm; Sound.set(s.sound, s.bgm); Game.save(); settings(); });

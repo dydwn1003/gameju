@@ -1,5 +1,5 @@
 // ===== 앱 알림 (휴대폰 안에서 예약하는 로컬 알림) =====
-// 앱을 내리거나 끌 때 "언제 무엇이 다 차는지" 계산해서 예약하고, 다시 들어오면 모두 지운다.
+// "언제 무엇이 다 차는지" 계산해서 예약한다. 켜 둔 동안에도 미리 예약해 두고(아이폰 대비), 떠날 때 한 번 더 맞춘다.
 // 서버가 필요 없고, 앱(안드로이드 · iOS)에서만 동작한다.
 const Push = (() => {
   const H = 3600e3;
@@ -72,8 +72,21 @@ const Push = (() => {
     });
   }
 
-  // 앱을 떠날 때: 예약 / 돌아올 때: 모두 취소
-  async function leave() { if (!Native.isApp()) return; if (!on()) { await Native.notifyClear(); return; } try { await Native.notifySchedule(plan()); } catch (e) {} }
-  async function back() { if (Native.isApp()) try { await Native.notifyClear(); } catch (e) {} }
-  return { plan, leave, back, on };
+  // 예약: 앱을 켜 둔 동안에도 미리 예약해 둠 (1분마다 확인, 바뀐 게 있을 때만 다시 예약)
+  // 아이폰은 앱이 뒤로 가는 순간 게임 코드가 거의 바로 멈춰서, 떠날 때만 예약하면 예약이 끝나기 전에 멈춰 알림이 하나도 안 갔음
+  // 켜 둔 동안에는 15분 넘게 남은 알림만 예약 (게임 중에 알림이 울리지 않게) · 떠날 때는 1분 넘게 남은 것까지 모두
+  let lastSig = '', busy = false;
+  async function sync(minAheadSec, force) {
+    if (!Native.isApp() || busy) return;
+    if (!on()) { if (lastSig !== 'off') { lastSig = 'off'; try { await Native.notifyClear(); } catch (e) {} } return; }
+    const now = Date.now(), list = plan(now).filter(n => n.at - now >= minAheadSec * 1000);
+    const sig = list.map(n => n.id + '@' + Math.round(n.at / 600e3)).join(','); // 10분 단위로 비교 (매분 다시 예약하지 않게)
+    if (!force && sig === lastSig) return;
+    busy = true; lastSig = sig;
+    try { await Native.notifySchedule(list); } catch (e) { lastSig = ''; } finally { busy = false; }
+  }
+  const keep = () => sync(15 * 60);                        // 켜 둔 동안 (1분마다)
+  const leave = () => { busy = false; return sync(60, true); }; // 떠날 때 (안드로이드 · 시간이 되면 아이폰도)
+  const back = () => sync(15 * 60, true);                  // 돌아왔을 때: 곧 울릴 알림은 지우고 다시 예약
+  return { plan, leave, back, keep, on };
 })();
