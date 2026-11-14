@@ -92,6 +92,7 @@ const UI = (() => {
     await step(80, '저승 문을 여는 중…', async () => { await Native.init(); Native.hideSplash(); });
     await step(82, '저승 서버에 접속하는 중…', () => Cloud.init());
     await step(90, '명부를 펼치는 중…', () => initGame());
+    await step(93, '저승 문이 열렸는지 확인하는 중…', () => Promise.race([maintCheck(), new Promise(r => setTimeout(r, 3000))]));
     if (Cloud.signedIn()) await step(96, '내 기록을 불러오는 중…', () => cloudSync());
     const wait = Math.max(0, 1200 - (performance.now() - t0)); await new Promise(r => setTimeout(r, wait));
     fill.style.width = '100%'; wc.style.left = 'calc(100% - 8px)'; msg.textContent = '근무 시작!';
@@ -99,6 +100,35 @@ const UI = (() => {
     L.classList.add('out'); setTimeout(() => L.remove(), 600);
     setTimeout(updateCheck, 1500);
   }
+  // ---------- 서버 점검: 서버 config/maintenance 가 켜지면 게임 위에 점검 화면 (운영자는 그대로 이용) ----------
+  // 켜기: SQL select set_maintenance(true, '안내 문구', 60);  끄기: select set_maintenance(false);
+  // 점검 중에는 서버로 저장을 올리지 않음 (이 기기에는 그대로 저장). 1분마다 · 앱으로 돌아올 때 다시 확인
+  let maintOn = false, maintAdminToast = false;
+  async function maintCheck() {
+    if (!Cloud.ready()) return;
+    let d = null; try { const doc = await Cloud.db.doc('config/maintenance').get(); d = doc.exists ? doc.data() : null; } catch (e) { return; } // 서버에 못 닿으면 그대로 (게임은 이 기기에서 계속)
+    const on = !!(d && d.on);
+    if (on && Cloud.signedIn() && await Board.checkOwner()) { // 운영자는 통과
+      if (!maintAdminToast) { maintAdminToast = true; toast('🔧 점검 중이에요 (운영자라 계속 이용할 수 있어요)', 3000); }
+      Cloud.hold(false); hideMaint(false); return;
+    }
+    if (on) showMaint(d); else hideMaint(true);
+  }
+  function showMaint(d) {
+    maintOn = true; Cloud.hold(true);
+    let el = $('#maint'); if (!el) { el = document.createElement('div'); el.id = 'maint'; document.body.appendChild(el); }
+    const until = d.until ? new Date(d.until) : null;
+    el.innerHTML = `<div class="mt-box"><div class="mt-ic">🔧</div><h2>서버 점검 중이에요</h2><p>${d.msg ? esc(d.msg) : '더 좋은 저승을 만들고 있어요. 잠시만 기다려 주세요!'}</p>${until ? `<p class="mt-t">예상 종료 <b>${until.getMonth() + 1}/${until.getDate()} ${String(until.getHours()).padStart(2, '0')}:${String(until.getMinutes()).padStart(2, '0')}</b></p>` : ''}<p class="mute">점검이 끝나면 자동으로 다시 열려요 · 진행은 이 기기에 그대로 저장돼요</p><button class="btn red" id="mt-re">다시 확인</button></div>`;
+    el.querySelector('#mt-re').onclick = () => { Sound.play('open'); maintCheck(); };
+    el.classList.add('on');
+  }
+  function hideMaint(announce) {
+    const el = $('#maint'); const was = maintOn; maintOn = false; Cloud.hold(false);
+    if (el) el.classList.remove('on');
+    if (was && announce) { toast('🎉 점검이 끝났어요! 다시 근무를 시작해 볼까요?', 3000); if (S().kind) Cloud.pushSave(S(), true); }
+  }
+  // 운영자가 보낸 예약 알림: 게임을 켜 둔 사람에게는 그 시각에 게임 안에서 보여 줌
+  function opNotices() { Push.dueNow().forEach(x => got(`<b>${esc(x.title)}</b>${x.body ? `<br>${esc(x.body)}` : ''}`, { emo: '📣', soft: true })); }
   // ---------- 새 버전 안내: 서버의 config/version 과 내 앱 빌드 번호를 비교 ----------
   // data: { android: { latest, min }, ios: { latest, min }, msg } — latest 보다 낮으면 안내(닫기 가능), min 보다 낮으면 닫기 없이
   async function updateCheck() {
@@ -152,8 +182,8 @@ const UI = (() => {
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
     Native.setPause(() => { Sound.pause(); Stats.send(true); if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
-    Native.setResume(() => { Sound.resume(); Push.back(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
-    Push.back(); setInterval(() => { if (!document.hidden) Push.keep(); }, 60e3); // 앱을 켜면 곧 울릴 알림은 지우고, 켜 둔 동안에도 알림을 미리 예약
+    Native.setResume(() => { Sound.resume(); Push.back().then(opNotices); maintCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
+    Push.back(); setInterval(() => { if (!document.hidden) { Push.keep().then(opNotices); maintCheck(); } }, 60e3); // 앱을 켜면 곧 울릴 알림은 지우고, 켜 둔 동안에도 알림을 미리 예약
     Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));
     render(); hud();
     // 로그인 성공 → 다시 켜지 않고 그 자리에서 서버 기록을 맞춤

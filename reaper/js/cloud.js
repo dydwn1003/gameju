@@ -97,9 +97,9 @@ const Cloud = (() => {
   const syncKey = () => 'reaper_sync_' + uid();
   function syncBase() { try { return JSON.parse(localStorage.getItem(syncKey()) || 'null'); } catch (e) { return null; } }
   function setSyncBase(fp) { try { if (uid() && fp) localStorage.setItem(syncKey(), JSON.stringify({ fp, at: Date.now() })); } catch (e) {} }
-  let inflight = null, synced = false; // synced: 켤 때 서버 기록과 맞추기를 끝내야 올림 (맞추기 전에 이 기기 기록으로 덮어쓰지 않게)
+  let inflight = null, synced = false, held = false; // synced: 켤 때 서버 기록과 맞추기를 끝내야 올림 (맞추기 전에 이 기기 기록으로 덮어쓰지 않게)
   async function pushSave(state, force) {
-    if (!uid() || !synced) return false;
+    if (!uid() || !synced || held) return false; // held: 서버 점검 중
     if (pushing) { if (!force) return false; try { await inflight; } catch (e) {} return pushSave(state, true); } // 꼭 올려야 할 저장(앱을 닫을 때 · 로그아웃)은 올리던 것이 끝난 뒤 이어서
     if (!force && Date.now() - lastPush < 30e3) return false;
     pushing = true; lastPush = Date.now();
@@ -147,5 +147,5 @@ const Cloud = (() => {
   };
   // 서버 함수 부르기 (게스트도 공개 키로 부를 수 있는 것만: track 등)
   async function rpc(fn, args) { if (!sb) return false; try { const { error } = await sb.rpc(fn, args); return !error; } catch (e) { return false; } }
-  return { enabled, init, ready: () => !!sb, rpc, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, syncBase, setSyncBase, setSynced: v => { synced = !!v; }, isSynced: () => synced, db, user, onChange: f => listeners.push(f), setOnLogin: f => { onLogin = f; } };
+  return { enabled, init, ready: () => !!sb, rpc, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, syncBase, setSyncBase, setSynced: v => { synced = !!v; }, hold: v => { held = !!v; }, isSynced: () => synced, db, user, onChange: f => listeners.push(f), setOnLogin: f => { onLogin = f; } };
 })();

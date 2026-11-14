@@ -1005,3 +1005,13 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .pcell canvas.pa { width: 52px; height: 52px; margin: -10px auto -2px; display: block; image-rendering: pixelated; }
 .petmain canvas.pa { width: 80px; height: 80px; flex: 0 0 80px; }
 .pinfo canvas.pa { width: 120px; height: 120px; }
+
+/* 서버 점검 화면 (모든 창 위) */
+#maint { position: fixed; inset: 0; z-index: 400; display: none; place-items: center; padding: 20px; background: radial-gradient(ellipse at 50% 35%, #2a2156 0%, #0b0a1c 70%); }
+#maint.on { display: grid; }
+#maint .mt-box { max-width: 320px; text-align: center; background: rgba(20, 16, 40, .92); border-radius: 16px; padding: 22px 18px; box-shadow: 0 0 0 2px #3d3560, 0 20px 40px #0008; }
+#maint .mt-ic { font-size: 44px; margin-bottom: 6px; }
+#maint h2 { margin: 0 0 10px; color: var(--gold); }
+#maint p { margin: 8px 0; line-height: 1.6; font-size: 13px; }
+#maint .mt-t b { color: var(--gold); }
+#maint .btn { margin-top: 10px; min-width: 140px; }

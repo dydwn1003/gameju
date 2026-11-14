@@ -26,7 +26,7 @@ const Push = (() => {
     const s = S(), out = [], add = (id, sec, title, body, pri, short) => { if (sec > 60) out.push({ id, at: now + sec * 1000, title, body, pri, short }); };
     const name = s.name || '차사', who = I18N.on ? name : /차사$/.test(name) ? name + '님' : name + ' 차사님';
     const inc = Game.incomePerSec(true), cap = Game.offHours() * 3600;
-    const amt = sec => fmt(inc * Math.min(sec, cap) * 0.6);
+    const amt = sec => fmt(inc * Math.min(sec, cap) * Game.OFFLINE_RATE); // 실제 받는 양과 같게 (예전엔 0.6 으로 5배 많게 적혀 있었음)
 
     // 1) 자리 비운 동안 쌓이는 혼: 절반 · 가득
     if (inc > 0) {
@@ -57,24 +57,40 @@ const Push = (() => {
     add(50, 24 * 3600, '🕯️ 저승이 조용하네요…', `${who}이 안 계신 사이 원귀들이 늘어나고 있어요.`, 9, '');
     add(51, 72 * 3600, '👻 원귀들이 날뛰고 있어요', '저승 장부도 가득 찼어요. 잠깐 들러서 혼을 거두고 가세요!', 9, '');
 
+    // 9) 운영자가 보낸 예약 알림 (서버 push 목록, 밤 시간 규칙 없이 그 시각에 · 묶지 않음)
+    const ops = ext.filter(x => x.at > now + 60e3 && x.at - now < 8 * 24 * H).slice(0, 5).map((x, i) => ({ id: 100 + i, at: x.at, title: x.title, body: x.body || '', op: 1 }));
     // 밤 시간 미루기 → 10분 안에 겹치는 알림은 하나로 묶기 (가장 중요한 것이 제목) · 8일 넘게 먼 건 빼기
     out.forEach(n => (n.at = wake(n.at)));
     out.sort((a, b) => a.at - b.at);
     const groups = [];
     out.filter(n => n.at - now < 8 * 24 * H).forEach(n => { const g = groups.find(g => Math.abs(g[0].at - n.at) < 10 * 60e3); if (g) g.push(n); else groups.push([n]); });
-    return groups.map(g => {
+    return ops.concat(groups.map(g => {
       g.sort((a, b) => a.pri - b.pri); const top = g[0];
       if (g.length === 1) return top;
       // 장부 절반 + 가득이 같이 있으면 가득만
       const rest = g.slice(1).filter(n => n.short && n.short !== top.short && !(top.short === '장부 가득' && n.short === '장부 절반'));
       const names = [...new Set(rest.map(n => n.short))];
       return { id: top.id, at: g[0].at, title: top.title, body: names.length ? `${top.body}\n+ ${names.map(x => I18N.t(x)).join(' · ')}도 기다리고 있어요` : top.body };
-    });
+    }));
   }
 
   // 예약: 앱을 켜 둔 동안에도 미리 예약해 둠 (1분마다 확인, 바뀐 게 있을 때만 다시 예약)
   // 아이폰은 앱이 뒤로 가는 순간 게임 코드가 거의 바로 멈춰서, 떠날 때만 예약하면 예약이 끝나기 전에 멈춰 알림이 하나도 안 갔음
   // 켜 둔 동안에는 15분 넘게 남은 알림만 예약 (게임 중에 알림이 울리지 않게) · 떠날 때는 1분 넘게 남은 것까지 모두
+  // 운영자 예약 알림: 서버의 push 목록 (SQL send_push). 켜 둔 동안 10분마다 받아 둠
+  // 게임을 켜 둔 사람에게는 그 시각에 게임 안 알림으로, 꺼 둔 사람에게는 휴대폰 알림으로
+  let ext = [], extAt = 0;
+  async function fetchExt(force) {
+    if (typeof Cloud === 'undefined' || !Cloud.ready() || (!force && Date.now() - extAt < 10 * 60e3)) return;
+    extAt = Date.now();
+    try { const snap = await Cloud.db.collection('push').orderBy('at', 'desc').limit(10).get(); ext = snap.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(x => x && x.at && x.title); } catch (e) {}
+  }
+  // 켜 둔 동안 시각이 된 운영자 알림 → 게임 안에서 한 번 보여 줌
+  function dueNow() {
+    const s = S(); if (!s) return []; s.pushSeen = s.pushSeen || {};
+    const now = Date.now(), due = ext.filter(x => x.at <= now && now - x.at < 6 * H && !s.pushSeen[x.id]);
+    due.forEach(x => (s.pushSeen[x.id] = now)); return due;
+  }
   let lastSig = '', busy = false;
   async function sync(minAheadSec, force) {
     if (!Native.isApp() || busy) return;
@@ -85,8 +101,8 @@ const Push = (() => {
     busy = true; lastSig = sig;
     try { await Native.notifySchedule(list); } catch (e) { lastSig = ''; } finally { busy = false; }
   }
-  const keep = () => sync(15 * 60);                        // 켜 둔 동안 (1분마다)
+  const keep = async () => { await fetchExt(); return sync(15 * 60); };                        // 켜 둔 동안 (1분마다)
   const leave = () => { busy = false; return sync(60, true); }; // 떠날 때 (안드로이드 · 시간이 되면 아이폰도)
-  const back = () => sync(15 * 60, true);                  // 돌아왔을 때: 곧 울릴 알림은 지우고 다시 예약
-  return { plan, leave, back, keep, on };
+  const back = async () => { await fetchExt(true); return sync(15 * 60, true); };                  // 돌아왔을 때: 곧 울릴 알림은 지우고 다시 예약
+  return { plan, leave, back, keep, on, dueNow, fetchExt };
 })();

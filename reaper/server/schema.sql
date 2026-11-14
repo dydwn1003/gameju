@@ -338,3 +338,46 @@ language sql security definer set search_path = public, auth as $$
   limit 20;
 $$;
 revoke all on function public.user_find(text) from public, anon, authenticated;
+
+-- ===== 서버 점검 (게임 위에 '서버 점검 중' 화면) =====
+--   select set_maintenance(true, '오후 3시까지 점검해요', 60);  -- 켜기 (안내 문구 · 예상 시간(분), 둘 다 생략 가능)
+--   select set_maintenance(false);                               -- 끄기 (켜 둔 게임도 1분 안에 다시 열림)
+-- 운영자 계정은 점검 중에도 그대로 이용 가능 · 점검 중에는 서버 저장을 멈추고 기기에만 저장
+create or replace function public.set_maintenance(p_on boolean, p_msg text default null, p_minutes integer default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_now bigint := floor(extract(epoch from clock_timestamp()) * 1000)::bigint; v jsonb;
+begin
+  v := jsonb_strip_nulls(jsonb_build_object('on', coalesce(p_on, false), 'msg', p_msg, 'at', v_now,
+         'until', case when p_minutes is not null and p_minutes > 0 then v_now + p_minutes::bigint * 60000 end));
+  insert into public.docs (path, col, doc_id, data) values ('config/maintenance', 'config', 'maintenance', v)
+  on conflict (path) do update set data = excluded.data, updated_at = now();
+  return v;
+end $$;
+revoke all on function public.set_maintenance(boolean, text, integer) from public, anon, authenticated;
+
+-- ===== 운영자 예약 알림 (휴대폰 알림) =====
+-- 정한 시각에 휴대폰 알림으로 보내요. 게임을 켜 둔 사람에게는 그 시각에 게임 안 알림으로 떠요.
+-- ⚠️ 서버에서 바로 쏘는 푸시가 아니라, 게임이 미리 받아 두었다가 휴대폰에 예약하는 방식이에요.
+--    → 알림 시각 '전에' 게임을 한 번이라도 켠 사람만 받아요. 이벤트는 하루 이상 미리 보내 두면 좋아요.
+--   select send_push('🎉 주말 이벤트 시작!', '지금 접속하면 옥 2배!', '2026-11-21 20:00');  -- 한국 시간
+--   select send_push('📢 점검 안내', '내일 오후 2시부터 1시간 점검해요');                    -- 시각 생략 = 10분 뒤
+--   select * from push_list;                                   -- 보낸 알림 보기
+--   delete from public.docs where path = 'push/p1700000000000'; -- 취소 (아직 안 울린 것만 의미 있음)
+create or replace function public.send_push(p_title text, p_body text default '', p_at timestamp default null)
+returns text language plpgsql security definer set search_path = public as $$
+declare v_at bigint; v_id text;
+begin
+  if coalesce(trim(p_title), '') = '' then raise exception '제목(p_title)을 넣어 주세요'; end if;
+  v_at := floor(extract(epoch from coalesce(p_at at time zone 'Asia/Seoul', clock_timestamp() + interval '10 minutes')) * 1000)::bigint;
+  if v_at < floor(extract(epoch from clock_timestamp()) * 1000)::bigint then raise exception '이미 지난 시각이에요: %', p_at; end if;
+  v_id := 'p' || floor(extract(epoch from clock_timestamp()) * 1000)::bigint;
+  insert into public.docs (path, col, doc_id, data) values ('push/' || v_id, 'push', v_id,
+    jsonb_build_object('title', left(trim(p_title), 60), 'body', left(coalesce(p_body, ''), 200), 'at', v_at));
+  return v_id || ' · ' || to_char(to_timestamp(v_at / 1000.0) at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI') || ' (한국 시간)';
+end $$;
+revoke all on function public.send_push(text, text, timestamp) from public, anon, authenticated;
+create or replace view public.push_list with (security_invoker = true) as
+  select path, data ->> 'title' as title, data ->> 'body' as body,
+         to_timestamp((data ->> 'at')::bigint / 1000.0) at time zone 'Asia/Seoul' as at_kst
+  from public.docs where col = 'push' order by (data ->> 'at')::bigint desc;
+revoke all on public.push_list from anon, authenticated;
