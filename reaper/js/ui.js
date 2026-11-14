@@ -1406,6 +1406,8 @@ const UI = (() => {
   }
   const hrsLabel = h => { const m = Math.round(h * 60), H = Math.floor(m / 60), M = m % 60; return H ? `${H}시간${M ? ' ' + M + '분' : ''}` : `${M}분`; };
   // 로그인 안 했을 때 안내창에 넣는 로그인 버튼 (서버가 연결돼 있을 때만)
+  // 회원 코드: 문의 · 환불 요청 때 계정을 찾는 짧은 번호 (로그인: 계정 id 앞 8자리 · 게스트: 기기 번호 앞 8자리)
+  const userCode = () => { const id = (Cloud.signedIn() && Cloud.uid()) || ('G' + Stats.devId()); return String(id).replace(/-/g, '').slice(0, 8).toUpperCase(); };
   const loginBtn = () => Cloud.ready() && !Cloud.signedIn() ? '<button class="btn" data-login="1">로그인</button>' : '';
   const bindLogin = () => { const b = $('#modal [data-login]'); if (b) b.onclick = () => { closeModal(); loginScreen(true); }; };
   // ---------- 언어 고르기 (각 언어 이름은 그 나라 글자로, 번역하지 않음) ----------
@@ -1426,7 +1428,7 @@ const UI = (() => {
     const s = S(), cloud = Cloud.ready(), inn = cloud && Cloud.signedIn();
     const PN = { google: '구글', kakao: '카카오', naver: '네이버', apple: 'Apple', email: '네이버' };
     const box = modal(`<h2>설정</h2>
-      <div class="set-sec">계정</div>${inn ? `<div class="set-row"><span>☁️ ${PN[Cloud.provider()] || ''} 계정으로 저장 중</span><button class="btn dark" id="s-out">로그아웃</button></div>`
+      <div class="set-sec">계정</div>${inn ? `<div class="set-row"><span>☁️ ${PN[Cloud.provider()] || ''} 계정으로 저장 중<small class="set-sub">회원 코드 <b translate="no">${userCode()}</b> · 문의할 때 알려 주세요</small></span><button class="btn dark" id="s-out">로그아웃</button></div>`
         : cloud ? '<div class="set-row"><span>👤 게스트 (이 기기에만 저장)</span><button class="btn" id="s-link">계정 연동</button></div>'
         : '<div class="set-row"><span>👤 이 기기에 저장 중<small class="set-sub">로그인 서버를 연결하면 계정 연동 · 로그아웃을 쓸 수 있어요</small></span><button class="btn dark" id="s-out0" disabled>로그아웃</button></div>'}
       <div class="set-sec">게임</div>
@@ -1491,7 +1493,7 @@ const UI = (() => {
       const mail = APP.supportEmail;
       const box = modal(`<h2>💬 1:1 문의</h2><p>로그인하면 게임 안에서 문의하고 답변을 받을 수 있어요.</p>${mail ? `<p class="mute">또는 이메일로 보내 주세요<br><b style="color:var(--gold)">${esc(mail)}</b></p>` : ''}
         <div class="acts">${mail ? '<button class="btn dark" id="ak-mail">이메일 보내기</button>' : ''}${Cloud.ready() ? '<button class="btn" id="ak-login">로그인</button>' : ''}<button class="btn dark" data-act="close">닫기</button></div>`);
-      const m = box.querySelector('#ak-mail'); if (m) m.onclick = () => { location.href = `mailto:${mail}?subject=${encodeURIComponent('[저승사자 키우기] 문의')}&body=${encodeURIComponent(`\n\n---\n닉네임: ${S().name}\n버전: ${APP.version} (${Native.platform()})`)}`; };
+      const m = box.querySelector('#ak-mail'); if (m) m.onclick = () => { location.href = `mailto:${mail}?subject=${encodeURIComponent('[저승사자 키우기] 문의')}&body=${encodeURIComponent(`\n\n---\n닉네임: ${S().name}\n기기 코드: ${userCode()}\n버전: ${APP.version} (${Native.platform()})`)}`; };
       const l = box.querySelector('#ak-login'); if (l) l.onclick = () => { closeModal(); loginScreen(true); };
       return;
     }
@@ -1511,7 +1513,7 @@ const UI = (() => {
     box.querySelector('#ak-send').onclick = async e => {
       const t = box.querySelector('#ak-body').value.trim(); if (t.length < 5) { toast('내용을 5자 이상 적어 주세요'); return; }
       e.target.disabled = true;
-      try { await Cloud.inquiry.send(cat, t, S().name, `${Native.platform()} · v${APP.version} · 계급 ${S().rank} · ${navigator.userAgent.slice(0, 150)}`); box.querySelector('#ak-body').value = ''; toast('문의를 보냈어요. 답변이 오면 여기에서 볼 수 있어요', 2600); load(); }
+      try { await Cloud.inquiry.send(cat, t, S().name, `코드 ${userCode()} · ${Native.platform()} · v${APP.version} · 계급 ${S().rank} · ${navigator.userAgent.slice(0, 150)}`); box.querySelector('#ak-body').value = ''; toast('문의를 보냈어요. 답변이 오면 여기에서 볼 수 있어요', 2600); load(); }
       catch (err) { toast('보내지 못했어요. 잠시 후 다시 시도해 주세요', 2400); }
       e.target.disabled = false;
     };

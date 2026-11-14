@@ -9,13 +9,14 @@ const Board = (() => {
       if (window.claude && window.claude.use) { db = await window.claude.use('db'); user = await window.claude.use('user'); }
       else if (typeof Cloud !== 'undefined' && Cloud.signedIn()) { db = Cloud.db; user = Cloud.user; } // 우리 서버(Supabase)
       else return;
-      if (db && user) { uid = await user.id(); ready = !!uid; } if (ready) isOwner();
+      if (db && user) { uid = await user.id(); ready = !!uid; } if (ready) await isOwner(); // 운영자인지 먼저 확인 (운영자는 순위에 올리지 않음)
       if (ready) { await push(true); refresh(); setInterval(refresh, 3 * 60e3); myLikes(); }
     } catch (e) { db = null; ready = false; }
   }
   // 내 기록 올리기 (바뀌었을 때만, 최대 1분에 한 번 · 승진 직후엔 바로)
   async function push(force) {
     if (!ready || !Game.S || !Game.S.kind || !Game.S.nickSet) return; // 닉네임을 정해야 순위에 오른다
+    if (owner) { if (!ownerOff) { ownerOff = true; try { await db.doc('rank/' + uid).delete(); } catch (e) {} } return; } // 운영자는 순위에서 빠짐 (올려 둔 기록도 지움)
     const s = Game.S, row = { score: score(s), lv: Game.level(), rank: s.rank, rb: s.reborn || 0, kind: s.kind, nick: s.name, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 0 : 0, pt: Math.floor((s.playSec || 0) / 60) * 60 }; // pt: 실제 접속 시간(분 단위)
     const sig = JSON.stringify(row);
     if (sig === lastSent || (!force && Date.now() - lastAt < 60e3)) return;
@@ -33,9 +34,9 @@ const Board = (() => {
       const snap = await db.collection('rank').orderBy(byPt ? 'pt' : 'score', 'desc').limit(50).get();
       const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
       let my = rows.findIndex(r => r.id === uid) + 1;
-      if (!my && Game.S.nickSet && !byPt) { const above = await db.collection('rank').where('score', '>', score(Game.S)).limit(1000).get(); my = above.size + 1; }
+      if (!my && Game.S.nickSet && !byPt && !owner) { const above = await db.collection('rank').where('score', '>', score(Game.S)).limit(1000).get(); my = above.size + 1; }
       let names = {}; try { names = await user.profiles(rows.map(r => r.id)); } catch (e) {}
-      if (!byPt) setPlace(Game.S.nickSet ? my : 0, rows.length);
+      if (!byPt) setPlace(Game.S.nickSet && !owner ? my : 0, rows.length);
       return { rows: rows.map(r => Object.assign(r, { name: r.nick || (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid })), my, total: rows.length };
     })();
     return Promise.race([q, done]);
@@ -127,7 +128,7 @@ const Board = (() => {
   async function myLikes() { if (!ready) return 0; try { const snap = await timeout(db.collection('visits').where('likedIds', 'array-contains', uid).limit(1000).get()); const n = snap.size; if (Game.S) { Game.S.officeLikes = n; } await pushOffice(); return n; } catch (e) { return Game.S && Game.S.officeLikes || 0; } }
   let total = 0;
   // ===== 공지사항 · 전체 우편 (운영자만 쓰기) =====
-  let owner = false;
+  let owner = false, ownerOff = false;
   async function isOwner() { try { owner = !!(user && await user.isOwner()); } catch (e) { owner = false; } return owner; }
   async function notices() { if (!ready) return null; const snap = await timeout(db.collection('notices').orderBy('at', 'desc').limit(20).get()); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())); }
   async function postNotice(n) { const id = 'n' + Date.now(); await db.doc('notices/' + id).set(Object.assign({ at: Date.now() }, n)); return id; }

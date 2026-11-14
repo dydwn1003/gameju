@@ -54,8 +54,23 @@ select reply_inquiry(12, '오류 보상이에요.', p_jade => 100, p_tickets => 
 - 예: `select send_mail('점검 보상', 'old', p_jade => 100, p_hours => 2);`
 - 보낸 우편 보기: `select * from mail_list;`
 
+### 누가 문의했는지 찾기 (회원 코드)
+- 로그인한 유저는 게임 **설정 → 계정** 줄에 **회원 코드**(8자리, 예 `3F9A21C7`)가 보여요. 1:1 문의에는 자동으로 들어가요.
+- 게스트는 1:1 문의 대신 **이메일**로 문의하는데, 메일 맨 아래에 **기기 코드**(`G`로 시작)가 자동으로 붙어요. 게스트 기록은 서버에 없어서, 보상은 로그인을 부탁한 뒤 우편으로 보내요.
+```sql
+-- 문의 목록: 회원 코드 · 이메일 · 로그인 방식(apple/google/kakao)까지
+select id, category, nick, code, email, login, body, asked_kst from inquiry_list where replied = false;
+
+-- 회원 코드 · 닉네임 · 이메일 아무거나로 계정 찾기
+-- → 가입일 · 마지막 로그인 · 계급 · 옥 · 결제 거래 번호(purchases) · 산 상품 횟수(bought)
+select * from user_find('3F9A21C7');
+select * from user_find('닉네임');
+select * from user_find('someone@gmail.com');
+```
+
 ### 결제 문의가 왔을 때
-1. **구글**: Play Console → **주문 관리** 에서 주문 번호 · 결제 확인 → 못 받았으면 `reply_inquiry(..., p_jade => 상품만큼)`
+0. `user_find('회원 코드')` 의 **purchases** 에 그 거래 번호가 있으면 이미 지급된 결제예요 (애플 거래 번호 · 구글 주문 번호 GPA.…)
+1. **구글**: Play Console → **주문 관리** 에서 주문 번호 · 결제 확인 → 못 받았으면 `reply_inquiry(..., p_jade => 상품만큼)` · 환불도 여기서 직접 할 수 있어요
 2. **애플**: 애플은 개발자가 직접 환불할 수 없어요 → 답변으로 "reportaproblem.apple.com 에서 환불 요청" 안내, 또는 우편으로 보상
 3. 같은 결제가 두 번 들어왔다면 그대로 두기 (사용자에게 손해 없음)
 
@@ -76,6 +91,10 @@ select data from public.docs where path = 'config/version';
 - 빌드 번호 = 깃허브 릴리스 이름 끝 숫자 (예: `reaper-apk-reaper-1.0.0-140` → 140)
 - 이 안내 창은 이 기능이 들어간 빌드부터 보여요.
 - 아이폰 '스토어 가기'가 앱 페이지로 바로 가려면 `js/config.js` 의 `store.iosId` 에 앱스토어 커넥트 → 앱 정보 → **Apple ID**(숫자)를 넣어 주세요. 비워 두면 앱스토어 검색 화면으로 열려요.
+
+### 운영자는 순위에서 빠져요
+- 운영자로 등록된 계정은 **순위표에 오르지 않아요** (게임이 올리지 않고, `add_admin` 할 때 올라가 있던 기록도 지움).
+- 운영자도 순위표는 볼 수 있어요. 운영자에서 빼면 다음에 게임을 켤 때 다시 순위에 올라가요.
 
 ## 4. 지켜 주세요
 - **service_role / secret 키는 어디에도 붙여 넣지 않기** (SQL Editor 는 키 없이 돼요)

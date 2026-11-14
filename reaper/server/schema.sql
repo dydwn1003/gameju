@@ -185,22 +185,30 @@ begin
   end if;
   if v_id is null then raise exception '계정을 찾지 못했어요: % (게임에서 그 계정으로 한 번 로그인했는지 확인)', p_who; end if;
   insert into admins (user_id) values (v_id) on conflict do nothing;
+  delete from docs where col = 'rank' and doc_id = v_id::text; -- 운영자는 순위에서 빠짐
   return '운영자 등록 완료: ' || v_id;
 end $$;
 revoke all on function public.add_admin(text) from public, anon, authenticated;
 
 create or replace view public.admin_list with (security_invoker = true) as
-  select a.user_id, u.email, (select data ->> 'nick' from public.docs d where d.col = 'rank' and d.doc_id = a.user_id::text) as nick
+  select a.user_id, u.email, (select data ->> 'name' from public.saves sv where sv.user_id = a.user_id) as nick
   from public.admins a left join auth.users u on u.id = a.user_id;
+-- 운영자는 순위에서 빠짐: 이미 올라가 있던 운영자 순위 기록 지우기 (게임도 운영자 기록은 올리지 않음)
+delete from public.docs where col = 'rank' and doc_id in (select user_id::text from public.admins);
 revoke all on public.admin_list from anon, authenticated;
 
 -- 1:1 문의 목록 (답변 안 한 것 먼저, 한국 시간)
 --   select * from inquiry_list;                       -- 전부
 --   select * from inquiry_list where replied = false; -- 답변 대기만
-create or replace view public.inquiry_list with (security_invoker = true) as
-  select id, reply is not null as replied, category, nick, body, reply,
-         created_at at time zone 'Asia/Seoul' as asked_kst, replied_at at time zone 'Asia/Seoul' as replied_kst, info, user_id
-  from public.inquiries order by (reply is not null), created_at desc;
+drop view if exists public.inquiry_list;
+create view public.inquiry_list with (security_invoker = true) as
+  select q.id, q.reply is not null as replied, q.category, q.nick,
+         upper(left(replace(q.user_id::text, '-', ''), 8)) as code,     -- 게임 설정에 보이는 회원 코드
+         u.email, u.raw_app_meta_data ->> 'provider' as login,
+         q.body, q.reply,
+         q.created_at at time zone 'Asia/Seoul' as asked_kst, q.replied_at at time zone 'Asia/Seoul' as replied_kst, q.info, q.user_id
+  from public.inquiries q left join auth.users u on u.id = q.user_id
+  order by (q.reply is not null), q.created_at desc;
 revoke all on public.inquiry_list from anon, authenticated;
 
 -- 답변하기 (+ 원하면 그 사람에게 보상 우편도 같이)
@@ -307,3 +315,26 @@ create or replace view public.stats_retention with (security_invoker = true) as
          case when fd + 30 <= (now() at time zone 'Asia/Seoul')::date then round(100.0 * count(distinct dev) filter (where n = 30) / nullif(count(distinct dev) filter (where n = 0), 0), 1) end as d30
   from a group by fd order by fd desc;
 revoke all on public.stats_retention from anon, authenticated;
+
+
+-- ===== 유저 찾기 (문의 · 환불 · 보상 응대) =====
+-- 회원 코드(게임 설정에 보임, 8자리) · 이메일 · 닉네임 아무거나로 찾기
+--   select * from user_find('3F9A21C7');
+--   select * from user_find('닉네임');
+--   select * from user_find('someone@gmail.com');
+-- purchases: 이 계정에 지급된 결제 거래 번호 (애플 · 구글 거래 번호) · bought: 산 상품별 횟수
+create or replace function public.user_find(p text)
+returns table (code text, nick text, email text, login text, joined_kst timestamp, last_login_kst timestamp,
+               rank int, reborn int, jade numeric, saved_kst timestamp, purchases jsonb, bought jsonb, user_id uuid)
+language sql security definer set search_path = public, auth as $$
+  select upper(left(replace(u.id::text, '-', ''), 8)), sv.data ->> 'name', u.email, u.raw_app_meta_data ->> 'provider',
+         u.created_at at time zone 'Asia/Seoul', u.last_sign_in_at at time zone 'Asia/Seoul',
+         (sv.data ->> 'rank')::int, (sv.data ->> 'reborn')::int, (sv.data ->> 'jade')::numeric,
+         sv.updated_at at time zone 'Asia/Seoul', sv.data -> 'txDone', sv.data -> 'bought', u.id
+  from auth.users u left join public.saves sv on sv.user_id = u.id
+  where replace(u.id::text, '-', '') ilike replace(trim(p), '-', '') || '%'
+     or lower(u.email) = lower(trim(p))
+     or sv.data ->> 'name' = trim(p)
+  limit 20;
+$$;
+revoke all on function public.user_find(text) from public, anon, authenticated;
