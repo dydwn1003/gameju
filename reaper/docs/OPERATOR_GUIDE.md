@@ -138,6 +138,19 @@ select restore_save('닉네임', '2026-11-14');        -- 그날 기록으로 �
 - 통째로 되돌리면 그 뒤에 쌓은 진행(레벨·혼 등)도 같이 돌아가요. 영물 하나만 돌려주고 싶으면 우편(`p_pet`)으로 보내는 게 나아요.
 - 게스트 기록은 기기에만 있어서 서버에 남지 않아요. 계정을 삭제하면 이 기록도 함께 지워져요.
 
+### 레벨 99 (만렙) 만들기 · 계급 바꾸기 (시험 · 보상용)
+레벨은 업그레이드 8개를 강화한 횟수로 정해져요. 전부 최대로 채우면 레벨 99예요. **플레이어가 게임을 끈 상태에서** 실행하세요.
+```sql
+update saves set data = jsonb_set(data, '{upg}', coalesce(data->'upg', '{}') ||
+  '{"pen":1699,"step":200,"call":200,"hand":200,"luck":200,"minion":40,"drill":420,"ledger":40}'), updated_at = now()
+where data->>'name' = '닉네임' returning data->>'name', data->'rank';
+
+-- 계급까지 바로 염라대왕으로 (0 수습 차사 ~ 8 염라대왕)
+update saves set data = jsonb_set(data, '{rank}', '8'), updated_at = now() where data->>'name' = '닉네임';
+```
+- 계급을 안 바꾸면 게임에서 승진 버튼으로 한 계급씩 올라가요. 승진은 레벨만 맞으면 바로 돼요.
+- 되돌리려면 `restore_save('닉네임', '날짜')`를 쓰세요. 실행 전 기록이 남아 있을 때만 돼요.
+
 ## 4. 지켜 주세요
 - **service_role / secret 키는 어디에도 붙여 넣지 않기** (SQL Editor 는 키 없이 돼요)
 - 문의에 담긴 이메일 · 기기 정보는 답변 목적으로만 보기
