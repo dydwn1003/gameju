@@ -1,0 +1,96 @@
+# 저승사자 키우기 — 안드로이드 에뮬레이터로 APK 시험 (설치 → 실행 → 홈 → 최근 앱 카드로 다시 열기 → 오류 기록)
+#
+# 실행: GitHub → Actions → "저승사자 Android 에뮬 시험" → Run workflow (요청할 때만)
+# 결과: 작업 로그에 앱 상태 · 알람 예약 · 오류(FATAL) 요약, 화면 사진과 전체 logcat 은 아티팩트로
+name: 저승사자 Android 에뮬 시험
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '시험할 APK 릴리스 태그 (비우면 가장 최근 reaper-apk-…)'
+        default: ''
+        required: false
+  # 새 워크플로는 기본 브랜치에 있어야 버튼으로 돌릴 수 있어서, 이 파일을 바꿔 올리면 돌게도 해 둠 (내용 = 시험할 태그, 한 줄에 하나)
+  push:
+    paths: ['.github/emu-tags.txt']
+
+permissions:
+  contents: read
+
+jobs:
+  emu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PKG: com.jeoseungsaja.idle
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github
+
+      - name: APK 받기
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ] && [ -f .github/emu-tags.txt ]; then TAG=$(grep -v '^#' .github/emu-tags.txt | head -1 | tr -d ' \r'); fi
+          if [ -z "$TAG" ]; then TAG=$(gh release list -R "$GITHUB_REPOSITORY" -L 30 --json tagName -q '.[].tagName' | grep '^reaper-apk-' | head -1); fi
+          echo "시험할 릴리스: $TAG"
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p '*.apk' -D apk
+          ls -la apk
+          echo "APK=$(ls apk/*.apk | head -1)" >> "$GITHUB_ENV"
+
+      - name: 시험 스크립트 만들기
+        run: |
+          cat > emu.sh <<'SH'
+          set +e
+          mkdir -p out
+          adb install -r "$APK" && echo "설치 OK"
+          adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS || true
+          adb logcat -c
+          echo "== 1) 아이콘으로 실행"; adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null; sleep 40
+          adb exec-out screencap -p > out/1_open.png
+          adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -3
+          echo "== 2) 홈으로"; adb shell input keyevent KEYCODE_HOME; sleep 20
+          adb shell dumpsys alarm | grep -A3 "$PKG" | head -40
+          echo "== 3) 최근 앱 화면 → 카드 누르기"; adb shell input keyevent KEYCODE_APP_SWITCH; sleep 4
+          adb exec-out screencap -p > out/3_recents.png
+          SZ=$(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1); W=${SZ%x*}; H=${SZ#*x}
+          adb shell input tap $((W/2)) $((H/2)); sleep 15
+          adb exec-out screencap -p > out/3_after_card.png
+          adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -3
+          echo "== 4) 홈 → 1분 대기 → 최근 앱 카드 다시"; adb shell input keyevent KEYCODE_HOME; sleep 60
+          adb shell input keyevent KEYCODE_APP_SWITCH; sleep 4; adb shell input tap $((W/2)) $((H/2)); sleep 15
+          adb exec-out screencap -p > out/4_after_card2.png
+          adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -3
+          echo "== 5) 앱 프로세스를 강제로 정리한 뒤(백그라운드에서 죽는 상황) 카드로 다시"; adb shell input keyevent KEYCODE_HOME; sleep 3; adb shell am kill $PKG; sleep 3
+          adb shell input keyevent KEYCODE_APP_SWITCH; sleep 4; adb shell input tap $((W/2)) $((H/2)); sleep 25
+          adb exec-out screencap -p > out/5_after_kill_card.png
+          adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -3
+          adb logcat -d > out/logcat.txt
+          echo "== 오류 요약 (FATAL · 앱 관련 에러)"; grep -n -E "FATAL EXCEPTION|AndroidRuntime|ANR in|$PKG.*(Exception|Error)|Capacitor.*(Error|error)" out/logcat.txt | head -80 || true
+          echo "== 콘솔(게임 JS) 오류"; grep -n -E "Capacitor/Console.*(Error|error|Uncaught)" out/logcat.txt | head -40 || true
+          SH
+          chmod +x emu.sh
+
+      - name: KVM 켜기
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: 에뮬레이터에서 시험
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash ./emu.sh
+
+      - name: 결과 올리기
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emu-result
+          path: out/
