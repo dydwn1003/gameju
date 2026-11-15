@@ -26,7 +26,7 @@
 
 ## 2. 보관 기간
 
-계정을 삭제하거나 서비스가 끝날 때까지 보관하고, 그 뒤에는 바로 지웁니다. 단, 전자상거래법 등 법령이 정한 경우(결제 기록 5년 등)에는 그 기간 동안 보관합니다.
+계정을 삭제하거나 서비스가 끝날 때까지 보관하고, 그 뒤에는 바로 지웁니다. 단, 전자상거래법 등 법령이 정한 경우(결제 기록 5년 등)에는 그 기간 동안 보관합니다. 분실 · 오류 복구를 위해 서버에 남기는 날짜별 게임 기록 사본은 30일이 지나면 자동으로 지웁니다.
 
 ## 3. 제3자 제공 및 처리 위탁
 
@@ -91,7 +91,7 @@ If you play as a guest, your game records stay only on your device and are not s
 
 ## 2. Retention
 
-We keep your data until you delete your account or the service ends, then delete it promptly — except where the law requires longer retention (e.g., purchase records for 5 years under Korean e-commerce law).
+We keep your data until you delete your account or the service ends, then delete it promptly — except where the law requires longer retention (e.g., purchase records for 5 years under Korean e-commerce law). Daily backup copies of your game save, kept on the server to recover lost progress, are deleted automatically after 30 days.
 
 ## 3. Sharing and processors
 
@@ -156,7 +156,7 @@ Gatju Mobile(갓주모바일)(以下「運営者」)は、モバイルゲーム�
 
 ## 2. 保存期間
 
-アカウントの削除またはサービス終了まで保存し、その後すみやかに削除します。ただし、法令で定められた場合(決済記録5年など)はその期間保存します。
+アカウントの削除またはサービス終了まで保存し、その後すみやかに削除します。ただし、法令で定められた場合(決済記録5年など)はその期間保存します。紛失・不具合の復旧のためにサーバーに保存する日付ごとのゲーム記録のコピーは、30日後に自動で削除します。
 
 ## 3. 第三者提供と業務委託
 
@@ -221,7 +221,7 @@ Gatju Mobile(갓주모바일)(以下称"运营者")重视使用手机游戏《�
 
 ## 2. 保存期限
 
-保存至您删除账号或服务终止为止,之后立即删除。但法律规定需保存的(如支付记录5年)将在规定期限内保存。
+保存至您删除账号或服务终止为止,之后立即删除。但法律规定需保存的(如支付记录5年)将在规定期限内保存。为恢复丢失或出错的进度而在服务器保存的每日游戏记录副本,将在30天后自动删除。
 
 ## 3. 向第三方提供及委托处理
 
