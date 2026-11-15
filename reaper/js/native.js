@@ -55,7 +55,15 @@ const Native = (() => {
   // 예약된 알림 목록 (설정 화면 확인용): [{ id, title, at }]
   async function notifyPending() { const L = LN(); if (!L) return []; try { const p = await L.getPending(); return (p.notifications || []).map(n => ({ id: n.id, title: n.title, at: n.schedule && n.schedule.at ? +new Date(n.schedule.at) : 0 })).sort((a, b) => a.at - b.at); } catch (e) { return []; } }
   // 시험 알림: 10초 뒤 한 번
-  async function notifyTest(title, body) { const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return false; try { await L.schedule({ notifications: [{ id: 99, title, body, channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(Date.now() + 10000), allowWhileIdle: true }, isExactNotification: await exactAlarm() }] }); return true; } catch (e) { return false; } }
+  // 안드로이드 알림 채널 'reaper' (없는 채널로 보내면 안드로이드가 알림을 조용히 버림 → 예약 · 시험 모두 먼저 만듦)
+  async function ensureChan() { const L = LN(); if (chan || !L || platform() !== 'android') return; try { await L.createChannel({ id: 'reaper', name: I18N.t('게임 알림'), description: I18N.t('보상 · 파견 · 출석 알림'), importance: 4, visibility: 1 }); chan = true; } catch (e) {} }
+  async function notifyTest(title, body) {
+    const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return false;
+    await ensureChan();
+    const ex = await exactAlarm(true); // 누르는 순간 권한을 다시 확인 (예전 값으로 정확한 알람을 요청하면 플러그인이 설정 화면을 띄우려다 멈출 수 있음)
+    const go = (async () => { try { await L.schedule({ notifications: [{ id: 99, title, body, channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(Date.now() + 10000), allowWhileIdle: true }, isExactNotification: ex }] }); return true; } catch (e) { return false; } })();
+    return Promise.race([go, new Promise(r => setTimeout(() => r(false), 5000))]); // 5초 넘게 답이 없으면 실패로 (화면이 멈추지 않게)
+  }
   // 안드로이드 정확한 알람 권한 ('알람 및 리마인더'): 있으면 정확한 시각에, 없으면 느슨하게 (권한 화면을 저절로 띄우지 않게 직접 확인)
   let exactOk = null;
   async function exactAlarm(recheck) {
@@ -67,10 +75,10 @@ const Native = (() => {
   async function exactAlarmAsk() { const L = LN(); if (!L || platform() !== 'android') return true; try { await L.changeExactNotificationSetting(); } catch (e) {} return exactAlarm(true); }
   async function notifySchedule(list) {
     const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return;
-    if (!chan && platform() === 'android') { try { await L.createChannel({ id: 'reaper', name: I18N.t('게임 알림'), description: I18N.t('보상 · 파견 · 출석 알림'), importance: 4, visibility: 1 }); } catch (e) {} chan = true; }
+    await ensureChan();
     await notifyClear();
     if (!list.length) return;
-    const exact = await exactAlarm(); // 권한이 없을 때 true 로 보내면 플러그인이 설정 화면을 띄워서, 확인한 값으로만 보냄
+    const exact = await exactAlarm(true); // 권한이 없을 때 true 로 보내면 플러그인이 설정 화면을 띄워서, 매번 지금 권한을 확인한 값으로만 보냄
     // isExactNotification: 안드로이드에서 '알람 및 리마인더' 권한이 있을 때만 true (없으면 false 로 보내야 설정 화면이 저절로 안 뜸)
     await L.schedule({ notifications: list.map(n => ({ id: n.id, title: I18N.t(n.title), body: n.body.split('\n').map(x => I18N.t(x)).join('\n'), channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true }, isExactNotification: exact })) });
   }
