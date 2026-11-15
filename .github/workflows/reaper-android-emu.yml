@@ -23,8 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        api: [36, 37]   # 안드로이드 16 · 17 (실제 폰이 One UI 9 / 안드로이드 17)
+      matrix:   # 안드로이드 17 (실제 폰이 One UI 9 / 안드로이드 17) — SDK 이름이 버전마다 달라서 여러 이름으로 시도
+        include:
+          - { api: '37.0', channel: stable }
+          - { api: '37', channel: canary }
+          - { api: 'Baklava', channel: canary }
     timeout-minutes: 40
     env:
       PKG: com.jeoseungsaja.idle
@@ -86,6 +89,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api }}
+          channel: ${{ matrix.channel }}
           target: google_apis
           arch: x86_64
           disable-animations: true
