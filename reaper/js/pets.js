@@ -210,5 +210,7 @@ const Pets = (() => {
     for (const g of list) { let guard = 0; while (spares(g) >= FUSE_N && guard++ < 5000) { const r = fuse(g, 1); if (!r) break; res.push(...r); } }
     return res.length ? res : null;
   }
-  return { P, ensure, stats, mul, pull, adPull, adLeft, equip, starUp, starCost, fuse, fuseAll, spares, FUSE_N, FUSE_UP };
+  // 영물 직접 주기 (운영자 우편): 처음이면 도감에 등록, 이미 있으면 여분으로 · n 마리
+  function grant(id, n = 1) { if (!PETS.some(p => p.id === id)) return false; ensure(); for (let i = 0; i < Math.max(1, Math.min(10, n | 0)); i++) give(id); Game.apply(); Game.save(); return true; }
+  return { P, ensure, stats, mul, pull, grant, adPull, adLeft, equip, starUp, starCost, fuse, fuseAll, spares, FUSE_N, FUSE_UP };
 })();

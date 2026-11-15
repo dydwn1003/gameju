@@ -135,3 +135,31 @@ select doc_id, data ->> 'nick' as nick from public.docs where col = 'rank' and d
 - "접속 중"은 보낸 순간 게임이 켜져 있던 사람이에요 (2분 넘게 나갔다 오면 새 접속). 우편함 **N** 표시는 1분 안에 떠요 (게임으로 돌아오면 바로).
 - 우편함에는 최근 60통까지 보여요. 오래된 우편은 지워 두면 좋아요.
 - 혼(시간치)은 받는 사람의 지금 수입 기준이라, 높은 계급일수록 많이 받아요.
+
+## 🐾 특정 플레이어에게 영물 주기
+
+처음 받는 영물이면 도감에 등록되고, 이미 있으면 **여분**(별 올리기 재료)으로 들어가요.
+
+```sql
+-- 한 명에게 아기 황룡 1마리
+select send_mail('🐲 특별 선물', 'user', p_pet => 'hwangryong', p_nicks => array['닉네임']);
+
+-- 여러 명에게 금시조 2마리씩 (1~10마리)
+select send_mail('🎁 이벤트 보상', 'user', p_pet => 'geumsijo', p_pet_n => 2, p_nicks => array['닉네임1', '닉네임2']);
+
+-- 영물 + 옥 같이
+select send_mail('🎁 보상', 'user', p_pet => 'gumiho', p_jade => 100, p_nicks => array['닉네임']);
+```
+
+영물 id 목록:
+
+| 등급 | id |
+|---|---|
+| SSS | hwangryong(아기 황룡) · eungryong(아기 응룡) · geumsijo(금시조) |
+| SS | girin · bonghwang · gumiho · baektaek · heukryong |
+| S | samjok · bulyeo · cheongryong · hyeonmu · jujak · cheonma · imugi |
+| A | haechi · yeowoo · hak · baekho · baeksa · eunyeowoo · horangi · geumdukk · bulgasari |
+| B | neoguri · sapsal · heukmyo · buheong · geobuk · sudal · kkamagwi · kkotsasum · baekgu · geumbung · haneul · chijeu · bandal |
+| C | kkachi · daram · bandi · dukk · tokki · byeong · chamsae · saengjwi · cheonggae · ori · bungeo · bakjwi · dwaeji · gosum · nabi · yeomso |
+
+id를 틀리게 쓰면 "영물 id를 찾지 못했어요" 오류가 나요. 앱 버전이 영물 우편을 모르는 예전 빌드면 우편은 보이지만 영물이 들어가지 않아요.

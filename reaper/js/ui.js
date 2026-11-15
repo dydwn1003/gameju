@@ -725,11 +725,12 @@ const UI = (() => {
   }
   const myMails = list => (list || []).filter(mailFor);
   async function refreshMail() { if (!Board.canMail()) return; try { mailCache = await Board.mails(); const gotM = S().mailGot || {}; generalNew = myMails(mailCache).some(m => !gotM[m.id]); mailWatch(); const nl = await loadNotices(); $('#btn-notice .dot').classList.toggle('on', nl.some(n => (n.at || 0) > (S().noticeSeen || 0))); } catch (e) {} }
-  const rewardChips = m => [m.jade ? `💎 옥 ${m.jade}` : '', m.souls ? `🔥 혼 ${fmt(m.souls)}` : '', m.tickets ? `🎫 소환권 ${m.tickets}` : '', m.hours ? `🔥 ${m.hours}시간치 혼` : '', m.decor && Decor.D(m.decor) ? `🏮 ${Decor.D(m.decor).name}` : ''].filter(Boolean);
+  const rewardChips = m => [m.jade ? `💎 옥 ${m.jade}` : '', m.souls ? `🔥 혼 ${fmt(m.souls)}` : '', m.tickets ? `🎫 소환권 ${m.tickets}` : '', m.hours ? `🔥 ${m.hours}시간치 혼` : '', m.decor && Decor.D(m.decor) ? `🏮 ${Decor.D(m.decor).name}` : '', m.pet && PETS.some(p => p.id === m.pet) ? `🐾 ${PETS.find(p => p.id === m.pet).name}${(m.petN || 1) > 1 ? ` ×${m.petN}` : ''}` : ''].filter(Boolean);
   function claimMail(m) {
     const s = S(); s.mailGot = s.mailGot || {}; if (s.mailGot[m.id] || !mailFor(m)) return false; s.mailGot[m.id] = Date.now();
     if (m.jade) s.jade += +m.jade; if (m.souls) Game.gain(+m.souls); if (m.tickets) s.tickets = (s.tickets || 0) + (+m.tickets); if (m.hours) Game.gain(Game.incomePerSec(true) * 3600 * m.hours);
     if (m.decor && Decor.D(m.decor)) { const dc = Decor.ensure(); dc.own[m.decor] = (dc.own[m.decor] || 0) + 1; }
+    if (m.pet) Pets.grant(m.pet, m.petN || 1); // 영물 (처음이면 도감 등록, 있으면 여분)
     Game.save(); return true;
   }
   async function mailModal() {

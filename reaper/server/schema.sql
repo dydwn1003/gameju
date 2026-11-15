@@ -114,6 +114,7 @@ create trigger docs_touch before update on public.docs for each row execute func
 -- 보낸 우편 보기:  select * from mail_list;
 -- 우편 지우기:     delete from public.docs where path = 'mail/m1700000000000';   (이미 받은 사람의 보상은 그대로)
 drop function if exists public.send_mail(text, text, integer, integer, numeric, integer, text, text, text[]);
+drop function if exists public.send_mail(text, text, integer, integer, numeric, integer, text, text, text[], bigint);
 create or replace function public.send_mail(
   p_title   text,
   p_to      text    default 'all',
@@ -124,7 +125,9 @@ create or replace function public.send_mail(
   p_body    text    default '',
   p_decor   text    default '',
   p_nicks   text[]  default null,
-  p_souls   bigint  default 0
+  p_souls   bigint  default 0,
+  p_pet     text    default '',   -- 영물 id (docs/MAIL_SQL.md 목록)
+  p_pet_n   integer default 1     -- 영물 마리 수 (1~10, 이미 있으면 여분으로)
 ) returns text language plpgsql security definer set search_path = public as $$
 declare
   v_at bigint := floor(extract(epoch from clock_timestamp()) * 1000)::bigint;
@@ -136,8 +139,11 @@ begin
     raise exception '받는 사람(p_to)은 all / old / new / online / user 중 하나예요';
   end if;
   if coalesce(trim(p_title), '') = '' then raise exception '제목(p_title)을 넣어 주세요'; end if;
-  if coalesce(p_jade, 0) <= 0 and coalesce(p_tickets, 0) <= 0 and coalesce(p_hours, 0) <= 0 and coalesce(p_souls, 0) <= 0 and coalesce(p_decor, '') = '' then
-    raise exception '보상(p_jade · p_tickets · p_souls · p_hours · p_decor)을 하나 이상 넣어 주세요';
+  if coalesce(p_jade, 0) <= 0 and coalesce(p_tickets, 0) <= 0 and coalesce(p_hours, 0) <= 0 and coalesce(p_souls, 0) <= 0 and coalesce(p_decor, '') = '' and coalesce(p_pet, '') = '' then
+    raise exception '보상(p_jade · p_tickets · p_souls · p_hours · p_decor · p_pet)을 하나 이상 넣어 주세요';
+  end if;
+  if coalesce(p_pet, '') <> '' and not (trim(p_pet) = any (array['kkachi','daram','bandi','dukk','tokki','byeong','neoguri','sapsal','heukmyo','buheong','geobuk','haechi','yeowoo','hak','baekho','samjok','bulyeo','cheongryong','girin','bonghwang','hwangryong','chamsae','saengjwi','cheonggae','ori','bungeo','bakjwi','dwaeji','gosum','nabi','yeomso','sudal','kkamagwi','kkotsasum','baekgu','geumbung','haneul','chijeu','bandal','baeksa','eunyeowoo','horangi','geumdukk','bulgasari','hyeonmu','jujak','cheonma','imugi','gumiho','baektaek','heukryong','eungryong','geumsijo'])) then
+    raise exception '영물 id(p_pet)를 찾지 못했어요: % — docs/MAIL_SQL.md 의 영물 목록을 봐 주세요', p_pet;
   end if;
   if p_to = 'user' then
     if coalesce(array_length(p_nicks, 1), 0) = 0 then raise exception '특정 플레이어는 p_nicks => array[''닉네임''] 으로 넣어 주세요'; end if;
@@ -149,17 +155,18 @@ begin
   insert into docs (path, col, doc_id, owner, data) values ('mail/' || v_id, 'mail', v_id, null, jsonb_strip_nulls(jsonb_build_object(
     'at', v_at, 'title', trim(p_title), 'body', coalesce(p_body, ''),
     'jade', greatest(coalesce(p_jade, 0), 0), 'tickets', greatest(coalesce(p_tickets, 0), 0), 'hours', greatest(coalesce(p_hours, 0), 0), 'souls', greatest(coalesce(p_souls, 0), 0),
+    'pet', nullif(trim(coalesce(p_pet, '')), ''), 'petN', case when coalesce(p_pet, '') <> '' then least(greatest(coalesce(p_pet_n, 1), 1), 10) end,
     'decor', coalesce(p_decor, ''), 'until', v_at + greatest(coalesce(p_days, 7), 1)::bigint * 86400000,
     'to', p_to, 'uids', v_uids, 'nicks', case when p_to = 'user' then to_jsonb(p_nicks) end)));
   return v_id;
 end $$;
-revoke all on function public.send_mail(text, text, integer, integer, numeric, integer, text, text, text[], bigint) from public, anon, authenticated;
+revoke all on function public.send_mail(text, text, integer, integer, numeric, integer, text, text, text[], bigint, text, integer) from public, anon, authenticated;
 
 -- 보낸 우편 목록 (SQL Editor 에서 보기 좋게)
 drop view if exists public.mail_list;
 create view public.mail_list with (security_invoker = true) as
   select path, data ->> 'title' as title, coalesce(data ->> 'to', 'all') as "to", data -> 'nicks' as nicks,
-         (data ->> 'jade')::int as jade, (data ->> 'tickets')::int as tickets, (data ->> 'hours')::numeric as hours, (data ->> 'souls')::bigint as souls, data ->> 'decor' as decor,
+         (data ->> 'jade')::int as jade, (data ->> 'tickets')::int as tickets, (data ->> 'hours')::numeric as hours, (data ->> 'souls')::bigint as souls, data ->> 'decor' as decor, data ->> 'pet' as pet, (data ->> 'petN')::int as pet_n,
          to_timestamp(at / 1000.0) at time zone 'Asia/Seoul' as sent_kst,
          to_timestamp((data ->> 'until')::bigint / 1000.0) at time zone 'Asia/Seoul' as until_kst
   from public.docs where col = 'mail' order by at desc;
