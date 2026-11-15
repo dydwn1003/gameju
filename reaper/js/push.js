@@ -10,11 +10,11 @@ const Push = (() => {
   const on = () => S() && S().kind && S().push !== false;
 
   // 밤이면 아침 8시로 미루기
-  function wake(at) {
+  function wake(at, id) {
     const d = new Date(at), h = d.getHours();
     if (h >= QUIET_FROM || h < QUIET_TO) {
       if (h >= QUIET_FROM) d.setDate(d.getDate() + 1);
-      d.setHours(QUIET_TO, Math.floor(Math.random() * 20), 0, 0);
+      d.setHours(QUIET_TO, ((id || 0) * 7) % 20, 0, 0); // 알림마다 정해진 분 (매번 바뀌면 1분마다 다시 예약하게 됨)
     }
     return d.getTime();
   }
@@ -60,7 +60,7 @@ const Push = (() => {
     // 9) 운영자가 보낸 예약 알림 (서버 push 목록, 밤 시간 규칙 없이 그 시각에 · 묶지 않음)
     const ops = ext.filter(x => x.at > now + 60e3 && x.at - now < 8 * 24 * H).slice(0, 5).map((x, i) => ({ id: 100 + i, at: x.at, title: x.title, body: x.body || '', op: 1 }));
     // 밤 시간 미루기 → 10분 안에 겹치는 알림은 하나로 묶기 (가장 중요한 것이 제목) · 8일 넘게 먼 건 빼기
-    out.forEach(n => (n.at = wake(n.at)));
+    out.forEach(n => (n.at = wake(n.at, n.id)));
     out.sort((a, b) => a.at - b.at);
     const groups = [];
     out.filter(n => n.at - now < 8 * 24 * H).forEach(n => { const g = groups.find(g => Math.abs(g[0].at - n.at) < 10 * 60e3); if (g) g.push(n); else groups.push([n]); });
@@ -91,18 +91,24 @@ const Push = (() => {
     const now = Date.now(), due = ext.filter(x => x.at <= now && now - x.at < 6 * H && !s.pushSeen[x.id]);
     due.forEach(x => (s.pushSeen[x.id] = now)); return due;
   }
-  let lastSig = '', busy = false;
-  async function sync(minAheadSec, force) {
-    if (!Native.isApp() || busy) return;
+  let lastSig = '', chain = Promise.resolve();
+  // 예약은 한 번에 하나씩 차례로 (떠날 때 예약과 1분 예약이 겹쳐 서로 지우지 않게)
+  function sync(minAheadSec, force) { chain = chain.then(() => syncNow(minAheadSec, force)).catch(() => {}); return chain; }
+  async function syncNow(minAheadSec, force) {
+    if (!Native.isApp()) return;
     if (!on()) { if (lastSig !== 'off') { lastSig = 'off'; try { await Native.notifyClear(); } catch (e) {} } return; }
     const now = Date.now(), list = plan(now).filter(n => n.at - now >= minAheadSec * 1000);
     const sig = list.map(n => n.id + '@' + Math.round(n.at / 600e3)).join(','); // 10분 단위로 비교 (매분 다시 예약하지 않게)
     if (!force && sig === lastSig) return;
-    busy = true; lastSig = sig;
-    try { await Native.notifySchedule(list); } catch (e) { lastSig = ''; } finally { busy = false; }
+    lastSig = sig;
+    try { await Native.notifySchedule(list); } catch (e) { lastSig = ''; }
   }
-  const keep = async () => { await fetchExt(); return sync(15 * 60); };                        // 켜 둔 동안 (1분마다)
-  const leave = () => { busy = false; return sync(60, true); }; // 떠날 때 (안드로이드 · 시간이 되면 아이폰도)
-  const back = async () => { await fetchExt(true); return sync(15 * 60, true); };                  // 돌아왔을 때: 곧 울릴 알림은 지우고 다시 예약
+  // 아이폰: 게임을 켜 둔 동안 울리는 알림은 화면에 안 뜨게 해 둠(capacitor.config presentationOptions: []) → 1분 넘게 남은 것까지 미리 다 예약
+  // (아이폰은 앱이 뒤로 가는 순간 코드가 멈춰서, 떠날 때 예약은 자주 실패함)
+  // 안드로이드: 켜 둔 동안 울리면 알림이 떠서 15분 넘게 남은 것만 미리 · 나머지는 떠날 때 예약 (안드로이드는 떠날 때 예약이 잘 됨)
+  const ahead = () => (Native.platform() === 'ios' ? 60 : 15 * 60);
+  const keep = async () => { await fetchExt(); return sync(ahead()); };                        // 켜 둔 동안 (1분마다)
+  const leave = () => sync(60, true); // 떠날 때 (안드로이드 · 시간이 되면 아이폰도)
+  const back = async () => { await fetchExt(true); return sync(ahead(), true); };                  // 돌아왔을 때: 곧 울릴 알림은 지우고 다시 예약
   return { plan, leave, back, keep, on, dueNow, fetchExt };
 })();

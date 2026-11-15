@@ -25,12 +25,7 @@
     "LocalNotifications": {
       "smallIcon": "ic_stat_reaper",
       "iconColor": "#E8424F",
-      "presentationOptions": [
-        "badge",
-        "sound",
-        "banner",
-        "list"
-      ]
+      "presentationOptions": []
     },
     "SocialLogin": {
       "providers": {

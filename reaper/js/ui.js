@@ -1506,6 +1506,7 @@ const UI = (() => {
       else if (perm !== 'granted') st.textContent = '⚠️ 아직 알림을 허용하지 않았어요 · 켜짐을 눌러 주세요';
       else if (s.push === false) st.textContent = '게임에서 알림을 껐어요';
       else { const list = await Native.notifyPending(), n = list[0], d = n && new Date(n.at); st.textContent = list.length ? `예약된 알림 ${list.length}개 · 다음 ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '예약된 알림이 아직 없어요 (게임을 켜 두면 1분 안에 예약돼요)'; }
+      if (perm === 'granted' && Native.platform() === 'android') st.insertAdjacentHTML('afterend', '<small class="set-sub">늦게 오거나 안 오면: 휴대폰 설정 → 애플리케이션 → 저승사자 키우기 → 배터리 → 제한 없음</small>');
     })();
     on('#s-push', async () => {
       const perm = await Native.notifyPerm();
