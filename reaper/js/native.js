@@ -55,14 +55,24 @@ const Native = (() => {
   // 예약된 알림 목록 (설정 화면 확인용): [{ id, title, at }]
   async function notifyPending() { const L = LN(); if (!L) return []; try { const p = await L.getPending(); return (p.notifications || []).map(n => ({ id: n.id, title: n.title, at: n.schedule && n.schedule.at ? +new Date(n.schedule.at) : 0 })).sort((a, b) => a.at - b.at); } catch (e) { return []; } }
   // 시험 알림: 10초 뒤 한 번
-  async function notifyTest(title, body) { const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return false; try { await L.schedule({ notifications: [{ id: 99, title, body, channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(Date.now() + 10000), allowWhileIdle: true } }] }); return true; } catch (e) { return false; } }
+  async function notifyTest(title, body) { const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return false; try { await L.schedule({ notifications: [{ id: 99, title, body, channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(Date.now() + 10000), allowWhileIdle: true }, isExactNotification: await exactAlarm() }] }); return true; } catch (e) { return false; } }
+  // 안드로이드 정확한 알람 권한 ('알람 및 리마인더'): 있으면 정확한 시각에, 없으면 느슨하게 (권한 화면을 저절로 띄우지 않게 직접 확인)
+  let exactOk = null;
+  async function exactAlarm(recheck) {
+    if (platform() !== 'android') return true;
+    if (exactOk !== null && !recheck) return exactOk;
+    const L = LN(); try { exactOk = !!L && (await L.checkExactNotificationSetting()).exact_alarm === 'granted'; } catch (e) { exactOk = false; }
+    return exactOk;
+  }
+  async function exactAlarmAsk() { const L = LN(); if (!L || platform() !== 'android') return true; try { await L.changeExactNotificationSetting(); } catch (e) {} return exactAlarm(true); }
   async function notifySchedule(list) {
     const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return;
     if (!chan && platform() === 'android') { try { await L.createChannel({ id: 'reaper', name: I18N.t('게임 알림'), description: I18N.t('보상 · 파견 · 출석 알림'), importance: 4, visibility: 1 }); } catch (e) {} chan = true; }
     await notifyClear();
     if (!list.length) return;
-    // isExactNotification:false — 정확한 알람 권한(알람 및 리마인더)을 요구하지 않음. 몇 분 늦어도 괜찮은 알림이라 설정 화면이 뜨지 않게
-    await L.schedule({ notifications: list.map(n => ({ id: n.id, title: I18N.t(n.title), body: n.body.split('\n').map(x => I18N.t(x)).join('\n'), channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true }, isExactNotification: false })) });
+    const exact = await exactAlarm(); // 권한이 없을 때 true 로 보내면 플러그인이 설정 화면을 띄워서, 확인한 값으로만 보냄
+    // isExactNotification: 안드로이드에서 '알람 및 리마인더' 권한이 있을 때만 true (없으면 false 로 보내야 설정 화면이 저절로 안 뜸)
+    await L.schedule({ notifications: list.map(n => ({ id: n.id, title: I18N.t(n.title), body: n.body.split('\n').map(x => I18N.t(x)).join('\n'), channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true }, isExactNotification: exact })) });
   }
 
   // ---------- 보상형 광고 (AdMob) ----------
@@ -189,7 +199,7 @@ const Native = (() => {
   return {
     isApp, platform, plugin: P, adActive: () => adBusy && Date.now() - adStartedAt < 120000, init, hideSplash, openUrl, appBuild, openStore, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
-    notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest,
+    notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest, exactAlarm, exactAlarmAsk,
     setPay: (grant, owned, priceChange, txDone) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; onTxDone = txDone; const q = pendingTx; pendingTx = []; q.forEach(handleTx); if (payOn()) ownedCheck(); },
   };
 })();
