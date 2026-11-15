@@ -49,6 +49,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 정확한 알람: 기본은 꺼져 있고(안드로이드 14+), 유저가 게임 설정 → 알림 → '정확한 시각에 받기'로 직접 켰을 때만 씀.
-         켜지 않으면 일반(느슨한) 알람으로 예약 → 절전 상태에서 늦게 오거나 게임을 켤 때 몰려 올 수 있음 -->
+         켜지 않으면 일반(느슨한) 알람으로 예약 → 절전 상태에서 늦게 오거나 게임을 켤 때 몰려 올 수 있음
+         ⚠️ 갤럭시(One UI 9)는 스토어 밖 APK + 이 권한을 '잠재적으로 유해한 앱'으로 표시할 수 있음 → 시험은 플레이 스토어 내부 테스트로 -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 </manifest>
