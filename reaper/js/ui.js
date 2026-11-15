@@ -1467,7 +1467,7 @@ const UI = (() => {
       ${Board.online() ? '<div class="set-row" id="s-blkrow" style="display:none"><span>🚫 차단한 사람 <b id="s-blkn">0</b>명</span><button class="btn dark" id="s-unblk">모두 풀기</button></div>' : ''}
       <div class="set-row"><span>효과음</span><button class="btn ${s.sound ? '' : 'dark'}" id="s-snd">${s.sound ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>배경음</span><button class="btn ${s.bgm ? '' : 'dark'}" id="s-bgm">${s.bgm ? '켜짐' : '꺼짐'}</button></div>
-      ${Native.isApp() ? `<div class="set-row"><span>알림 <small class="set-sub">장부 가득 · 파견 완료 · 꽃 · 출석 (밤 11시~아침 8시 제외)</small></span><button class="btn ${s.push !== false && s.pushAsked ? '' : 'dark'}" id="s-push">${s.push !== false && s.pushAsked ? '켜짐' : '꺼짐'}</button></div>` : ''}
+      ${Native.isApp() ? `<div class="set-row"><span>알림 <small class="set-sub">장부 가득 · 파견 완료 · 꽃 · 출석 (밤 11시~아침 8시 제외)</small><small class="set-sub" id="s-pushst">확인하는 중…</small></span><span class="set-btns"><button class="btn dark" id="s-ptest">시험</button><button class="btn dark" id="s-push">…</button></span></div>` : ''}
       <div class="set-row"><span>퇴치한 원귀 / 터치 수확</span><span>${s.stats.wraith} / ${s.stats.tap}</span></div>
       <div class="set-sec">고객 지원</div>
       <div class="set-links"><button class="btn dark" id="s-ask">💬 1:1 문의</button><button class="btn dark" id="s-priv">개인정보처리방침</button>${Native.isApp() ? '<button class="btn dark" id="s-restore">구매 복원</button>' : ''}<span id="s-adm"></span></div>
@@ -1497,10 +1497,27 @@ const UI = (() => {
     on('#s-lang', () => { closeModal(); langPicker(false); });
     if (Board.online()) Board.blockedCount().then(n => { const r = box.querySelector('#s-blkrow'); if (r && n) { r.style.display = ''; box.querySelector('#s-blkn').textContent = n; } }).catch(() => {});
     on('#s-unblk', () => confirmBox('<h2>차단 풀기</h2><p>차단한 사람을 모두 풀까요?</p>', async () => { await Board.unblockAll(); toast('차단을 모두 풀었어요'); }, '모두 풀기'));
+    // 알림: 게임 설정(켜기/끄기)과 휴대폰 권한을 함께 보여 줌 (예전엔 휴대폰 권한이 없어도 '켜짐'으로 보였음)
+    if (Native.isApp()) (async () => {
+      const perm = await Native.notifyPerm(), onG = perm === 'granted' && s.push !== false;
+      const b = box.querySelector('#s-push'), st = box.querySelector('#s-pushst'); if (!b || !st) return;
+      b.textContent = onG ? '켜짐' : '꺼짐'; b.classList.toggle('dark', !onG);
+      if (perm === 'denied') st.textContent = '⚠️ 휴대폰 설정에서 알림이 꺼져 있어요';
+      else if (perm !== 'granted') st.textContent = '⚠️ 아직 알림을 허용하지 않았어요 · 켜짐을 눌러 주세요';
+      else if (s.push === false) st.textContent = '게임에서 알림을 껐어요';
+      else { const list = await Native.notifyPending(), n = list[0], d = n && new Date(n.at); st.textContent = list.length ? `예약된 알림 ${list.length}개 · 다음 ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '예약된 알림이 아직 없어요 (게임을 켜 두면 1분 안에 예약돼요)'; }
+    })();
     on('#s-push', async () => {
-      if (s.push !== false && s.pushAsked) { s.push = false; Game.save(); Push.back(); settings(); return; }
-      s.pushAsked = true; const ok = (await Native.notifyPerm()) === 'granted' || (await Native.notifyAsk());
-      s.push = ok; Game.save(); Push.back(); if (!ok) toast('휴대폰 설정 → 앱 → 저승사자 키우기 → 알림을 켜 주세요', 3000); settings();
+      const perm = await Native.notifyPerm();
+      if (perm === 'granted' && s.push !== false) { s.push = false; s.pushAsked = true; Game.save(); Push.back(); settings(); return; } // 끄기
+      s.pushAsked = true; const ok = perm === 'granted' || (await Native.notifyAsk());
+      s.push = ok ? true : s.push; Game.save(); Push.back();
+      if (!ok) toast('휴대폰 설정 → 저승사자 키우기 → 알림 → 알림 허용을 켜 주세요', 3500); else toast('🔔 알림을 켰어요', 1800);
+      settings();
+    });
+    on('#s-ptest', async () => {
+      const ok = await Native.notifyTest(I18N.t('🔔 알림 시험'), I18N.t('알림이 잘 와요! 저승에서 기다릴게요'));
+      toast(ok ? '10초 뒤에 시험 알림이 와요. 홈으로 나가서 기다려 보세요' : '알림이 허용되지 않았어요. 켜짐을 먼저 눌러 주세요', 3500);
     });
     on('#s-snd', () => { s.sound = !s.sound; Sound.set(s.sound, s.bgm); Game.save(); settings(); });
     on('#s-bgm', () => { s.bgm = !s.bgm; Sound.set(s.sound, s.bgm); Game.save(); settings(); });

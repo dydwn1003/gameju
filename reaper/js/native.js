@@ -52,6 +52,10 @@ const Native = (() => {
     const p = await L.getPending(); if (p.notifications && p.notifications.length) await L.cancel({ notifications: p.notifications.map(n => ({ id: n.id })) });
     try { await L.removeAllDeliveredNotifications(); } catch (e) {}
   }
+  // 예약된 알림 목록 (설정 화면 확인용): [{ id, title, at }]
+  async function notifyPending() { const L = LN(); if (!L) return []; try { const p = await L.getPending(); return (p.notifications || []).map(n => ({ id: n.id, title: n.title, at: n.schedule && n.schedule.at ? +new Date(n.schedule.at) : 0 })).sort((a, b) => a.at - b.at); } catch (e) { return []; } }
+  // 시험 알림: 10초 뒤 한 번
+  async function notifyTest(title, body) { const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return false; try { await L.schedule({ notifications: [{ id: 99, title, body, channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(Date.now() + 10000), allowWhileIdle: true } }] }); return true; } catch (e) { return false; } }
   async function notifySchedule(list) {
     const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return;
     if (!chan && platform() === 'android') { try { await L.createChannel({ id: 'reaper', name: I18N.t('게임 알림'), description: I18N.t('보상 · 파견 · 출석 알림'), importance: 4, visibility: 1 }); } catch (e) {} chan = true; }
@@ -185,7 +189,7 @@ const Native = (() => {
   return {
     isApp, platform, plugin: P, adActive: () => adBusy && Date.now() - adStartedAt < 120000, init, hideSplash, openUrl, appBuild, openStore, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
-    notifyPerm, notifyAsk, notifyClear, notifySchedule,
+    notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest,
     setPay: (grant, owned, priceChange, txDone) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; onTxDone = txDone; const q = pendingTx; pendingTx = []; q.forEach(handleTx); if (payOn()) ownedCheck(); },
   };
 })();

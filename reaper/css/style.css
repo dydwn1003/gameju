@@ -1015,3 +1015,4 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 #maint p { margin: 8px 0; line-height: 1.6; font-size: 13px; }
 #maint .mt-t b { color: var(--gold); }
 #maint .btn { margin-top: 10px; min-width: 140px; }
+.set-btns { display: flex; gap: 6px; flex-shrink: 0; }
