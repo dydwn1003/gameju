@@ -23,10 +23,12 @@ const Push = (() => {
   function plan(now) {
     now = now || Date.now();
     // pri: 겹칠 때 어떤 알림을 앞세울지 (작을수록 중요) · short: 묶을 때 쓰는 짧은 이름
-    const s = S(), out = [], add = (id, sec, title, body, pri, short) => { if (sec > 60) out.push({ id, at: now + sec * 1000, title, body, pri, short }); };
+    const s = S(), out = [], add = (id, sec, title, body, pri, short, exact) => { if (sec > 60) out.push({ id, at: now + sec * 1000, title, body, pri, short, exact }); };
     const name = s.name || '차사', who = I18N.on ? name : /차사$/.test(name) ? name + '님' : name + ' 차사님';
     const inc = Game.incomePerSec(true), cap = Game.offHours() * 3600;
-    const amt = sec => fmt(inc * Math.min(sec, cap) * Game.OFFLINE_RATE); // 실제 받는 양과 같게 (예전엔 0.6 으로 5배 많게 적혀 있었음)
+    // 실제 받는 양과 같게 (예전엔 0.6 으로 5배 많게 적혀 있었음) · 숫자는 언어에 맞게 (한국어 1.2만 · 영어 12K · 일본어/중국어 1.2万)
+    const num = v => { const L = I18N.lang || 'ko'; if (L === 'ko') return fmt(v); try { return new Intl.NumberFormat(L === 'zh' ? 'zh-CN' : L === 'ja' ? 'ja-JP' : 'en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(Math.round(v)); } catch (e) { return String(Math.round(v)); } };
+    const amt = sec => num(inc * Math.min(sec, cap) * Game.OFFLINE_RATE);
 
     // 1) 자리 비운 동안 쌓이는 혼: 절반 · 가득
     if (inc > 0) {
@@ -36,12 +38,10 @@ const Push = (() => {
     // 2) 파견이 끝날 때 (칸마다)
     (s.expe || []).forEach((x, i) => {
       const E = EXPEDITIONS.find(e => e.id === x.id); if (!E) return;
-      add(10 + i, Life.timerLeft('expe', i), `🏮 ${E.name} 완료`, '졸개들이 혼 · 씨앗 · 옥을 가지고 돌아왔어요. 보상을 받아 주세요!', 2, '파견 완료');
+      add(10 + i, Life.timerLeft('expe', i), '🏮 파견 나간 졸개들이 돌아왔어요', '혼 · 씨앗 · 옥을 가지고 돌아왔어요. 보상을 받고 다시 보내 주세요!', 2, '파견 완료');
     });
-    // 3) 꽃밭: 가장 먼저 피는 꽃
-    let first = null;
-    (s.garden || []).forEach((p, i) => { if (!p) return; const st = Life.plotState(i); if (!st.ready && (!first || st.left < first.left)) first = { left: st.left, f: st.f }; });
-    if (first) add(20, first.left, '🌸 꽃밭에 꽃이 피었어요', `${first.f.name}${josa(first.f.name)} 활짝 피었어요. 수확해서 탕약을 달여 보세요!`, 3, '꽃 수확');
+    // 3) 꽃밭: 칸마다 꽃이 필 때 (같은 때 피면 하나로 묶임)
+    (s.garden || []).forEach((p, i) => { if (!p) return; const st = Life.plotState(i); if (!st.ready) add(20 + i, st.left, '🌸 꽃밭에 꽃이 피었어요', `${st.f.name}${josa(st.f.name)} 활짝 피었어요. 수확해서 탕약을 달여 보세요!`, 3, '꽃 수확'); });
     // 4) 집무실 결재 서류 3건 가득
     if (s.docs) { const n = Life.docsCount(); if (n < 3) add(30, Life.docsNext() + (2 - n) * 2 * 3600, '📂 결재 서류가 가득 쌓였어요', '판관 나리가 결재를 기다려요. 서류 3건을 처리하고 보상을 받으세요.', 4, '결재 서류'); }
     // 5-1) 까치 편지 도착 (우편함이 비어 있을 때 다음 편지)
@@ -50,9 +50,22 @@ const Push = (() => {
     if (s.mail) { const n = Life.mailCount(); if (n < MAIL_MAX) add(31, Life.mailNext() + (MAIL_MAX - 1 - n) * 4 * 3600, '🐦 까치 우편함이 가득 찼어요', '까치가 선물을 잔뜩 물어 왔어요. 우편함이 넘치기 전에 열어 보세요!', 5, '까치 우편'); }
     // 6) 백귀야행
     if (s.parade && s.parade.next > now) add(32, (s.parade.next - now) / 1000, '👹 백귀야행이 나타났어요', '요괴 행렬이 저승 길을 지나가요. 지금 들어오면 보상을 받을 수 있어요!', 7, '백귀야행');
-    // 7) 출석 (출석 보상은 매일 한국 시간 자정에 바뀜 · 밤에는 조용한 시간 규칙으로 아침에 알림)
-    const k = new Date(now + 9 * 3600e3); k.setUTCHours(24, 0, 0, 0); const nextDay = new Date(k.getTime() - 9 * 3600e3); // 한국 시각 자정 (출석 초기화)
-    add(40, (nextDay.getTime() - now) / 1000 + 30 * 60, '📅 오늘의 출석 보상', `출석부에 도장을 찍고 옥을 받아 가세요. 연속 출석하면 7일째 옥 ${ATTEND[6]}개!`, 8, '출석');
+    // 7) 아침 9시: 출석 · 일일 의뢰 · 운세가 새로 열렸다고 (하루 기준은 한국 시간 자정) · 3일치 미리
+    //    오늘 아직 출석 안 했고 9시 전이면 오늘 9시부터, 아니면 내일 9시부터
+    { const d = new Date(now); d.setHours(9, 0, 0, 0); if (d.getTime() <= now || !Game.attendState().can) d.setDate(d.getDate() + 1);
+      const M = [['📅 오늘의 출석 · 의뢰가 열렸어요', `출석 도장 · 일일 의뢰 · 무당 운세가 기다려요. 연속 출석 7일째엔 옥 ${ATTEND[6]}개!`],
+                 ['📅 출석 도장 찍으러 오세요', '오늘의 출석 보상과 새 의뢰가 기다리고 있어요. 연속 출석이 끊기기 전에!'],
+                 ['📅 저승 근무 시간이에요', '출석 보상 · 일일 의뢰 · 백귀야행이 새로 준비됐어요.']];
+      for (let k = 0; k < 3; k++) { const t = new Date(d); t.setDate(d.getDate() + k); add(40 + k, (t.getTime() - now) / 1000, M[k][0], M[k][1], 8, '출석', true); } }
+    // 7-1) 지도 소품: 오래 걸리는 것(망각의 석상 2시간 · 장승 4시간 · 돌탑 6시간)이 다시 열릴 때 (가장 먼저 열리는 하나)
+    { const long = Object.keys(Life.PROP).filter(k => Life.PROP[k].cd >= 2 * 3600); let first = null;
+      Object.entries(s.props || {}).forEach(([key, t]) => { const kd = long.find(k => key.startsWith(k)); if (kd && t > now && (!first || t < first.t)) first = { t, kd }; });
+      if (first) add(34, (first.t - now) / 1000, '🪨 지도 소품을 다시 살펴볼 수 있어요', '장승 · 돌탑 · 망각의 석상에 다시 들러 보세요. 혼 · 옥 · 소환권이 나올지도 몰라요!', 7, '지도 소품'); }
+    // 7-2) 염라의 인장 (7일 수확 2배): 하루 남았을 때 · 끝났을 때
+    if (s.sealUntil && s.sealUntil > now) {
+      add(36, (s.sealUntil - now) / 1000 - 86400, '📜 염라의 인장이 하루 남았어요', '모든 혼 수확 2배가 내일 끝나요. 상점에서 다시 사면 7일 연장돼요.', 5, '염라의 인장');
+      add(37, (s.sealUntil - now) / 1000, '📜 염라의 인장 효과가 끝났어요', '모든 혼 수확 2배가 끝났어요. 상점에서 다시 7일 동안 켤 수 있어요.', 5, '염라의 인장');
+    }
     // 8) 오래 안 들어올 때
     add(50, 24 * 3600, '🕯️ 저승이 조용하네요…', `${who}이 안 계신 사이 원귀들이 늘어나고 있어요.`, 9, '');
     add(51, 72 * 3600, '👻 원귀들이 날뛰고 있어요', '저승 장부도 가득 찼어요. 잠깐 들러서 혼을 거두고 가세요!', 9, '');
@@ -60,7 +73,7 @@ const Push = (() => {
     // 9) 운영자가 보낸 예약 알림 (서버 push 목록, 밤 시간 규칙 없이 그 시각에 · 묶지 않음)
     const ops = ext.filter(x => x.at > now + 60e3 && x.at - now < 8 * 24 * H).slice(0, 5).map((x, i) => ({ id: 100 + i, at: x.at, title: x.title, body: x.body || '', op: 1 }));
     // 밤 시간 미루기 → 10분 안에 겹치는 알림은 하나로 묶기 (가장 중요한 것이 제목) · 8일 넘게 먼 건 빼기
-    out.forEach(n => (n.at = wake(n.at, n.id)));
+    out.forEach(n => { if (!n.exact) n.at = wake(n.at, n.id); });
     out.sort((a, b) => a.at - b.at);
     const groups = [];
     out.filter(n => n.at - now < 8 * 24 * H).forEach(n => { const g = groups.find(g => Math.abs(g[0].at - n.at) < 10 * 60e3); if (g) g.push(n); else groups.push([n]); });

@@ -1467,7 +1467,7 @@ const UI = (() => {
       ${Board.online() ? '<div class="set-row" id="s-blkrow" style="display:none"><span>🚫 차단한 사람 <b id="s-blkn">0</b>명</span><button class="btn dark" id="s-unblk">모두 풀기</button></div>' : ''}
       <div class="set-row"><span>효과음</span><button class="btn ${s.sound ? '' : 'dark'}" id="s-snd">${s.sound ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>배경음</span><button class="btn ${s.bgm ? '' : 'dark'}" id="s-bgm">${s.bgm ? '켜짐' : '꺼짐'}</button></div>
-      ${Native.isApp() ? `<div class="set-row"><span>알림 <small class="set-sub">장부 가득 · 파견 완료 · 꽃 · 출석 (밤 11시~아침 8시 제외)</small><small class="set-sub" id="s-pushst">확인하는 중…</small></span><span class="set-btns"><button class="btn dark" id="s-ptest">시험</button><button class="btn dark" id="s-push">…</button></span></div>` : ''}
+      ${Native.isApp() ? `<div class="set-row"><span>알림 <small class="set-sub">장부 · 파견 · 꽃 · 백귀야행 · 우편 · 아침 9시 출석 (밤 11시~아침 8시는 아침에)</small><small class="set-sub" id="s-pushst">확인하는 중…</small></span><span class="set-btns"><button class="btn dark" id="s-ptest">시험</button><button class="btn dark" id="s-push">…</button></span></div>` : ''}
       <div class="set-row"><span>퇴치한 원귀 / 터치 수확</span><span>${s.stats.wraith} / ${s.stats.tap}</span></div>
       <div class="set-sec">고객 지원</div>
       <div class="set-links"><button class="btn dark" id="s-ask">💬 1:1 문의</button><button class="btn dark" id="s-priv">개인정보처리방침</button>${Native.isApp() ? '<button class="btn dark" id="s-restore">구매 복원</button>' : ''}<span id="s-adm"></span></div>
