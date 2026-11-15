@@ -1502,7 +1502,12 @@ const UI = (() => {
       else if (perm !== 'granted') st.textContent = '⚠️ 아직 알림을 허용하지 않았어요 · 켜짐을 눌러 주세요';
       else if (s.push === false) st.textContent = '게임에서 알림을 껐어요';
       else { const list = await Native.notifyPending(), n = list[0], d = n && new Date(n.at); st.textContent = list.length ? `예약된 알림 ${list.length}개 · 다음 ${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '예약된 알림이 아직 없어요 (게임을 켜 두면 1분 안에 예약돼요)'; }
-      if (perm === 'granted' && Native.platform() === 'android') st.insertAdjacentHTML('afterend', '<small class="set-sub">늦게 오거나 안 오면: 휴대폰 설정 → 애플리케이션 → 저승사자 키우기 → 배터리 → 제한 없음</small>');
+      if (perm === 'granted' && Native.platform() === 'android') {
+        const ex = await Native.exactAlarm(true), row = st.closest('.set-row');
+        // 정확한 시각에 받기 ('알람 및 리마인더' 권한): 없으면 휴대폰이 절전 중일 때 알림을 미뤘다가 게임을 켤 때 몰아서 보냄
+        row.insertAdjacentHTML('afterend', `<div class="set-row"><span>정확한 시각에 받기<small class="set-sub">${ex ? '✅ 켜져 있어요 · 알림이 제시간에 와요' : '⚠️ 꺼져 있으면 휴대폰이 쉬는 동안 알림이 늦게 오거나, 게임을 켤 때 몰려서 와요'}</small><small class="set-sub">그래도 늦으면: 휴대폰 설정 → 애플리케이션 → 저승사자 키우기 → 배터리 → 제한 없음</small></span>${ex ? '' : '<button class="btn" id="s-exact">켜기</button>'}</div>`);
+        const eb = box.querySelector('#s-exact'); if (eb) eb.onclick = async () => { toast('목록에서 저승사자 키우기를 찾아 허용을 켠 뒤 돌아와 주세요', 3500); const ok = await Native.exactAlarmAsk(); Push.back(); settings(); if (ok) toast('⏰ 이제 알림이 제시간에 와요', 2400); };
+      }
     })();
     on('#s-push', async () => {
       const perm = await Native.notifyPerm();

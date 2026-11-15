@@ -48,7 +48,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- 정확한 알람 권한은 빼요: 넣었더니(빌드 155~157) 갤럭시에서 최근 앱 카드로 '앱을 열지 못했어요'가 떠서 되돌림.
-         알림은 일반(느슨한) 알람으로 예약 (절전 중에는 조금 늦을 수 있음 · 배터리 '제한 없음'이면 제때 옴) -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
+    <!-- 정확한 알람: 기본은 꺼져 있고(안드로이드 14+), 유저가 게임 설정 → 알림 → '정확한 시각에 받기'로 직접 켰을 때만 씀.
+         켜지 않으면 일반(느슨한) 알람으로 예약 → 절전 상태에서 늦게 오거나 게임을 켤 때 몰려 올 수 있음 -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 </manifest>

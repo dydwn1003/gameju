@@ -67,10 +67,8 @@ const Native = (() => {
   }
   // 안드로이드 정확한 알람 권한 ('알람 및 리마인더'): 있으면 정확한 시각에, 없으면 느슨하게 (권한 화면을 저절로 띄우지 않게 직접 확인)
   let exactOk = null;
-  // 정확한 알람은 쓰지 않음 (권한을 빼 둠) → 항상 false: 플러그인이 권한 설정 화면을 띄우지 않게
   async function exactAlarm(recheck) {
     if (platform() !== 'android') return true;
-    return false;
     if (exactOk !== null && !recheck) return exactOk;
     const L = LN(); try { exactOk = !!L && (await L.checkExactNotificationSetting()).exact_alarm === 'granted'; } catch (e) { exactOk = false; }
     return exactOk;
