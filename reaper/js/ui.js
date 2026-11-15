@@ -18,7 +18,7 @@ const UI = (() => {
   // iOS 앱은 다른 소셜 로그인이 있으면 Apple 로그인도 꼭 있어야 함 (App Store 심사 4.8)
   const loginProviders = () => { const ios = Native.platform() === 'ios', l = CLOUD.providers.filter(x => x !== 'apple'); if (ios) l.push('apple'); return l; }; // Apple 로그인은 iOS 에서만 (아이폰 기본 로그인 창)
   function loginScreen(fromSettings) {
-    const box = modal(`${fromSettings ? '' : '<button class="lg-back" id="lg-back" translate="no">‹ 🌏 Language</button>'}${fromSettings ? '<h2>계정 연동</h2><p class="mute">지금까지의 기록을 계정에 저장해 다른 기기에서도 이어 해요</p>' : '<div class="title-logo">저승사자 키우기</div><div class="title-sub">로그인하면 기록이 서버에 저장돼 기기를 바꿔도 이어 할 수 있어요</div>'}
+    const box = modal(`${fromSettings ? '' : '<button class="lg-back" id="lg-back" translate="no">‹ 🌏 Language</button>'}${fromSettings ? '<h2>계정 연동</h2><p class="mute">지금까지의 기록을 계정에 저장해 다른 기기에서도 이어 해요</p><p class="mute" style="font-size:11px">⚠️ 이미 기록이 있는 계정으로 로그인하면 그 계정의 기록을 불러와요</p>' : '<div class="title-logo">저승사자 키우기</div><div class="title-sub">로그인하면 기록이 서버에 저장돼 기기를 바꿔도 이어 할 수 있어요</div>'}
       <div class="lg-list">${loginProviders().map(p => `<button class="lg-btn ${PROV[p][2]}" data-lg="${p}"><i>${PROV[p][0]}</i><span>${PROV[p][1]}</span></button>`).join('')}</div>
       ${fromSettings ? '<div class="acts"><button class="btn dark" data-act="close">닫기</button></div>' : '<button class="lg-guest" id="lg-guest">게스트로 시작 <small>(이 기기에만 저장돼요)</small></button>'}`, !fromSettings);
     box.querySelectorAll('[data-lg]').forEach(b => b.onclick = async () => { S().pendingLink = !!S().kind; Game.save(); if (!Cloud.ready() && !(await Cloud.init())) return toast('서버에 연결하지 못했어요. 인터넷 연결을 확인하거나 게스트로 시작해 주세요', 3000); toast('로그인 화면으로 이동해요…', 2000); Promise.resolve(Cloud.signIn(b.dataset.lg)).catch(() => toast('로그인을 시작하지 못했어요. 인터넷 연결을 확인해 주세요', 2600)); });
@@ -58,22 +58,18 @@ const UI = (() => {
     if (hasCloud && !hasLocal) return useCloud();
     if (!hasCloud && hasLocal) return useLocal();
     if (!hasCloud && !hasLocal) { Cloud.setSynced(true); closeModal(); charSelect(true); return; }
-    // 같은 게임(처음 만든 시각이 같음)이면 묻지 않고 알아서 맞춤. 시간(last)이 아니라 '진행 모습'으로 비교
-    // (앱을 닫을 때 서버 저장이 끝나기 전에 꺼지면 서버가 조금 뒤처지는데, 예전엔 시간 차이로 매번 물어봤음)
+    // 로그인한 사람은 고르기 창 없이 '서버 기록' 기준으로 맞춤 (기기 기록은 게스트만 씀)
+    // 예외 하나: 같은 게임이고 서버가 이 기기가 마지막으로 올린 그대로면 → 이 기기가 그 뒤를 이어 한 것(닫을 때 못 올린 몇 초~분)이라 이 기기 것을 올림
     if ((cloud.data.created || 0) === (local.created || 0)) {
       const base = Cloud.syncBase(), lf = Game.loadedFp(), cf = Game.fingerprint(cloud.data);
-      if (cf === lf) return useLocal(true);                            // 똑같음
-      if (base) {
-        const cloudChanged = cf !== base.fp, localChanged = lf !== base.fp;
-        if (!cloudChanged) return useLocal(true);                      // 서버는 그대로 → 이 기기가 최신 (닫을 때 못 올린 것)
-        if (!localChanged) return useCloud();                          // 이 기기는 그대로 → 다른 기기에서 더 함
-      } else return (cloud.data.total || 0) > Game.loadedTotal() ? useCloud() : useLocal(true); // 처음 비교: 더 많이 진행한 쪽
-      // 두 기기에서 따로 진행함 → 아래에서 고르기
+      if (cf === lf) return useLocal(true);                                   // 똑같음
+      if (base ? cf === base.fp : (local.total || 0) > (cloud.data.total || 0)) return useLocal(true); // 서버가 뒤처짐 (같은 기기에서 이어서 함)
+      return useCloud(true);                                                   // 그 밖에는 서버 기록
     }
-    const box = modal(`<h2>☁️ 어떤 기록으로 할까요?</h2><p>계정과 이 기기에 서로 다른 기록이 있어요.</p>
-      <div class="sv-pick"><button id="sv-cloud"><b>계정(서버) 기록</b><span>${saveSummary(cloud.data)}</span><small>${fmtDate(cloud.at)} 저장</small></button><button id="sv-local"><b>이 기기 기록</b><span>${saveSummary(local)}</span><small>${fmtDate(local.last || Date.now())} 저장</small></button></div>
-      <p class="mute" style="font-size:10px">고르지 않은 쪽 기록은 사라져요</p>`, true);
-    box.querySelector('#sv-cloud').onclick = useCloud; box.querySelector('#sv-local').onclick = useLocal;
+    // 다른 게임(예: 게스트로 하다가 이미 기록이 있는 계정으로 로그인): 계정(서버) 기록을 불러옴
+    // 이 기기의 게스트 기록은 혹시 몰라 기기에 따로 보관 (문의 오면 되살릴 수 있게)
+    try { localStorage.setItem('reaper_guest_backup', JSON.stringify({ at: Date.now(), data: local })); } catch (e) {}
+    useCloud(true); toast('☁️ 계정에 저장된 기록을 불러왔어요', 2800);
   }
   // ---------- 로딩 화면 ----------
   const TIPS = ['혼령은 직접 터치하면 더 많이 거둬요', '승진할 때마다 발밑 마법진이 화려해져요', '집무실 결재 서류는 2시간마다 한 건씩 쌓여요', '백귀야행 때 금빛 귀신을 잡으면 5배!', '이웃 집무실에 하루 3곳 놀러 가면 옥을 받아요', '지도의 반짝이는 나무와 소품을 눌러 보세요', '망자 심판을 모두 맞히면 보너스 옥!', '같은 등급 영물 3마리로 합성할 수 있어요', '책상 뒤 파란 칸에 의자를 놓으면 앉아서 근무해요'];
