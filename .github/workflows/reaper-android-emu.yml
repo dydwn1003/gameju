@@ -21,6 +21,10 @@ permissions:
 jobs:
   emu:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [36, 37]   # 안드로이드 16 · 17 (실제 폰이 One UI 9 / 안드로이드 17)
     timeout-minutes: 40
     env:
       PKG: com.jeoseungsaja.idle
@@ -81,7 +85,7 @@ jobs:
       - name: 에뮬레이터에서 시험
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ matrix.api }}
           target: google_apis
           arch: x86_64
           disable-animations: true
@@ -92,5 +96,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: emu-result
+          name: emu-result-${{ matrix.api }}
           path: out/
