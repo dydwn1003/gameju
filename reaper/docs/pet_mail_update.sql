@@ -1,4 +1,4 @@
--- 영물 우편 업데이트 (send_mail 에 p_pet · p_pet_n 추가) — Supabase SQL Editor 에 통째로 붙여넣고 Run
+-- 영물 우편 업데이트 (send_mail 에 p_pet · p_pet_n 추가, 운영자 닉네임도 찾기) — Supabase SQL Editor 에 통째로 붙여넣고 Run
 drop function if exists public.send_mail(text, text, integer, integer, numeric, integer, text, text, text[]);
 drop function if exists public.send_mail(text, text, integer, integer, numeric, integer, text, text, text[], bigint);
 create or replace function public.send_mail(
@@ -33,10 +33,14 @@ begin
   end if;
   if p_to = 'user' then
     if coalesce(array_length(p_nicks, 1), 0) = 0 then raise exception '특정 플레이어는 p_nicks => array[''닉네임''] 으로 넣어 주세요'; end if;
+    -- 랭킹 닉네임 + 저장 데이터 닉네임 둘 다에서 찾음 (운영자는 랭킹에서 빠져 있어서)
     select array_agg(n) into v_missing from unnest(p_nicks) n
-      where not exists (select 1 from docs where col = 'rank' and data ->> 'nick' = n);
+      where not exists (select 1 from docs where col = 'rank' and data ->> 'nick' = n)
+        and not exists (select 1 from saves where data ->> 'name' = n);
     if v_missing is not null then raise exception '닉네임을 찾지 못했어요: %', array_to_string(v_missing, ', '); end if;
-    select jsonb_agg(distinct doc_id) into v_uids from docs where col = 'rank' and data ->> 'nick' = any (p_nicks);
+    select jsonb_agg(distinct u) into v_uids from (
+      select doc_id as u from docs where col = 'rank' and data ->> 'nick' = any (p_nicks)
+      union select user_id::text from saves where data ->> 'name' = any (p_nicks)) x;
   end if;
   insert into docs (path, col, doc_id, owner, data) values ('mail/' || v_id, 'mail', v_id, null, jsonb_strip_nulls(jsonb_build_object(
     'at', v_at, 'title', trim(p_title), 'body', coalesce(p_body, ''),
