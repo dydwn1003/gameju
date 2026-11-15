@@ -49,7 +49,8 @@ const Native = (() => {
   async function notifyAsk() { const L = LN(); if (!L) return false; try { return (await L.requestPermissions()).display === 'granted'; } catch (e) { return false; } }
   async function notifyClear() {
     const L = LN(); if (!L) return;
-    const p = await L.getPending(); if (p.notifications && p.notifications.length) await L.cancel({ notifications: p.notifications.map(n => ({ id: n.id })) });
+    // 시험 알림(99)은 지우지 않음: 안드로이드는 홈으로 나갈 때 예약을 다시 하면서 모두 지워서, 시험 알림이 10초 뒤에 오지 못했음
+    const p = await L.getPending(), keep = (p.notifications || []).filter(n => n.id !== 99); if (keep.length) await L.cancel({ notifications: keep.map(n => ({ id: n.id })) });
     try { await L.removeAllDeliveredNotifications(); } catch (e) {}
   }
   // 예약된 알림 목록 (설정 화면 확인용): [{ id, title, at }]
