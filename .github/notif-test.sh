@@ -5,6 +5,9 @@ PKG=com.jeoseungsaja.idle
 adb install -r app.apk >/dev/null && echo "설치 OK"
 adb shell pm grant $PKG android.permission.POST_NOTIFICATIONS
 adb shell appops set $PKG SCHEDULE_EXACT_ALARM allow
+# 한국 시간으로 (밤 11시~아침 8시는 알림을 아침으로 미루는 규칙이 있어서, UTC 새벽이면 실험 알림이 아침으로 밀림)
+adb shell cmd alarm set-timezone Asia/Seoul 2>/dev/null || adb shell setprop persist.sys.timezone Asia/Seoul
+echo "에뮬레이터 시각: $(adb shell date)"
 SETUP='(async()=>{localStorage.setItem("reaper_lang","ko");const S=Game.S;S.kind="m";S.name="시험";S.tut="done";S.otut="done";S.story={ch:3,q:0,intro:true};S.pushAsked=true;S.push=true;S.sealUntil=Date.now()+86400e3+180e3;Game.apply();Game.save();await Push.back();await new Promise(r=>setTimeout(r,1500));const p=await Capacitor.Plugins.LocalNotifications.getPending();return p.notifications.map(n=>n.id+"@"+new Date(n.schedule.at).toISOString().slice(11,19)).join(" ");})()'
 connect() {
   for i in $(seq 1 30); do PID=$(adb shell pidof $PKG | tr -d '\r'); SOCK=$(adb shell cat /proc/net/unix | grep -o "webview_devtools_remote_$PID" | head -1); [ -n "$SOCK" ] && break; sleep 2; done
