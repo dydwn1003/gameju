@@ -1,0 +1,54 @@
+# 저승사자 키우기 — 안드로이드 알림 실험 (에뮬레이터): 159 코드와 고친 코드를 디버그 빌드로 만들어 같은 상황에서 알림이 오는지 비교
+# 실행: .github/notif-test.txt 를 바꿔 올리면 돌아감 (요청할 때만)
+name: 저승사자 Android 알림 실험
+on:
+  push:
+    paths: ['.github/notif-test.txt']
+permissions:
+  contents: read
+jobs:
+  notif:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: '159', ref: '2cdfb69' }
+          - { name: 'fixed', ref: '' }
+    steps:
+      - uses: actions/checkout@v5
+        with: { path: tools }
+      - uses: actions/checkout@v5
+        with: { ref: '${{ matrix.ref }}', path: src }
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: '21' }
+      - name: 디버그 APK 빌드 (웹뷰 디버그 연결용)
+        working-directory: src/reaper/app
+        run: |
+          npm ci && node build-www.js && npx cap sync android
+          cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug -q
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/app.apk"
+          cp "$GITHUB_WORKSPACE"/tools/.github/notif-test.* "$GITHUB_WORKSPACE/"
+      - name: KVM 켜기
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: 에뮬레이터에서 실험
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: '37.0'
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash ./notif-test.sh 2>&1 | tee notif-${{ matrix.name }}.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: notif-${{ matrix.name }}
+          path: |
+            notif-*.txt
+            out_last.png
