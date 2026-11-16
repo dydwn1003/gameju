@@ -80,14 +80,19 @@ const Native = (() => {
     return exactOk;
   }
   async function exactAlarmAsk() { const L = LN(); if (!L || platform() !== 'android') return true; try { await L.changeExactNotificationSetting(); } catch (e) {} return exactAlarm(true); }
+  // 예약 순서가 중요: 예전에는 '전부 지우기 → 새로 예약' 이라, 게임을 나가자마자 닫거나(최근 앱에서 밀기) 휴대폰이
+  // 백그라운드 앱을 멈추면 지우기만 되고 새 예약은 못 해서 알림이 하나도 남지 않았음
+  // → 새 알림을 먼저 예약(같은 번호는 덮어씀)하고, 그다음 필요 없어진 번호만 지움. 중간에 끊겨도 예전 예약은 남아 있음
   async function notifySchedule(list) {
     const L = LN(); if (!L || (await notifyPerm()) !== 'granted') return;
     await ensureChan();
-    await notifyClear();
-    if (!list.length) return;
-    const exact = await exactAlarm(true); // 권한이 없을 때 true 로 보내면 플러그인이 설정 화면을 띄워서, 매번 지금 권한을 확인한 값으로만 보냄
-    // isExactNotification: 안드로이드에서 '알람 및 리마인더' 권한이 있을 때만 true (없으면 false 로 보내야 설정 화면이 저절로 안 뜸)
-    await L.schedule({ notifications: list.map(n => ({ id: n.id, title: I18N.t(n.title), body: n.body.split('\n').map(x => I18N.t(x)).join('\n'), channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true }, isExactNotification: exact })) });
+    // isExactNotification: 안드로이드에서 '알람 및 리마인더' 권한이 있을 때만 true
+    const exact = await exactAlarm(true);
+    if (list.length) await L.schedule({ notifications: list.map(n => ({ id: n.id, title: I18N.t(n.title), body: n.body.split('\n').map(x => I18N.t(x)).join('\n'), channelId: 'reaper', smallIcon: 'ic_stat_reaper', iconColor: '#E8424F', schedule: { at: new Date(n.at), allowWhileIdle: true }, isExactNotification: exact })) });
+    const want = new Set(list.map(n => n.id).concat([99])); // 99 = 시험 알림은 그대로
+    const p = await L.getPending(), stale = (p.notifications || []).filter(n => !want.has(+n.id));
+    if (stale.length) await L.cancel({ notifications: stale.map(n => ({ id: n.id })) });
+    try { await L.removeAllDeliveredNotifications(); } catch (e) {}
   }
 
   // ---------- 보상형 광고 (AdMob) ----------

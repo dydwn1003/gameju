@@ -120,8 +120,10 @@ const Push = (() => {
   // (아이폰은 앱이 뒤로 가는 순간 코드가 멈춰서, 떠날 때 예약은 자주 실패함)
   // 안드로이드: 켜 둔 동안 울리면 알림이 떠서 15분 넘게 남은 것만 미리 · 나머지는 떠날 때 예약 (안드로이드는 떠날 때 예약이 잘 됨)
   const ahead = () => (Native.platform() === 'ios' ? 60 : 15 * 60);
-  const keep = async () => { await fetchExt(); return sync(ahead()); };                        // 켜 둔 동안 (1분마다)
-  const leave = () => sync(60, true); // 떠날 때 (안드로이드 · 시간이 되면 아이폰도)
+  // away: 게임이 뒤로 간 동안 (안드로이드는 뒤에서도 게임 코드가 얼마간 돌아서, 1분 예약이 '15분 넘게 남은 것만'으로 줄여 곧 울릴 알림을 지울 수 있었음)
+  let away = false;
+  const keep = async () => { if (away) return; await fetchExt(); return sync(ahead()); };                        // 켜 둔 동안 (1분마다)
+  const leave = () => { away = true; return sync(60, true); }; // 떠날 때 (안드로이드 · 시간이 되면 아이폰도)
   // 도착 기록 (알림 진단): 지난번 예약 중 시각이 지난 것이 알림 센터에 와 있거나 눌러서 들어왔는지 → 최근 30개
   const loadLs = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
   const saveLs = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
@@ -132,6 +134,6 @@ const Push = (() => {
     saveLs('reaper_nlog', log.slice(-30)); saveLs('reaper_nplan', plan.filter(n => n.at > now - 60e3)); saveLs('reaper_ntap', []);
   }
   const arrivals = () => loadLs('reaper_nlog', []);
-  const back = async () => { try { await checkArrived(); } catch (e) {} await fetchExt(true); return sync(ahead(), true); };                  // 돌아왔을 때: 곧 울릴 알림은 지우고 다시 예약
+  const back = async () => { away = false; try { await checkArrived(); } catch (e) {} await fetchExt(true); return sync(ahead(), true); };                  // 돌아왔을 때: 곧 울릴 알림은 지우고 다시 예약
   return { plan, leave, back, keep, on, dueNow, fetchExt, arrivals };
 })();
