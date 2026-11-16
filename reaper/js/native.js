@@ -18,6 +18,7 @@ const Native = (() => {
       App.addListener('backButton', () => { if (!onBack || !onBack()) confirmExit(); });
       App.addListener('pause', () => onPause && onPause());
       App.addListener('resume', () => onResume && onResume());
+      try { const L = LN(); if (L) L.addListener('localNotificationActionPerformed', e => { try { const t = JSON.parse(localStorage.getItem('reaper_ntap') || '[]'); t.push(+e.notification.id); localStorage.setItem('reaper_ntap', JSON.stringify(t.slice(-20))); } catch (x) {} }); } catch (e) {}
       try { const l = await App.getLaunchUrl(); if (l && l.url) setTimeout(() => urlHandlers.forEach(f => f(l.url)), 0); } catch (e) {}
     }
     initAds().catch(() => {});
@@ -53,6 +54,11 @@ const Native = (() => {
     const p = await L.getPending(), keep = (p.notifications || []).filter(n => n.id !== 99); if (keep.length) await L.cancel({ notifications: keep.map(n => ({ id: n.id })) });
     try { await L.removeAllDeliveredNotifications(); } catch (e) {}
   }
+  // 알림 센터에 와 있는 알림 id (도착 확인용) · 알림을 눌러 들어온 id 기록
+  async function notifyDelivered() { const L = LN(); if (!L) return []; try { const d = await L.getDeliveredNotifications(); return (d.notifications || []).map(n => +n.id); } catch (e) { return []; } }
+  // 알림 진단 (안드로이드 앱 안의 ReaperDiag): 배터리 제한 · 잠자는 앱 · 채널 꺼짐 · 정확한 알람 권한
+  async function diag() { const D = P('ReaperDiag'); if (!D || platform() !== 'android') return null; try { return await D.info(); } catch (e) { return null; } }
+  async function openAppSettings() { const D = P('ReaperDiag'); if (D) try { await D.openApp(); } catch (e) {} }
   // 예약된 알림 목록 (설정 화면 확인용): [{ id, title, at }]
   async function notifyPending() { const L = LN(); if (!L) return []; try { const p = await L.getPending(); return (p.notifications || []).map(n => ({ id: n.id, title: n.title, at: n.schedule && n.schedule.at ? +new Date(n.schedule.at) : 0 })).sort((a, b) => a.at - b.at); } catch (e) { return []; } }
   // 시험 알림: 10초 뒤 한 번
@@ -208,7 +214,7 @@ const Native = (() => {
   return {
     isApp, platform, plugin: P, adActive: () => adBusy && Date.now() - adStartedAt < 120000, init, hideSplash, openUrl, appBuild, openStore, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
-    notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest, exactAlarm, exactAlarmAsk,
+    notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest, exactAlarm, exactAlarmAsk, notifyDelivered, diag, openAppSettings,
     setPay: (grant, owned, priceChange, txDone) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; onTxDone = txDone; const q = pendingTx; pendingTx = []; q.forEach(handleTx); if (payOn()) ownedCheck(); },
   };
 })();

@@ -114,7 +114,7 @@ const Push = (() => {
     const sig = list.map(n => n.id + '@' + Math.round(n.at / 600e3)).join(','); // 10분 단위로 비교 (매분 다시 예약하지 않게)
     if (!force && sig === lastSig) return;
     lastSig = sig;
-    try { await Native.notifySchedule(list); } catch (e) { lastSig = ''; }
+    try { await Native.notifySchedule(list); saveLs('reaper_nplan', list.map(n => ({ id: n.id, at: n.at, t: n.title }))); } catch (e) { lastSig = ''; }
   }
   // 아이폰: 게임을 켜 둔 동안 울리는 알림은 화면에 안 뜨게 해 둠(capacitor.config presentationOptions: []) → 1분 넘게 남은 것까지 미리 다 예약
   // (아이폰은 앱이 뒤로 가는 순간 코드가 멈춰서, 떠날 때 예약은 자주 실패함)
@@ -122,6 +122,16 @@ const Push = (() => {
   const ahead = () => (Native.platform() === 'ios' ? 60 : 15 * 60);
   const keep = async () => { await fetchExt(); return sync(ahead()); };                        // 켜 둔 동안 (1분마다)
   const leave = () => sync(60, true); // 떠날 때 (안드로이드 · 시간이 되면 아이폰도)
-  const back = async () => { await fetchExt(true); return sync(ahead(), true); };                  // 돌아왔을 때: 곧 울릴 알림은 지우고 다시 예약
-  return { plan, leave, back, keep, on, dueNow, fetchExt };
+  // 도착 기록 (알림 진단): 지난번 예약 중 시각이 지난 것이 알림 센터에 와 있거나 눌러서 들어왔는지 → 최근 30개
+  const loadLs = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
+  const saveLs = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  async function checkArrived() {
+    const now = Date.now(), plan = loadLs('reaper_nplan', []), due = plan.filter(n => n.at <= now - 60e3); if (!due.length) return;
+    const got = new Set((await Native.notifyDelivered()).concat(loadLs('reaper_ntap', [])));
+    const log = loadLs('reaper_nlog', []); due.forEach(n => log.push({ id: n.id, at: n.at, t: n.t, ok: got.has(n.id), late: Math.round((now - n.at) / 60e3) }));
+    saveLs('reaper_nlog', log.slice(-30)); saveLs('reaper_nplan', plan.filter(n => n.at > now - 60e3)); saveLs('reaper_ntap', []);
+  }
+  const arrivals = () => loadLs('reaper_nlog', []);
+  const back = async () => { try { await checkArrived(); } catch (e) {} await fetchExt(true); return sync(ahead(), true); };                  // 돌아왔을 때: 곧 울릴 알림은 지우고 다시 예약
+  return { plan, leave, back, keep, on, dueNow, fetchExt, arrivals };
 })();

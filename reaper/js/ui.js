@@ -1510,6 +1510,28 @@ const UI = (() => {
         // 정확한 시각에 받기 ('알람 및 리마인더' 권한): 없으면 휴대폰이 절전 중일 때 알림을 미뤘다가 게임을 켤 때 몰아서 보냄
         row.insertAdjacentHTML('afterend', `<div class="set-row"><span>정확한 시각에 받기<small class="set-sub">${ex ? '✅ 켜져 있어요 · 알림이 제시간에 와요' : '⚠️ 꺼져 있으면 휴대폰이 쉬는 동안 알림이 늦게 오거나, 게임을 켤 때 몰려서 와요'}</small><small class="set-sub">그래도 늦으면: 휴대폰 설정 → 애플리케이션 → 저승사자 키우기 → 배터리 → 제한 없음</small></span>${ex ? '' : '<button class="btn" id="s-exact">켜기</button>'}</div>`);
         const eb = box.querySelector('#s-exact'); if (eb) eb.onclick = async () => { toast('목록에서 저승사자 키우기를 찾아 허용을 켠 뒤 돌아와 주세요', 3500); const ok = await Native.exactAlarmAsk(); Push.back(); settings(); if (ok) toast('⏰ 이제 알림이 제시간에 와요', 2400); };
+        // 알림 진단: 휴대폰이 실제로 막고 있는 것 (갤럭시는 '잠자는 앱' · 배터리 '제한'이면 알림이 안 옴)
+        const dg = await Native.diag();
+        if (dg) {
+          const W = [];
+          if (dg.enabled === false) W.push('휴대폰에서 이 게임의 알림이 꺼져 있어요');
+          if (dg.channel === 0) W.push('알림 종류 "게임 알림"이 꺼져 있어요 (앱 설정 → 알림)');
+          if (dg.bgRestricted) W.push('배터리 사용이 "제한"으로 되어 있어 알림이 오지 않아요');
+          if (dg.bucket >= 45) W.push('휴대폰이 이 게임을 "잠자는 앱"으로 두어 알림을 막고 있어요');
+          else if (dg.bucket === 40) W.push('"드물게 쓰는 앱"으로 분류되어 알림이 늦을 수 있어요');
+          if (dg.powerSave) W.push('절전 모드가 켜져 있어 알림이 늦을 수 있어요');
+          if (dg.batteryFree === false) W.push('배터리 최적화 중이에요 · "제한 없음"으로 바꾸면 더 확실해요');
+          const sam = /samsung/i.test(dg.maker || '');
+          const R = box.querySelector('#s-exact') ? box.querySelector('#s-exact').closest('.set-row') : st.closest('.set-row').nextElementSibling;
+          R.insertAdjacentHTML('afterend', `<div class="set-row" id="s-diagrow"><span>알림 진단<small class="set-sub">${W.length ? W.map(w => '⚠️ ' + w).join('<br>') : '✅ 휴대폰이 알림을 막고 있지 않아요'}</small>${W.length ? `<small class="set-sub">${sam ? '갤럭시: 앱 설정 → 배터리 → 제한 없음 · 휴대폰 설정 → 배터리 → 백그라운드 사용 제한 → 잠자는 앱 · 깊은 잠자는 앱에서 빼고 "절전 예외 앱"에 추가' : '앱 설정 → 배터리 → 제한 없음'}</small>` : ''}</span>${W.length ? '<button class="btn" id="s-diag">설정 열기</button>' : ''}</div>`);
+          const db = box.querySelector('#s-diag'); if (db) db.onclick = () => Native.openAppSettings();
+        }
+        // 운영자: 최근 알림 도착 기록 (예약한 시각이 지난 알림이 실제로 왔는지)
+        if (Board.isOwner()) {
+          const L = Push.arrivals().slice(-12).reverse(), f = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+          const raw = dg ? `${esc(dg.maker || '')} ${esc(dg.model || '')} · SDK ${dg.sdk} · 버킷 ${dg.bucket ?? '-'} · 제한 ${dg.bgRestricted ? 'O' : 'X'} · 최적화 제외 ${dg.batteryFree ? 'O' : 'X'} · 정확 ${dg.exact ? 'O' : 'X'} · 채널 ${dg.channel ?? '-'}` : '';
+          (box.querySelector('#s-diagrow') || st.closest('.set-row')).insertAdjacentHTML('afterend', `<div class="set-row"><span>알림 도착 기록 (운영자)<small class="set-sub">${raw}</small><small class="set-sub">${L.length ? L.map(x => `${f(x.at)} ${x.ok ? '✅' : '❓'} ${esc(I18N.t(x.t || ''))}`).join('<br>') : '아직 기록이 없어요 (알림 시각이 지난 뒤 게임을 켜면 쌓여요)'}</small><small class="set-sub">✅ 알림 센터에 와 있었거나 눌러서 들어옴 · ❓ 확인 못 함 (안 왔거나, 이미 지웠음)</small></span></div>`);
+        }
       }
     })();
     on('#s-push', async () => {
