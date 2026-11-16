@@ -567,10 +567,10 @@ const UI = (() => {
     const c = Life.skipCost(l), al = Game.adLeft('skip');
     const box = modal(`<h2>⏩ 시간 단축</h2><p>${SKIP_NAME[kind]} 시간<br><b class="big" style="color:var(--gold)" id="sk-left">${fmtTime(l)}</b></p>
       <div class="sk-opts"><button class="btn" id="sk-ad" ${al > 0 ? '' : 'disabled'}><span>📺 광고 보고 30분 단축</span><em>오늘 ${al}/${AD_LIMIT.skip}</em></button>
-      ${kind === 'mail' ? '' : `<button class="btn jade" id="sk-jade" ${S().jade >= c ? '' : 'data-short="jade"'}><span><img class="px" src="${IC('jade', 2)}"> 옥 ${c}개로 바로 완료</span><em>10분당 옥 20개</em></button>`}</div>
+      ${kind === 'mail' ? '' : kind === 'docs' && Life.docsJadeLeft() <= 0 ? `<button class="btn jade" disabled><span>옥으로 바로 완료</span><em>오늘은 다 썼어요 (하루 ${Life.DOCS_JADE_DAY}번)</em></button>` : `<button class="btn jade" id="sk-jade" ${S().jade >= c ? '' : 'data-short="jade"'}><span><img class="px" src="${IC('jade', 2)}"> 옥 ${c}개로 바로 완료</span><em>${kind === 'docs' ? `오늘 ${Life.docsJadeLeft()}/${Life.DOCS_JADE_DAY} · ` : ''}10분당 옥 20개</em></button>`}</div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     const done = msg => { closeModal(); Sound.play('promote'); toast(msg); if (tab === 'life') renderLife($('#panel')); officeBar(); after && after(); };
-    if (box.querySelector('#sk-jade')) box.querySelector('#sk-jade').onclick = () => { const r = Life.skipJade(kind, i); if (r) done(`옥 ${r}개로 시간을 건너뛰었어요!`); else { Sound.play('no'); toast('옥이 부족해요'); } };
+    if (box.querySelector('#sk-jade')) box.querySelector('#sk-jade').onclick = () => { const r = Life.skipJade(kind, i); if (r) done(`옥 ${r}개로 시간을 건너뛰었어요!`); else { Sound.play('no'); toast(kind === 'docs' && Life.docsJadeLeft() <= 0 ? `결재 서류는 옥으로 하루 ${Life.DOCS_JADE_DAY}번까지 단축할 수 있어요` : '옥이 부족해요'); } };
     box.querySelector('#sk-ad').onclick = () => { if (Game.adLeft('skip') <= 0) return; closeModal(); ad(() => { Game.useAd('skip'); Life.skipAd(kind, i); const left = Life.timerLeft(kind, i); Sound.play('buy'); toast(left > 0 ? `30분 단축! 남은 시간 ${fmtTime(left)}` : '완료됐어요!'); if (tab === 'life') renderLife($('#panel')); officeBar(); if (left > 0) speedUp(kind, i, after); else after && after(); }); };
   }
   function mailOpen() {

@@ -254,10 +254,15 @@ const Life = (() => {
     Game.save();
   }
   const skipCost = secs => Math.max(20, Math.ceil(secs / 600) * 20); // 10분당 옥 20개
+  // 결재 서류는 옥 단축을 하루 5번까지 (무제한이면 옥으로 서류를 계속 뽑아 혼 · 옥을 무한히 벌 수 있었음) · 한국 시간 자정에 초기화
+  const DOCS_JADE_DAY = 5;
+  function docsJadeDay() { const s = S(), d = kstDay(); if (!s.docsJade || s.docsJade.day !== d) s.docsJade = { day: d, n: 0 }; return s.docsJade; }
+  const docsJadeLeft = () => Math.max(0, DOCS_JADE_DAY - docsJadeDay().n);
   function skipJade(kind, i) {
     if (kind === 'mail') return false; // 까치 우편은 옥으로 단축할 수 없음 (광고 단축만)
+    if (kind === 'docs' && docsJadeLeft() <= 0) return false;
     const l = timerLeft(kind, i), c = skipCost(l); if (l <= 0 || S().jade < c) return false;
-    S().jade -= c; shiftTimer(kind, i, l + 1); return c;
+    S().jade -= c; if (kind === 'docs') docsJadeDay().n++; shiftTimer(kind, i, l + 1); return c;
   }
   const SKIP_AD = 30 * 60;
   function skipAd(kind, i) { if (kind === 'mail') return false; const l = timerLeft(kind, i); if (l <= 0) return false; shiftTimer(kind, i, Math.min(l + 1, SKIP_AD)); return true; }
@@ -424,5 +429,5 @@ const Life = (() => {
       brew: RECIPES.some(canBrew),
     };
   }
-  return { slotCost, buySlot, SLOT_JADE, PROP, propReady, propLeft, useProp, timerLeft, skipCost, skipJade, skipAd, SKIP_AD, judgeLeft, judgeCase, judge, JUDGE_MAX, docsCount, claimDocs, docsNext, fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeTodayLeft, EXPE_DAY, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
+  return { slotCost, buySlot, SLOT_JADE, PROP, propReady, propLeft, useProp, timerLeft, skipCost, skipJade, docsJadeLeft, DOCS_JADE_DAY, skipAd, SKIP_AD, judgeLeft, judgeCase, judge, JUDGE_MAX, docsCount, claimDocs, docsNext, fortuneLeft, drawFortune, fortuneMul, offerState, offer, mailCount, openMail, mailNext, qEvent, qClaim, qBonus, qReady, merchantTick, merchantHere, offerPrice, merchantBuy, ensure, plotState, plant, harvest, seedSoulCost, buySeed, unlockPlot, canBrew, brew, buffLeft, slots, send, expeTodayLeft, EXPE_DAY, expeLeft, claim, rollSpecial, catchSpecial, dexBonus, mul, alerts };
 })();
