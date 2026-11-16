@@ -8,7 +8,7 @@ adb shell appops set $PKG SCHEDULE_EXACT_ALARM allow
 # 한국 시간으로 (밤 11시~아침 8시는 알림을 아침으로 미루는 규칙이 있어서, UTC 새벽이면 실험 알림이 아침으로 밀림)
 adb shell cmd alarm set-timezone Asia/Seoul 2>/dev/null || adb shell setprop persist.sys.timezone Asia/Seoul
 echo "에뮬레이터 시각: $(adb shell date)"
-SETUP='(async()=>{localStorage.setItem("reaper_lang","ko");const S=Game.S;S.kind="m";S.name="시험";S.tut="done";S.otut="done";S.story={ch:3,q:0,intro:true};S.pushAsked=true;S.push=true;S.sealUntil=Date.now()+86400e3+180e3;Game.apply();Game.save();await Push.back();await new Promise(r=>setTimeout(r,1500));const p=await Capacitor.Plugins.LocalNotifications.getPending();return p.notifications.map(n=>n.id+"@"+new Date(n.schedule.at).toISOString().slice(11,19)).join(" ");})()'
+SETUP='(async()=>{localStorage.setItem("reaper_lang","ko");const S=Game.S;S.kind="m";S.name="시험";S.tut="done";S.otut="done";S.story={ch:3,q:0,intro:true};S.pushAsked=true;S.push=true;S.sealUntil=Date.now()+86400e3+180e3;Game.apply();Game.save();await Push.back();await new Promise(r=>setTimeout(r,1500));const p=await Capacitor.Plugins.LocalNotifications.getPending();return "예약 "+p.notifications.length+"개: "+p.notifications.map(n=>n.id+"@"+new Date(n.schedule.at).toTimeString().slice(0,8)).join(" ");})().catch(e=>"오류 "+e.message)'
 connect() {
   for i in $(seq 1 30); do PID=$(adb shell pidof $PKG | tr -d '\r'); SOCK=$(adb shell cat /proc/net/unix | grep -o "webview_devtools_remote_$PID" | head -1); [ -n "$SOCK" ] && break; sleep 2; done
   adb forward --remove-all; adb forward tcp:9222 localabstract:$SOCK >/dev/null; echo "웹뷰 연결: $SOCK"
@@ -17,6 +17,8 @@ run() { # $1 = 이름, $2 = 나가는 방법
   echo "=================== $1"
   adb shell am force-stop $PKG
   adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null; sleep 25; connect
+  echo "페이지: $(curl -s 127.0.0.1:9222/json | grep -o '"url": *"[^"]*"' | head -3 | tr '\n' ' ')"
+  echo "게임 상태: $(node notif-test.js 'JSON.stringify({game:typeof Game,push:typeof Push,app:typeof Capacitor!=="undefined"&&Capacitor.isNativePlatform(),kind:typeof Game!=="undefined"&&Game.S&&Game.S.kind})')"
   echo "게임 안 예약 (3분 뒤 = 36번): $(node notif-test.js "$SETUP")"
   echo "지금 $(date -u +%H:%M:%S) UTC"
   adb shell input keyevent KEYCODE_HOME
