@@ -612,7 +612,7 @@ html, body { background: var(--n0); }
 #tabs::before { content: ''; position: absolute; top: -9px; left: 50%; width: 30px; height: 4px; margin-left: -15px; border-radius: 2px; background: rgba(255, 255, 255, 0.22); pointer-events: none; }
 #menu.open #tabs::before { display: none; }
 #tabs { position: relative; }
-#sheet-h { flex: 0 0 26px !important; touch-action: none; cursor: grab; }
+#sheet-h { flex: 0 0 30px !important; touch-action: none; cursor: grab; } /* 손잡이 잡는 곳을 조금 넓게 */
 #sheet { height: min(50vh, 420px) !important; }
 img { -webkit-user-drag: none; user-select: none; }
 

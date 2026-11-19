@@ -333,36 +333,68 @@ const UI = (() => {
   // 아래 메뉴: 탭을 누르면 시트가 올라오고, 같은 탭이나 ▼를 누르면 내려간다
   const sheetOpen = () => $('#menu').classList.contains('open');
   function goTab(t) { if (t !== tab || !sheetOpen()) $('#panel').scrollTop = 0; tab = t; $('#menu').classList.add('open'); render(); }
-  // 손가락으로 끌어 올리기 / 내리기: 손잡이·시트(맨 위까지 스크롤된 상태)에서 아래로, 탭 줄에서 위로
+  // 손가락으로 끌어 올리기 / 내리기: 손잡이 · 탭 줄은 어디서든, 시트 안쪽은 맨 위까지 스크롤된 상태에서 아래로 끌면 닫힘
+  // 시트 안쪽은 터치 이벤트로 처리: 포인터 이벤트는 브라우저가 스크롤로 가져가면 취소돼서, 손잡이를 정확히 잡아야만 내려갔음
+  // 빠르게 휙 내리면(플릭) 조금만 끌어도 닫힘 · 안쪽을 스크롤해서 맨 위에 닿은 뒤 계속 내리면 그때부터 시트가 따라 내려감
   const sheetDrag = { on: false, moved: false };
   function sheetSwipe() {
     const sh = $('#sheet'), P = $('#panel');
-    const start = (e, from) => { sheetDrag.on = true; sheetDrag.moved = false; sheetDrag.from = from; sheetDrag.y0 = e.clientY; sheetDrag.x0 = e.clientX; sheetDrag.dy = 0; sheetDrag.open = sheetOpen(); };
-    $('#sheet-h').addEventListener('pointerdown', e => start(e, 'handle'));
-    sh.addEventListener('pointerdown', e => { if (e.target.closest('#sheet-h')) return; if (P.scrollTop <= 0) start(e, 'sheet'); });
-    $('#tabs').addEventListener('pointerdown', e => start(e, 'tabs'));
-    addEventListener('pointermove', e => {
-      if (!sheetDrag.on) return;
-      const dy = e.clientY - sheetDrag.y0;
-      if (!sheetDrag.moved && Math.abs(dy) < 8) return;
-      if (!sheetDrag.moved && Math.abs(e.clientX - sheetDrag.x0) > Math.abs(dy)) { sheetDrag.on = false; return; }
-      if (sheetDrag.from === 'sheet' && dy < 0) { sheetDrag.on = false; return; } // 위로 끌면 그냥 스크롤
+    const dragStart = (y, x, from) => { Object.assign(sheetDrag, { on: true, moved: false, from, y0: y, x0: x, dy: 0, open: sheetOpen(), ly: y, lt: performance.now(), v: 0 }); };
+    const dragMove = (y, x) => {
+      if (!sheetDrag.on) return false;
+      const dy = y - sheetDrag.y0;
+      if (!sheetDrag.moved && Math.abs(dy) < 6) return false;
+      if (!sheetDrag.moved && Math.abs(x - sheetDrag.x0) > Math.abs(dy)) { sheetDrag.on = false; return false; }
+      if (!sheetDrag.moved && sheetDrag.from === 'sheet' && dy < 0) { sheetDrag.on = false; return false; } // 위로 끌면 그냥 스크롤
+      const now = performance.now(), dt = now - sheetDrag.lt; if (dt > 0) sheetDrag.v = sheetDrag.v * 0.4 + ((y - sheetDrag.ly) / dt) * 0.6; sheetDrag.ly = y; sheetDrag.lt = now;
       sheetDrag.moved = true; sheetDrag.dy = dy;
       const h = sh.offsetHeight;
       if (sheetDrag.open) { sh.style.transition = 'none'; sh.style.transform = `translateY(${Math.max(0, dy)}px)`; }
       else if (dy < 0) { $('#menu').classList.add('open', 'dragging'); sh.style.transition = 'none'; sh.style.transform = `translateY(${Math.max(0, h + dy)}px)`; }
-    });
-    const endDrag = e => {
+      return true;
+    };
+    const dragEnd = () => {
       if (!sheetDrag.on) return;
-      if (e.type === 'pointercancel') { if (!e.target.closest || !e.target.closest('#menu')) return; sheetDrag.moved = false; } // 지도 쪽 취소는 무시, 브라우저가 스크롤로 가져가면 원위치
       sheetDrag.on = false;
-      const sh2 = $('#sheet'); sh2.style.transition = ''; sh2.style.transform = ''; $('#menu').classList.remove('dragging');
+      sh.style.transition = ''; sh.style.transform = ''; $('#menu').classList.remove('dragging');
       if (!sheetDrag.moved) return;
-      if (sheetDrag.open && sheetDrag.dy > 50) { closeSheet(); Sound.play('open'); }
-      else if (!sheetDrag.open) { if (sheetDrag.dy < -40) { goTab(tab); Sound.play('open'); } else closeSheet(); }
+      const dy = sheetDrag.dy, v = performance.now() - sheetDrag.lt < 120 ? sheetDrag.v : 0; // 손을 멈췄다 떼면 플릭 아님
+      if (sheetDrag.open) { if (dy > Math.min(60, sh.offsetHeight * 0.15) || (dy > 14 && v > 0.3)) { closeSheet(); Sound.play('open'); } }
+      else { if (dy < -40 || (dy < -12 && v < -0.3)) { goTab(tab); Sound.play('open'); } else closeSheet(); }
       setTimeout(() => (sheetDrag.moved = false), 50);
     };
-    addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
+    // 마우스 · 펜 (PC) + 손잡이 · 탭 줄 (터치도 touch-action: none 이라 취소되지 않음)
+    $('#sheet-h').addEventListener('pointerdown', e => dragStart(e.clientY, e.clientX, 'handle'));
+    $('#tabs').addEventListener('pointerdown', e => dragStart(e.clientY, e.clientX, 'tabs'));
+    sh.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' || e.target.closest('#sheet-h')) return; if (P.scrollTop <= 0) dragStart(e.clientY, e.clientX, 'sheet'); });
+    addEventListener('pointermove', e => { if (sheetDrag.from !== 'touch') dragMove(e.clientY, e.clientX); });
+    addEventListener('pointerup', e => { if (sheetDrag.from !== 'touch') dragEnd(); });
+    addEventListener('pointercancel', e => { if (sheetDrag.from === 'touch' || !sheetDrag.on) return; if (!e.target.closest || !e.target.closest('#menu')) return; sheetDrag.moved = false; dragEnd(); });
+    // 시트 안쪽 터치: 안쪽 목록(꾸미기 가방 등)이 아직 위로 스크롤할 게 있으면 그 목록 스크롤이 먼저
+    const innerCanScrollUp = t => { for (let el = t; el && el !== P && el !== sh; el = el.parentElement) { if (el.scrollTop > 0 && el.scrollHeight > el.clientHeight + 1) return true; } return false; };
+    let tc = null;
+    sh.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1 || e.target.closest('#sheet-h')) { tc = null; return; }
+      const t = e.touches[0]; tc = { y: t.clientY, x: t.clientX, py: t.clientY, mode: null, inner: innerCanScrollUp(e.target) };
+    }, { passive: true });
+    sh.addEventListener('touchmove', e => {
+      if (!tc || e.touches.length !== 1) return;
+      const t = e.touches[0], dy = t.clientY - tc.y, dx = t.clientX - tc.x, down = t.clientY > tc.py; tc.py = t.clientY;
+      if (!tc.mode) {
+        if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+        if (Math.abs(dx) > Math.abs(dy)) { tc = null; return; } // 가로 끌기 (가로 목록) 는 건드리지 않음
+        tc.mode = 'scroll';
+      }
+      if (tc.mode === 'scroll') {
+        // 맨 위에 닿은 상태에서 아래로 끌면 그 지점부터 시트를 끌어 내림 (스크롤하다 이어서 내려도 됨)
+        if (down && P.scrollTop <= 0 && !tc.inner && !innerCanScrollUp(e.target)) { tc.mode = 'drag'; dragStart(t.clientY, t.clientX, 'touch'); sheetDrag.moved = true; }
+        else return;
+      }
+      if (e.cancelable) e.preventDefault(); // 시트를 끄는 동안은 화면이 스크롤되지 않게
+      const y0 = sheetDrag.y0; sheetDrag.moved = true; dragMove(t.clientY, sheetDrag.x0); if (t.clientY < y0) { sheetDrag.dy = 0; sh.style.transform = 'translateY(0px)'; }
+    }, { passive: false });
+    const tEnd = () => { if (tc && tc.mode === 'drag') dragEnd(); tc = null; };
+    sh.addEventListener('touchend', tEnd); sh.addEventListener('touchcancel', tEnd);
   }
   function closeSheet() { $('#menu').classList.remove('open'); document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('on')); }
   function render() {
