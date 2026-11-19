@@ -90,9 +90,9 @@ These Terms set out the rights, obligations and responsibilities between Gatju M
 - If we end the service, we will announce it in the in-game notices at least 30 days in advance.
 
 ## 4. Purchases and refunds
-- Paid items (Jade, packs, the Seal of Yeomra, Remove Ads, decorations, etc.) are purchased through Google Play or the App Store at the price shown in each store.
+- Paid items (Jade, packs, Yeomra's Seal, Remove Ads, decorations, etc.) are purchased through Google Play or the App Store at the price shown in each store.
 - Payments and refunds are handled under the policies of Google Play or the App Store. You can request a refund through Google Play Help, or through Apple's "Report a Problem" (reportaproblem.apple.com).
-- Where your local law gives you a right to cancel a purchase (for example, within 7 days for unused items under Korean e-commerce law), you may do so. This right may be limited for items that were delivered and used immediately, partly used, or whose time period has started (for example, the Seal of Yeomra).
+- Where your local law gives you a right to cancel a purchase (for example, within 7 days for unused items under Korean e-commerce law), you may do so. This right may be limited for items that were delivered and used immediately, partly used, or whose time period has started (for example, Yeomra's Seal).
 - If a minor makes a purchase without a parent's or guardian's consent, the minor or the guardian may request cancellation.
 - If a purchase is refunded, the in-game currency or effects received from it may be removed.
 - For payment questions, contact us through Settings > 1:1 Inquiry with your member code.
@@ -158,9 +158,9 @@ You can also contact us in the Game via **Settings → 1:1 Inquiry**.
 - サービスを終了する場合は、終了日の30日前までにゲーム内のお知らせで告知します。
 
 ## 4. 有料アイテムの購入と返金
-- 有料アイテム(玉、パック、閻魔の印、広告削除、飾りアイテムなど)は Google Play または App Store の決済で購入し、価格は各ストアに表示された金額です。
+- 有料アイテム(玉、パック、閻魔の印章、広告削除、飾りアイテムなど)は Google Play または App Store の決済で購入し、価格は各ストアに表示された金額です。
 - 決済と返金は各ストア(Google Play・App Store)のポリシーに従って処理されます。Google Play は Google Play ヘルプ、App Store は Apple の「問題を報告する」(reportaproblem.apple.com)から返金を申請できます。
-- お住まいの国の法律で購入の取消しが認められている場合(例: 韓国の電子商取引法では未使用のアイテムは購入後7日以内)、取消しができます。ただし、購入後すぐに付与されて使用されたもの、一部を使用したもの、期間が始まったもの(例: 閻魔の印)は取消しが制限されることがあります。
+- お住まいの国の法律で購入の取消しが認められている場合(例: 韓国の電子商取引法では未使用のアイテムは購入後7日以内)、取消しができます。ただし、購入後すぐに付与されて使用されたもの、一部を使用したもの、期間が始まったもの(例: 閻魔の印章)は取消しが制限されることがあります。
 - 未成年者が法定代理人の同意なく決済した場合、本人または法定代理人が取消しを申請できます。
 - 返金された場合、そのアイテムで受け取ったゲーム内通貨や効果は回収されることがあります。
 - 決済に関するお問い合わせは、ゲームの設定 → お問い合わせから会員コードを添えてご連絡ください。
@@ -226,9 +226,9 @@ You can also contact us in the Game via **Settings → 1:1 Inquiry**.
 - 如终止服务,将在终止日至少30天前通过游戏公告通知。
 
 ## 4. 付费商品的购买与退款
-- 付费商品(玉、礼包、阎罗之印、去除广告、装饰商品等)通过 Google Play 或 App Store 购买,价格以各商店显示的金额为准。
+- 付费商品(玉、礼包、阎罗印章、去除广告、装饰商品等)通过 Google Play 或 App Store 购买,价格以各商店显示的金额为准。
 - 付款与退款按各商店(Google Play、App Store)的政策处理。Google Play 可通过 Google Play 帮助中心申请退款,App Store 可通过 Apple 的"报告问题"(reportaproblem.apple.com)申请退款。
-- 如您所在国家的法律允许取消购买(例如韩国电子商务法规定未使用的商品可在购买后7天内取消),您可以申请取消。但购买后立即发放并已使用、部分使用或已开始计时的商品(例如阎罗之印)可能无法取消。
+- 如您所在国家的法律允许取消购买(例如韩国电子商务法规定未使用的商品可在购买后7天内取消),您可以申请取消。但购买后立即发放并已使用、部分使用或已开始计时的商品(例如阎罗印章)可能无法取消。
 - 未成年人未经法定监护人同意付款的,本人或法定监护人可以申请取消。
 - 退款完成后,通过该商品获得的游戏货币或效果可能会被收回。
 - 付款相关问题,请在游戏的设置 → 一对一咨询中附上会员编号与我们联系。
