@@ -47,6 +47,8 @@
 
     <!-- Permissions -->
 
+    <!-- 세로 고정이지만 세로 화면을 "필수"로 요구하지 않음 (Play 가 태블릿 · PC · XR 기기를 설치 불가로 막지 않게) -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 정확한 알람: 기본은 꺼져 있고(안드로이드 14+), 유저가 게임 설정 → 알림 → '정확한 시각에 받기'로 직접 켰을 때만 씀.
          켜지 않으면 일반(느슨한) 알람으로 예약 → 절전 상태에서 늦게 오거나 게임을 켤 때 몰려 올 수 있음
