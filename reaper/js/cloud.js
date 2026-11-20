@@ -120,7 +120,7 @@ const Cloud = (() => {
         let q = sb.from('docs').select('doc_id, data').eq('col', col);
         for (const [f, op, v] of filters) {
           if (op === '==') q = q.eq(`data->>${f}`, String(v));
-          else if (op === '>') q = SORT_COLS.includes(f) ? q.gt(f, v) : q.gt(`data->>${f}`, v);
+          else if (op === '>') q = SORT_COLS.includes(f) ? q.gt(f, v) : q.gt(typeof v === 'number' ? `data->${f}` : `data->>${f}`, v); // 숫자는 jsonb(->)로 비교해야 숫자 크기 순 (->> 는 글자 비교)
           else if (op === 'array-contains') q = q.contains('data', { [f]: [v] });
         }
         if (order) q = SORT_COLS.includes(order[0]) ? q.order(order[0], { ascending: order[1] !== 'desc', nullsFirst: false }) : q.order(`data->${order[0]}`, { ascending: order[1] !== 'desc', nullsFirst: false }); // jsonb 로 정렬해야 숫자가 숫자 순서로

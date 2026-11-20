@@ -31,10 +31,10 @@ const Board = (() => {
     await push(true);
     const done = new Promise((res, rej) => setTimeout(() => rej(new Error('timeout')), 10000));
     const q = (async () => {
-      const snap = await db.collection('rank').orderBy(byPt ? 'pt' : 'score', 'desc').limit(50).get();
+      const snap = await db.collection('rank').orderBy(byPt ? 'pt' : 'score', 'desc').limit(100).get(); // 100위까지
       const rows = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
       let my = rows.findIndex(r => r.id === uid) + 1;
-      if (!my && Game.S.nickSet && !byPt && !owner) { const above = await db.collection('rank').where('score', '>', score(Game.S)).limit(1000).get(); my = above.size + 1; }
+      if (!my && Game.S.nickSet && !owner) { const above = byPt ? await db.collection('rank').where('pt', '>', Math.floor((Game.S.playSec || 0) / 60) * 60).limit(1000).get() : await db.collection('rank').where('score', '>', score(Game.S)).limit(1000).get(); my = above.size + 1; } // 100위 밖이어도 내 순위 계산 (플레이 시간도)
       let names = {}; try { names = await user.profiles(rows.map(r => r.id)); } catch (e) {}
       if (!byPt) setPlace(Game.S.nickSet && !owner ? my : 0, rows.length);
       return { rows: rows.map(r => Object.assign(r, { name: r.nick || (names[r.id] && names[r.id].name) || '이름 모를 차사', me: r.id === uid })), my, total: rows.length };

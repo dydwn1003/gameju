@@ -882,7 +882,7 @@ const UI = (() => {
       if (!r || !r.rows.length) { L.innerHTML = '<div class="rkload">아직 순위에 오른 차사가 없어요</div>'; return; }
       L.innerHTML = r.rows.map((x, i) => rankRow(x, i + 1, by)).join('') + (r.rows.some(x => x.me) ? '' : `<div class="rkgap">⋯</div>${rankRow(mine, r.my, by)}`);
       L.querySelectorAll('[data-prof]').forEach(el => el.addEventListener('click', e => { if (e.target.closest('[data-visit]')) return; const k = +el.dataset.prof, x = k >= 1 && k <= r.rows.length ? r.rows[k - 1] : mine; Sound.play('open'); profileModal(x.me ? Object.assign({}, mineProf(), { id: x.id }) : x, k); }));
-      box.querySelector('.rk-tabs').insertAdjacentHTML('afterend', `<div class="rkmy">내 순위 <b>${r.my ? r.my + '위' : '50위 밖'}</b></div>`);
+      box.querySelector('.rk-tabs').insertAdjacentHTML('afterend', `<div class="rkmy">내 순위 <b>${r.my ? r.my + '위' : '100위 밖'}</b></div>`);
       L.querySelectorAll('[data-visit]').forEach(b => b.onclick = () => { closeModal(); visitOffice(b.dataset.visit); });
     } catch (e) { if (document.body.contains(L)) L.innerHTML = rankRow(mine, 0, by) + '<p class="note">순위를 불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</p>'; }
   }

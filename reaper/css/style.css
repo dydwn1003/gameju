@@ -549,6 +549,7 @@ html, body { background: var(--n0); }
 @keyframes stamp { from { transform: rotate(-6deg) scale(2.2); opacity: 0; } }
 .rkmy { text-align: center; font-size: 12px; margin: -4px 0 6px; } .rkmy b { color: #ffd34a; }
 .rklist { max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin: 6px 0; text-align: left; }
+.rklist > * { flex-shrink: 0; } /* 줄이 많아져도 1등 줄이 눌려 찌그러지지 않게 */
 .rkrow { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); }
 .rkrow.me { border-color: #ffd34a; background: rgba(255, 211, 74, .1); }
 .rkrow.top1 { background: linear-gradient(90deg, rgba(255,211,74,.22), rgba(255,255,255,.03)); }
