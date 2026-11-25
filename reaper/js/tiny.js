@@ -13,6 +13,14 @@ const Tiny = (() => {
     horns: mirror(['', '', '...KY...', '....KY..', '....KAAA', '...KAAAA']),
     feather: mirror(['......GY', '.....KKK', '....KHHH', '..KKKjjj', '.KHHHHHH', '..KKKKKK']),
   };
+  // 옆모습 모자 (오른쪽을 봄): 머리(6~10칸) 위에 맞추고, 사모 날개는 뒤쪽에 하나만, 왕관 보석은 앞쪽에
+  const HAT_SIDE = {
+    gat: ['......KKKK......', '......KHhK......', '......KHHK......', '...KKKKjjKKKK...', '..KHHHHHHHHHHK..', '...KKKKKKKKKK...'],
+    samo: ['................', '......KKKK......', '.....KHhHHK.....', '.KK..KHHHHK.....', '.KHKKjjjjjK.....', '.KK.KKKKKKK.....'],
+    crown: ['......K.K.K.....', '.....KYKYKYK....', '.....KYYYYYK....', '.....KYYYOGK....', '.....KYYYYYK....', '.....KKKKKKK....'],
+    myeon: ['.KKKKKKKKKKKKK..', '.KHHHHHHHHHHHK..', '.KKKKKKKKKKKKK..', '.O...KHHHHK..O..', '.Y...KYYYYK..Y..', '.O...KKKKKK..O..'],
+    feather: ['.......GY.......', '......KKKK......', '......KHHK......', '...KKKKjjKKKK...', '..KHHHHHHHHHHK..', '...KKKKKKKKKK...'],
+  };
   const pad16 = r => (r + '................').slice(0, 16);
   const FACE_D = mirror(['....KAAA', '...bKSSS', '...yKSES', '...bKsSS', '....bKKK']);
   const FACE_DF = mirror(['...KAAAA', '...KASSS', '...KASES', '...KAsSS', '...KAKKK']);
@@ -31,7 +39,7 @@ const Tiny = (() => {
   function head(dir, kind, hatName, beads) {
     let face = dir === 'up' ? (kind === 'f' ? FACE_UF : FACE_U) : dir === 'side' ? (kind === 'f' ? SIDE_HEAD_F : SIDE_HEAD) : (kind === 'f' ? FACE_DF : FACE_D);
     if (!beads) face = face.map(r => r.replace(/[by]/g, '.'));
-    return HAT[hatName].map(pad16).concat(face.map(pad16));
+    return (dir === 'side' && HAT_SIDE[hatName] ? HAT_SIDE[hatName] : HAT[hatName]).map(pad16).concat(face.map(pad16));
   }
   function body(dir, kind) {
     if (dir === 'side') return (kind === 'f' ? SIDE_BODY_F : SIDE_BODY).map(pad16);

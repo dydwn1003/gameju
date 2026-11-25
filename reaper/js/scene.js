@@ -315,6 +315,12 @@ const Scene = (() => {
     return !placed.some((p, i) => i !== ignore && !!Decor.D(p.id).wall === r.wall && hit(r, decoRect(p.id, p.gx, p.gy)));
   }
   // 앉은 모습: 다리를 감추고 상반신만 엉덩이 높이에 그린 뒤, 의자의 앉는 판을 무릎 위로 다시 그린다
+  // 앉은 캐릭터 발밑(마법진 · 윤회 이펙트 자리): 책상은 기존 자리, 의자 · 방석은 앉는 판 높이
+  function seatFoot(st) {
+    if (!st || st.desk) return st ? st.y : 0;
+    const d = st.id ? Decor.D(st.id) : null, cim = Decor.img(st.id), r = st.r, top = r.y + r.h - cim.height;
+    return Math.round((d && d.chair ? top + cim.height - 11 : top + 4) - 1);
+  }
   function drawSeated(im, x, st) {
     const d = st.id ? Decor.D(st.id) : null, cut = st.desk ? 6 : 3, h = im.height - cut;
     let surf;
@@ -532,10 +538,10 @@ const Scene = (() => {
       // 바닥 소품 (깊이 정렬)
       placed.forEach((p, i) => { const d = Decor.D(p.id); if (d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy); list.push({ y: r.y + r.h - 1, f: () => { const im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h - im.height / 2, 10, d.glow, 0.2 + Math.sin(time * 4 + i) * 0.05); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 2); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } } }); });
       // 남의 방: 주인이 책상 의자에 앉아 있다
-      if (visit) { const os = seatSpots().find(q => q.atDesk || q.desk); if (os) list.push({ y: os.desk ? officeData.desk.y - 2 : os.r.y + os.r.h - 0.5, f: () => { drawMagic(g, os.x, os.y, Math.min(visit.rank, 8), time); const sv = rbTier; rbTier = visit.rb || 0; rbUnder({ x: os.x + camX, y: os.y + camY }, 16, true); rbTier = sv; const im = SP.tinyReaper(visit.kind || 'm', visit.rank, 'down', 'idle', Math.floor(time * 2.5)); drawSeated(im, os.x, os); } }); }
+      if (visit) { const os = seatSpots().find(q => q.atDesk || q.desk); if (os) list.push({ y: os.desk ? officeData.desk.y - 2 : os.r.y + os.r.h - 0.5, f: () => { const fy = seatFoot(os); drawMagic(g, os.x, fy, Math.min(visit.rank, 8), time); const sv = rbTier; rbTier = visit.rb || 0; rbUnder({ x: os.x + camX, y: fy + camY }, 16, true); rbTier = sv; const im = SP.tinyReaper(visit.kind || 'm', visit.rank, 'down', 'idle', Math.floor(time * 2.5)); drawSeated(im, os.x, os); } }); }
       // 나 (앉아 있거나 걸어 다님)
       if (!visit && me && me.sit && !me.sit.desk && me.sit.r && !seatSpots().some(q => q.r && q.r.x === me.sit.r.x && q.r.y === me.sit.r.y)) me.sit = seatSpots().find(q => q.atDesk || q.desk);
-      if (me) { const sit = me.sit, y0 = sit ? sit.y + (sit.desk ? 0 : 1) : me.y; list.push({ y: sit ? (sit.desk ? officeData.desk.y - 2 : sit.r.y + sit.r.h - 0.5) : me.y, f: () => {
+      if (me) { const sit = me.sit, y0 = sit ? (sit.desk ? sit.y : seatFoot(sit)) : me.y; list.push({ y: sit ? (sit.desk ? officeData.desk.y - 2 : sit.r.y + sit.r.h - 0.5) : me.y, f: () => {
         const x = sit ? sit.x : me.x; auraUnder({ x: x + camX, y: y0 + camY }); rankFxUnder({ x: x + camX, y: y0 + camY }); if (!visit) rbUnder({ x: x + camX, y: y0 + camY }, 16, true);
         const moving = me.walk && !sit, im0 = SP.tinyReaper(kind, rank, sit ? 'down' : me.dir, moving ? 'walk' : 'idle', Math.floor((moving ? me.ft * 8 : time * 2.5))), im = me.dir === 'side' && me.face < 0 && !sit ? flipOf(im0) : im0;
         if (!sit) { g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.round(x - 5), Math.round(y0 - 1), 10, 2); }
