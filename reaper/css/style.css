@@ -1068,3 +1068,4 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .pi-next .pn-nav { display: flex; align-items: center; gap: 6px; }
 .pi-next .pn-nav button { background: rgba(255,255,255,.08); border: 0; color: var(--text); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
 .pi-next .pn-nav button:disabled { opacity: .3; }
+.rb-ex .btn { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; white-space: nowrap; } .rb-ex .btn img { height: 14px; width: auto; margin: 0; } .rb-ex { margin-top: 6px; }

@@ -100,6 +100,15 @@ const Game = (() => {
   const perkLv = id => (S.rbPerk && S.rbPerk[id]) || 0;
   const perkCost = id => 2 * (perkLv(id) + 1); // 1레벨 2개 · 2레벨 4개 · 3레벨 6개 …
   const stoneGain = () => 2 + S.reborn; // 이번 윤회로 받는 윤회석 (1환 3개 · 2환 4개 …)
+  // 윤회 특성 초기화 (옥 300): 찍은 특성에 쓴 윤회석을 모두 돌려받음 (Lv.L 까지 쓴 돌 = 2+4+…+2L = L(L+1))
+  const PERK_RESET_JADE = 300;
+  const perkSpent = () => PERKS.reduce((a, P) => { const L = perkLv(P.id); return a + L * (L + 1); }, 0);
+  function resetPerks() { const back = perkSpent(); if (!back || S.jade < PERK_RESET_JADE) return 0; S.jade -= PERK_RESET_JADE; S.rbStone = (S.rbStone || 0) + back; S.rbPerk = {}; apply(); save(); return back; }
+  // 윤회석 교환 (옥 500 → 윤회석 2개): 한국 시간 월요일마다 1번, 한 번이라도 윤회한 사람만
+  const STONE_EX_JADE = 500, STONE_EX_N = 2;
+  const kstWeek = () => Math.floor((Date.now() + 9 * 3600e3 + 3 * 864e5) / (7 * 864e5));
+  const stoneExLeft = () => (S.reborn > 0 && S.rbEx !== kstWeek() ? 1 : 0);
+  function buyStones() { if (!stoneExLeft() || S.jade < STONE_EX_JADE) return false; S.jade -= STONE_EX_JADE; S.rbStone = (S.rbStone || 0) + STONE_EX_N; S.rbEx = kstWeek(); save(); return true; }
   function buyPerk(id) { const P = PERKS.find(x => x.id === id); if (!P || perkLv(id) >= P.max) return false; const c = perkCost(id); if ((S.rbStone || 0) < c) return false; S.rbStone -= c; S.rbPerk = S.rbPerk || {}; S.rbPerk[id] = perkLv(id) + 1; apply(); save(); return true; }
   const PEN = UPGRADES[0];
   const penMul = L => (1 + L * PEN.pa + PEN.pb * Math.sqrt(L)) * Math.pow(2, Math.floor(L / PEN.pd)); // 처음엔 강화마다 크게(+pa), 갈수록 비율이 줄어듦 · pd번마다 ×2
@@ -370,7 +379,7 @@ const Game = (() => {
   return {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
-    eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult, PERKS, perkLv, perkCost, buyPerk, stoneGain, lateOf,
+    eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult, PERKS, perkLv, perkCost, buyPerk, PERK_RESET_JADE, perkSpent, resetPerks, STONE_EX_JADE, STONE_EX_N, stoneExLeft, buyStones, stoneGain, lateOf,
     collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, markAway, offDone: () => { S.offPend = null; save(); }, OFFLINE_RATE, fingerprint, loadedFp: () => loadedFp, loadedTotal: () => loadedTotal, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();

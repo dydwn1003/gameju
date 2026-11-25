@@ -1950,12 +1950,16 @@ const UI = (() => {
     requestAnimationFrame(loop);
   }
   function perkModal() {
-    const s = S();
+    const s = S(), spent = Game.perkSpent(), exL = Game.stoneExLeft();
     const box = modal(`<h2>🔮 윤회 특성</h2><p>윤회할 때마다 받는 윤회석으로 영구 능력을 찍어요. 다시 윤회해도 사라지지 않아요.</p>
       <div class="rb-stone"><b>보유 윤회석 ${s.rbStone || 0}개</b></div>
       ${Game.PERKS.map(P => { const lv = Game.perkLv(P.id), mx = lv >= P.max, c = Game.perkCost(P.id); return `<div class="row pbox"><div class="info"><div class="nm">${P.name} <small>Lv.${lv}/${P.max}</small></div><div class="ds">${P.desc}</div></div><button class="btn" data-perk="${P.id}" ${mx || (s.rbStone || 0) < c ? 'disabled' : ''}>${mx ? '최대' : `🔮 ${c}`}</button></div>`; }).join('')}
+      <div class="row pbox rb-ex"><div class="info"><div class="nm">윤회석 교환</div><div class="ds">${s.reborn ? (exL ? `옥 ${Game.STONE_EX_JADE} → 윤회석 ${Game.STONE_EX_N}개 · 매주 월요일에 1번` : '이번 주는 교환했어요 · 월요일에 다시 열려요') : '한 번 윤회하면 교환할 수 있어요'}</div></div><button class="btn" id="rb-ex" ${exL && s.jade >= Game.STONE_EX_JADE ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}"> ${Game.STONE_EX_JADE}</button></div>
+      <div class="row pbox rb-ex"><div class="info"><div class="nm">특성 초기화</div><div class="ds">${spent ? `찍은 특성을 모두 되돌리고 윤회석 ${spent}개를 돌려받아요` : '아직 찍은 특성이 없어요'}</div></div><button class="btn dark" id="rb-reset" ${spent && s.jade >= Game.PERK_RESET_JADE ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}"> ${Game.PERK_RESET_JADE}</button></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
     box.querySelectorAll('[data-perk]').forEach(b => b.onclick = () => { if (Game.buyPerk(b.dataset.perk)) { Sound.play('promote'); toast('특성을 올렸어요', 1600); render(); perkModal(); } });
+    box.querySelector('#rb-ex').onclick = () => confirmBox(`<h2>윤회석 교환</h2><p>옥 ${Game.STONE_EX_JADE}개로 윤회석 ${Game.STONE_EX_N}개를 받을까요?<br><span class="mute">매주 월요일에 1번 교환할 수 있어요.</span></p>`, () => { if (Game.buyStones()) { Sound.play('buy'); toast(`윤회석 +${Game.STONE_EX_N}`, 1800); hud(); render(); } else toast('옥이 부족해요'); perkModal(); });
+    box.querySelector('#rb-reset').onclick = () => confirmBox(`<h2>특성 초기화</h2><p>옥 ${Game.PERK_RESET_JADE}개로 찍은 특성을 모두 되돌리고<br>윤회석 ${spent}개를 돌려받을까요?</p>`, () => { const n = Game.resetPerks(); if (n) { Sound.play('open'); toast(`윤회석 ${n}개를 돌려받았어요`, 2000); hud(); render(); } else toast('옥이 부족해요'); perkModal(); });
   }
   function promoted(newRegion, oldRank) {
     const R = RANKS[S().rank], O = RANKS[oldRank != null ? oldRank : S().rank - 1], gifts = Decor.grantRank(S().rank);
