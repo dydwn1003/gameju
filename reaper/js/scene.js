@@ -731,7 +731,11 @@ const Scene = (() => {
     },
     resize,
     setRegion(i) { const n = Math.max(0, Math.min(REGIONS.length - 1, i)); if (n !== region || !groundC) { region = n; build(); } },
-    setKind(k) { kind = k; }, setRank(r) { rank = r; }, setReborn(n) { rbTier = n || 0; }, rbFx: (u, h) => { rbUnder(u, h); rbOver(u, h); }, setRankFx(t) { rfx = t; }, me: () => ({ x: (reaper.x - camX) * S, y: (reaper.y - camY) * S }), setPet(p) { petData = p; },
+    setKind(k) { kind = k; }, setRank(r) { rank = r; }, setReborn(n) { rbTier = n || 0; }, rbDraw(ctx, x, y, h, t, tm, layer) { // 다른 캔버스(윤회 미리보기)에 윤회 이펙트 그리기. layer: 'under' 캐릭터 뒤 · 'over' 앞
+      const sv = [g, camX, camY, rbTier, time]; g = ctx; camX = 0; camY = 0; rbTier = t; time = tm;
+      try { if (layer === 'under') rbUnder({ x, y }, h); else { const k = Math.min(t, 5); if (k) rbOrbs(x, y, h, k, false);
+        if (k >= 4) for (let i = 0; i < (k >= 5 ? 3 : 4); i++) { const life = (tm * 0.8 + i * 0.29) % 1; g.globalAlpha = 1 - life; g.fillStyle = k >= 5 ? '#fff4c8' : (i % 2 ? '#ffb04a' : '#ff6a5a'); g.fillRect(Math.round(x + Math.sin(i * 7.3) * 6), Math.round(y - h * 0.2 - life * 16), 1, 1); } g.globalAlpha = 1; }
+      } finally { [g, camX, camY, rbTier, time] = sv; } }, rbFx: (u, h) => { rbUnder(u, h); rbOver(u, h); }, setRankFx(t) { rfx = t; }, me: () => ({ x: (reaper.x - camX) * S, y: (reaper.y - camY) * S }), setPet(p) { petData = p; },
     pillar() { for (let i = 0; i < 60; i++) parts.push({ x: reaper.x + rnd(-5, 5), y: reaper.y - rnd(0, 30), vx: rnd(-4, 4), vy: -rnd(20, 50), life: rnd(0.8, 1.6), max: 1.6, col: Math.random() < 0.6 ? '#ffd34a' : '#ffffff', g: 0 }); follow = true; },
     config(c) { Object.assign(cfg, c); },
     enterArena() { arena = true; saved = { x: reaper.x, y: reaper.y }; arenaC = bakeArena(); reaper.x = W / 2; reaper.y = Math.round(H * 0.86); reaper.manual = null; reaper.target = null; if (pet) { pet.x = reaper.x - 16; pet.y = reaper.y; } parts = []; fade = 1; camX = 0; camY = 0; },

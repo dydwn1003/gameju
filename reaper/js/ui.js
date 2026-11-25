@@ -440,7 +440,7 @@ const UI = (() => {
         <div class="rb-next">${rbNextHtml()}</div>
         <button class="btn red" data-act="reborn">윤회하기</button></div>`;
     }
-    if (s.reborn || s.rbStone) html += `<div class="sec">윤회 특성</div><div class="rb-perk pbox"><div><b class="${rbCls(s.reborn)}">${rbTitle(s.reborn) || '윤회 전'}</b><small>윤회석 ${s.rbStone || 0}개 · 영구 능력을 찍을 수 있어요</small></div><button class="btn" data-act="perks">특성 보기</button></div>`;
+    { const has = s.reborn || s.rbStone; html += `<div class="sec">윤회</div><div class="rb-perk pbox"><div><b class="${rbCls(s.reborn)}">${rbTitle(s.reborn) || '윤회 전'}</b><small>${has ? `윤회석 ${s.rbStone || 0}개 · 영구 능력을 찍을 수 있어요` : '염라대왕이 되면 윤회할 수 있어요'}</small></div><div class="rb-btns"><button class="btn dark" data-act="rbpv">미리보기</button>${has ? '<button class="btn" data-act="perks">특성 보기</button>' : ''}</div></div>`; }
     html += `<div class="sec">내 집무실</div><div class="offices pbox"><div><canvas id="of-now" width="150" height="104"></canvas><span>${Scene.officeName(s.rank)}</span></div>${N ? `<b>▶</b><div class="nx"><canvas id="of-next" width="150" height="104"></canvas><span>${Scene.officeName(s.rank + 1)}</span></div>` : ''}</div>
       <p class="note" style="margin-top:-4px">승진하면 집무실이 넓어지고 부하가 늘어나요. 결재 서류도 더 두둑해져요.</p>
       <div style="text-align:center;margin-bottom:14px"><button class="btn" data-act="office">집무실 들어가기${Life.docsCount() ? ` · 결재 ${Life.docsCount()}건` : ''}</button></div>`;
@@ -540,6 +540,7 @@ const UI = (() => {
     if (a === 'test') { if (!Game.canTest()) return; const old = S().rank, R0 = RANKS[old].region; if (Game.promote()) { Scene.pillar(); promoted(RANKS[S().rank].region !== R0, old); Board.push(true); } render(); }
     else if (a === 'reborn') confirmBox(`<h2>윤회</h2><p>직급·수련·보유한 혼이 처음으로 돌아갑니다.<br>모든 수확량이 영구히 ×${(1 + (S().reborn + 1) * 1.5).toFixed(1)}가 됩니다.</p><div class="rb-next">${rbNextHtml()}</div>`, () => rebornScene());
     else if (a === 'perks') perkModal();
+    else if (a === 'rbpv') rbPreview();
     else if (a === 'boostAd') { closeModal(); boostAd(); }
     else if (a === 'jadeFree') { if (Game.adLeft('jfree') <= 0) return; Game.useAd('jfree'); S().jade += FREE_JADE; Game.save(); Sound.play('buy'); got(`옥 +${FREE_JADE}`, { ic: 'jade' }); render(); }
     else if (a === 'jadeAd') { if (Game.adLeft('jade') <= 0) return; ad(() => { Game.useAd('jade'); S().jade += FREE_JADE; Game.save(); got(`옥 +${FREE_JADE}`, { ic: 'jade' }); render(); }); }
@@ -1876,6 +1877,36 @@ const UI = (() => {
       o.querySelector('#rb-go').onclick = () => { closeOverlay(); Sound.play('open'); render(); hud(); };
       o.querySelector('#rb-perk').onclick = () => { closeOverlay(); render(); perkModal(); };
     }, 1700);
+  }
+  // 윤회 미리보기: 1~5환을 골라 이펙트와 보상을 미리 봄
+  const RB_FX = ['', '푸른 혼불 1개가 천천히 돌아요', '보라 혼불 2개가 돌아요', '금빛 혼불 3개가 돌아요', '붉은 혼불 3개와 잔불이 피어올라요', '흰빛 혼불 4개와 빛기둥이 내려와요'];
+  function rbPreview(start) {
+    const s = S(); let n = start || Math.min(5, (s.reborn || 0) + 1);
+    const box = modal(`<h2>🔮 윤회 미리보기</h2><p>염라대왕이 되면 윤회할 수 있어요. 환마다 이렇게 달라져요.</p>
+      <div class="rbpv"><canvas id="rbpv-c" width="64" height="48"></canvas><div class="rbpv-t" id="rbpv-t"></div></div>
+      <div class="rbpv-tabs">${[1, 2, 3, 4, 5].map(i => `<button class="btn dark" data-rbt="${i}">${i}환</button>`).join('')}</div>
+      <div class="rbpv-i pbox" id="rbpv-i"></div>
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    const c = box.querySelector('#rbpv-c'), ctx = c.getContext('2d');
+    const show = i => { n = i; box.querySelectorAll('[data-rbt]').forEach(b => b.classList.toggle('on', +b.dataset.rbt === i));
+      const g = RB_GIFT[i] && Decor.D(RB_GIFT[i]), late = Math.round((Game.lateOf(i) - 1) * 100);
+      box.querySelector('#rbpv-t').innerHTML = `<span class="pill"><b class="${rbCls(i)}">${RB_TITLE[i]}</b>${(s.reborn || 0) >= i ? '<em>달성</em>' : ''}</span>`;
+      box.querySelector('#rbpv-i').innerHTML = `<div class="r"><span>이펙트</span><b>${RB_FX[i]}</b></div>
+        <div class="r"><span>수확량</span><b>모든 수확량 ×${(1 + i * 1.5).toFixed(1)}</b></div>
+        <div class="r"><span>윤회석</span><b style="color:#b88aff">윤회석 +${i + 1}</b></div>
+        ${g ? `<div class="r"><span>소품</span><b class="th"><img class="px" src="${decoThumb(g.id, 2)}">${g.name}</b></div>` : ''}
+        ${i === 5 ? `<div class="r"><span>영물</span><b class="th"><img class="px" src="${petIcon(Pets.P('yunhoe'), true)}">윤회의 봉황</b></div>` : ''}
+        <div class="r"><span>난이도</span><b>${i >= 2 ? `후반 수련 비용 +${late}%` : '후반 수련 비용은 첫 생과 비슷해요'}</b></div>`; };
+    box.querySelectorAll('[data-rbt]').forEach(b => b.onclick = () => { Sound.play('open'); show(+b.dataset.rbt); });
+    show(n);
+    const kind = s.kind || 'm', rank = s.rank || 0;
+    const loop = () => { if (!document.body.contains(c)) return; const t = performance.now() / 1000, x = 32, y = 40;
+      ctx.clearRect(0, 0, c.width, c.height); ctx.imageSmoothingEnabled = false;
+      const im = SP.tinyReaper(kind, rank, 'down', 'idle', Math.floor(t * 2.5)), h = im.height;
+      drawMagic(ctx, x, y, Math.min(rank, 8), t); Scene.rbDraw(ctx, x, y, h, n, t, 'under');
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x - 4, y - 1, 8, 2); ctx.drawImage(im, Math.round(x - im.width / 2), Math.round(y - h + 1));
+      Scene.rbDraw(ctx, x, y, h, n, t, 'over'); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
   }
   function perkModal() {
     const s = S();

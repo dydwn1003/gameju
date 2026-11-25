@@ -1037,3 +1037,20 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .pr-gift.rb-gifts>div>span{display:flex;flex-direction:column;align-items:center;width:50px;color:#fff}
 .pr-gift.rb-gifts img{width:36px;height:36px;object-fit:contain}
 .pr-gift.rb-gifts em{font-style:normal;font-size:9px;line-height:1.2}
+.rb-btns { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.rb-btns .btn { padding: 6px 12px; font-size: 12px; }
+.rbpv { position: relative; margin: 6px auto 8px; width: 192px; border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 80%, #2c2448, #120e1c); border: 1px solid #3a2f5c; }
+.rbpv canvas { display: block; width: 192px; height: 144px; image-rendering: pixelated; }
+.rbpv-t { position: absolute; left: 0; right: 0; top: 6px; text-align: center; font-size: 12px; text-shadow: 0 1px 0 #000; }
+.rbpv-t em { font-style: normal; font-size: 9px; margin-left: 4px; padding: 1px 5px; border-radius: 6px; background: #3a7a4a; color: #fff; vertical-align: 1px; }
+.rbpv-tabs { display: flex; gap: 4px; justify-content: center; margin-bottom: 8px; }
+.rbpv-tabs .btn { flex: 1; padding: 7px 0; font-size: 12px; min-width: 0; }
+.rbpv-tabs .btn.on { background: var(--red, #e8455a); color: #fff; }
+.rbpv-i { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; text-align: left; }
+.rbpv-i .r { display: flex; gap: 10px; align-items: center; font-size: 12px; }
+.rbpv-i .r > span { flex: 0 0 58px; color: var(--mute); font-size: 11px; }
+.rbpv-i .r > b { font-weight: 600; min-width: 0; }
+.rbpv-i .th { display: flex; align-items: center; gap: 6px; }
+.rbpv-i .th img { width: 24px; height: 24px; object-fit: contain; }
+.rbpv-t .pill { display: inline-block; max-width: 90%; padding: 1px 8px; border-radius: 8px; background: rgba(10, 8, 18, .72); }
+.rbpv-t .rbc5 { text-shadow: none; }
