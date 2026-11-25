@@ -1875,16 +1875,16 @@ const UI = (() => {
       if (!document.body.contains(c)) return;
       const now = performance.now(), t = (now - t0) / 1000, tm = now / 1000;
       ctx.clearRect(0, 0, c.width, c.height); ctx.imageSmoothingEnabled = false;
-      const im = SP.reaper(kind, rank, 'idle', Math.floor(tm * 3) % 4), h = im.height;
+      const im = SP.reaper(kind, rank, 'idle', Math.floor(tm * 3) % 4), ft = feetOf(kind, rank), h = Math.round(ft.y * im.height), ix = Math.round(X - ft.x * im.width), iy = Math.round(Y - ft.y * im.height); // 그림 상자가 아니라 실제 발 위치에 맞춤
       let alpha = 1, white = 0, fx = 1;
       if (!done) { // 0~1.5초: 빛으로 물들며 혼불로 흩어짐
         white = Math.max(0, Math.min(1, (t - 0.3) / 0.8)); alpha = t < 1.1 ? 1 : Math.max(0, 1 - (t - 1.1) / 0.4); fx = Math.max(0, 1 - t / 0.8);
         if (t > 0.4 && t < 1.5) for (let k = 0; k < 3; k++) parts.push({ x: X + (Math.random() - 0.5) * 26, y: Y - 4 - Math.random() * (h - 8), vy: -(14 + Math.random() * 22), vx: (Math.random() - 0.5) * 6, life: 0.9 + Math.random() * 0.5, c: ['#b8e0ff', '#b88aff', '#ffffff'][(Math.random() * 3) | 0] });
       } else { const k = Math.min(1, (t - 1.6) / 0.6); alpha = k; white = 1 - k; fx = k; } // 다시 태어남
       ctx.globalAlpha = fx; drawMagic(ctx, X, Y, Math.min(rank, 8), tm, 1.6); ctx.globalAlpha = 1;
-      if (tier && fx > 0) { ctx.save(); ctx.globalAlpha = fx; ctx.scale(2, 2); Scene.rbDraw(ctx, X / 2, Y / 2, h / 2, tier, tm, 'under'); ctx.restore(); }
-      if (alpha > 0) { ctx.globalAlpha = alpha; ctx.drawImage(glowed(im, white), Math.round(X - im.width / 2), Math.round(Y - h + 1)); ctx.globalAlpha = 1; }
-      if (tier && fx > 0) { ctx.save(); ctx.globalAlpha = fx; ctx.scale(2, 2); Scene.rbDraw(ctx, X / 2, Y / 2, h / 2, tier, tm, 'over'); ctx.restore(); }
+      if (tier && fx > 0) { ctx.save(); ctx.globalAlpha = fx; ctx.scale(2.4, 2.4); Scene.rbDraw(ctx, X / 2.4, Y / 2.4, h / 2.4, tier, tm, 'under'); ctx.restore(); }
+      if (alpha > 0) { ctx.globalAlpha = alpha; ctx.drawImage(glowed(im, white), ix, iy); ctx.globalAlpha = 1; }
+      if (tier && fx > 0) { ctx.save(); ctx.globalAlpha = fx; ctx.scale(2.4, 2.4); Scene.rbDraw(ctx, X / 2.4, Y / 2.4, h / 2.4, tier, tm, 'over'); ctx.restore(); }
       for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; p.life -= 1 / 60; if (p.life <= 0) { parts.splice(i, 1); continue; } p.x += p.vx / 60; p.y += p.vy / 60; ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); }
       ctx.globalAlpha = 1; requestAnimationFrame(loop);
     };
