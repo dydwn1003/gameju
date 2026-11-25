@@ -353,12 +353,17 @@ const Game = (() => {
   // 아이폰: 앱이 돌아올 때 타이머가 '다시 보임' 신호보다 먼저 돌면 S.last 가 지금으로 바뀌어 보상이 0이 되던 문제를 막음
   function markAway(t = Date.now()) { if (!S) return; S.awayAt = S.awayAt ? Math.min(S.awayAt, t) : t; }
   function offline() {
-    const marks = [awayFrom, S.awayAt].filter(Boolean), from = marks.length ? Math.min(...marks) : S.last; awayFrom = 0; S.awayAt = 0;
+    // offPaid: 이미 보상을 계산해 준 시각. 그 전 시간은 다시 쳐 주지 않음 (보상 받은 뒤 멈춤 감지·재접속으로 같은 시간을 또 받던 문제)
+    const marks = [awayFrom, S.awayAt].filter(Boolean), from = Math.max(marks.length ? Math.min(...marks) : S.last, S.offPaid || 0); awayFrom = 0; S.awayAt = 0;
     const away = Math.max(0, (Date.now() - from) / 1000);
-    if (!S.kind || away < 60) return null;
-    const secs = Math.min(away, offHours() * 3600);
-    const amt = incomePerSec(true) * secs * OFFLINE_RATE;
-    return { away, secs, amt, capped: away > secs };
+    const pend = S.offPend; // 계산은 했지만 아직 안 받은 보상 (창을 띄운 채 앱을 껐거나 광고가 실패함)
+    if (!S.kind || (away < 60 && !pend)) return null;
+    let secs = 0, amt = 0;
+    if (away >= 60) { S.offPaid = Date.now(); secs = Math.min(away, offHours() * 3600); amt = incomePerSec(true) * secs * OFFLINE_RATE; }
+    const o = { away: away >= 60 ? away : 0, secs, amt, capped: away > secs && away >= 60 };
+    if (pend) { o.amt += pend.amt || 0; o.away += pend.away || 0; o.capped = o.capped || !!pend.capped; }
+    S.offPend = { amt: o.amt, away: o.away, capped: o.capped }; save();
+    return o;
   }
   function reset() { try { localStorage.removeItem(KEY); } catch (e) {} S = fresh(); Life.ensure(); Pets.ensure(); Story.ensure(); apply(); }
 
@@ -366,7 +371,7 @@ const Game = (() => {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult, PERKS, perkLv, perkCost, buyPerk, stoneGain, lateOf,
-    collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, markAway, OFFLINE_RATE, fingerprint, loadedFp: () => loadedFp, loadedTotal: () => loadedTotal, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
+    collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, markAway, offDone: () => { S.offPend = null; save(); }, OFFLINE_RATE, fingerprint, loadedFp: () => loadedFp, loadedTotal: () => loadedTotal, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();
 

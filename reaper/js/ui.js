@@ -2086,8 +2086,8 @@ const UI = (() => {
     const box = modal(`<h2>다녀오셨어요?</h2><p>자리를 비운 <b>${fmtTime(o.away)}</b> 동안<br>졸개들이 혼을 거뒀습니다.${o.capped ? `<br><span style="color:var(--mute);font-size:10px">(저승 장부 한도 ${Game.offHours()}시간까지만 쌓여요)</span>` : ''}</p>
       <div class="big"><img class="px" src="${IC('soul', 3)}">+${fmt(o.amt)}</div>
       <div class="acts"><button class="btn dark" id="o-get">받기</button><button class="btn red" id="o-ad">광고 보고 2배<em>AD</em></button></div>`, true);
-    box.querySelector('#o-get').onclick = () => { Game.gain(o.amt); Game.save(); closeModal(); Sound.play('collect', 2); };
-    box.querySelector('#o-ad').onclick = () => { closeModal(); ad(() => { Game.gain(o.amt * 2); Game.save(); got(`보상 2배! +${fmt(o.amt * 2)}`, { ic: 'soul' }); Sound.play('promote'); }); };
+    box.querySelector('#o-get').onclick = () => { Game.offDone(); Game.gain(o.amt); Game.save(); closeModal(); Sound.play('collect', 2); };
+    box.querySelector('#o-ad').onclick = () => { closeModal(); ad(() => { Game.S.offPaid = Date.now(); Game.offDone(); Game.gain(o.amt * 2); Game.save(); got(`보상 2배! +${fmt(o.amt * 2)}`, { ic: 'soul' }); Sound.play('promote'); }); };
   }
   // 성장이 막혔을 때 한 번씩 도움 제안 (20분에 1회)
   // 윤회 업데이트 보상: 예전에 윤회한 사람에게 한 번 알려 줌
