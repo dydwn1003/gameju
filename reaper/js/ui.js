@@ -1173,7 +1173,7 @@ const UI = (() => {
       openLife('garden');
       if (i >= S().plots) { toast('잠긴 밭이에요. 옥으로 열 수 있어요'); return; }
       const st = Life.plotState(i);
-      if (st.ready) { const n = Life.harvest(i); Life.qEvent('harvest'); Sound.play('collect', 2); got(`${st.f.name} ${n}송이 수확!`, { emo: '🌸' }); renderLife($('#panel')); }
+      if (st.ready) { const n = Life.harvest(i); Life.qEvent('harvest'); Sound.play('collect', 2); got(`${st.f.name} ${n}송이 수확!`, { src: FIC(st.f.id, 3, 5), title: `${st.f.name} 수확!` }); renderLife($('#panel')); }
       else if (st.empty) lifeClick({ dataset: { plantpick: String(i) } });
       else speedUp('plot', i);
     }
@@ -1272,7 +1272,7 @@ const UI = (() => {
     const d = t.dataset;
     if (d.sub) { sub = d.sub; Sound.play('open'); renderLife($('#panel')); return true; }
     if (d.unlock) { askBuy('밭 늘리기', '새 밭을 일굴까요?', PLOT_COST[S().plots], 0, () => { if (Life.unlockPlot()) { Sound.play('buy'); got('새 밭을 일궜어요!', { emo: '🌱' }); } else { Sound.play('no'); toast('옥이 부족해요'); } renderLife($('#panel')); }); return true; }
-    if (d.harvest) { const f0 = Life.plotState(+d.harvest).f, n = Life.harvest(+d.harvest); if (n) { Sound.play('collect', 2); Life.qEvent('harvest'); got(`${f0 ? f0.name : '꽃'} ${n}송이 수확!`, { emo: '🌸' }); } renderLife($('#panel')); return true; }
+    if (d.harvest) { const f0 = Life.plotState(+d.harvest).f, n = Life.harvest(+d.harvest); if (n) { Sound.play('collect', 2); Life.qEvent('harvest'); got(`${f0 ? f0.name : '꽃'} ${n}송이 수확!`, f0 ? { src: FIC(f0.id, 3, 5), title: `${f0.name} 수확!` } : { emo: '🌸' }); } renderLife($('#panel')); return true; }
     if (d.dexi != null) { dexInfo(+d.dexi); return true; }
     if (d.seed) { const f = FLOWERS.find(x => x.id === d.seed), j = f.soul ? 0 : f.jade, so = f.soul ? Life.seedSoulCost(f) : 0;
       askBuy('씨앗 구매', `${f.name} 씨앗 1개를 살까요?`, j, so, () => { if (Life.buySeed(d.seed, 1)) { Sound.play('buy'); got(`${f.name} 씨앗 +1`, { emo: '🌱' }); } else { Sound.play('no'); toast(j ? '옥이 부족해요' : '혼이 부족해요'); } renderLife($('#panel')); }); return true; }
@@ -1391,7 +1391,7 @@ const UI = (() => {
   // 얻은 것 · 산 것 알림 창 (확인을 누르면 닫힘). soft: 다른 창·대화가 떠 있으면 짧은 알림으로 대신
   function got(html, opt = {}) {
     if (opt.soft && ($('#modal').classList.contains('on') || document.querySelector('.tk-bg') || document.getElementById('tut') || parade)) return toast(html, 3000, opt.actions);
-    const box = modal(`<div class="got"><div class="got-ic">${opt.ic ? `<img class="px" src="${IC(opt.ic, 5)}">` : (opt.emo || '🎁')}</div><h2>${opt.title || '획득!'}</h2><p class="got-t">${html}</p></div><div class="acts">${(opt.actions || []).map((a, i) => `<button class="btn ${a.cls || 'jade'}" data-ga="${i}">${a.label}</button>`).join('')}<button class="btn red" id="got-ok">확인</button></div>`);
+    const box = modal(`<div class="got"><div class="got-ic">${opt.ic ? `<img class="px" src="${IC(opt.ic, 5)}">` : (opt.src ? `<img class="px" src="${opt.src}">` : (opt.emo || '🎁'))}</div><h2>${opt.title || '획득!'}</h2><p class="got-t">${html}</p></div><div class="acts">${(opt.actions || []).map((a, i) => `<button class="btn ${a.cls || 'jade'}" data-ga="${i}">${a.label}</button>`).join('')}<button class="btn red" id="got-ok">확인</button></div>`);
     (opt.actions || []).forEach((a, i) => { box.querySelector(`[data-ga="${i}"]`).onclick = () => { closeModal(); a.fn(); }; });
     box.querySelector('#got-ok').onclick = () => { closeModal(); if (opt.then) opt.then(); };
   }
