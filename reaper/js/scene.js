@@ -451,9 +451,9 @@ const Scene = (() => {
     parts.push({ x: u.x + Math.cos(q) * R, y: u.y + Math.sin(q) * R * 0.42, vx: rnd(-1, 1), vy: -rnd(10, 18 + rank * 2), life: 0.8 + rank * 0.06, max: 0.8 + rank * 0.06, col: A[(Math.random() * A.length) | 0], g: 0 });
   }
   // ===== 윤회 이펙트 (1~5환, 6환부터는 5환 모습) =====
-  // 환마다 한 가지씩만 더해지는 깔끔한 구성: 혼불(색·개수) → 3환 후광 → 4환 잔불 → 5환 은은한 빛기둥
+  // 환마다 한 가지씩만 더해지는 깔끔한 구성: 혼불(색·개수) → 4환 잔불 → 5환 은은한 빛기둥
   let rbTier = 0;
-  const RB_N = [0, 1, 2, 3, 3, 4], RB_C = [null, '#7ac8ff', '#b88aff', '#ffd34a', '#ff6a5a', '#fff4c8'], RB_H = [null, null, null, '#ffd34a', '#ff8a5a', '#fff4c8'];
+  const RB_N = [0, 1, 2, 3, 3, 4], RB_C = [null, '#7ac8ff', '#b88aff', '#ffd34a', '#ff6a5a', '#fff4c8'];
   // 혼불 하나: 허리 높이 타원 궤도. 뒤쪽(behind)은 캐릭터 뒤에, 앞쪽은 앞에 그림
   function rbOrbs(x, y, h, t, behind) {
     const n = RB_N[t], col = RB_C[t];
@@ -467,11 +467,6 @@ const Scene = (() => {
     const t = Math.min(rbTier, 5); if (!t) return;
     const x = Math.round(u.x - camX), y = Math.round(u.y - camY);
     if (t >= 5) { const al = 0.09 + 0.03 * Math.sin(time * 1.5); for (let k = 0; k < 4; k++) { g.globalAlpha = al * (1 - k * 0.22); g.fillStyle = '#fff4c8'; g.fillRect(x - 5 + k, y - 60, 10 - k * 2, 60); } g.globalAlpha = 1; }
-    if (RB_H[t]) { // 머리 뒤 얇은 후광
-      const hy = y - h - 1; g.globalAlpha = 0.55 + 0.15 * Math.sin(time * 2); g.fillStyle = RB_H[t];
-      for (let i = 0; i < 20; i++) { const q = i / 20 * Math.PI * 2; g.fillRect(Math.round(x + Math.cos(q) * 6), Math.round(hy + Math.sin(q) * 2), 1, 1); }
-      g.globalAlpha = 1;
-    }
     rbOrbs(x, y, h, t, all ? null : true);
   }
   function rbOver(u, h = 20) {
