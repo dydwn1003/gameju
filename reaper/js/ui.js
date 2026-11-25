@@ -310,7 +310,7 @@ const UI = (() => {
     const sig = bs.join() + Game.boosting() + (Game.sealLeft() > 0); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
     refresh(); officeBar(); officeTutCheck();
     if (++stuckT % 25 === 0) checkStuck();
-    if (stuckT % 5 === 0) checkRbCatch();
+    if (stuckT % 5 === 0) { checkRbCatch(); checkUpdGift(); }
   }
   const dot = (t, on) => $(`#tabs [data-tab="${t}"] .dot`).classList.toggle('on', on);
   const fmtDays = t => t >= 86400 ? `${Math.floor(t / 86400)}일 ${Math.floor(t % 86400 / 3600)}시간` : fmtTime(t);
@@ -2145,6 +2145,17 @@ const UI = (() => {
   }
   // 성장이 막혔을 때 한 번씩 도움 제안 (20분에 1회)
   // 윤회 업데이트 보상: 예전에 윤회한 사람에게 한 번 알려 줌
+  // 업데이트 기념 보상: 이 버전을 처음 켠 사람에게 한 번 (튜토리얼을 마친 뒤 · 윤회 보상 창 다음)
+  const UPD_GIFT = { ver: '1.0.2', jade: 300, tickets: 5, hours: 3 };
+  function checkUpdGift() {
+    const s = S(); if (!s.kind || s.tut !== 'done' || s.updGift === UPD_GIFT.ver || s.rbCatch) return;
+    if ($('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut')) return;
+    const souls = Math.floor(Game.incomePerSec(true) * 3600 * UPD_GIFT.hours);
+    s.updGift = UPD_GIFT.ver; s.jade += UPD_GIFT.jade; s.tickets = (s.tickets || 0) + UPD_GIFT.tickets; Game.gain(souls); Game.save(); Sound.play('promote'); hud();
+    modal(`<div class="got"><div class="got-ic">🎁</div><h2>업데이트 기념 선물</h2><p class="got-t">${UPD_GIFT.ver} 업데이트를 받아 주셔서 고마워요!</p></div>
+      <div class="rbpv-i pbox"><div class="r"><span>옥</span><b>+${UPD_GIFT.jade}</b></div><div class="r"><span>소환권</span><b>+${UPD_GIFT.tickets}</b></div><div class="r"><span>혼</span><b>+${fmt(souls)} (${UPD_GIFT.hours}시간치)</b></div></div>
+      <div class="acts"><button class="btn red" data-act="close">받기</button></div>`);
+  }
   function checkRbCatch() {
     const s = S(), c = s.rbCatch; if (!c || !s.kind || $('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut')) return;
     s.rbCatch = null; Game.save(); Sound.play('promote');
