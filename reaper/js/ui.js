@@ -310,6 +310,7 @@ const UI = (() => {
     const sig = bs.join() + Game.boosting() + (Game.sealLeft() > 0); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
     refresh(); officeBar(); officeTutCheck();
     if (++stuckT % 25 === 0) checkStuck();
+    if (stuckT % 5 === 0) checkRbCatch();
   }
   const dot = (t, on) => $(`#tabs [data-tab="${t}"] .dot`).classList.toggle('on', on);
   const fmtDays = t => t >= 86400 ? `${Math.floor(t / 86400)}일 ${Math.floor(t % 86400 / 3600)}시간` : fmtTime(t);
@@ -2089,6 +2090,19 @@ const UI = (() => {
     box.querySelector('#o-ad').onclick = () => { closeModal(); ad(() => { Game.gain(o.amt * 2); Game.save(); got(`보상 2배! +${fmt(o.amt * 2)}`, { ic: 'soul' }); Sound.play('promote'); }); };
   }
   // 성장이 막혔을 때 한 번씩 도움 제안 (20분에 1회)
+  // 윤회 업데이트 보상: 예전에 윤회한 사람에게 한 번 알려 줌
+  function checkRbCatch() {
+    const s = S(), c = s.rbCatch; if (!c || !s.kind || $('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut')) return;
+    s.rbCatch = null; Game.save(); Sound.play('promote');
+    const gifts = (c.gifts || []).map(id => Decor.D(id)).filter(Boolean);
+    const box = modal(`<h2>🔮 윤회 업데이트</h2><p>윤회에 새 기능이 생겼어요. 지금까지 윤회한 만큼 보상을 드려요.</p>
+      <div class="rbpv-i pbox"><div class="r"><span>칭호</span><b class="${rbCls(s.reborn)}">${rbTitle(s.reborn)}</b></div>
+        <div class="r"><span>윤회석</span><b style="color:#b88aff">윤회석 +${c.stones}</b></div>
+        ${gifts.length ? `<div class="r"><span>소품</span><b class="th">${gifts.map(d => `<img class="px" src="${decoThumb(d.id, 2)}">`).join('')}</b></div>` : ''}
+        ${c.pet ? `<div class="r"><span>영물</span><b class="th"><img class="px" src="${petIcon(Pets.P(c.pet), true)}">윤회의 봉황</b></div>` : ''}</div>
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button><button class="btn red" id="rc-perk">윤회 특성 찍기</button></div>`);
+    box.querySelector('#rc-perk').onclick = () => perkModal();
+  }
   function checkStuck() {
     const s = S(); if (!s.kind || $('#modal').classList.contains('on') || test) return;
     if (Date.now() - s.lastBuy < 180000 || Date.now() - s.stuckShown < 20 * 60000) return;

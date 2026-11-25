@@ -339,6 +339,12 @@ const Game = (() => {
   }
   function migrate() {
     if (S.kind && S.name && !S.nickSet) S.nickSet = true; // 예전에 만든 캐릭터: 처음 정한 이름을 닉네임으로
+    if (S.reborn > 0 && !S.rbMig && typeof Decor !== 'undefined') { // 윤회 업데이트 전에 윤회한 사람: 그동안 받았어야 할 윤회석 · 기념 소품 · 5환 봉황을 한 번에 지급
+      S.rbMig = 1; let st = 0; for (let k = 0; k < S.reborn; k++) st += 2 + k;
+      S.rbStone = (S.rbStone || 0) + st; const gifts = Decor.grantRb(Math.min(5, S.reborn)).map(d => d.id);
+      let pet = null; if (S.reborn >= 5 && !(S.pets && S.pets.yunhoe)) { S.pets = S.pets || {}; S.pets.yunhoe = 1; pet = 'yunhoe'; }
+      S.rbCatch = { stones: st, gifts, pet };
+    } else if (!S.rbMig) S.rbMig = 1;
     if (S.perm2) { S.perm2 = false; S.sealUntil = Math.max(S.sealUntil || 0, Date.now() + 7 * 86400e3); } // 영구 인장 → 7일 인장으로 바뀜
   }
   // 자리 비운 시간 보상 (졸개들이 대신 거둠, 효율 12%)

@@ -22,7 +22,7 @@ const APP = {
   // iosId: App Store Connect → 앱 → 앱 정보 → 'Apple ID' (숫자, 비밀값 아님). 비워 두면 앱스토어 검색으로 열어요.
   store: { android: 'com.jeoseungsaja.idle', iosId: '6832605954', name: '저승사자 키우기' },
   supportEmail: 'dydwn1003@gmail.com', // 문의 받을 이메일 (스토어 등록에도 씀)
-  version: '1.0.1',  // 앱 안에 포함된 개인정보처리방침 (스토어에는 웹 주소를 따로 적어요)
+  version: '1.0.2',  // 앱 안에 포함된 개인정보처리방침 (스토어에는 웹 주소를 따로 적어요)
   // 구글 로그인 클라이언트 ID (공개용 값 · 보안 비밀번호는 여기에 넣지 않음)
   // 지금은 브라우저 창 로그인(Supabase)이라 쓰이지 않고, 앱 안 계정 선택 창(네이티브 로그인)으로 바꿀 때 씀
   google: {
