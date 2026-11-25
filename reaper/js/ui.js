@@ -1271,7 +1271,7 @@ const UI = (() => {
     const d = t.dataset;
     if (d.sub) { sub = d.sub; Sound.play('open'); renderLife($('#panel')); return true; }
     if (d.unlock) { askBuy('밭 늘리기', '새 밭을 일굴까요?', PLOT_COST[S().plots], 0, () => { if (Life.unlockPlot()) { Sound.play('buy'); got('새 밭을 일궜어요!', { emo: '🌱' }); } else { Sound.play('no'); toast('옥이 부족해요'); } renderLife($('#panel')); }); return true; }
-    if (d.harvest) { const n = Life.harvest(+d.harvest); if (n) { Sound.play('collect', 2); Life.qEvent('harvest'); got(`꽃 ${n}송이 수확!`, { emo: '🌸' }); } renderLife($('#panel')); return true; }
+    if (d.harvest) { const f0 = Life.plotState(+d.harvest).f, n = Life.harvest(+d.harvest); if (n) { Sound.play('collect', 2); Life.qEvent('harvest'); got(`${f0 ? f0.name : '꽃'} ${n}송이 수확!`, { emo: '🌸' }); } renderLife($('#panel')); return true; }
     if (d.dexi != null) { dexInfo(+d.dexi); return true; }
     if (d.seed) { const f = FLOWERS.find(x => x.id === d.seed), j = f.soul ? 0 : f.jade, so = f.soul ? Life.seedSoulCost(f) : 0;
       askBuy('씨앗 구매', `${f.name} 씨앗 1개를 살까요?`, j, so, () => { if (Life.buySeed(d.seed, 1)) { Sound.play('buy'); got(`${f.name} 씨앗 +1`, { emo: '🌱' }); } else { Sound.play('no'); toast(j ? '옥이 부족해요' : '혼이 부족해요'); } renderLife($('#panel')); }); return true; }
