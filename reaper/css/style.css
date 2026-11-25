@@ -1026,11 +1026,14 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .rb-perk { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; }
 .rb-perk small { display: block; font-size: 11px; color: var(--mute); margin-top: 2px; }
 .rb-stone { text-align: center; margin: 6px 0 10px; font-size: 14px; } .rb-stone b { color: #b88aff; font-size: 18px; }
-.rb-bg { background: radial-gradient(circle at 50% 42%, rgba(60, 40, 110, .9), rgba(4, 3, 12, .97) 70%); }
-.rb-char { position: relative; width: 132px; height: 153px; margin: 10px auto; }
-.rb-char canvas { width: 132px; height: 153px; image-rendering: pixelated; animation: rbfade 1.7s ease-in forwards; }
-.rb-flash { position: absolute; inset: -40px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, rgba(184, 138, 255, .6) 40%, transparent 70%); opacity: 0; animation: rbflash 1s 1.5s ease-out; }
-@keyframes rbfade { 0% { opacity: 1; filter: none; } 60% { opacity: 1; filter: brightness(2) hue-rotate(160deg); } 100% { opacity: 0; transform: translateY(-20px) scale(.6); filter: blur(4px) brightness(3); } }
+.rb-bg { background: radial-gradient(circle at 50% 30%, #2a1f4e 0%, #0c0918 62%, #05040b 100%); }
+.rb-box { top: max(28px, 7vh); transform: translateX(-50%); max-height: calc(100% - 40px); overflow-y: auto; scrollbar-width: none; }
+.rb-stage { position: relative; width: 216px; height: 216px; margin: 4px auto 0; }
+.rb-stage canvas { width: 216px; height: 216px; image-rendering: pixelated; position: relative; z-index: 1; }
+.rb-flash { position: absolute; inset: -30px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, rgba(200, 180, 255, .55) 35%, transparent 68%); opacity: 0; pointer-events: none; z-index: 2; }
+.rb-flash.on { animation: rbflash .9s ease-out; }
+#rb-res .pr-rank { animation-delay: .1s; } #rb-res .pr-sub { animation-delay: .3s; } #rb-res .pr-info { animation-delay: .4s; } #rb-res .pr-gift { animation-delay: .55s; } #rb-res .btn { animation-delay: .7s; }
+#rb-res .pr-rank { margin-top: 0 !important; }
 @keyframes rbflash { 0% { opacity: 0; transform: scale(.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.6); } }
 .pr-gift.rb-gifts{flex-direction:column;align-items:stretch;gap:6px;text-align:center}
 .pr-gift.rb-gifts>div{display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:4px}
@@ -1054,3 +1057,9 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .rbpv-i .th img { width: 24px; height: 24px; object-fit: contain; }
 .rbpv-t .pill { display: inline-block; max-width: 90%; padding: 1px 8px; border-radius: 8px; background: rgba(10, 8, 18, .72); }
 .rbpv-t .rbc5 { text-shadow: none; }
+.lad.tap { cursor: pointer; } .lad.tap:active { background: rgba(255, 255, 255, .06); }
+.rkpv { gap: 18px; margin: 6px 0 10px; } .rkpv .rk-of { width: 150px; height: 104px; border-radius: 8px; image-rendering: pixelated; }
+.pi-next { display: flex; align-items: center; gap: 12px; margin: 8px 0 4px; padding: 8px 12px; text-align: left; }
+.pinfo .pi-next canvas, .pinfo .pi-next canvas.pa { margin: 0; width: 72px; height: 72px; image-rendering: pixelated; flex-shrink: 0; }
+.pi-next > div { display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
+.pi-next small { color: var(--gold); font-size: 11px; } .pi-next b { font-weight: 600; font-size: 12px; } .pi-next span { color: var(--mute); font-size: 10px; }

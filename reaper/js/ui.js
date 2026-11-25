@@ -452,6 +452,7 @@ const UI = (() => {
     add($('#lk-now'), s.rank, 'idle'); if (N) add($('#lk-next'), s.rank + 1, 'idle');
     if ($('#mg-now')) previews.push({ c: $('#mg-now'), magic: s.rank, anchor: $('#lk-now') }); if ($('#mg-next')) previews.push({ c: $('#mg-next'), magic: s.rank + 1, anchor: $('#lk-next') });
     P.querySelectorAll('canvas[data-rank]').forEach(c => add(c, +c.dataset.rank, 'idle'));
+    P.querySelectorAll('.ladder .lad').forEach((el, i) => { el.classList.add('tap'); el.onclick = () => { Sound.play('open'); rankPreview(i); }; });
     [['#of-now', s.rank], ['#of-next', s.rank + 1]].forEach(([q, t]) => { const c = $(q); if (!c) return; const g2 = c.getContext('2d'); g2.imageSmoothingEnabled = false; g2.drawImage(Scene.officeThumb(t, 150, 104), 0, 0); });
   }
   function renderShop(P) {
@@ -1862,22 +1863,61 @@ const UI = (() => {
     return `<b>${n}환 보상</b><br><b style="color:#b88aff">윤회석 +${Game.stoneGain()}</b> · <span>칭호</span> <b class="${rbCls(n)}">${RB_TITLE[Math.min(5, n)]}</b>${g ? ` · <span>소품</span> <b>${g.name}</b>` : ''}${n === 5 ? ' · <span>영물</span> <b>윤회의 봉황</b>' : ''} · <span>새 이펙트</span><br><small>${n >= 2 ? `다음 생은 초반이 더 빠르지만, 후반 수련 비용이 ${Math.round((Game.lateOf(n) - 1) * 100)}% 더 들어요` : '다음 생은 초반이 더 빠르지만, 후반은 첫 생과 비슷해요'}</small>`;
   }
   function rebornScene() {
-    closeModal(); const old = S().rank, kind = S().kind;
-    const o = overlay(`<div class="pr-bg rb-bg"></div><div class="pr-sparks">${sparks(46, ['#7ac8ff', '#b88aff', '#ffffff', '#ffd34a'])}</div>
-      <div class="pr-box rb-box"><div class="pr-title">윤 회</div><div class="rb-char"><canvas id="rb-old" width="44" height="51"></canvas><div class="rb-flash"></div></div><div id="rb-res"></div></div>`);
-    previews.push({ c: o.querySelector('#rb-old'), kind, rank: old, pose: 'idle', keep: 1 });
-    Sound.play('promote');
-    setTimeout(() => { // 혼불로 흩어졌다가 다시 태어남
-      Game.reborn(); Sound.play('kill'); const s = S(), L = s.lastRb || {};
+    closeModal(); const s0 = S(), oldRank = s0.rank, oldTier = s0.reborn || 0, kind = s0.kind || 'm';
+    const o = overlay(`<div class="pr-bg rb-bg"></div><div class="pr-sparks">${sparks(30, ['#7ac8ff', '#b88aff', '#ffffff'])}</div>
+      <div class="pr-box rb-box"><div class="pr-title">윤 회</div><div class="rb-stage"><canvas id="rb-cv" width="80" height="80"></canvas><div class="rb-flash"></div></div><div id="rb-res"></div></div>`);
+    const c = o.querySelector('#rb-cv'), ctx = c.getContext('2d'), t0 = performance.now(), parts = [];
+    let done = false, tier = oldTier, rank = oldRank;
+    // 흰빛으로 물든 캐릭터 그림 (색을 바꾸지 않고 빛으로 덮음)
+    const glowed = (im, w) => { const g = document.createElement('canvas'); g.width = im.width; g.height = im.height; const x = g.getContext('2d'); x.drawImage(im, 0, 0); if (w > 0) { x.globalCompositeOperation = 'source-atop'; x.globalAlpha = Math.min(1, w); x.fillStyle = '#f4f0ff'; x.fillRect(0, 0, g.width, g.height); } return g; };
+    const X = 40, Y = 70;
+    const loop = () => {
+      if (!document.body.contains(c)) return;
+      const now = performance.now(), t = (now - t0) / 1000, tm = now / 1000;
+      ctx.clearRect(0, 0, c.width, c.height); ctx.imageSmoothingEnabled = false;
+      const im = SP.reaper(kind, rank, 'idle', Math.floor(tm * 3) % 4), h = im.height;
+      let alpha = 1, white = 0, fx = 1;
+      if (!done) { // 0~1.5초: 빛으로 물들며 혼불로 흩어짐
+        white = Math.max(0, Math.min(1, (t - 0.3) / 0.8)); alpha = t < 1.1 ? 1 : Math.max(0, 1 - (t - 1.1) / 0.4); fx = Math.max(0, 1 - t / 0.8);
+        if (t > 0.4 && t < 1.5) for (let k = 0; k < 3; k++) parts.push({ x: X + (Math.random() - 0.5) * 26, y: Y - 4 - Math.random() * (h - 8), vy: -(14 + Math.random() * 22), vx: (Math.random() - 0.5) * 6, life: 0.9 + Math.random() * 0.5, c: ['#b8e0ff', '#b88aff', '#ffffff'][(Math.random() * 3) | 0] });
+      } else { const k = Math.min(1, (t - 1.6) / 0.6); alpha = k; white = 1 - k; fx = k; } // 다시 태어남
+      ctx.globalAlpha = fx; drawMagic(ctx, X, Y, Math.min(rank, 8), tm, 1.6); ctx.globalAlpha = 1;
+      if (tier && fx > 0) { ctx.save(); ctx.globalAlpha = fx; ctx.scale(2, 2); Scene.rbDraw(ctx, X / 2, Y / 2, h / 2, tier, tm, 'under'); ctx.restore(); }
+      if (alpha > 0) { ctx.globalAlpha = alpha; ctx.drawImage(glowed(im, white), Math.round(X - im.width / 2), Math.round(Y - h + 1)); ctx.globalAlpha = 1; }
+      if (tier && fx > 0) { ctx.save(); ctx.globalAlpha = fx; ctx.scale(2, 2); Scene.rbDraw(ctx, X / 2, Y / 2, h / 2, tier, tm, 'over'); ctx.restore(); }
+      for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; p.life -= 1 / 60; if (p.life <= 0) { parts.splice(i, 1); continue; } p.x += p.vx / 60; p.y += p.vy / 60; ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); }
+      ctx.globalAlpha = 1; requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop); Sound.play('promote');
+    setTimeout(() => { o.querySelector('.rb-flash').classList.add('on'); }, 1300);
+    setTimeout(() => { // 다시 태어남: 수습 차사 모습 + 새 환 이펙트
+      Game.reborn(); Sound.play('kill'); const s = S(), L = s.lastRb || {}; done = true; tier = s.reborn; rank = s.rank;
       const gifts = (L.gifts || []).map(id => Decor.D(id)).filter(Boolean);
-      o.querySelector('#rb-res').innerHTML = `<div class="pr-rank ${rbCls(s.reborn)}">${s.reborn}번째 생</div><div class="pr-sub">${RB_TITLE[Math.min(5, s.reborn)]}</div>
+      o.querySelector('#rb-res').innerHTML = `<div class="pr-rank ${rbCls(s.reborn)}">${s.reborn}번째 생</div><div class="pr-sub"><b class="${rbCls(s.reborn)}">${RB_TITLE[Math.min(5, s.reborn)]}</b></div>
         <div class="pr-info"><b>모든 수확량 ×${Game.rebornMult().toFixed(1)}</b> · <b style="color:#b88aff">윤회석 ${s.rbStone}개</b><br><span>새 이펙트가 생겼어요</span></div>
         ${gifts.length > 1 ? `<div class="pr-gift rb-gifts"><small>윤회 기념 소품 ${gifts.length}개 · 집무실에 놓아 보세요</small><div>${gifts.map(d => `<span><img class="px" src="${decoThumb(d.id, 2)}"><em>${d.name}</em></span>`).join('')}</div></div>` : gifts.map(d => `<div class="pr-gift"><img class="px" src="${decoThumb(d.id, 3)}"><div><small>윤회 기념 소품</small><b>${d.name}</b><span>집무실 꾸미기에서 놓을 수 있어요</span></div></div>`).join('')}
         ${L.pet ? `<div class="pr-gift"><img class="px" src="${petIcon(Pets.P(L.pet), true)}"><div><small>5환 전용 영물</small><b>${Pets.P(L.pet).name}</b><span>영물 도감에 들어왔어요</span></div></div>` : ''}
         <div class="acts"><button class="btn" id="rb-perk">윤회 특성 찍기</button><button class="btn red" id="rb-go">새로운 생 시작</button></div>`;
       o.querySelector('#rb-go').onclick = () => { closeOverlay(); Sound.play('open'); render(); hud(); };
       o.querySelector('#rb-perk').onclick = () => { closeOverlay(); render(); perkModal(); };
-    }, 1700);
+    }, 1600);
+  }
+  // 계급 미리보기: 직급표에서 계급을 누르면 그 계급의 모습 · 마법진 · 집무실 · 혜택을 보여 줌
+  function rankPreview(i) {
+    const s = S(), R = RANKS[i], st = i < s.rank ? '달성' : i === s.rank ? '지금 계급' : i === s.rank + 1 ? '다음 계급' : '아직 멀었어요';
+    const box = modal(`<h2>${R.name}</h2><p class="mute">${REGIONS[R.region].name}${i ? ` · Lv.${R.lv}` : ''} · <b style="color:${i <= s.rank ? 'var(--soul)' : 'var(--gold)'}">${st}</b></p>
+      <div class="looks rkpv"><div><div class="lk-w"><canvas class="mg" id="rk-mg" width="48" height="20"></canvas><canvas id="rk-ch" width="44" height="51"></canvas></div><span>모습</span></div>
+        <div><canvas id="rk-of" width="150" height="104" class="rk-of"></canvas><span>${Scene.officeName(i)}</span></div></div>
+      <div class="rbpv-i pbox"><div class="r"><span>수확량</span><b>×${fmt(R.mult)}</b></div>
+        ${i ? `<div class="r"><span>조건</span><b>Lv.${R.lv}</b></div>` : ''}
+        ${R.region !== (RANKS[i - 1] || R).region ? `<div class="r"><span>새 지역</span><b>${REGIONS[R.region].name}</b></div>` : ''}
+        <div class="r"><span>마법진</span><b>${i ? '계급이 오를수록 발밑 마법진이 화려해져요' : '아직 마법진이 없어요'}</b></div></div>
+      <div class="acts">${i > 0 ? '<button class="btn dark" id="rk-prev">◀ 이전</button>' : ''}${i < RANKS.length - 1 ? '<button class="btn dark" id="rk-next">다음 ▶</button>' : ''}<button class="btn" data-act="close">닫기</button></div>`);
+    previews.push({ c: box.querySelector('#rk-ch'), kind: s.kind || 'm', rank: i, pose: 'idle' });
+    previews.push({ c: box.querySelector('#rk-mg'), magic: i, anchor: box.querySelector('#rk-ch') });
+    const oc = box.querySelector('#rk-of').getContext('2d'); oc.imageSmoothingEnabled = false; oc.drawImage(Scene.officeThumb(i, 150, 104), 0, 0);
+    const pv = box.querySelector('#rk-prev'), nx = box.querySelector('#rk-next');
+    if (pv) pv.onclick = () => rankPreview(i - 1); if (nx) nx.onclick = () => rankPreview(i + 1);
   }
   // 윤회 미리보기: 1~5환을 골라 이펙트와 보상을 미리 봄
   const RB_FX = ['', '푸른 혼불 1개가 천천히 돌아요', '보라 혼불 2개가 돌아요', '금빛 혼불 3개가 돌아요', '붉은 혼불 3개와 잔불이 피어올라요', '흰빛 혼불 4개와 빛기둥이 내려와요'];
@@ -1970,9 +2010,11 @@ const UI = (() => {
     if (!st) { modal(`<div class="pinfo"><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ???</h2><p class="mute">${p.g}등급 영물</p><p class="lore">아직 만나지 못한 영물이에요. 영물 소환으로 만날 수 있어요.</p></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
     const inv = s.petInv[id] || 0, c = Pets.starCost(id), sv = Pets.stats(id);
     const box = modal(`<div class="pinfo"><canvas id="pi-big" ${PET_AURA[p.g] ? 'class="pa" width="40" height="40"' : 'width="12" height="11"'}></canvas><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</h2><div class="stars">${'★'.repeat(st)}${'☆'.repeat(5 - st)}</div><p class="mute">${p.desc}</p>${PET_LORE[id] ? `<p class="lore">${PET_LORE[id]}</p>` : ''}
-      <p class="mute">수확량 +${Math.round(sv[0] * 100)}% · 이동 +${Math.round(sv[1] * 100)}% · 수확속도 +${Math.round(sv[2] * 100)}%<br>여분 <b style="color:var(--gold)">${inv}</b>마리${st < 5 ? `<br>별 올리기에 ${c}마리 필요 (능력치 +15%)` : ' · 최대 별!'}</p></div>
+      <p class="mute">수확량 +${Math.round(sv[0] * 100)}% · 이동 +${Math.round(sv[1] * 100)}% · 수확속도 +${Math.round(sv[2] * 100)}%<br>여분 <b style="color:var(--gold)">${inv}</b>마리${st < 5 ? `<br>별 올리기에 ${c}마리 필요` : ' · 최대 별!'}</p>
+      ${st < 5 ? (() => { const k = (1 + 0.15 * st) / (1 + 0.15 * (st - 1)), nv = sv.map(x => x * k); return `<div class="pi-next pbox">${PET_AURA[p.g] ? `<canvas id="pi-nx" class="pa" width="40" height="40"></canvas>` : ''}<div><small>★${st + 1} 미리보기</small><b>수확량 +${Math.round(sv[0] * 100)}% → +${Math.round(nv[0] * 100)}%</b><b>이동 +${Math.round(sv[1] * 100)}% → +${Math.round(nv[1] * 100)}%</b><b>수확속도 +${Math.round(sv[2] * 100)}% → +${Math.round(nv[2] * 100)}%</b>${PET_AURA[p.g] ? '<span>기운이 더 진해져요</span>' : ''}</div></div>`; })() : ''}</div>
       <div class="acts"><button class="btn" id="pi-eq" ${s.petEq === id ? 'disabled' : ''}>${s.petEq === id ? '소환 중' : '소환하기'}</button><button class="btn red" id="pi-up" ${st < 5 && inv >= c ? '' : 'disabled'}>★ 올리기</button><button class="btn dark" data-act="close">닫기</button></div>`);
     previews.push({ c: box.querySelector('#pi-big'), pet: p, aura: PET_AURA[p.g] ? st : 0 });
+    if (box.querySelector('#pi-nx')) previews.push({ c: box.querySelector('#pi-nx'), pet: p, aura: st + 1 });
     box.querySelector('#pi-eq').onclick = () => { Pets.equip(id); Sound.play('buy'); toast(`${p.name}을(를) 소환했어요`); closeModal(); render(); };
     box.querySelector('#pi-up').onclick = () => { if (Pets.starUp(id)) { Sound.play('promote'); toast(`${p.name} ★${S().pets[id]}!`); closeModal(); render(); petInfo(id); } };
   }
