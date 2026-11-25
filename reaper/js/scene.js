@@ -451,40 +451,34 @@ const Scene = (() => {
     parts.push({ x: u.x + Math.cos(q) * R, y: u.y + Math.sin(q) * R * 0.42, vx: rnd(-1, 1), vy: -rnd(10, 18 + rank * 2), life: 0.8 + rank * 0.06, max: 0.8 + rank * 0.06, col: A[(Math.random() * A.length) | 0], g: 0 });
   }
   // ===== 윤회 이펙트 (1~5환, 6환부터는 5환 모습) =====
-  // 1환 푸른 혼불 2개 · 2환 보라 혼불 4개 + 발밑 저승 연기 · 3환 금빛 후광 + 혼불 6개 · 4환 붉은 업화 · 5환 흑백 날개 + 빛기둥 + 무지개 혼불
+  // 환마다 한 가지씩만 더해지는 깔끔한 구성: 혼불(색·개수) → 3환 후광 → 4환 잔불 → 5환 은은한 빛기둥
   let rbTier = 0;
-  const RB_WISP = [0, 2, 4, 6, 6, 8], RB_COL = [null, '#7ac8ff', '#b88aff', '#ffd34a', '#ff6a4a', null];
-  const rainbow = i => ['#ff6a6a', '#ffb44a', '#ffe66a', '#6aff9a', '#6ac8ff', '#b88aff'][((i + Math.floor(time * 3)) % 6 + 6) % 6];
-  function rbUnder(u, h = 20) {
+  const RB_N = [0, 1, 2, 3, 3, 4], RB_C = [null, '#7ac8ff', '#b88aff', '#ffd34a', '#ff6a5a', '#fff4c8'], RB_H = [null, null, null, '#ffd34a', '#ff8a5a', '#fff4c8'];
+  // 혼불 하나: 허리 높이 타원 궤도. 뒤쪽(behind)은 캐릭터 뒤에, 앞쪽은 앞에 그림
+  function rbOrbs(x, y, h, t, behind) {
+    const n = RB_N[t], col = RB_C[t];
+    for (let i = 0; i < n; i++) {
+      const a = time * 0.9 + i * Math.PI * 2 / n, sn = Math.sin(a); if (behind !== null && (sn < 0) !== behind) continue;
+      const px = Math.round(x + Math.cos(a) * 9), py = Math.round(y - h * 0.45 + sn * 3 + Math.sin(time * 2 + i) * 1);
+      glow(px, py, 3, col, 0.28); g.globalAlpha = sn < 0 ? 0.7 : 1; g.fillStyle = col; g.fillRect(px - 1, py - 1, 2, 2); g.fillStyle = '#ffffff'; g.fillRect(px - 1, py - 1, 1, 1); g.globalAlpha = 1;
+    }
+  }
+  function rbUnder(u, h = 20, all = false) {
     const t = Math.min(rbTier, 5); if (!t) return;
     const x = Math.round(u.x - camX), y = Math.round(u.y - camY);
-    if (t >= 5) { // 빛기둥 + 날개
-      g.globalAlpha = 0.10 + 0.05 * Math.sin(time * 2); g.fillStyle = '#ffffff'; g.fillRect(x - 6, y - 70, 12, 70); g.globalAlpha = 0.18; g.fillRect(x - 2, y - 70, 4, 70);
-      // 날개: 어깨에서 바깥 위로 뻗는 깃털 6개 (위쪽은 흰 깃, 끝은 검은 깃), 천천히 퍼덕임
-      const fl = Math.sin(time * 3) * 1.2, sy = y - h + 7;
-      for (const sd of [-1, 1]) for (let k = 0; k < 6; k++) {
-        const len = 13 - k * 1.6, ang = -0.9 + k * 0.28 - fl * 0.06;
-        for (let j = 0; j < len; j++) { const px = Math.round(x + sd * (3 + Math.cos(ang) * j)), py = Math.round(sy + k * 1.2 + Math.sin(ang) * j);
-          g.globalAlpha = 0.85; g.fillStyle = j > len - 3 ? '#1a1424' : (k < 3 ? '#ffffff' : '#d8d8ec'); g.fillRect(px, py, 1, 2); }
-      }
+    if (t >= 5) { const al = 0.09 + 0.03 * Math.sin(time * 1.5); for (let k = 0; k < 4; k++) { g.globalAlpha = al * (1 - k * 0.22); g.fillStyle = '#fff4c8'; g.fillRect(x - 5 + k, y - 60, 10 - k * 2, 60); } g.globalAlpha = 1; }
+    if (RB_H[t]) { // 머리 뒤 얇은 후광
+      const hy = y - h - 1; g.globalAlpha = 0.55 + 0.15 * Math.sin(time * 2); g.fillStyle = RB_H[t];
+      for (let i = 0; i < 20; i++) { const q = i / 20 * Math.PI * 2; g.fillRect(Math.round(x + Math.cos(q) * 6), Math.round(hy + Math.sin(q) * 2), 1, 1); }
       g.globalAlpha = 1;
     }
-    if (t >= 3) { // 머리 뒤 후광
-      const hy = y - h - 1, pul = 0.6 + 0.4 * Math.sin(time * 3);
-      for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; g.globalAlpha = 0.5 + 0.4 * pul; g.fillStyle = t >= 5 ? rainbow(i) : '#ffd34a'; g.fillRect(Math.round(x + Math.cos(a) * 6), Math.round(hy + Math.sin(a) * 2.5), 1, 1); }
-      g.globalAlpha = 1;
-    }
-    if (t >= 2) { // 발밑 저승 연기
-      for (let i = 0; i < 4; i++) { const a = time * 0.8 + i * 1.6; glow(x + Math.cos(a) * 8, y - 1 + Math.sin(a * 1.3) * 1, 4, t >= 4 ? '#8a2a3a' : '#6a52b0', 0.32); }
-    }
+    rbOrbs(x, y, h, t, all ? null : true);
   }
   function rbOver(u, h = 20) {
     const t = Math.min(rbTier, 5); if (!t) return;
-    const x = u.x - camX, y = u.y - camY, n = RB_WISP[t];
-    for (let i = 0; i < n; i++) { const a = time * 1.6 + i * Math.PI * 2 / n, px = x + Math.cos(a) * (8 + t * 0.6), py = y - h * 0.5 + Math.sin(a) * 4, col = t >= 5 ? rainbow(i) : RB_COL[t];
-      glow(px, py, 4, col, 0.38); g.fillStyle = col; g.fillRect(Math.round(px) - 1, Math.round(py) - 1, 3, 3); g.fillStyle = '#ffffff'; g.fillRect(Math.round(px), Math.round(py) - 1, 1, 2); g.fillRect(Math.round(px), Math.round(py) - 3 + Math.round(Math.sin(time * 9 + i)), 1, 1); }
-    if (t >= 4) for (let f = 0; f < 2; f++) { // 붉은 업화 (몸 둘레에서 피어오름)
-      const q = Math.random() * Math.PI * 2; parts.push({ x: u.x + Math.cos(q) * 6, y: u.y - Math.random() * h * 0.7, vx: Math.cos(q) * 2, vy: -rnd(16, 28), life: 0.55, max: 0.55, col: ['#ff3a1a', '#ff7a2a', '#ffc04a'][(Math.random() * 3) | 0], g: 0 }); }
+    rbOrbs(u.x - camX, u.y - camY, h, t, false);
+    if (t === 4 && Math.random() < 0.12) parts.push({ x: u.x + rnd(-6, 6), y: u.y - rnd(0, h * 0.5), vx: rnd(-1, 1), vy: -rnd(10, 16), life: 0.8, max: 0.8, col: ['#ff6a5a', '#ffb04a'][(Math.random() * 2) | 0], g: 0 });
+    if (t >= 5 && Math.random() < 0.08) parts.push({ x: u.x + rnd(-5, 5), y: u.y - rnd(0, h * 0.6), vx: 0, vy: -rnd(8, 12), life: 1, max: 1, col: '#fff4c8', g: 0 });
   }
   // ===== 순위 이펙트: 1위 금 · 2~5위 은 · 6~10위 동 =====
   let rfx = 0;
@@ -543,11 +537,11 @@ const Scene = (() => {
       // 바닥 소품 (깊이 정렬)
       placed.forEach((p, i) => { const d = Decor.D(p.id); if (d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy); list.push({ y: r.y + r.h - 1, f: () => { const im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h - im.height / 2, 10, d.glow, 0.2 + Math.sin(time * 4 + i) * 0.05); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 2); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } } }); });
       // 남의 방: 주인이 책상 의자에 앉아 있다
-      if (visit) { const os = seatSpots().find(q => q.atDesk || q.desk); if (os) list.push({ y: os.desk ? officeData.desk.y - 2 : os.r.y + os.r.h - 0.5, f: () => { drawMagic(g, os.x, os.y, Math.min(visit.rank, 8), time); const sv = rbTier; rbTier = visit.rb || 0; rbUnder({ x: os.x + camX, y: os.y + camY }, 16); rbTier = sv; const im = SP.tinyReaper(visit.kind || 'm', visit.rank, 'down', 'idle', Math.floor(time * 2.5)); drawSeated(im, os.x, os); } }); }
+      if (visit) { const os = seatSpots().find(q => q.atDesk || q.desk); if (os) list.push({ y: os.desk ? officeData.desk.y - 2 : os.r.y + os.r.h - 0.5, f: () => { drawMagic(g, os.x, os.y, Math.min(visit.rank, 8), time); const sv = rbTier; rbTier = visit.rb || 0; rbUnder({ x: os.x + camX, y: os.y + camY }, 16, true); rbTier = sv; const im = SP.tinyReaper(visit.kind || 'm', visit.rank, 'down', 'idle', Math.floor(time * 2.5)); drawSeated(im, os.x, os); } }); }
       // 나 (앉아 있거나 걸어 다님)
       if (!visit && me && me.sit && !me.sit.desk && me.sit.r && !seatSpots().some(q => q.r && q.r.x === me.sit.r.x && q.r.y === me.sit.r.y)) me.sit = seatSpots().find(q => q.atDesk || q.desk);
       if (me) { const sit = me.sit, y0 = sit ? sit.y + (sit.desk ? 0 : 1) : me.y; list.push({ y: sit ? (sit.desk ? officeData.desk.y - 2 : sit.r.y + sit.r.h - 0.5) : me.y, f: () => {
-        const x = sit ? sit.x : me.x; auraUnder({ x: x + camX, y: y0 + camY }); rankFxUnder({ x: x + camX, y: y0 + camY }); if (!visit) rbUnder({ x: x + camX, y: y0 + camY }, 16);
+        const x = sit ? sit.x : me.x; auraUnder({ x: x + camX, y: y0 + camY }); rankFxUnder({ x: x + camX, y: y0 + camY }); if (!visit) rbUnder({ x: x + camX, y: y0 + camY }, 16, true);
         const moving = me.walk && !sit, im0 = SP.tinyReaper(kind, rank, sit ? 'down' : me.dir, moving ? 'walk' : 'idle', Math.floor((moving ? me.ft * 8 : time * 2.5))), im = me.dir === 'side' && me.face < 0 && !sit ? flipOf(im0) : im0;
         if (!sit) { g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.round(x - 5), Math.round(y0 - 1), 10, 2); }
         if (sit) { const sf = drawSeated(im, x, sit); rankFxOver({ x: x + camX, y: sf + camY - 6 }, im); }
