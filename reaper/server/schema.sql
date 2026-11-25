@@ -48,17 +48,20 @@ drop policy if exists docs_read on public.docs;
 create policy docs_read on public.docs for select to anon, authenticated using (true);
 
 -- 쓰기: rank/offices/visits 는 문서 id 가 내 id 일 때만, notices/mail/mod(방명록 숨기기) 는 운영자만
+-- 운영자는 순위(rank)에 쓸 수 없음 (순위에 오르지 않게)
 drop policy if exists docs_insert on public.docs;
 create policy docs_insert on public.docs for insert to authenticated with check (
   owner = auth.uid() and (
-    (col in ('rank', 'offices', 'visits') and doc_id = auth.uid()::text)
+    (col in ('offices', 'visits') and doc_id = auth.uid()::text)
+    or (col = 'rank' and doc_id = auth.uid()::text and not public.is_admin())
     or (col in ('notices', 'mail', 'mod') and public.is_admin())
   ));
 drop policy if exists docs_update on public.docs;
 create policy docs_update on public.docs for update to authenticated
   using ((col in ('rank', 'offices', 'visits') and doc_id = auth.uid()::text) or (col in ('notices', 'mail', 'mod') and public.is_admin()))
   with check (owner = auth.uid() and (
-    (col in ('rank', 'offices', 'visits') and doc_id = auth.uid()::text)
+    (col in ('offices', 'visits') and doc_id = auth.uid()::text)
+    or (col = 'rank' and doc_id = auth.uid()::text and not public.is_admin())
     or (col in ('notices', 'mail', 'mod') and public.is_admin())
   ));
 drop policy if exists docs_delete on public.docs;

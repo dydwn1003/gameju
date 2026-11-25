@@ -143,7 +143,7 @@ const Cloud = (() => {
   const user = {
     id: async () => uid(),
     profiles: async () => ({}), // 표시 이름은 게임 닉네임을 씀
-    isOwner: async () => { try { const { data } = await sb.rpc('is_admin'); return !!data; } catch (e) { return false; } },
+    isOwner: async () => { try { const { data, error } = await sb.rpc('is_admin'); if (error) return null; return !!data; } catch (e) { return null; } }, // null: 확인 실패 (모름)
   };
   // 서버 함수 부르기 (게스트도 공개 키로 부를 수 있는 것만: track 등)
   async function rpc(fn, args) { if (!sb) return false; try { const { error } = await sb.rpc(fn, args); return !error; } catch (e) { return false; } }

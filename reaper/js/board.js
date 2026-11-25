@@ -16,6 +16,7 @@ const Board = (() => {
   // 내 기록 올리기 (바뀌었을 때만, 최대 1분에 한 번 · 승진 직후엔 바로)
   async function push(force) {
     if (!ready || !Game.S || !Game.S.kind || !Game.S.nickSet) return; // 닉네임을 정해야 순위에 오른다
+    if (owner === null) { await isOwner(); if (owner === null) return; } // 운영자인지 모르면 올리지 않음
     if (owner) { if (!ownerOff) { ownerOff = true; try { await db.doc('rank/' + uid).delete(); } catch (e) {} } return; } // 운영자는 순위에서 빠짐 (올려 둔 기록도 지움)
     const s = Game.S, row = { score: score(s), lv: Game.level(), rank: s.rank, rb: s.reborn || 0, kind: s.kind, nick: s.name, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 0 : 0, pt: Math.floor((s.playSec || 0) / 60) * 60 }; // pt: 실제 접속 시간(분 단위)
     const sig = JSON.stringify(row);
@@ -128,8 +129,8 @@ const Board = (() => {
   async function myLikes() { if (!ready) return 0; try { const snap = await timeout(db.collection('visits').where('likedIds', 'array-contains', uid).limit(1000).get()); const n = snap.size; if (Game.S) { Game.S.officeLikes = n; } await pushOffice(); return n; } catch (e) { return Game.S && Game.S.officeLikes || 0; } }
   let total = 0;
   // ===== 공지사항 · 전체 우편 (운영자만 쓰기) =====
-  let owner = false, ownerOff = false;
-  async function isOwner() { try { owner = !!(user && await user.isOwner()); } catch (e) { owner = false; } return owner; }
+  let owner = null, ownerOff = false;
+  async function isOwner() { try { const r = user ? await user.isOwner() : false; owner = r === null ? null : !!r; } catch (e) { owner = null; } return owner; } // null = 확인 못 함 → 순위에 올리지 않고 다음에 다시 확인
   async function notices() { if (!ready) return null; const snap = await timeout(db.collection('notices').orderBy('at', 'desc').limit(20).get()); return snap.docs.map(d => Object.assign({ id: d.id }, d.data())); }
   async function postNotice(n) { const id = 'n' + Date.now(); await db.doc('notices/' + id).set(Object.assign({ at: Date.now() }, n)); return id; }
   async function delNotice(id) { await db.doc('notices/' + id).delete(); }
