@@ -28,7 +28,7 @@ begin
   if coalesce(p_jade, 0) <= 0 and coalesce(p_tickets, 0) <= 0 and coalesce(p_hours, 0) <= 0 and coalesce(p_souls, 0) <= 0 and coalesce(p_decor, '') = '' and coalesce(p_pet, '') = '' then
     raise exception '보상(p_jade · p_tickets · p_souls · p_hours · p_decor · p_pet)을 하나 이상 넣어 주세요';
   end if;
-  if coalesce(p_pet, '') <> '' and not (trim(p_pet) = any (array['kkachi','daram','bandi','dukk','tokki','byeong','neoguri','sapsal','heukmyo','buheong','geobuk','haechi','yeowoo','hak','baekho','samjok','bulyeo','cheongryong','girin','bonghwang','hwangryong','chamsae','saengjwi','cheonggae','ori','bungeo','bakjwi','dwaeji','gosum','nabi','yeomso','sudal','kkamagwi','kkotsasum','baekgu','geumbung','haneul','chijeu','bandal','baeksa','eunyeowoo','horangi','geumdukk','bulgasari','hyeonmu','jujak','cheonma','imugi','gumiho','baektaek','heukryong','eungryong','geumsijo'])) then
+  if coalesce(p_pet, '') <> '' and not (trim(p_pet) = any (array['kkachi','daram','bandi','dukk','tokki','byeong','neoguri','sapsal','heukmyo','buheong','geobuk','haechi','yeowoo','hak','baekho','samjok','bulyeo','cheongryong','girin','bonghwang','hwangryong','chamsae','saengjwi','cheonggae','ori','bungeo','bakjwi','dwaeji','gosum','nabi','yeomso','sudal','kkamagwi','kkotsasum','baekgu','geumbung','haneul','chijeu','bandal','baeksa','eunyeowoo','horangi','geumdukk','bulgasari','hyeonmu','jujak','cheonma','imugi','gumiho','baektaek','heukryong','eungryong','geumsijo','yunhoe'])) then
     raise exception '영물 id(p_pet)를 찾지 못했어요: % — docs/MAIL_SQL.md 의 영물 목록을 봐 주세요', p_pet;
   end if;
   if p_to = 'user' then

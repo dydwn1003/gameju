@@ -77,9 +77,33 @@ const Game = (() => {
 
   // ---------- 수치 ----------
   const rebornMult = () => 1 + S.reborn * 1.5;
+  // ===== 윤회 =====
+  // 후반 어려움: 각 수련의 뒤쪽(35%→85% 구간에서 서서히)부터 비용이 (윤회 배수 × LATE[환]) 배가 됨
+  // → 초반은 윤회 배수만큼 빠르고, 후반은 첫 생보다 LATE 배 오래 걸림 (1환 1.0 · 2환 1.15 · 3환 1.3 · 4환 1.45 · 5환 이상 1.6)
+  const LATE = [1, 1, 1.15, 1.3, 1.45, 1.6];
+  const lateOf = rb => LATE[Math.min(rb, LATE.length - 1)];
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  function hardMul(id, k) {
+    if (!S.reborn) return 1;
+    const prog = k / Math.max(1, UPGRADES.find(u => u.id === id).max);
+    const late = Math.pow(rebornMult() * lateOf(S.reborn), smooth(0.35, 0.85, prog));
+    const fast = S.rank < 2 ? 1 - 0.15 * perkLv('fast') : 1; // 특성: 윤회 직후 첫 두 계급 수련 비용 할인
+    return late * fast;
+  }
+  // 윤회석 · 영구 특성 (윤회할 때마다 윤회석을 받아 영구 능력을 찍음)
+  const PERKS = [
+    { id: 'value', name: '혼불의 축복', desc: '모든 혼 수확 +10%', max: 5 },
+    { id: 'minion', name: '졸개의 충성', desc: '윤회할 때 졸개 2명과 함께 시작', max: 3 },
+    { id: 'ledger', name: '두꺼운 장부', desc: '자리 비운 동안 쌓이는 최대 시간 +30분', max: 4 },
+    { id: 'fast', name: '빠른 승진길', desc: '윤회 직후 첫 두 계급 동안 수련 비용 -15%', max: 2 },
+  ];
+  const perkLv = id => (S.rbPerk && S.rbPerk[id]) || 0;
+  const perkCost = id => 2 * (perkLv(id) + 1); // 1레벨 2개 · 2레벨 4개 · 3레벨 6개 …
+  const stoneGain = () => 2 + S.reborn; // 이번 윤회로 받는 윤회석 (1환 3개 · 2환 4개 …)
+  function buyPerk(id) { const P = PERKS.find(x => x.id === id); if (!P || perkLv(id) >= P.max) return false; const c = perkCost(id); if ((S.rbStone || 0) < c) return false; S.rbStone -= c; S.rbPerk = S.rbPerk || {}; S.rbPerk[id] = perkLv(id) + 1; apply(); save(); return true; }
   const PEN = UPGRADES[0];
   const penMul = L => (1 + L * PEN.pa + PEN.pb * Math.sqrt(L)) * Math.pow(2, Math.floor(L / PEN.pd)); // 처음엔 강화마다 크게(+pa), 갈수록 비율이 줄어듦 · pd번마다 ×2
-  const valueBase = () => SOUL_MUL * penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
+  const valueBase = () => SOUL_MUL * penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (1 + 0.1 * perkLv('value')) * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
   const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
   const walk = () => (30 + le('step') * 3) * Life.mul('spawn') * Pets.mul('walk');
@@ -109,7 +133,7 @@ const Game = (() => {
   const drillMul = () => drillMulOf(lv('drill'));
   const OFFLINE_RATE = 0.12; // 자리 비운 동안 받는 비율 (켜 둔 실제 수입 대비 12%, 복귀 2배 광고로 24%)
   const offHoursOf = L => 2 + 6 * (1 - Math.exp(-L / 12)) / (1 - Math.exp(-40 / 12)); // 처음 강화가 크게, 최대 8시간
-  const offHours = () => Math.min(8, offHoursOf(lv('ledger')));
+  const offHours = () => Math.min(8, offHoursOf(lv('ledger'))) + 0.5 * perkLv('ledger'); // 특성으로 8시간 넘게
   function tierProbs() {
     const L = le('luck');
     const p3 = 0.004 * (1 + 0.15 * L), p2 = 0.015 * (1 + 0.12 * L), p1 = 0.06 * (1 + 0.1 * L);
@@ -166,7 +190,7 @@ const Game = (() => {
   // ---------- 비용 ----------
   function cost(id, n = 1) {
     const U = UPGRADES.find(u => u.id === id); let c = 0, L = lv(id);
-    for (let i = 0; i < n && L + i < umax(id); i++) { const k = L + i, cp = U.cap || U.max; c += Math.ceil((k < cp ? U.base * Math.pow(U.grow, k) : U.base * Math.pow(U.grow, cp) * Math.pow(U.grow2 || 1.22, k - cp + 1)) * (U.sq ? Math.exp(U.sq * k * k) : 1)); }
+    for (let i = 0; i < n && L + i < umax(id); i++) { const k = L + i, cp = U.cap || U.max; c += Math.ceil((k < cp ? U.base * Math.pow(U.grow, k) : U.base * Math.pow(U.grow, cp) * Math.pow(U.grow2 || 1.22, k - cp + 1)) * (U.sq ? Math.exp(U.sq * k * k) : 1) * hardMul(id, k)); }
     return c;
   }
   function maxBuy(id) {
@@ -207,7 +231,13 @@ const Game = (() => {
   const canReborn = () => S.rank === RANKS.length - 1;
   function reborn() {
     if (!canReborn()) return false;
+    S.rbStone = (S.rbStone || 0) + stoneGain(); // 윤회석은 윤회하기 전 환 기준으로 받음
     S.reborn++; S.rank = 0; S.souls = 0; S.upg = {};
+    if (perkLv('minion')) S.upg.minion = 2 * perkLv('minion');
+    S.rbAt = Date.now();
+    const gifts = Decor.grantRb(Math.min(5, S.reborn)); // 환 기념 소품 (처음 이룬 환만)
+    let pet = null; if (S.reborn >= 5 && !(S.pets && S.pets.yunhoe)) { S.pets = S.pets || {}; S.pets.yunhoe = 1; pet = 'yunhoe'; } // 5환: 윤회의 봉황
+    S.lastRb = { gifts: gifts.map(d => d.id), pet, stones: S.rbStone };
     apply(); save(); return true;
   }
 
@@ -228,7 +258,7 @@ const Game = (() => {
     Scene.config({ spawn: spawn(), walk: walk(), reap: reap(), minions: minions(), mWalk: mWalk(), mReap: mReap(), roll, maxSouls: 18 + Math.min(18, Math.floor(le('call') / 2)), reapR: Math.min(26, 14 + le('hand') * 0.4), reapMax: 3 + Math.floor(le('hand') / 6), speed: boosting() ? 1.3 : 1 });
     Scene.setRegion(RANKS[S.rank].region);
     if (S.kind) Scene.setKind(S.kind);
-    Scene.setRank(S.rank);
+    Scene.setRank(S.rank); Scene.setReborn && Scene.setReborn(S.reborn || 0);
     Scene.setPet(S.petEq && S.pets && S.pets[S.petEq] ? Object.assign({}, Pets.P(S.petEq), { star: S.pets[S.petEq] }) : null);
   }
 
@@ -329,7 +359,7 @@ const Game = (() => {
   return {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
-    eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult,
+    eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult, PERKS, perkLv, perkCost, buyPerk, stoneGain, lateOf,
     collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, markAway, OFFLINE_RATE, fingerprint, loadedFp: () => loadedFp, loadedTotal: () => loadedTotal, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();

@@ -437,8 +437,10 @@ const UI = (() => {
     } else {
       html += `<div class="promo pbox"><div class="looks"><div><div class="lk-w"><canvas class="mg" id="mg-now" width="48" height="20"></canvas><canvas id="lk-now" width="44" height="51"></canvas></div><span>염라대왕</span></div></div><div class="t">염라대왕에 올랐다!</div>
         <div class="d">윤회하면 직급과 수련이 처음으로 돌아가지만<br>모든 수확량이 영구히 <b style="color:var(--gold)">×${(1 + (s.reborn + 1) * 1.5).toFixed(1)}</b> (지금 ×${Game.rebornMult().toFixed(1)})가 된다.<br>옥과 구매한 상품은 유지된다.</div>
+        <div class="rb-next">${rbNextHtml()}</div>
         <button class="btn red" data-act="reborn">윤회하기</button></div>`;
     }
+    if (s.reborn || s.rbStone) html += `<div class="sec">윤회 특성</div><div class="rb-perk pbox"><div><b class="${rbCls(s.reborn)}">${rbTitle(s.reborn) || '윤회 전'}</b><small>윤회석 ${s.rbStone || 0}개 · 영구 능력을 찍을 수 있어요</small></div><button class="btn" data-act="perks">특성 보기</button></div>`;
     html += `<div class="sec">내 집무실</div><div class="offices pbox"><div><canvas id="of-now" width="150" height="104"></canvas><span>${Scene.officeName(s.rank)}</span></div>${N ? `<b>▶</b><div class="nx"><canvas id="of-next" width="150" height="104"></canvas><span>${Scene.officeName(s.rank + 1)}</span></div>` : ''}</div>
       <p class="note" style="margin-top:-4px">승진하면 집무실이 넓어지고 부하가 늘어나요. 결재 서류도 더 두둑해져요.</p>
       <div style="text-align:center;margin-bottom:14px"><button class="btn" data-act="office">집무실 들어가기${Life.docsCount() ? ` · 결재 ${Life.docsCount()}건` : ''}</button></div>`;
@@ -536,7 +538,8 @@ const UI = (() => {
   function act(a) {
     if (a === 'office') { enterOffice(); return; }
     if (a === 'test') { if (!Game.canTest()) return; const old = S().rank, R0 = RANKS[old].region; if (Game.promote()) { Scene.pillar(); promoted(RANKS[S().rank].region !== R0, old); Board.push(true); } render(); }
-    else if (a === 'reborn') confirmBox(`<h2>윤회</h2><p>직급·수련·보유한 혼이 처음으로 돌아갑니다.<br>모든 수확량이 영구히 ×${(1 + (S().reborn + 1) * 1.5).toFixed(1)}가 됩니다.</p>`, () => { Game.reborn(); Sound.play('promote'); toast('윤회했다! 새로운 생이 시작된다'); render(); });
+    else if (a === 'reborn') confirmBox(`<h2>윤회</h2><p>직급·수련·보유한 혼이 처음으로 돌아갑니다.<br>모든 수확량이 영구히 ×${(1 + (S().reborn + 1) * 1.5).toFixed(1)}가 됩니다.</p><div class="rb-next">${rbNextHtml()}</div>`, () => rebornScene());
+    else if (a === 'perks') perkModal();
     else if (a === 'boostAd') { closeModal(); boostAd(); }
     else if (a === 'jadeFree') { if (Game.adLeft('jfree') <= 0) return; Game.useAd('jfree'); S().jade += FREE_JADE; Game.save(); Sound.play('buy'); got(`옥 +${FREE_JADE}`, { ic: 'jade' }); render(); }
     else if (a === 'jadeAd') { if (Game.adLeft('jade') <= 0) return; ad(() => { Game.useAd('jade'); S().jade += FREE_JADE; Game.save(); got(`옥 +${FREE_JADE}`, { ic: 'jade' }); render(); }); }
@@ -840,7 +843,7 @@ const UI = (() => {
   }
   const rankIcon = (kind, rank) => { const k = 'rk' + kind + rank; return urls[k] || (urls[k] = toURL(SP.tinyReaper(kind || 'm', rank || 0, 'down', 'idle', 0), 2)); };
   function rankRow(r, place, by) {
-    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · 윤회 ${r.rb}` : ''}${r.pt != null && by !== 'pt' ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">${by === 'pt' ? '⏱ ' + (r.pt != null ? fmtPlay(r.pt) : '-') : 'Lv.' + r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
+    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b class="${rbCls(r.rb)}">${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · ${rbTitle(r.rb)}` : ''}${r.pt != null && by !== 'pt' ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">${by === 'pt' ? '⏱ ' + (r.pt != null ? fmtPlay(r.pt) : '-') : 'Lv.' + r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
   }
   // 실제 접속 시간 표기
   const fmtPlay = sec => { sec = sec || 0; const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : `${m}분`; };
@@ -849,7 +852,7 @@ const UI = (() => {
     const R = RANKS[Math.min(8, r.rank || 0)], pet = r.pet ? PETS.find(p => p.id === r.pet) : null;
     const row = (k, v) => `<div class="st-row"><span>${k}</span><b>${v}</b></div>`;
     const box = modal(`<div class="pf"><canvas id="pf-cv" width="120" height="84"></canvas><h2>${esc(r.me ? (S().name || r.name) : r.name)}${r.me && (S().name || r.name) !== '나' ? ' <em>나</em>' : ''}</h2><span class="badge">${R.name}</span>
-      <div class="pf-rows">${row('순위', place ? place + '위' : '-')}${row('레벨', 'Lv.' + (r.lv || 1))}${r.rb ? row('윤회', r.rb + '회') : ''}${row('플레이 시간', r.pt != null ? fmtPlay(r.pt) : '-')}${row('함께하는 영물', pet ? `${pet.name} ★${r.ps || 1} <small>(${pet.g})</small>` : '없음')}</div></div>
+      <div class="pf-rows">${row('순위', place ? place + '위' : '-')}${row('레벨', 'Lv.' + (r.lv || 1))}${r.rb ? row('윤회', rbTitle(r.rb)) : ''}${row('플레이 시간', r.pt != null ? fmtPlay(r.pt) : '-')}${row('함께하는 영물', pet ? `${pet.name} ★${r.ps || 1} <small>(${pet.g})</small>` : '없음')}</div></div>
       <div class="acts">${r.id && !r.me ? `<button class="btn red" id="pf-visit">🏘️ 집무실 놀러 가기</button>` : ''}<button class="btn dark" data-act="close">닫기</button></div>`);
     previews.push({ c: box.querySelector('#pf-cv'), prof: { kind: r.kind || 'm', rank: r.rank || 0, pet, star: r.ps || 1 } });
     const v = box.querySelector('#pf-visit'); if (v) v.onclick = () => { closeModal(); visitOffice(r.id); };
@@ -927,7 +930,7 @@ const UI = (() => {
     if (!o) { toast('집무실을 찾지 못했어요'); return; }
     if (o.me) { if (!Scene.inOffice()) enterOffice(); return; }
     if (Scene.inOffice()) { decoEnd(true); Scene.exitOffice(); }
-    visiting = o; Scene.enterOffice(o.rank, { kind: o.kind, rank: o.rank }); Sound.play('open');
+    visiting = o; Scene.enterOffice(o.rank, { kind: o.kind, rank: o.rank, rb: o.rb || 0 }); Sound.play('open');
     if (sheetOpen()) closeSheet();
     let bar = $('#office-bar'); if (!bar) { bar = document.createElement('div'); bar.id = 'office-bar'; $('#stage').appendChild(bar); }
     let acts = $('#office-acts'); if (!acts) { acts = document.createElement('div'); acts.id = 'office-acts'; $('#stage').appendChild(acts); }
@@ -1085,7 +1088,7 @@ const UI = (() => {
   let shopCat = 'all';
   function decoShop() {
     const s = S(), cats = [['all', '전체'], ['set', '세트'], ['floor', '바닥'], ['wall', '벽'], ['seat', '앉기'], ['chair', '의자'], ['premium', '귀한 것'], ['ex', '한정']];
-    const how = d => d.rank != null ? (d.rank ? `${RANKS[d.rank].name} 승진` : '첫 출근 선물') : d.story != null ? `이야기 ${d.story + 1}장` : '의뢰 보상';
+    const how = d => d.rb != null ? `${d.rb}환 달성` : d.rank != null ? (d.rank ? `${RANKS[d.rank].name} 승진` : '첫 출근 선물') : d.story != null ? `이야기 ${d.story + 1}장` : '의뢰 보상';
     const card = d => { const n = Decor.owned(d.id), ex = Decor.isEx(d); return `<div class="ds-card ${d.premium ? 'cash' : ''} ${ex ? 'ex' : ''}"><img class="px" src="${decoThumb(d.id, 3)}"><b>${d.name}</b><small>품격 +${d.pt}${d.seat ? ' · 앉기' : ''}${d.wall ? ' · 벽' : ''}</small><p>${d.desc}</p>${n ? `<em>보유 ${n}</em>` : ''}
       ${ex ? `<button class="btn dark" disabled>${n ? '획득 완료' : '🔒 ' + how(d)}</button>` : d.cash ? (s.rank >= d.rankReq ? `<button class="btn red" data-dcash="${d.id}">${priceOf('decor:' + d.id)}</button>` : `<button class="btn dark" disabled>🔒 ${RANKS[d.rankReq].name} 이상</button>`) : d.free ? '<button class="btn dark" disabled>무료 지급</button>' : `<button class="btn jade" data-dbuy="${d.id}" ${s.jade >= d.price ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${d.price}</button>`}</div>`; };
     const pack = P => { const got = Decor.packBought(P.id); return `<div class="ds-pack ${got ? 'got' : ''}"><div class="ds-pi">${P.items.map(id => `<img class="px" src="${decoThumb(id, 2)}">`).join('')}</div><div class="ds-pt"><b>${P.name}</b><small>${P.items.map(id => Decor.D(id).name).join(' · ')}</small><small><s>옥 ${P.full}</s> → <b class="sale">30% 할인</b></small></div>${got ? '<button class="btn dark" disabled>구매 완료</button>' : `<button class="btn jade" data-dpack="${P.id}" ${s.jade >= P.price ? '' : 'data-short="jade"'}><img class="px" src="${IC('jade', 2)}">${P.price}</button>`}</div>`; };
@@ -1845,7 +1848,43 @@ const UI = (() => {
   // ---------- 승진 연출 ----------
   function overlay(html) { const o = $('#promo'); o.innerHTML = html; o.className = 'on'; return o; }
   function closeOverlay() { const o = $('#promo'); o.className = ''; o.innerHTML = ''; previews = previews.filter(p => document.body.contains(p.c)); }
+  // 윤회 칭호 · 이름 색 (1~5환, 6환부터는 5환 색 + 환 수)
+  const RB_TITLE = ['', '환생한 차사', '두 번 태어난 차사', '삼생의 차사', '사생의 명부관', '오생의 저승왕'];
+  const rbTitle = n => !n ? '' : n <= 5 ? `${n}환 · ${RB_TITLE[n]}` : `${n}환 · ${RB_TITLE[5]}`;
+  const rbCls = n => (n ? 'rbc' + Math.min(5, n) : '');
   const sparks = (n, col) => Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, d = 90 + Math.random() * 120; return `<i style="--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d}px;--d:${(Math.random() * 0.3).toFixed(2)}s;background:${Array.isArray(col) ? col[i % col.length] : col}"></i>`; }).join('');
+  // ---------- 윤회 ----------
+  const RB_GIFT = { 1: 'rb1_lotus', 2: 'rb2_mill', 3: 'rb3_halo', 4: 'rb4_brazier', 5: 'rb5_gate' };
+  function rbNextHtml() {
+    const s = S(), n = (s.reborn || 0) + 1, g = RB_GIFT[n] && Decor.D(RB_GIFT[n]);
+    return `<b>${n}환 보상</b><br><b style="color:#b88aff">윤회석 +${Game.stoneGain()}</b> · <span>칭호</span> <b class="${rbCls(n)}">${RB_TITLE[Math.min(5, n)]}</b>${g ? ` · <span>소품</span> <b>${g.name}</b>` : ''}${n === 5 ? ' · <span>영물</span> <b>윤회의 봉황</b>' : ''} · <span>새 이펙트</span><br><small>${n >= 2 ? `다음 생은 초반이 더 빠르지만, 후반 수련 비용이 ${Math.round((Game.lateOf(n) - 1) * 100)}% 더 들어요` : '다음 생은 초반이 더 빠르지만, 후반은 첫 생과 비슷해요'}</small>`;
+  }
+  function rebornScene() {
+    closeModal(); const old = S().rank, kind = S().kind;
+    const o = overlay(`<div class="pr-bg rb-bg"></div><div class="pr-sparks">${sparks(46, ['#7ac8ff', '#b88aff', '#ffffff', '#ffd34a'])}</div>
+      <div class="pr-box rb-box"><div class="pr-title">윤 회</div><div class="rb-char"><canvas id="rb-old" width="44" height="51"></canvas><div class="rb-flash"></div></div><div id="rb-res"></div></div>`);
+    previews.push({ c: o.querySelector('#rb-old'), kind, rank: old, pose: 'idle', keep: 1 });
+    Sound.play('promote');
+    setTimeout(() => { // 혼불로 흩어졌다가 다시 태어남
+      Game.reborn(); Sound.play('kill'); const s = S(), L = s.lastRb || {};
+      const gifts = (L.gifts || []).map(id => Decor.D(id)).filter(Boolean);
+      o.querySelector('#rb-res').innerHTML = `<div class="pr-rank ${rbCls(s.reborn)}">${s.reborn}번째 생</div><div class="pr-sub">${RB_TITLE[Math.min(5, s.reborn)]}</div>
+        <div class="pr-info"><b>모든 수확량 ×${Game.rebornMult().toFixed(1)}</b> · <b style="color:#b88aff">윤회석 ${s.rbStone}개</b><br><span>새 이펙트가 생겼어요</span></div>
+        ${gifts.length > 1 ? `<div class="pr-gift rb-gifts"><small>윤회 기념 소품 ${gifts.length}개 · 집무실에 놓아 보세요</small><div>${gifts.map(d => `<span><img class="px" src="${decoThumb(d.id, 2)}"><em>${d.name}</em></span>`).join('')}</div></div>` : gifts.map(d => `<div class="pr-gift"><img class="px" src="${decoThumb(d.id, 3)}"><div><small>윤회 기념 소품</small><b>${d.name}</b><span>집무실 꾸미기에서 놓을 수 있어요</span></div></div>`).join('')}
+        ${L.pet ? `<div class="pr-gift"><img class="px" src="${petIcon(Pets.P(L.pet), true)}"><div><small>5환 전용 영물</small><b>${Pets.P(L.pet).name}</b><span>영물 도감에 들어왔어요</span></div></div>` : ''}
+        <div class="acts"><button class="btn" id="rb-perk">윤회 특성 찍기</button><button class="btn red" id="rb-go">새로운 생 시작</button></div>`;
+      o.querySelector('#rb-go').onclick = () => { closeOverlay(); Sound.play('open'); render(); hud(); };
+      o.querySelector('#rb-perk').onclick = () => { closeOverlay(); render(); perkModal(); };
+    }, 1700);
+  }
+  function perkModal() {
+    const s = S();
+    const box = modal(`<h2>🔮 윤회 특성</h2><p>윤회할 때마다 받는 윤회석으로 영구 능력을 찍어요. 다시 윤회해도 사라지지 않아요.</p>
+      <div class="rb-stone"><b>보유 윤회석 ${s.rbStone || 0}개</b></div>
+      ${Game.PERKS.map(P => { const lv = Game.perkLv(P.id), mx = lv >= P.max, c = Game.perkCost(P.id); return `<div class="row pbox"><div class="info"><div class="nm">${P.name} <small>Lv.${lv}/${P.max}</small></div><div class="ds">${P.desc}</div></div><button class="btn" data-perk="${P.id}" ${mx || (s.rbStone || 0) < c ? 'disabled' : ''}>${mx ? '최대' : `🔮 ${c}`}</button></div>`; }).join('')}
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    box.querySelectorAll('[data-perk]').forEach(b => b.onclick = () => { if (Game.buyPerk(b.dataset.perk)) { Sound.play('promote'); toast('특성을 올렸어요', 1600); render(); perkModal(); } });
+  }
   function promoted(newRegion, oldRank) {
     const R = RANKS[S().rank], O = RANKS[oldRank != null ? oldRank : S().rank - 1], gifts = Decor.grantRank(S().rank);
     Sound.play('promote');

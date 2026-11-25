@@ -62,7 +62,8 @@ const PET_LORE = {
  "baektaek": "세상 만물의 이름과 이치를 안다는 흰 신수예요. 모르는 혼령이 없어서 도감을 채워 줘요.",
  "heukryong": "먹구름을 부르는 흑룡의 새끼예요. 비가 쏟아지는 날엔 숨어 있던 혼령들이 쏟아져 나와요.",
  "eungryong": "날개 달린 용, 응룡의 새끼예요. 하늘과 저승을 자유롭게 날며 귀한 혼을 물어 와요.",
- "geumsijo": "용도 잡아먹는다는 황금 새, 금시조예요. 날개를 펴면 저승 하늘이 온통 금빛으로 빛나요."
+ "geumsijo": "용도 잡아먹는다는 황금 새, 금시조예요. 날개를 펴면 저승 하늘이 온통 금빛으로 빛나요.",
+ "yunhoe": "다섯 번 죽고 다섯 번 다시 태어난 불사조예요. 윤회를 다섯 번 이룬 저승사자 곁에만 내려앉아요."
 };
 const PET_ORDER = ['C', 'B', 'A', 'S', 'SS', 'SSS'];
 // 등급이 높을수록 확률이 가파르게 낮아짐: C 58 · B 28 · A 10 · S 3 · SS 0.8 · SSS 0.2 (%)
@@ -122,6 +123,7 @@ const PETS = [
   { id: 'heukryong', name: '아기 흑룡', g: 'SS', kind: 'dragon', e: 'v', pal: {"H": "#2a2440", "B": "#2a2440", "b": "#8a7ab8", "y": "#ff4a5a"}, aura: '#a07aff', desc: '먹구름을 부르는 흑룡의 새끼' },
   { id: 'eungryong', name: '아기 응룡', g: 'SSS', kind: 'dragon', e: 'all', pal: {"H": "#9a6aff", "B": "#9a6aff", "b": "#f0e8ff", "y": "#ffd34a"}, aura: '#c8a0ff', desc: '날개 달린 용, 응룡의 새끼' },
   { id: 'geumsijo', name: '금시조', g: 'SSS', kind: 'bird', e: 'all', pal: {"H": "#ffc83a", "B": "#ffc83a", "b": "#fff4c0", "y": "#ff3a5a"}, aura: '#ffd34a', desc: '용을 잡아먹는 황금 새' },
+  { id: 'yunhoe', name: '윤회의 봉황', g: 'SSS', ex: 1, kind: 'bird', e: 'all', pal: {"H": "#f4f0ff", "B": "#f4f0ff", "b": "#b88aff", "y": "#6ac8ff"}, aura: '#e8d8ff', desc: '다섯 번의 생을 함께한 불사조 (5환 전용)' },
 ];
 const PULL_COST = { 1: 50, 10: 450 };
 const PITY = 80; // 80번 안에 SS 이상 확정
@@ -155,7 +157,7 @@ const Pets = (() => {
     let g = rollGrade(forceMin);
     if (s.pity >= PITY && PET_ORDER.indexOf(g) < 4) g = Math.random() < 0.1 ? 'SSS' : 'SS';
     if (PET_ORDER.indexOf(g) >= 4) s.pity = 0;
-    const pool = PETS.filter(p => p.g === g), p = pool[Math.floor(Math.random() * pool.length)];
+    const pool = PETS.filter(p => p.g === g && !p.ex), p = pool[Math.floor(Math.random() * pool.length)]; // ex: 윤회 전용 (뽑기에 안 나옴)
     return give(p.id);
   }
   // 얻은 영물: 처음이면 도감 등록, 이미 있으면 여분(보관함)에 쌓임 → 별 올리기 · 합성 재료
@@ -186,7 +188,7 @@ const Pets = (() => {
         s.petInv[pool[0].id]--;
       }
       const up = Math.random() < FUSE_UP[g], ng = up ? PET_ORDER[PET_ORDER.indexOf(g) + 1] : g;
-      const cand = PETS.filter(p => p.g === ng), p = cand[Math.floor(Math.random() * cand.length)];
+      const cand = PETS.filter(p => p.g === ng && !p.ex), p = cand[Math.floor(Math.random() * cand.length)];
       res.push(give(p.id, up));
     }
     Game.apply(); Game.save(); return res;

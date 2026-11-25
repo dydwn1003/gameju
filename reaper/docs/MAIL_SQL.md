@@ -156,6 +156,7 @@ select send_mail('🎁 보상', 'user', p_pet => 'gumiho', p_jade => 100, p_nick
 | 등급 | id |
 |---|---|
 | SSS | hwangryong(아기 황룡) · eungryong(아기 응룡) · geumsijo(금시조) |
+| SSS 전용 | yunhoe(윤회의 봉황) — 5환 달성 보상. 뽑기·합성엔 안 나와요 |
 | SS | girin · bonghwang · gumiho · baektaek · heukryong |
 | S | samjok · bulyeo · cheongryong · hyeonmu · jujak · cheonma · imugi |
 | A | haechi · yeowoo · hak · baekho · baeksa · eunyeowoo · horangi · geumdukk · bulgasari |
