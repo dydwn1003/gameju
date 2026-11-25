@@ -619,7 +619,7 @@ img { -webkit-user-drag: none; user-select: none; }
 
 /* 승진 마법진 미리보기 */
 .lk-w { position: relative; width: 66px; height: 77px; }
-.lk-w canvas#lk-now, .lk-w canvas#lk-next { position: relative; z-index: 1; }
+.lk-w canvas#lk-now, .lk-w canvas#lk-next, .lk-w canvas#rk-ch { position: relative; z-index: 1; }
 .lk-w .mg { position: absolute; left: 50%; bottom: -16px; width: 140px; height: 60px; margin-left: -70px; z-index: 0; }
 .mg-note { text-align: center; font-size: 10px; color: var(--mute); margin: 10px 0 4px; } .mg-note b { color: var(--gold); }
 .pr-char .pr-magic { top: auto !important; bottom: -38px; left: 50% !important; width: 240px !important; height: 104px !important; margin-left: -120px; inset: auto; opacity: 0; animation: mgIn .8s 1.1s ease-out forwards; }
@@ -1063,3 +1063,8 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .pinfo .pi-next canvas, .pinfo .pi-next canvas.pa { margin: 0; width: 72px; height: 72px; image-rendering: pixelated; flex-shrink: 0; }
 .pi-next > div { display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
 .pi-next small { color: var(--gold); font-size: 11px; } .pi-next b { font-weight: 600; font-size: 12px; } .pi-next span { color: var(--mute); font-size: 10px; }
+
+#rb-res .pr-rank { font-weight: 400; text-shadow: none !important; filter: drop-shadow(1.5px 0 0 #000) drop-shadow(-1.5px 0 0 #000) drop-shadow(0 1.5px 0 #000) drop-shadow(0 -1.5px 0 #000) drop-shadow(2px 3px 0 #000); }
+.pi-next .pn-nav { display: flex; align-items: center; gap: 6px; }
+.pi-next .pn-nav button { background: rgba(255,255,255,.08); border: 0; color: var(--text); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
+.pi-next .pn-nav button:disabled { opacity: .3; }

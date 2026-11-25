@@ -2011,10 +2011,18 @@ const UI = (() => {
     const inv = s.petInv[id] || 0, c = Pets.starCost(id), sv = Pets.stats(id);
     const box = modal(`<div class="pinfo"><canvas id="pi-big" ${PET_AURA[p.g] ? 'class="pa" width="40" height="40"' : 'width="12" height="11"'}></canvas><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</h2><div class="stars">${'★'.repeat(st)}${'☆'.repeat(5 - st)}</div><p class="mute">${p.desc}</p>${PET_LORE[id] ? `<p class="lore">${PET_LORE[id]}</p>` : ''}
       <p class="mute">수확량 +${Math.round(sv[0] * 100)}% · 이동 +${Math.round(sv[1] * 100)}% · 수확속도 +${Math.round(sv[2] * 100)}%<br>여분 <b style="color:var(--gold)">${inv}</b>마리${st < 5 ? `<br>별 올리기에 ${c}마리 필요` : ' · 최대 별!'}</p>
-      ${st < 5 ? (() => { const k = (1 + 0.15 * st) / (1 + 0.15 * (st - 1)), nv = sv.map(x => x * k); return `<div class="pi-next pbox">${PET_AURA[p.g] ? `<canvas id="pi-nx" class="pa" width="40" height="40"></canvas>` : ''}<div><small>★${st + 1} 미리보기</small><b>수확량 +${Math.round(sv[0] * 100)}% → +${Math.round(nv[0] * 100)}%</b><b>이동 +${Math.round(sv[1] * 100)}% → +${Math.round(nv[1] * 100)}%</b><b>수확속도 +${Math.round(sv[2] * 100)}% → +${Math.round(nv[2] * 100)}%</b>${PET_AURA[p.g] ? '<span>기운이 더 진해져요</span>' : ''}</div></div>`; })() : ''}</div>
+      ${st < 5 ? `<div class="pi-next pbox">${PET_AURA[p.g] ? `<canvas id="pi-nx" class="pa" width="40" height="40"></canvas>` : ''}<div id="pi-nxt"></div></div>` : ''}</div>
       <div class="acts"><button class="btn" id="pi-eq" ${s.petEq === id ? 'disabled' : ''}>${s.petEq === id ? '소환 중' : '소환하기'}</button><button class="btn red" id="pi-up" ${st < 5 && inv >= c ? '' : 'disabled'}>★ 올리기</button><button class="btn dark" data-act="close">닫기</button></div>`);
     previews.push({ c: box.querySelector('#pi-big'), pet: p, aura: PET_AURA[p.g] ? st : 0 });
-    if (box.querySelector('#pi-nx')) previews.push({ c: box.querySelector('#pi-nx'), pet: p, aura: st + 1 });
+    if (st < 5) { // 별 미리보기: ★(지금+1) ~ ★5 까지 넘겨 보기
+      let tg = st + 1; const nxPv = box.querySelector('#pi-nx') ? { c: box.querySelector('#pi-nx'), pet: p, aura: tg } : null; if (nxPv) previews.push(nxPv);
+      const pct = x => Math.round(x * 100);
+      const showNx = () => { const k = (1 + 0.15 * (tg - 1)) / (1 + 0.15 * (st - 1)), nv = sv.map(x => x * k); let need = 0; for (let j = st; j < tg; j++) need += j; if (nxPv) nxPv.aura = tg;
+        box.querySelector('#pi-nxt').innerHTML = `<div class="pn-nav"><button id="pn-l" ${tg <= st + 1 ? 'disabled' : ''}>◀</button><small>★${tg} 미리보기</small><button id="pn-r" ${tg >= 5 ? 'disabled' : ''}>▶</button></div>
+          <b>수확량 +${pct(sv[0])}% → +${pct(nv[0])}%</b><b>이동 +${pct(sv[1])}% → +${pct(nv[1])}%</b><b>수확속도 +${pct(sv[2])}% → +${pct(nv[2])}%</b><span>여분 ${need}마리 더 필요</span>${PET_AURA[p.g] ? '<span>기운이 더 진해져요</span>' : ''}`;
+        box.querySelector('#pn-l').onclick = () => { tg = Math.max(st + 1, tg - 1); showNx(); }; box.querySelector('#pn-r').onclick = () => { tg = Math.min(5, tg + 1); showNx(); }; };
+      showNx();
+    }
     box.querySelector('#pi-eq').onclick = () => { Pets.equip(id); Sound.play('buy'); toast(`${p.name}을(를) 소환했어요`); closeModal(); render(); };
     box.querySelector('#pi-up').onclick = () => { if (Pets.starUp(id)) { Sound.play('promote'); toast(`${p.name} ★${S().pets[id]}!`); closeModal(); render(); petInfo(id); } };
   }
