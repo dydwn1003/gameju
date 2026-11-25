@@ -2146,8 +2146,9 @@ const UI = (() => {
   // 성장이 막혔을 때 한 번씩 도움 제안 (20분에 1회)
   // 윤회 업데이트 보상: 예전에 윤회한 사람에게 한 번 알려 줌
   // 업데이트 기념 보상: 이 버전을 처음 켠 사람에게 한 번 (튜토리얼을 마친 뒤 · 윤회 보상 창 다음)
-  const UPD_GIFT = { ver: '1.0.2', jade: 300, tickets: 5, hours: 3 };
+  const UPD_GIFT = null; // 보류: 우편(SQL)으로 대신 지급. 다시 쓰려면 { ver: '1.0.2', jade: 300, tickets: 5, hours: 3 }
   function checkUpdGift() {
+    if (!UPD_GIFT) return;
     const s = S(); if (!s.kind || s.tut !== 'done' || s.updGift === UPD_GIFT.ver || s.rbCatch) return;
     if ($('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut')) return;
     const souls = Math.floor(Game.incomePerSec(true) * 3600 * UPD_GIFT.hours);
