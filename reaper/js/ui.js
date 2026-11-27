@@ -335,20 +335,20 @@ const UI = (() => {
       <div class="wa-goal">${Winter.attGoals.map(goal).join('')}</div>
       <div class="wa-grid">${Array.from({ length: Winter.attMax }, (_, i) => cell(i + 1)).join('')}</div>
       <div class="wa-ft"><button class="btn ${can ? 'red' : 'dark'}" id="wa-go" ${can ? '' : 'disabled'}>${a.n >= Winter.attMax ? '모두 받았어요' : can ? `출석하기<small class="wa-r">${attTxt(Winter.attReward(nx))}</small>` : '내일 또 만나요'}</button>
-      ${a.n < Winter.attMax && Winter.missed() > 0 ? `<div class="wa-mk"><span><b>놓친 날 ${Winter.missed()}일</b><small>옥으로 채우기 ${Winter.mkMax - a.mk}/${Winter.mkMax}번 남음</small></span><button class="btn jade" id="wa-mk" ${Winter.canMakeup() ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${Winter.mkJade}</button></div>` : ''}
-      <small>하루 한 번 · 놓친 날은 옥으로 2번까지 채울 수 있어요</small></div></div>`;
+      ${a.n < Winter.attMax && Winter.missed() > 0 ? `<div class="wa-mk"><span><b>놓친 날 ${Winter.missed()}일</b><small>옥으로 하루씩 채울 수 있어요</small></span><button class="btn jade" id="wa-mk" ${Winter.canMakeup() ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${Winter.mkJade}</button></div>` : ''}
+      <small>하루 한 번 · 기간은 29일이라 하루는 빠져도 괜찮아요 · 놓친 날은 옥으로 모두 채울 수 있어요</small></div></div>`;
   }
   function winterAttBox() {
     if (!Winter.active()) return;
     const box = modal(`<div class="wv"><div class="wv-hd wa-top"><div class="wv-sn">${Array.from({ length: 14 }, (_, i) => `<i style="left:${(i * 53) % 100}%;width:${2 + (i % 3)}px;height:${2 + (i % 3)}px;animation-duration:${5 + (i * 7) % 5}s;animation-delay:-${(i * 11) % 7}s"></i>`).join('')}</div><span class="wv-tag">12월 3일 ~ 12월 31일</span><h2>겨울 출석</h2><p>매일 출석하고 저승사자 꾸미기를 받아요</p></div>
       ${winterAttHtml()}</div>
-      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`, true);
     box.classList.add('wv-box');
     const done = r => { if (!r) return; Sound.play('buy'); closeModal(); hud(); winterHud(); render();
       const after = () => r.item ? got(`<b>${Winter.ITEMS[r.item].name}</b><br>겨울 출석 ${r.d}일 달성! 저승사자가 바로 착용했어요.<br>내 정보에서 언제든 쓰기 · 벗기를 고를 수 있어요`, { src: toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, Winter.ITEMS[r.item].ch), 5), title: '겨울 꾸미기 획득!', then: winterAttBox }) : winterAttBox();
       got(`<b>${attTxt(r.r)}</b>`, { src: attIc(r.r, 5), title: `겨울 출석 ${r.d}일째!`, then: after }); };
     const ab = box.querySelector('#wa-go'); if (ab) ab.onclick = () => done(Winter.attend());
-    const mk = box.querySelector('#wa-mk'); if (mk) mk.onclick = () => { closeModal(); if (S().jade < Winter.mkJade) { buyPage('jade'); return; } askBuy('놓친 날 채우기', `지나간 날 하루를 출석한 것으로 채워요. 그날 보상도 받아요. (이벤트 동안 ${Winter.mkMax}번까지)`, Winter.mkJade, 0, () => done(Winter.attend(true)), winterAttBox); };
+    const mk = box.querySelector('#wa-mk'); if (mk) mk.onclick = () => { closeModal(); if (S().jade < Winter.mkJade) { buyPage('jade'); return; } askBuy('놓친 날 채우기', '지나간 날 하루를 출석한 것으로 채워요. 그날 보상도 받아요.', Winter.mkJade, 0, () => done(Winter.attend(true)), winterAttBox); };
   }
   function winterBox() {
     if (!Winter.active()) return;
