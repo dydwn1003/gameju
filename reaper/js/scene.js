@@ -153,7 +153,28 @@ const Scene = (() => {
     const o = { img: c, x: ox, y: oy, base: y, id }; objs.push(o); return o;
   }
   function lampPost(x, y, gold) { makeObj(8, 26, (x2) => { rectOn(x2)(3, 8, 1, 18, '#3a2414'); x2.drawImage(SP.lantern(gold ? 2 : 1), 0, 0); }, x, y); lanterns.push({ x, y: y - 21, col: gold ? '#ffcf6a' : '#ff8a6a', r: 9, a: 0.25 }); }
+  // 겨울 이벤트 기간: 맵의 나무를 모두 크리스마스 트리로 (눈 쌓인 가지 · 장식 구슬 · 꼭대기 별 · 반짝이는 전구)
+  let xmas = false;
+  function xmasTree(x, y, big) {
+    const w = big ? 28 : 22, h = big ? 40 : 32, cx = Math.floor(w / 2), lights = [];
+    const o = makeObj(w, h, (x2) => {
+      const r = rectOn(x2), G1 = '#1f5a34', G2 = '#2f7a44', G3 = '#164428', SN = '#f4f9ff';
+      r(cx - 2, h - 6, 4, 6, '#4a2e1c'); r(cx - 2, h - 6, 1, 6, '#6a4630');                        // 줄기
+      const tiers = big ? [[h - 7, 12], [h - 15, 10], [h - 22, 8], [h - 28, 5]] : [[h - 7, 10], [h - 13, 8], [h - 19, 6], [h - 24, 4]];
+      tiers.forEach(([by, hw], ti) => { const th = big ? 10 : 8;
+        for (let k = 0; k < th; k++) { const ww = Math.round(hw * (k + 1) / th); r(cx - ww, by - th + k + 1, ww * 2, 1, k === th - 1 ? G3 : G1); r(cx - ww, by - th + k + 1, Math.max(1, Math.round(ww * 0.6)), 1, G2); }
+        r(cx - hw, by, hw * 2, 1, SN); r(cx - hw + 1, by - 1, Math.max(2, hw - 2), 1, SN);          // 가지 끝에 쌓인 눈
+        [[-hw + 2, -2], [hw - 3, -3], [-1, -5]].forEach(([dx, dy], j) => { if (cx + dx > 1 && cx + dx < w - 2) lights.push([cx + dx, by + dy, (ti + j) % 4]); });
+      });
+      const top = tiers[tiers.length - 1][0] - (big ? 10 : 8);
+      r(cx - 1, top - 2, 2, 3, '#ffd34a'); r(cx - 2, top - 1, 4, 1, '#ffd34a'); r(cx, top - 3, 1, 1, '#fff6c0'); // 꼭대기 별
+      r(cx - 5, h - 3, 10, 2, 'rgba(244,249,255,0.85)');                                             // 발밑 눈
+    }, x, y);
+    if (o) { o.xmas = lights.map(([lx, ly, c]) => [lx, ly, c]); o.prop = 'tree'; }
+    return o;
+  }
   function treeObj(x, y, kindT) {
+    if (xmas) return xmasTree(x, y, kindT === 'round' || kindT === 'pers');
     if (kindT === 'bamboo') return makeObj(14, 46, (x2) => { for (let k = 0; k < 3; k++) bamboo(x2, 2 + k * 4, 46, 30 + k * 5, k === 1); }, x, y);
     if (kindT === 'dead') return makeObj(18, 26, (x2) => deadTree(x2, 8, 25), x, y);
     if (kindT === 'pers') return makeObj(20, 30, (x2) => persimmon(x2, 10, 29), x, y);
@@ -217,7 +238,7 @@ const Scene = (() => {
     const place = (n, fn, kindP) => { for (let k = 0, m = 0; k < 80 && m < n; k++) { const x = (2 + rr() * (TW - 4)) * T, y = (4 + rr() * (TH - 7)) * T; if (busy(x, y) || tileAt(x, y) !== 0) continue; const before = objs.length; fn(x, y); const o = objs[before]; if (o && kindP) { o.prop = kindP; o.key = `${kindP}${region}_${pk++}`; } m++; } };
     if (P.id === 'village') place(3, (x, y) => makeObj(10, 24, (x2) => x2.drawImage(SP.jangseung(), 0, 1), x, y), 'jangseung');
     if (P.id === 'market') place(3, (x, y) => makeObj(24, 12, (x2) => jars(x2, 3, 11), x, y), 'jars');
-    if (P.id === 'pass') { place(2, (x, y) => makeObj(16, 18, (x2) => cairn(x2, 8, 17), x, y), 'cairn'); place(1, (x, y) => makeObj(26, 46, (x2) => tree(x2, 12, 45), x, y), 'tree'); }
+    if (P.id === 'pass') { place(2, (x, y) => makeObj(16, 18, (x2) => cairn(x2, 8, 17), x, y), 'cairn'); place(1, (x, y) => xmas ? xmasTree(x, y, true) : makeObj(26, 46, (x2) => tree(x2, 12, 45), x, y), 'tree'); }
     if (P.id === 'field') place(4, (x, y) => makeObj(10, 20, (x2) => statue(x2, 2, 19), x, y), 'statue');
     if (P.id === 'gate') place(4, (x, y) => { makeObj(12, 22, (x2) => stoneLamp(x2, 2, 21), x, y); }, 'lamp');
     if (P.id === 'hell') place(4, (x, y) => { makeObj(18, 18, (x2) => cauldron(x2, 2, 17), x, y); lanterns.push({ x, y: y - 8, col: '#ff7a20', r: 9, a: 0.3 }); }, 'cauldron');
@@ -361,7 +382,6 @@ const Scene = (() => {
   }
   // 겨울 이벤트 팥 영혼: 저승사자 본인이 가장 먼저 거두러 감 (졸개는 안 건드림)
   function spawnPat() {
-    if (souls.some(s => s.pat && s.st !== 'done')) return true;
     for (let k = 0; k < 30; k++) { const x = camX + W * rnd(0.2, 0.8), y = camY + H * rnd(0.4, 0.8); if (walkable(x, y)) { souls.push({ x, y, tier: 0, sp: -1, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true; } }
     const [x, y] = randGround(); souls.push({ x, y, tier: 0, sp: -1, ph: 0, t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true;
   }
@@ -616,6 +636,7 @@ const Scene = (() => {
     const list = [];
     objs.forEach(o => { if (vis(o.x + o.img.width / 2, o.base, o.img.width)) list.push({ y: o.base, f: () => {
       g.drawImage(o.img, Math.round(o.x - camX), Math.round(o.y - camY));
+      if (o.xmas) { const LC = ['#ff4a5a', '#ffd34a', '#5ab8ff', '#7aff9a']; o.xmas.forEach(([lx, ly, c], j) => { const on = Math.sin(time * 3 + j * 1.7 + o.x) > -0.2; const col = LC[(c + Math.floor(time * 1.2)) % 4]; g.fillStyle = on ? col : '#2a3a2a'; g.fillRect(Math.round(o.x + lx - camX), Math.round(o.y + ly - camY), 1, 1); if (on) glow(o.x + lx - camX, o.y + ly - camY, 2, col, 0.35); }); }
       if (!o.prop || !hooks.propReady) return;
       const cx = Math.round(o.x + o.img.width / 2 - camX), ready = hooks.propReady(o.key);
       if (o.prop === 'lamp' && !ready) { glow(cx, o.y + 7 - camY, 8, '#ffcf6a', 0.32 + Math.sin(time * 6 + o.x) * 0.05); g.fillStyle = '#ffe08a'; g.fillRect(cx - 1, Math.round(o.y + 6 - camY), 2, 2); }
@@ -743,6 +764,7 @@ const Scene = (() => {
       requestAnimationFrame(loop);
     },
     resize,
+    setXmas(on) { on = !!on; if (on !== xmas) { xmas = on; if (groundC) build(); } },
     setRegion(i) { const n = Math.max(0, Math.min(REGIONS.length - 1, i)); if (n !== region || !groundC) { region = n; build(); } },
     setKind(k) { kind = k; }, setRank(r) { rank = r; }, setReborn(n) { rbTier = n || 0; }, rbDraw(ctx, x, y, h, t, tm, layer) { // 다른 캔버스(윤회 미리보기)에 윤회 이펙트 그리기. layer: 'under' 캐릭터 뒤 · 'over' 앞
       const sv = [g, camX, camY, rbTier, time]; g = ctx; camX = 0; camY = 0; rbTier = t; time = tm;
@@ -789,7 +811,7 @@ const Scene = (() => {
     focusClue(ch) { const p = clueSpot(ch); camX = p.x - W / 2; camY = p.y - H / 2; follow = false; followAt = time + 8; },
     focus(id) { const p = POIS.find(q => q.id === id) || POIS.find(q => q.id === 'stall'); if (p) { camX = p.x + p.w / 2 - W / 2; camY = p.y + p.h / 2 - H / 2; follow = false; followAt = time + 8; } },
     burstAt(xc, yc, col, n) { burst(xc / S + camX, yc / S + camY, col, n, 40); },
-    spawnPat, hasPat: () => souls.some(s => s.pat && s.st !== 'done'),
+    spawnPat, patCount: () => souls.filter(s => s.pat && s.st !== 'done').length,
     soulNear() { for (const [fx, fy] of [[0.4, 0.62], [0.3, 0.7], [0.5, 0.75], [0.35, 0.5], [0.2, 0.6]]) { const x = camX + W * fx, y = camY + H * fy; if (walkable(x, y)) { souls.push({ x, y, tier: 0, sp: -1, ph: 0, t: 0, st: 'float', who: null, a: 1, h: 9, tut: 1 }); follow = false; followAt = time + 30; return; } } },
     groundSpot() {
       for (const [dx, dy] of [[34, 10], [-34, 10], [30, -20], [-30, -20], [0, 30], [40, 30], [-40, 30]]) {

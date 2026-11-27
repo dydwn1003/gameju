@@ -50,13 +50,13 @@ const Push = (() => {
     if (s.mail) { const n = Life.mailCount(); if (n < MAIL_MAX) add(31, Life.mailNext() + (MAIL_MAX - 1 - n) * 4 * 3600, '🐦 까치 우편함이 가득 찼어요', '까치가 선물을 잔뜩 물어 왔어요. 우편함이 넘치기 전에 열어 보세요!', 5, '까치 우편'); }
     // 6) 백귀야행
     if (s.parade && s.parade.next > now) add(32, (s.parade.next - now) / 1000, '👹 백귀야행이 나타났어요', '요괴 행렬이 저승 길을 지나가요. 지금 들어오면 보상을 받을 수 있어요!', 7, '백귀야행');
-    // 7) 아침 9시: 출석 · 일일 의뢰 · 운세가 새로 열렸다고 (하루 기준은 한국 시간 자정) · 3일치 미리
+    // 7) 아침 9시(한국 시간): 출석 · 일일 의뢰 · 운세가 새로 열렸다고 (하루 기준은 한국 시간 자정) · 3일치 미리
     //    오늘 아직 출석 안 했고 9시 전이면 오늘 9시부터, 아니면 내일 9시부터
-    { const d = new Date(now); d.setHours(9, 0, 0, 0); if (d.getTime() <= now || !Game.attendState().can) d.setDate(d.getDate() + 1);
+    { const d = new Date(Date.parse(kstDay(now) + 'T09:00:00+09:00')); if (d.getTime() <= now || !Game.attendState().can) d.setTime(d.getTime() + 864e5); // 한국 시간 아침 9시
       const M = [['📅 오늘의 출석 · 의뢰가 열렸어요', `출석 도장 · 일일 의뢰 · 무당 운세가 기다려요. 연속 출석 7일째엔 옥 ${ATTEND[6]}개!`],
                  ['📅 출석 도장 찍으러 오세요', '오늘의 출석 보상과 새 의뢰가 기다리고 있어요. 연속 출석이 끊기기 전에!'],
                  ['📅 저승 근무 시간이에요', '출석 보상 · 일일 의뢰 · 백귀야행이 새로 준비됐어요.']];
-      for (let k = 0; k < 3; k++) { const t = new Date(d); t.setDate(d.getDate() + k); add(40 + k, (t.getTime() - now) / 1000, M[k][0], M[k][1], 8, '출석', true); } }
+      for (let k = 0; k < 3; k++) { const t = new Date(d.getTime() + k * 864e5); add(40 + k, (t.getTime() - now) / 1000, M[k][0], M[k][1], 8, '출석', true); } }
     // 7-1) 지도 소품: 오래 걸리는 것(망각의 석상 2시간 · 장승 4시간 · 돌탑 6시간)이 다시 열릴 때 (가장 먼저 열리는 하나)
     { const long = Object.keys(Life.PROP).filter(k => Life.PROP[k].cd >= 2 * 3600); let first = null;
       Object.entries(s.props || {}).forEach(([key, t]) => { const kd = long.find(k => key.startsWith(k)); if (kd && t > now && (!first || t < first.t)) first = { t, kd }; });

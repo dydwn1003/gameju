@@ -1,5 +1,6 @@
 // ===== 겨울 이벤트 '동짓날 팥죽' (2026-12-03 0시 ~ 12-31 업데이트 전, 한국 시간) =====
-// - 게임을 켜 두고 있으면(화면이 보이는 동안만) 30분마다 맵에 '팥 영혼'이 하나 나타남 → 눌러서 모음 (자리 비움 · 꺼 둔 시간은 안 셈)
+// - 게임을 켜 두면 30분마다 맵에 '팥 영혼'이 하나씩 나타남 (못 먹어도 쌓임) → 저승사자가 거두거나 눌러서 모음
+// - 접속하지 않은 동안은 30분 넘게 지나도 하나만 나옴
 // - 20개: 겨울 소품 '동짓날 팥죽 가마솥' · 40개: SS 영물 '눈꽃 백록'
 // - 끝나는 시각은 서버 docs 'config/event' 의 winterEnd(ISO 문자열)로 바꿀 수 있음 (없으면 12-31 24시)
 const WINTER = {
@@ -18,19 +19,24 @@ const Winter = (() => {
   let endOverride = null, onSpawn = null;
   const S = () => Game.S;
   const now = () => Date.now() + (window.__evShift || 0);          // __evShift: 미리보기에서 날짜 옮기기용
-  const st = () => { const s = S(); s.ev = s.ev || {}; return s.ev[WINTER.id] || (s.ev[WINTER.id] = { n: 0, prog: 0, ready: false, got: {}, seen: false }); };
+  const st = () => { const s = S(); s.ev = s.ev || {}; const e = s.ev[WINTER.id] || (s.ev[WINTER.id] = { n: 0, prog: 0, pend: 0, got: {}, seen: false, last: 0 }); if (e.ready) { e.pend = (e.pend || 0) + 1; delete e.ready; } e.pend = e.pend || 0; return e; };
   const end = () => endOverride || WINTER.end;
   const active = () => { const t = now(); return t >= WINTER.start && t < end(); };
   const done = () => st().n >= WINTER.max;
-  // 화면이 보이는 동안만 진행 (dt 가 1초를 넘으면 앱이 뒤에 있다 돌아온 것 → 안 셈)
+  const room = () => WINTER.max - st().n - st().pend;     // 더 나올 수 있는 개수 (모은 것 + 맵에 있는 것 ≤ 40)
+  // 켜 둔 동안: 30분마다 하나씩 계속 나옴 (못 먹어도 쌓임)
+  // 접속 안 한 동안: 30분 넘게 지나도 하나만 (다시 켰을 때 한 번 더함)
   function tick(dt) {
-    if (!active() || !S().kind || document.hidden || !(dt > 0) || dt > 1) return;
-    const e = st(); if (e.ready || done()) return;
+    if (!active() || !S().kind || document.hidden || !(dt > 0)) return;
+    const e = st(), t = now();
+    if (e.last && t - e.last > 60e3) { if (room() > 0 && e.prog + (t - e.last) / 1000 * (window.__evSpeed || 1) >= WINTER.per) { e.pend++; e.prog = 0; Game.save(); if (onSpawn) onSpawn(); } }
+    e.last = t;
+    if (dt > 1 || room() <= 0) return;
     e.prog += dt * (window.__evSpeed || 1);
-    if (e.prog >= WINTER.per) { e.prog = 0; e.ready = true; Game.save(); if (onSpawn) onSpawn(); }
+    if (e.prog >= WINTER.per) { e.prog = 0; e.pend++; Game.save(); if (onSpawn) onSpawn(); }
   }
   // 맵에 나타난 팥 영혼 줍기
-  function collect() { const e = st(); if (!e.ready || !active()) return 0; e.ready = false; e.n = Math.min(WINTER.max, e.n + 1); Game.save(); return e.n; }
+  function collect() { const e = st(); if (e.pend <= 0 || !active()) return 0; e.pend--; e.n = Math.min(WINTER.max, e.n + 1); Game.save(); return e.n; }
   const claimable = g => st().n >= g.n && !st().got[g.id];
   function claim(i) {
     const g = WINTER.goals[i], e = st(); if (!g || !claimable(g)) return null;
@@ -39,10 +45,10 @@ const Winter = (() => {
     e.got[g.id] = 1; Game.save(); return g;
   }
   const left = () => Math.max(0, end() - now());
-  const nextIn = () => st().ready ? 0 : Math.max(0, WINTER.per - st().prog) / (window.__evSpeed || 1);
-  const hasDot = () => active() && (st().ready || WINTER.goals.some(claimable));
+  const nextIn = () => Math.max(0, WINTER.per - st().prog) / (window.__evSpeed || 1);
+  const hasDot = () => active() && (st().pend > 0 || WINTER.goals.some(claimable));
   return {
-    active, st, tick, collect, claim, claimable, left, nextIn, hasDot, done,
+    active, st, room, tick, collect, claim, claimable, left, nextIn, hasDot, done,
     goals: WINTER.goals, max: WINTER.max, per: WINTER.per, startAt: WINTER.start, endAt: end,
     setEnd: ms => { if (ms > 0) endOverride = ms; }, onSpawn: f => { onSpawn = f; },
   };

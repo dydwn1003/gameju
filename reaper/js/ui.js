@@ -301,13 +301,14 @@ const UI = (() => {
   function winterHud(spawned) {
     const on = Winter.active(), b = $('#btn-winter'); if (!b) return;
     b.hidden = !on; $('#snow').hidden = !on || Scene.inOffice();
-    if (!on) return;
+    if (!on) { Scene.setXmas(false); return; }
     const e = Winter.st();
     if (!$('#winter-ic').src) $('#winter-ic').src = patIcon(2);
     $('#winter-t').textContent = `${e.n}/${Winter.max}`;
     b.querySelector('.dot').classList.toggle('on', Winter.hasDot());
-    if (e.ready && !Scene.inOffice() && !Scene.hasPat()) Scene.spawnPat(); // 맵에 진짜 혼령처럼 나타남 → 저승사자가 거두거나 눌러서 거둠
-    const nx = $('#wv-next'); if (nx) nx.textContent = e.ready ? '맵에 나타났어요!' : Winter.done() ? '모두 모았어요' : mmss(Winter.nextIn());
+    Scene.setXmas(on);
+    if (!Scene.inOffice()) { let k = e.pend - Scene.patCount(); while (k-- > 0) Scene.spawnPat(); } // 맵에 진짜 혼령처럼 나타남 → 저승사자가 거두거나 눌러서 거둠
+    const nx = $('#wv-next'); if (nx) nx.textContent = Winter.room() <= 0 ? (Winter.done() ? '모두 모았어요' : '맵에 나타났어요!') : mmss(Winter.nextIn());
     if (!winterIntro && !e.seen && S().tut === 'done' && !$('#modal').classList.contains('on') && !document.getElementById('tut') && !parade) { winterIntro = true; e.seen = true; Game.save(); setTimeout(winterBox, 600); }
   }
   function patCollected(x, y) {
@@ -326,12 +327,12 @@ const UI = (() => {
         <button class="btn ${can ? 'red' : 'dark'}" data-wg="${i}" ${can ? '' : 'disabled'}>${got_ ? '받음 ✓' : can ? '받기' : `${Math.min(e.n, g.n)}/${g.n}`}</button></div>`;
     };
     const box = modal(`<div class="wv"><div class="wv-hd"><div class="wv-sn">${Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 53) % 100}%;width:${2 + (i % 3)}px;height:${2 + (i % 3)}px;animation-duration:${5 + (i * 7) % 5}s;animation-delay:-${(i * 11) % 7}s"></i>`).join('')}</div><span class="wv-tag">겨울 한정 이벤트</span><h2>동짓날 팥죽</h2><p>남은 기간 ${dleft(Winter.left())} · 12월 31일까지</p></div>
-      <div class="wv-how"><img class="px" src="${patIcon(4)}"><p><b>게임을 켜 두면 30분마다 팥 영혼이 나타나요</b><br>맵에 나타난 팥 영혼을 눌러서 모아 보세요<small>꺼 두거나 다른 앱을 보는 시간은 세지 않아요</small></p></div>
-      <div class="wv-prog"><div class="wv-top"><span><img class="px" src="${patIcon(2)}"> <b>${e.n}</b> / ${Winter.max}</span><span class="wv-nx">다음 팥 영혼 <b id="wv-next">${e.ready ? '맵에 나타났어요!' : Winter.done() ? '모두 모았어요' : mmss(Winter.nextIn())}</b></span></div>
+      <div class="wv-how"><img class="px" src="${patIcon(4)}"><p><b>게임을 켜 두면 30분마다 팥 영혼이 나타나요</b><br>맵에 나타난 팥 영혼을 눌러서 모아 보세요<small>접속하지 않은 동안에는 1개까지만 모여요</small></p></div>
+      <div class="wv-prog"><div class="wv-top"><span><img class="px" src="${patIcon(2)}"> <b>${e.n}</b> / ${Winter.max}</span><span class="wv-nx">다음 팥 영혼 <b id="wv-next">${Winter.room() <= 0 ? (Winter.done() ? '모두 모았어요' : '맵에 나타났어요!') : mmss(Winter.nextIn())}</b></span></div>
         <div class="wv-bar"><i style="width:${pct}%"></i><em style="left:50%" class="${e.n >= 20 ? 'on' : ''}">20</em><em style="left:100%" class="${e.n >= 40 ? 'on' : ''}">40</em></div></div>
       <div class="wv-goals">${Winter.goals.map(goal).join('')}</div></div>
-      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    box.classList.add('wv-box'); const mx = box.querySelector('.m-x'), hd = box.querySelector('.wv-hd'); if (mx && hd) hd.appendChild(mx); // 닫기 버튼을 머리 안 오른쪽 위에 맞춤
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`, true);
+    box.classList.add('wv-box');
     box.querySelectorAll('[data-wg]').forEach(bt => bt.onclick = () => {
       const g = Winter.claim(+bt.dataset.wg); if (!g) return; Sound.play('buy'); closeModal(); render(); winterHud();
       if (g.kind === 'decor') got(`<b>${Decor.D(g.id).name}</b><br>집무실 꾸미기에서 놓을 수 있어요`, { src: decoThumb(g.id, 5), title: '겨울 소품 획득!', then: winterBox });
@@ -2192,7 +2193,7 @@ const UI = (() => {
   // 백귀야행: 하루 5번 + 옥 120개로 하루 3번 더
   const PARADE_FREE = 5, PARADE_BUY = 3, PARADE_JADE = 120; // 하루 5번 + 옥으로 3번 더
   function paradeDay() { const pr = S().parade, d = kstDay(); if (!pr.day || pr.day.d !== d) pr.day = { d, n: 0, buy: 0 }; return pr.day; }
-  const paradeMidnight = () => Date.parse(paradeDay().d) + 864e5;
+  const paradeMidnight = () => Date.parse(paradeDay().d + 'T00:00:00+09:00') + 864e5; // 다음 한국 시간 자정
   function paradeAsk() {
     if (parade) return;
     const pr = S().parade, pd = paradeDay(), left = (pr.next - Date.now()) / 1000;
