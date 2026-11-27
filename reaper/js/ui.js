@@ -730,12 +730,13 @@ const UI = (() => {
     if (Scene.inArena && Scene.inArena()) { document.querySelectorAll('.plabel').forEach(e => e.classList.add('hide')); return; }
     Scene.labels().forEach(l => {
       const e = document.getElementById('lb-' + l.id); if (!e) return;
-      e.classList.toggle('hide', !l.vis);
-      if (!l.vis) return;
+      const dup = l.id === 'stall' && Life.merchantHere();   // 도깨비 상인이 오면 상인 이름표만 남기고 노점 이름표는 숨김 (겹쳐 보이던 것)
+      e.classList.toggle('hide', !l.vis || dup);
+      if (!l.vis || dup) return;
       e.style.left = l.x + 'px'; e.style.top = l.y + 'px';
       const hot = l.id.startsWith('n_') ? npcHot(l.id.slice(2)) : (l.id === 'garden' && al.garden) || (l.id === 'stall' && Life.merchantHere()) || (l.id === 'office' && Life.docsCount() > 0);
       e.classList.toggle('hot', !!hot);
-      if (l.id === 'stall') e.textContent = Life.merchantHere() ? '도깨비 상인!' : '노점';
+      if (l.id === 'stall') e.textContent = '노점';
     });
   }
   function npcHot(id) {
