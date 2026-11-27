@@ -706,7 +706,7 @@ const Scene = (() => {
         let img = n.id === 'santa' ? santaImg(Math.floor(time * 2)) : n.id === 'deer' ? sleighImg(Math.floor(time * 1.5)) : n.id === 'judge' ? SP.tinyReaper('m', 5, 'down', 'idle', Math.floor(time * 2.5)) : n.id === 'kkachi' ? SP.pet(PETS[0], Math.floor(time * 2)) : SP.npct(n.id, Math.floor(time * 2.5));
         if (!n.perch) shadow(n.x, n.y, 8);
         const im = sprite(img, n.x, n.y, (n.face || 1) < 0);
-        if (hooks.npcHot && hooks.npcHot(n.id)) { const ex = Math.round(n.x - camX), ey = Math.round(n.y - camY - im.height - 6 + Math.sin(time * 5) * 1.5); g.fillStyle = '#0f0c18'; g.fillRect(ex - 2, ey - 1, 5, 9); g.fillStyle = '#ffd34a'; g.fillRect(ex - 1, ey, 3, 4); g.fillRect(ex - 1, ey + 5, 3, 2); }
+        if (hooks.npcHot && hooks.npcHot(n.id)) { const ex = Math.round((n.lx != null ? n.lx : n.x) - camX), ey = Math.round(n.y - camY - im.height - 6 + Math.sin(time * 5) * 1.5); g.fillStyle = '#0f0c18'; g.fillRect(ex - 2, ey - 1, 5, 9); g.fillStyle = '#ffd34a'; g.fillRect(ex - 1, ey, 3, 4); g.fillRect(ex - 1, ey + 5, 3, 2); }
       } });
     }
     [reaper, ...minions].forEach(u => { if (!vis(u.x, u.y)) return; list.push({ y: u.y, f: () => {
