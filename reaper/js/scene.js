@@ -236,7 +236,7 @@ const Scene = (() => {
       { id: 'jumo', x: tvx - 12, y: tvy + 10 }, { id: 'elder', x: bdx + 2, y: bdy + 10, face: -1 }, { id: 'gob', x: stx, y: sty + 10, face: -1, cond: 'merchant' },
       { id: 'mudang', x: mdx, y: mdy + 10 }, { id: 'kkachi', x: bdx, y: bdy - 22, perch: 1 },
       { id: 'sansin', x: shx + 2, y: shy + 10 }, { id: 'judge', x: gtx + 30, y: gty - 2, face: -1 }, { id: 'boat', x: gtx - 30, y: gty - 2 },
-      { id: 'santa', x: stx - 9, y: sty - 44, cond: 'xmas' }, { id: 'deer', x: stx + 10, y: sty - 44, cond: 'xmas' },   // 산타와 1픽셀 간격   // 노점 바로 위에 나란히   // 겨울 이벤트 기간에만: 산타 · 순록
+      { id: 'santa', x: stx - 22, y: sty - 44, cond: 'xmas' }, { id: 'deer', x: stx + 10, y: sty - 44, cond: 'xmas' },   // 산타와 1픽셀 간격   // 노점 바로 위에 나란히   // 겨울 이벤트 기간에만: 산타 · 순록
     ];
     // 길가 등불
     for (let x = 2; x < TW - 1; x += 5) if (Math.abs(x - 12.5) > 3) lampPost(x * T + 8, 13.6 * T, region >= 7);
@@ -493,7 +493,7 @@ const Scene = (() => {
   const XPAL = { K: '#1a0f14', R: '#d8323c', r: '#9a1c28', W: '#f4ecdc', w: '#c8bfae', S: '#f0c8a0', E: '#2a1a1a', N: '#e89a88', B: '#2a2028', G: '#ffd34a', D: '#8a5a34', d: '#5e3a20', L: '#d8b48a', v: '#c8a070', V: '#8a6a40', O: '#3a2418', g: '#2f8a4a', y: '#ffe08a' };
   const SANTA = ['....KKKKK....', '...KRRRRRKK..', '..KRRRRRRRWK.', '..KWWWWWWWKK.', '..KSSSSSSSK..', '..KSESSSESK..', '.KWWSSNSSWWK.', '.KWWWWWWWWWK.', 'KRKWWWWWWWKRK', 'KRRKWWWWWKRRK', 'KSRRRKWKRRRSK', '.KRRRRWRRRRK.', '.KBBBBGBBBBK.', '.KRRRRWRRRRK.', '.KWWWWWWWWWK.', '..KBBK.KBBK..', '..KKKK.KKKK..'];
   const SACK = ['..KK..', '.KyyK.', 'KgggK.', 'KggggK', 'KggggK', '.KKKK.'];
-  const DEER = ['v.v..v.v..........', 'vVv.vVv.v.........', '.vVvVv.vV.........', '..vVVvVv..........', '...vVVv...........', '....KK............', '...KDDK...........', '.KKDEDDK..........', 'KODDDDDK..........', '.KKLDDDKKKKKKKK...', '...KDDDDDDDDDDDKK.', '...KDLLLLDDDDDDDLK', '...KDDDDDDDDDDDK..', '....KDK.KDK.KDK.KDK', '....KdK.KdK.KdK.KdK', '....KK..KK..KK..KK.'];
+  const DEER = ['v.v..v.v...........', 'vVv.vVv.v..........', '.vVvVv.vV..........', '..vVVvVv...........', '...vVVv............', '....KK.............', '...KDDK............', '.KKDEDDK...........', 'KODDDDDK...........', '.KKLDDDKKKKKKKKK...', '...KDDDDDDDDDDDKLK.', '...KDLLLLDDDDDDKLLK', '...KDDDDDDDDDDDKKK.', '....KDKKDK.KDKKDK..', '....KdKKdK.KdKKdK..', '....KK.KK..KK.KK...'];   // 왼쪽을 보는 순록 (그릴 때 뒤집어 썰매 앞에서 앞을 봄)
   const xmasImg = {};
   function pixImg(key, rows, dy) {
     const k = key + dy; if (xmasImg[k]) return xmasImg[k];
@@ -507,6 +507,27 @@ const Scene = (() => {
     x2.drawImage(b, 0, c.height - b.height); x2.drawImage(s, b.width - 1, 0); return (xmasImg[k] = c);   // 자루는 왼쪽, 산타는 순록 쪽
   }
   const deerImg = f => pixImg('d', DEER, f % 4 === 1 ? 1 : 0);
+  // 선물이 가득 든 썰매 + 앞에서 끄는 순록 (오른쪽을 봄)
+  function sleighImg(f) {
+    const k = 'sleigh' + (f % 4 === 1 ? 1 : 0); if (xmasImg[k]) return xmasImg[k];
+    const d = deerImg(f), SW = 23, SH = 16, c = document.createElement('canvas'); c.width = SW + 2 + d.width; c.height = Math.max(SH, d.height); const x2 = c.getContext('2d'), oy = c.height - SH;
+    const P = (col, x, y, w, h) => { x2.fillStyle = col; x2.fillRect(x, y + oy, w, h); };
+    const box = (x, y, w, h, col, rib) => { P('#1a0f14', x, y, w, h); P(col, x + 1, y + 1, w - 2, h - 2); const m = x + Math.floor(w / 2); P(rib, m, y + 1, 1, h - 2); P(rib, x + 1, y + Math.floor(h / 2), w - 2, 1); P(rib, m - 1, y - 1, 1, 1); P(rib, m + 1, y - 1, 1, 1); };
+    // 선물 더미 (썰매 안에 가득)
+    box(1, 5, 6, 5, '#2f8a4a', '#ffd34a'); box(6, 5, 5, 5, '#3a6ad8', '#f4ecdc'); box(10, 5, 6, 5, '#7a4ab0', '#ffd34a'); box(15, 5, 5, 5, '#ff8ac0', '#f4ecdc');   // 아랫줄 (빈틈 없이)
+    box(3, 1, 6, 5, '#d8323c', '#ffd34a'); box(8, 2, 5, 4, '#ffd34a', '#d8323c'); box(12, 1, 6, 5, '#2f8a4a', '#d8323c');   // 윗줄 (수북하게)
+    // 썰매 몸통
+    P('#1a0f14', 0, 5, 3, 7); P('#d8323c', 1, 6, 1, 5);                  // 등받이
+    P('#1a0f14', 0, 8, 21, 5); P('#d8323c', 1, 9, 19, 3); P('#ffd34a', 1, 9, 19, 1); P('#9a1c28', 1, 11, 19, 1);
+    P('#1a0f14', 19, 6, 3, 4); P('#d8323c', 20, 7, 1, 2);                 // 앞 머리
+    P('#1a0f14', 4, 13, 1, 2); P('#1a0f14', 15, 13, 1, 2);               // 다리
+    P('#c89a3a', 1, 15, 21, 1); P('#1a0f14', 22, 12, 1, 4); P('#c89a3a', 21, 14, 1, 1);   // 썰매 날
+    // 고삐
+    P('#8a5a34', SW - 1, 10, 4, 1);
+    // 순록 (뒤집어서 오른쪽을 봄)
+    x2.save(); x2.translate(c.width, 0); x2.scale(-1, 1); x2.drawImage(d, 0, c.height - d.height); x2.restore();
+    return (xmasImg[k] = c);
+  }
   function sprite(img, x, y, flip) { const im = flip ? flipOf(img) : img; g.drawImage(im, Math.round(x - camX - im.width / 2), Math.round(y - camY - im.height + 1)); return im; }
   // 계급 아우라: 발밑 기운 + 떠오르는 빛가루 (계급이 오를수록 진하고 많아짐)
   const AURA = [null, ['#9ab0d8'], ['#6fb0ff'], ['#c8d0ff', '#ffffff'], ['#ffd34a', '#6fb0ff'], ['#ff5a5a', '#ffb0b0'], ['#ff3a5a', '#ffd34a'], ['#6a8aff', '#ffd34a', '#ffffff'], ['#ffd34a', '#ff7a30', '#fff0a0']];
@@ -682,7 +703,7 @@ const Scene = (() => {
     for (const n of NPCS) {
       if (n.cond === 'merchant' && !cfg.merchant) continue; if (n.cond === 'xmas' && !xmas) continue; if (!vis(n.x, n.y)) continue;
       list.push({ y: n.y, f: () => {
-        let img = n.id === 'santa' ? santaImg(Math.floor(time * 2)) : n.id === 'deer' ? deerImg(Math.floor(time * 1.5)) : n.id === 'judge' ? SP.tinyReaper('m', 5, 'down', 'idle', Math.floor(time * 2.5)) : n.id === 'kkachi' ? SP.pet(PETS[0], Math.floor(time * 2)) : SP.npct(n.id, Math.floor(time * 2.5));
+        let img = n.id === 'santa' ? santaImg(Math.floor(time * 2)) : n.id === 'deer' ? sleighImg(Math.floor(time * 1.5)) : n.id === 'judge' ? SP.tinyReaper('m', 5, 'down', 'idle', Math.floor(time * 2.5)) : n.id === 'kkachi' ? SP.pet(PETS[0], Math.floor(time * 2)) : SP.npct(n.id, Math.floor(time * 2.5));
         if (!n.perch) shadow(n.x, n.y, 8);
         const im = sprite(img, n.x, n.y, (n.face || 1) < 0);
         if (hooks.npcHot && hooks.npcHot(n.id)) { const ex = Math.round(n.x - camX), ey = Math.round(n.y - camY - im.height - 6 + Math.sin(time * 5) * 1.5); g.fillStyle = '#0f0c18'; g.fillRect(ex - 2, ey - 1, 5, 9); g.fillStyle = '#ffd34a'; g.fillRect(ex - 1, ey, 3, 4); g.fillRect(ex - 1, ey + 5, 3, 2); }
