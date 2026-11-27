@@ -18,7 +18,7 @@ const Board = (() => {
     if (!ready || !Game.S || !Game.S.kind || !Game.S.nickSet) return; // 닉네임을 정해야 순위에 오른다
     if (owner === null) { await isOwner(); if (owner === null) return; } // 운영자인지 모르면 올리지 않음
     if (owner) { if (!ownerOff) { ownerOff = true; try { await db.doc('rank/' + uid).delete(); } catch (e) {} } return; } // 운영자는 순위에서 빠짐 (올려 둔 기록도 지움)
-    const s = Game.S, row = { score: score(s), lv: Game.level(), rank: s.rank, rb: s.reborn || 0, kind: s.kind, nick: s.name, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 0 : 0, pt: Math.floor((s.playSec || 0) / 60) * 60 }; // pt: 실제 접속 시간(분 단위)
+    const s = Game.S, row = { score: score(s), lv: Game.level(), rank: s.rank, rb: s.reborn || 0, kind: s.kind, nick: s.name, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 0 : 0, pt: Math.floor((s.playSec || 0) / 60) * 60, dc: Winter.deco() }; // dc: 꾸미기(목도리 s · 사슴뿔 a) · pt: 실제 접속 시간(분 단위)
     const sig = JSON.stringify(row);
     if (sig === lastSent || (!force && Date.now() - lastAt < 60e3)) return;
     lastSent = sig; lastAt = Date.now();
@@ -49,7 +49,7 @@ const Board = (() => {
   const timeout = (p, ms = 10000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
   async function pushOffice() {
     if (!ready || !Game.S || !Game.S.kind || !Game.S.nickSet) return;
-    const s = Game.S, dc = Decor.ensure(), row = { nick: s.name, rank: s.rank, kind: s.kind, rb: s.reborn || 0, placed: dc.placed.map(p => ({ id: p.id, gx: p.gx, gy: p.gy })), score: Decor.score(), likes: (s.officeLikes || 0) };
+    const s = Game.S, dc = Decor.ensure(), row = { nick: s.name, rank: s.rank, kind: s.kind, rb: s.reborn || 0, placed: dc.placed.map(p => ({ id: p.id, gx: p.gx, gy: p.gy })), score: Decor.score(), likes: (s.officeLikes || 0), dc: Winter.deco() };
     const sig = JSON.stringify(row); if (sig === lastOffice) return; lastOffice = sig;
     try { await db.doc('offices/' + uid).set(Object.assign(row, { at: Date.now() })); } catch (e) { lastOffice = ''; }
   }

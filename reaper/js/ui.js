@@ -403,7 +403,7 @@ const UI = (() => {
     dot('rank', Game.canTest() || Game.canReborn());
     $('#v-lv').textContent = 'Lv.' + Game.level();
     $('#me-nick').textContent = S().name || '';
-    if (!previews.some(p => p.c === $('#me-por'))) previews.push({ c: $('#me-por'), kind: S().kind || 'm', pose: 'idle', keep: 1, me: 1 });
+    if (!previews.some(p => p.c === $('#me-por'))) previews.push({ c: $('#me-por'), kind: S().kind || 'm', pose: 'idle', keep: 1, me: 1, dc: 1 });
     previews.forEach(p => { if (p.me) p.kind = S().kind || 'm'; });
     if (Game.canTest() && S().notified !== S().rank) { S().notified = S().rank; toast(`📜 레벨 ${Game.nextRank().lv} 달성! 승진할 수 있어요 (승진 탭)`, 3500); }
     dot('shop', Game.adLeft('jfree') > 0 || Game.adLeft('jade') > 0);
@@ -573,7 +573,7 @@ const UI = (() => {
     html += `<div class="sec">저승 직급표</div><div class="ladder pbox">` + RANKS.map((R, i) => `<div class="lad ${i < s.rank ? 'done' : i === s.rank ? 'now' : i === s.rank + 1 ? 'next' : ''}">
       <canvas width="44" height="51" data-rank="${i}"></canvas><span class="nm">${R.name} <small style="color:var(--mute)">· ${REGIONS[R.region].name}</small></span><span class="lvreq">${i ? 'Lv.' + R.lv : ''}</span><span class="m">×${fmt(R.mult)}</span></div>`).join('') + '</div>';
     P.innerHTML = html;
-    const add = (c, r, pose) => c && previews.push({ c, kind: s.kind || 'm', rank: r, pose });
+    const add = (c, r, pose) => c && previews.push({ c, kind: s.kind || 'm', rank: r, pose, dc: 1 });
     add($('#lk-now'), s.rank, 'idle'); if (N) add($('#lk-next'), s.rank + 1, 'idle');
     if ($('#mg-now')) previews.push({ c: $('#mg-now'), magic: s.rank, anchor: $('#lk-now') }); if ($('#mg-next')) previews.push({ c: $('#mg-next'), magic: s.rank + 1, anchor: $('#lk-next') });
     P.querySelectorAll('canvas[data-rank]').forEach(c => add(c, +c.dataset.rank, 'idle'));
@@ -820,7 +820,7 @@ const UI = (() => {
       ${row('명판결', fmt(s.judge ? s.judge.total || 0 : 0) + '건')}
       ${Board.place() ? row('순위', Board.place() + '위') : ''}
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
-    previews.push({ c: box.querySelector('#st-por'), prof: { kind: s.kind || 'm', rank: s.rank, pet, star: pet ? s.pets[pet.id] : 1 } });
+    previews.push({ c: box.querySelector('#st-por'), prof: { kind: s.kind || 'm', rank: s.rank, pet, star: pet ? s.pets[pet.id] : 1, me: 1 } });
   }
 
   // ---------- 구매 복원: 설명 → 확인 → 결과 ----------
@@ -976,12 +976,12 @@ const UI = (() => {
         <div class="pr-rank" style="color:${T.col}">${T.name}</div>
         <div class="pr-info">${t === 1 ? '저승의 모든 차사 위에 섰어요!<br>머리 위에 <b>황금 왕관</b>과 무지개 기운이 생겨요' : t === 2 ? '명예의 전당 상위 5위!<br>머리 위에 <b>은관</b>과 은빛 기운이 생겨요' : '명예의 전당 상위 10위!<br>머리 위에 <b>동별</b>과 동빛 기운이 생겨요'}<br><span>순위가 내려가면 이펙트도 사라져요</span></div>
         <button class="btn red" id="rk-go">계속 근무</button></div>`);
-    previews.push({ c: o.querySelector('#rk-me'), kind: S().kind, rank: S().rank, pose: 'reap', keep: 1 });
+    previews.push({ c: o.querySelector('#rk-me'), kind: S().kind, rank: S().rank, pose: 'reap', keep: 1, dc: 1 });
     o.querySelector('#rk-go').onclick = () => { closeOverlay(); Sound.play('open'); };
   }
-  const rankIcon = (kind, rank) => { const k = 'rk' + kind + rank; return urls[k] || (urls[k] = toURL(SP.tinyReaper(kind || 'm', rank || 0, 'down', 'idle', 0), 2)); };
+  const rankIcon = (kind, rank, dc) => { const k = 'rk' + kind + rank + (dc || ''); return urls[k] || (urls[k] = toURL(SP.tinyReaper(kind || 'm', rank || 0, 'down', 'idle', 0, dc || ''), 2)); };
   function rankRow(r, place, by) {
-    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b class="${rbCls(r.rb)}">${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · ${rbTitle(r.rb)}` : ''}${r.pt != null && by !== 'pt' ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">${by === 'pt' ? '⏱ ' + (r.pt != null ? fmtPlay(r.pt) : '-') : 'Lv.' + r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
+    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank, r.me ? (Winter.deco ? Winter.deco() : '') : r.dc)}"><div class="rki"><b class="${rbCls(r.rb)}">${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · ${rbTitle(r.rb)}` : ''}${r.pt != null && by !== 'pt' ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">${by === 'pt' ? '⏱ ' + (r.pt != null ? fmtPlay(r.pt) : '-') : 'Lv.' + r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
   }
   // 실제 접속 시간 표기
   const fmtPlay = sec => { sec = sec || 0; const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : `${m}분`; };
@@ -992,7 +992,7 @@ const UI = (() => {
     const box = modal(`<div class="pf"><canvas id="pf-cv" width="120" height="84"></canvas><h2>${esc(r.me ? (S().name || r.name) : r.name)}${r.me && (S().name || r.name) !== '나' ? ' <em>나</em>' : ''}</h2><span class="badge">${R.name}</span>
       <div class="pf-rows">${row('순위', place ? place + '위' : '-')}${row('레벨', 'Lv.' + (r.lv || 1))}${r.rb ? row('윤회', rbTitle(r.rb)) : ''}${row('플레이 시간', r.pt != null ? fmtPlay(r.pt) : '-')}${row('함께하는 영물', pet ? `${pet.name} ★${r.ps || 1} <small>(${pet.g})</small>` : '없음')}</div></div>
       <div class="acts">${r.id && !r.me ? `<button class="btn red" id="pf-visit">🏘️ 집무실 놀러 가기</button>` : ''}<button class="btn dark" data-act="close">닫기</button></div>`);
-    previews.push({ c: box.querySelector('#pf-cv'), prof: { kind: r.kind || 'm', rank: r.rank || 0, pet, star: r.ps || 1 } });
+    previews.push({ c: box.querySelector('#pf-cv'), prof: { kind: r.kind || 'm', rank: r.rank || 0, pet, star: r.ps || 1, me: !!r.me, dc: r.dc || '' } });
     const v = box.querySelector('#pf-visit'); if (v) v.onclick = () => { closeModal(); visitOffice(r.id); };
   }
   // 닉네임 정하기 (순위·이웃 집무실에 보이는 이름)
@@ -1009,7 +1009,7 @@ const UI = (() => {
       S().name = n; S().nickSet = true; Game.save(); Board.push(true); Board.pushOffice(); Sound.play('promote'); closeModal(); toast(`「${esc(n)}」(으)로 정했어요!`); after && after();
     };
   }
-  const mineProf = () => { const s = S(); return { name: s.nickSet ? s.name : '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 1 : 1, pt: s.playSec || 0 }; };
+  const mineProf = () => { const s = S(); return { dc: (Winter.deco ? Winter.deco() : ''), name: s.nickSet ? s.name : '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 1 : 1, pt: s.playSec || 0 }; };
   async function rankModal(by) {
     by = by === 'pt' ? 'pt' : 'lv';
     if (Board.online() && !S().nickSet) { nickModal(() => rankModal(by)); return; }
@@ -1051,7 +1051,7 @@ const UI = (() => {
       const rows = nbTab === 'friends' ? await Board.officesByIds(fr) : await Board.offices(nbTab === 'pop'); if (!document.body.contains(L)) return;
       if (!rows || !rows.length) { L.innerHTML = `<div class="rkload">${nbTab === 'friends' ? '아직 이웃이 없어요. 놀러 간 집무실에서 ➕ 이웃 추가를 눌러 보세요' : '아직 공개된 집무실이 없어요'}</div>`; return; }
       const list = nbTab === 'pop' ? rows : rows;
-      L.innerHTML = list.map((r, i) => { const t = nbTab === 'pop' ? Board.tierOf(i + 1) : 0, fd = fr.includes(r.id); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}">${nbTab === 'pop' ? `<span class="rkn">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span>` : ''}<img class="px" src="${rankIcon(r.kind, r.rank)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}${fd ? ' 👥' : ''}</b><small>${Scene.officeName(r.rank)} · 품격 ${r.score || 0}</small></div><span class="nb-like">👍 ${r.likes || 0}</span>${r.me ? '' : `<button class="btn" data-visit="${esc(r.id)}">놀러 가기</button>`}</div>`; }).join('');
+      L.innerHTML = list.map((r, i) => { const t = nbTab === 'pop' ? Board.tierOf(i + 1) : 0, fd = fr.includes(r.id); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}">${nbTab === 'pop' ? `<span class="rkn">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span>` : ''}<img class="px" src="${rankIcon(r.kind, r.rank, r.dc)}"><div class="rki"><b>${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}${fd ? ' 👥' : ''}</b><small>${Scene.officeName(r.rank)} · 품격 ${r.score || 0}</small></div><span class="nb-like">👍 ${r.likes || 0}</span>${r.me ? '' : `<button class="btn" data-visit="${esc(r.id)}">놀러 가기</button>`}</div>`; }).join('');
       L.querySelectorAll('[data-visit]').forEach(b => b.onclick = () => { closeModal(); visitOffice(b.dataset.visit); });
     } catch (e) { if (document.body.contains(L)) L.innerHTML = '<div class="rkload">불러오지 못했어요. 잠시 뒤 다시 열어 보세요.</div>'; }
   }
@@ -1568,7 +1568,7 @@ const UI = (() => {
         drawMagic(g, cx, cy, p.magic, t, p.msc || 1); return;
       }
       if (p.prof) { // 프로필: 마법진 → 영물 기운 → 저승사자 · 영물
-        const P = p.prof, W = p.c.width, H = p.c.height, f2 = Math.floor(t * 3), im = SP.reaper(P.kind, P.rank, 'idle', f2 % 4), ft = feetOf(P.kind, P.rank);
+        const P = p.prof, W = p.c.width, H = p.c.height, f2 = Math.floor(t * 3), im = SP.reaper(P.kind, P.rank, 'idle', f2 % 4, P.me ? (Winter.deco ? Winter.deco() : '') : P.dc || ''), ft = feetOf(P.kind, P.rank);
         const rx = Math.round(W * 0.36 - im.width / 2), ry = H - 8 - im.height, fx = rx + ft.x * im.width, fy = ry + ft.y * im.height;
         drawMagic(g, fx, fy, P.rank, t, 1.6);
         g.drawImage(im, rx, ry);
@@ -1581,7 +1581,7 @@ const UI = (() => {
         drawPetAura(g, W / 2, y + pm.height, pm.width, pm.height, p.pet.g, p.aura, t, 1); g.drawImage(pm, x, y); return;
       }
       const f = Math.floor(t * 3 + (p.ph || 0));
-      const img = p.pet ? SP.pet(p.pet, f) : p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.rank != null ? p.rank : S().rank, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4);
+      const img = p.pet ? SP.pet(p.pet, f) : p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.rank != null ? p.rank : S().rank, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4, p.dc ? (Winter.deco ? Winter.deco() : '') : '');
       g.drawImage(img, 0, 0, p.c.width, p.c.height);
     });
   }
@@ -1798,7 +1798,7 @@ const UI = (() => {
     const k = 'por' + sp + (sp === 'me' ? S().kind + S().rank : '');
     if (urls[k]) return urls[k];
     const dark = c0 => { const d = document.createElement('canvas'); d.width = c0.width; d.height = c0.height; const x2 = d.getContext('2d'); x2.filter = 'grayscale(1) brightness(0.55) sepia(1) hue-rotate(230deg) saturate(2.2)'; x2.drawImage(c0, 0, 0); return d; };
-    const c = sp === 'me' ? SP.reaper(S().kind || 'm', S().rank, 'idle', 0) : sp === 'gangrim' ? SP.reaper('m', 4, 'idle', 0) : sp === 'yeomra' ? SP.reaper('m', 8, 'idle', 0) : sp === 'wraith' ? SP.wraith(0)
+    const c = sp === 'me' ? SP.reaper(S().kind || 'm', S().rank, 'idle', 0, (Winter.deco ? Winter.deco() : '')) : sp === 'gangrim' ? SP.reaper('m', 4, 'idle', 0) : sp === 'yeomra' ? SP.reaper('m', 8, 'idle', 0) : sp === 'wraith' ? SP.wraith(0)
       : sp === 'judge' ? SP.reaper('m', 5, 'idle', 0) : sp === 'muk' ? dark(SP.reaper('m', 6, 'idle', 0)) : sp === 'minion' ? SP.mini('idle', 0) : sp === 'sib' ? SP.npc('elder') : sp === 'kkachi' ? SP.pet(PETS.find(p => p.id === 'kkachi'), 0) : SP.npc(sp);
     return (urls[k] = toURL(c, 5));
   }
@@ -2013,7 +2013,7 @@ const UI = (() => {
       if (!document.body.contains(c)) return;
       const now = performance.now(), t = (now - t0) / 1000, tm = now / 1000;
       ctx.clearRect(0, 0, c.width, c.height); ctx.imageSmoothingEnabled = false;
-      const im = SP.reaper(kind, rank, 'idle', Math.floor(tm * 3) % 4), ft = feetOf(kind, rank), h = Math.round(ft.y * im.height), ix = Math.round(X - ft.x * im.width), iy = Math.round(Y - ft.y * im.height); // 그림 상자가 아니라 실제 발 위치에 맞춤
+      const im = SP.reaper(kind, rank, 'idle', Math.floor(tm * 3) % 4, (Winter.deco ? Winter.deco() : '')), ft = feetOf(kind, rank), h = Math.round(ft.y * im.height), ix = Math.round(X - ft.x * im.width), iy = Math.round(Y - ft.y * im.height); // 그림 상자가 아니라 실제 발 위치에 맞춤
       let alpha = 1, white = 0, fx = 1;
       if (!done) { // 0~1.5초: 빛으로 물들며 혼불로 흩어짐
         white = Math.max(0, Math.min(1, (t - 0.3) / 0.8)); alpha = t < 1.1 ? 1 : Math.max(0, 1 - (t - 1.1) / 0.4); fx = Math.max(0, 1 - t / 0.8);
@@ -2051,7 +2051,7 @@ const UI = (() => {
         ${R.region !== (RANKS[i - 1] || R).region ? `<div class="r"><span>새 지역</span><b>${REGIONS[R.region].name}</b></div>` : ''}
         <div class="r"><span>마법진</span><b>${i ? '계급이 오를수록 발밑 마법진이 화려해져요' : '아직 마법진이 없어요'}</b></div></div>
       <div class="acts">${i > 0 ? '<button class="btn dark" id="rk-prev">◀ 이전</button>' : ''}${i < RANKS.length - 1 ? '<button class="btn dark" id="rk-next">다음 ▶</button>' : ''}<button class="btn" data-act="close">닫기</button></div>`);
-    previews.push({ c: box.querySelector('#rk-ch'), kind: s.kind || 'm', rank: i, pose: 'idle' });
+    previews.push({ c: box.querySelector('#rk-ch'), kind: s.kind || 'm', rank: i, pose: 'idle', dc: 1 });
     previews.push({ c: box.querySelector('#rk-mg'), magic: i, anchor: box.querySelector('#rk-ch') });
     const oc = box.querySelector('#rk-of').getContext('2d'); oc.imageSmoothingEnabled = false; oc.drawImage(Scene.officeThumb(i, 150, 104), 0, 0);
     const pv = box.querySelector('#rk-prev'), nx = box.querySelector('#rk-next');
@@ -2081,7 +2081,7 @@ const UI = (() => {
     const kind = s.kind || 'm', rank = s.rank || 0;
     const loop = () => { if (!document.body.contains(c)) return; const t = performance.now() / 1000, x = 32, y = 40;
       ctx.clearRect(0, 0, c.width, c.height); ctx.imageSmoothingEnabled = false;
-      const im = SP.tinyReaper(kind, rank, 'down', 'idle', Math.floor(t * 2.5)), h = im.height;
+      const im = SP.tinyReaper(kind, rank, 'down', 'idle', Math.floor(t * 2.5), (Winter.deco ? Winter.deco() : '')), h = im.height;
       drawMagic(ctx, x, y, Math.min(rank, 8), t); Scene.rbDraw(ctx, x, y, h, n, t, 'under');
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x - 4, y - 1, 8, 2); ctx.drawImage(im, Math.round(x - im.width / 2), Math.round(y - h + 1));
       Scene.rbDraw(ctx, x, y, h, n, t, 'over'); requestAnimationFrame(loop); };
@@ -2110,8 +2110,8 @@ const UI = (() => {
         ${gifts.length ? `<div class="pr-gift"><img class="px" src="${decoThumb(gifts[0].id, 3)}"><div><small>승진 기념 소품</small><b>${gifts[0].name}</b><span>집무실 꾸미기에서 놓을 수 있어요</span></div></div>` : ''}
         <div class="pr-mgcmp"><div><canvas id="pr-mg0" width="48" height="20"></canvas><small>${O.name}</small></div><b>▶</b><div><canvas id="pr-mg1" width="48" height="20"></canvas><small>새 마법진</small></div></div>
         <button class="btn red" id="pr-go">근무 시작</button></div>`);
-    previews.push({ c: o.querySelector('#pr-old'), kind: S().kind, rank: O === R ? S().rank : oldRank, pose: 'idle', keep: 1 });
-    previews.push({ c: o.querySelector('#pr-new'), kind: S().kind, rank: S().rank, pose: 'reap', keep: 1 });
+    previews.push({ c: o.querySelector('#pr-old'), kind: S().kind, rank: O === R ? S().rank : oldRank, pose: 'idle', keep: 1, dc: 1 });
+    previews.push({ c: o.querySelector('#pr-new'), kind: S().kind, rank: S().rank, pose: 'reap', keep: 1, dc: 1 });
     previews.push({ c: o.querySelector('#pr-mg'), magic: S().rank, anchor: o.querySelector('#pr-new'), keep: 1 }, { c: o.querySelector('#pr-mg0'), magic: O === R ? S().rank : oldRank, keep: 1 }, { c: o.querySelector('#pr-mg1'), magic: S().rank, keep: 1 });
     setTimeout(() => Sound.play('kill'), 1100);
     o.querySelector('#pr-go').onclick = () => { closeOverlay(); Sound.play('open'); };

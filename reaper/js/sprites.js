@@ -272,7 +272,10 @@ const SP = (() => {
   const cache = {};
   function get(key, fn) { return cache[key] || (cache[key] = fn()); }
   return {
-    reaper: (kind, rank, pose, i) => get(`r${kind}${rank}${pose}${i % 4}`, () => Art3.reaper(kind, rank, pose, i)),
+    // 큰 저승사자 그림 (정보 · 승진 · 순위 · 대화): 게임 속 작은 저승사자를 2배로 키워 같은 모습으로 (꾸미기 포함)
+    reaper: (kind, rank, pose, i, deco) => get(`R${kind}${rank}${pose}${i % 4}${deco || ''}`, () => {
+      const t = Tiny.reaper(kind, rank, 'down', pose === 'reap' ? 'reap' : pose === 'walk' ? 'walk' : 'idle', i, deco), c = document.createElement('canvas'); c.width = 44; c.height = 51;
+      const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(t, Math.round((44 - t.width * 2) / 2), 51 - t.height * 2, t.width * 2, t.height * 2); return c; }),
     LOOKS,
     soul: (tier, i) => get(`s${tier}${i % 3}`, () => Art3.soul(SOUL_PAL[tier], i)),
     wraith: i => get(`w${i % 2}`, () => Art3.wraith(i)),
