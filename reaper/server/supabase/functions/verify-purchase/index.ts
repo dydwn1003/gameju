@@ -67,10 +67,10 @@ async function googleRefunds(admin: any) {
   const raw = Deno.env.get('GOOGLE_SERVICE_ACCOUNT'); if (!raw) return retry('google not set');
   try {
     const sa = JSON.parse(raw), pkg = Deno.env.get('ANDROID_PACKAGE') ?? 'com.jeoseungsaja.idle', at = await googleToken(sa);
-    const since = Date.now() - 30 * 86400e3; let token = '', added = 0, seen = 0;
+    const since = Date.now() - 29 * 86400e3;   // 구글은 최근 30일까지만 (경계에서 거절되지 않게 29일) let token = '', added = 0, seen = 0;
     for (let page = 0; page < 20; page++) {
       const u = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}/purchases/voidedpurchases?startTime=${since}&maxResults=1000${token ? '&token=' + encodeURIComponent(token) : ''}`;
-      const r = await fetch(u, { headers: { Authorization: `Bearer ${at}` } }); if (!r.ok) return retry('google voided ' + r.status);
+      const r = await fetch(u, { headers: { Authorization: `Bearer ${at}` } }); if (!r.ok) return retry('google voided ' + r.status + ' ' + (await r.text()).slice(0, 300));
       const j = await r.json();
       for (const v of j.voidedPurchases ?? []) {
         seen++;
