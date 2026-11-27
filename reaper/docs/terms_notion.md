@@ -26,7 +26,8 @@
 - 결제와 환불은 각 스토어(Google Play · App Store)의 정책에 따라 처리됩니다. Google Play는 Google Play 고객센터, App Store는 Apple의 '문제 신고하기'(reportaproblem.apple.com)에서 환불을 요청할 수 있습니다.
 - 「전자상거래 등에서의 소비자보호에 관한 법률」에 따라, 구매 후 7일 이내이고 사용하지 않은 유료 상품은 청약을 철회할 수 있습니다. 다만 구매 즉시 지급되어 사용된 상품, 일부를 사용한 상품, 기간이 시작된 상품(예: 염라의 인장)은 청약 철회가 제한될 수 있습니다. 이러한 상품은 구매 화면에 안내합니다.
 - 미성년자가 법정대리인의 동의 없이 결제한 경우, 본인 또는 법정대리인이 취소를 요청할 수 있습니다.
-- 환불이 처리되면 그 상품으로 받은 게임 재화나 효과는 회수될 수 있습니다.
+- 환불(결제 취소 포함)이 처리되면 그 상품으로 받은 게임 재화 · 아이템 · 효과를 회수합니다. 이미 사용해 부족한 재화는 마이너스(-)로 남으며, 다시 모을 때까지 사용할 수 없습니다.
+- 사용한 유료 상품을 반복해서 환불받는 등 부정한 환불이 확인되면 계정 이용이 제한될 수 있습니다.
 - 결제 문의는 게임의 설정 → 1:1 문의에 회원 코드와 함께 남겨 주세요.
 
 ## 5. 게임 재화와 아이템
@@ -94,7 +95,8 @@ These Terms set out the rights, obligations and responsibilities between Gatju M
 - Payments and refunds are handled under the policies of Google Play or the App Store. You can request a refund through Google Play Help, or through Apple's "Report a Problem" (reportaproblem.apple.com).
 - Where your local law gives you a right to cancel a purchase (for example, within 7 days for unused items under Korean e-commerce law), you may do so. This right may be limited for items that were delivered and used immediately, partly used, or whose time period has started (for example, Yeomra's Seal).
 - If a minor makes a purchase without a parent's or guardian's consent, the minor or the guardian may request cancellation.
-- If a purchase is refunded, the in-game currency or effects received from it may be removed.
+- If a purchase is refunded (including chargebacks), the in-game currency, items and effects received from it are taken back. If you have already spent the currency, your balance becomes negative and cannot be used until it is earned back.
+- If abusive refunds are found, such as repeatedly refunding items that were already used, your account may be restricted.
 - For payment questions, contact us through Settings > 1:1 Inquiry with your member code.
 
 ## 5. In-game currency and items
@@ -162,7 +164,8 @@ You can also contact us in the Game via **Settings → 1:1 Inquiry**.
 - 決済と返金は各ストア(Google Play・App Store)のポリシーに従って処理されます。Google Play は Google Play ヘルプ、App Store は Apple の「問題を報告する」(reportaproblem.apple.com)から返金を申請できます。
 - お住まいの国の法律で購入の取消しが認められている場合(例: 韓国の電子商取引法では未使用のアイテムは購入後7日以内)、取消しができます。ただし、購入後すぐに付与されて使用されたもの、一部を使用したもの、期間が始まったもの(例: 閻魔の印章)は取消しが制限されることがあります。
 - 未成年者が法定代理人の同意なく決済した場合、本人または法定代理人が取消しを申請できます。
-- 返金された場合、そのアイテムで受け取ったゲーム内通貨や効果は回収されることがあります。
+- 返金（決済の取り消しを含む）が行われた場合、その商品で受け取ったゲーム内通貨・アイテム・効果を回収します。すでに使用して不足する通貨はマイナス（-）となり、再び貯めるまで使用できません。
+- 使用済みの有料商品を繰り返し返金するなど、不正な返金が確認された場合はアカウントの利用が制限されることがあります。
 - 決済に関するお問い合わせは、ゲームの設定 → お問い合わせから会員コードを添えてご連絡ください。
 
 ## 5. ゲーム内通貨とアイテム
@@ -230,7 +233,8 @@ You can also contact us in the Game via **Settings → 1:1 Inquiry**.
 - 付款与退款按各商店(Google Play、App Store)的政策处理。Google Play 可通过 Google Play 帮助中心申请退款,App Store 可通过 Apple 的"报告问题"(reportaproblem.apple.com)申请退款。
 - 如您所在国家的法律允许取消购买(例如韩国电子商务法规定未使用的商品可在购买后7天内取消),您可以申请取消。但购买后立即发放并已使用、部分使用或已开始计时的商品(例如阎罗印章)可能无法取消。
 - 未成年人未经法定监护人同意付款的,本人或法定监护人可以申请取消。
-- 退款完成后,通过该商品获得的游戏货币或效果可能会被收回。
+- 退款(包括撤销付款)完成后,将收回通过该商品获得的游戏货币、物品和效果。已使用而不足的货币将显示为负数(-),在重新获得之前无法使用。
+- 如发现反复对已使用的付费商品申请退款等不当退款行为,账号可能会被限制使用。
 - 付款相关问题,请在游戏的设置 → 一对一咨询中附上会员编号与我们联系。
 
 ## 5. 游戏货币与道具

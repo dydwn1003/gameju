@@ -52,3 +52,18 @@ grant execute on function public.ack_refunds(text, text[]) to anon, authenticate
 -- $$);
 -- 지금 한 번 바로 돌려 보기:
 -- select net.http_post(url := '<프로젝트주소>/functions/v1/verify-purchase', headers := '{"Content-Type":"application/json"}'::jsonb, body := '{"refundCheck":true}'::jsonb);
+
+-- 6) 반복 환불 자동 정지: 같은 계정의 환불이 2건이 되면 bans 에 올림 (게임은 정지 화면을 띄움)
+--    풀어 주기: select unban_user('회원 코드');  (결제 금액을 다시 받은 뒤 등)
+create or replace function public.refund_autoban() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.user_id is not null and (select count(*) from public.iap_refunds where user_id = new.user_id) >= 2 then
+    insert into public.bans (user_id, reason) values (new.user_id, '사용한 유료 상품을 반복해서 환불받음')
+      on conflict (user_id) do nothing;
+    delete from public.docs where col in ('rank', 'offices', 'visits') and doc_id = new.user_id::text;
+  end if;
+  return new;
+end $$;
+drop trigger if exists iap_refunds_autoban on public.iap_refunds;
+create trigger iap_refunds_autoban after insert on public.iap_refunds for each row execute function public.refund_autoban();

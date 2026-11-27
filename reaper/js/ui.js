@@ -121,7 +121,7 @@ const UI = (() => {
   async function refundCheck() {
     if (!Native.isApp() || !Cloud.ready() || !S().kind || Date.now() - refundAt < 600e3) return; refundAt = Date.now();
     const rows = await Cloud.rpcRows('my_refunds', { p_dev: Stats.devId() }); if (!rows || !rows.length) return;
-    const s = S(), ids = [], names = []; s.refunded = s.refunded || [];
+    const s = S(), ids = [], names = [], wasNeg = s.jade < 0; s.refunded = s.refunded || [];
     for (const r of rows) {
       ids.push(r.tx_id); if (s.refunded.includes(r.tx_id)) continue; s.refunded.push(r.tx_id); if (s.refunded.length > 200) s.refunded = s.refunded.slice(-200);
       const gid = Native.gidOf(r.product); if (!gid) continue;
@@ -139,8 +139,10 @@ const UI = (() => {
       if (P.once) s.bought[gid] = 0;
       names.push(P.name);
     }
+    const repeat = names.length && (s.refunded.length >= 2 || wasNeg);   // 두 번째 환불부터(또는 마이너스 상태에서 또 환불) 이용 제한
     Game.apply(); Game.save(); if (Cloud.signedIn()) Cloud.pushSave(s, true); hud(); render();
     await Cloud.rpc('ack_refunds', { p_dev: Stats.devId(), p_ids: ids });
+    if (repeat) { const reason = '사용한 유료 상품을 반복해서 환불받음'; try { localStorage.setItem(BANK, JSON.stringify({ reason })); } catch (e) {} showBan(reason); return; }
     if (names.length) modal(`<div class="got"><div class="got-ic">↩️</div><h2>환불된 결제</h2><p class="got-t">환불된 결제가 있어 지급했던 것을 회수했어요</p><p>${names.map(esc).join('<br>')}</p><p class="mute">옥이 모자라면 마이너스로 남아요. 문의는 설정 › 1:1 문의로 보내 주세요</p></div>
       <div class="acts"><button class="btn red" data-act="close">확인</button></div>`, true);
   }
@@ -1557,7 +1559,7 @@ const UI = (() => {
   const testPay = () => !Native.isApp() && (!!window.claude || !Cloud.enabled());
   const priceOf = gid => Native.price(gid) || LocalPrice.of(gid.startsWith('decor:') ? Decor.D(gid.slice(6)).cash : SHOP_IAP.find(p => p.id === gid).price);
   // 청약철회 안내 (전자상거래법 제17조: 철회 제한 사실을 구매 화면에 표시) — 모든 유료 결제 창에 표시
-  const refundNote = () => `<p class="refund-note"><span>구매 즉시 지급되는 상품이에요. 지급된 재화·아이템을 사용했거나 기간이 시작된 상품은 청약철회가 제한돼요.</span><br><span>사용하지 않은 상품은 구매 후 7일 이내에 청약철회할 수 있어요.</span></p>`;
+  const refundNote = () => `<p class="refund-note"><span>구매 즉시 지급되는 상품이에요. 지급된 재화·아이템을 사용했거나 기간이 시작된 상품은 청약철회가 제한돼요.</span><br><span>사용하지 않은 상품은 구매 후 7일 이내에 청약철회할 수 있어요.</span><br><span>환불되면 받은 재화·아이템을 회수하고, 사용한 상품을 반복해서 환불받으면 이용이 제한될 수 있어요.</span></p>`;
   const payNote = () => refundNote() + (testPay() ? '<p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>' : Native.isApp() ? `<p style="color:var(--mute);font-size:10px">${Native.platform() === 'ios' ? 'App Store' : 'Google Play'} 계정으로 결제돼요.</p>` : '');
   // 결제 지급 (key: 스토어 거래 번호 → 게임 저장에도 기록해 두 번 지급하지 않음)
   function grantPaid(gid, key) {
