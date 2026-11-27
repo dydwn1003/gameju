@@ -1206,3 +1206,12 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 @keyframes upShine { 0%, 55% { left: -60%; } 100% { left: 130%; } }
 .up-go:active { transform: translateY(3px); box-shadow: 0 1px 0 #a8641a; }
 .up-later { margin-top: 10px; padding: 6px 12px; border: 0; background: none; font: inherit; font-size: 12px; color: var(--mute); text-decoration: underline; cursor: pointer; }
+/* 리뷰 부탁 */
+.rv { display: flex; flex-direction: column; align-items: center; padding: 18px 0 16px; text-align: center; background: radial-gradient(120% 70% at 50% 0%, #4a2f8a 0%, rgba(20, 14, 40, 0) 70%); }
+.rv canvas { width: 88px; height: 102px; image-rendering: pixelated; }
+.rv-stars { display: flex; gap: 4px; margin: 4px 0 2px; }
+.rv-stars i { font-style: normal; font-size: 24px; color: #ffd76a; text-shadow: 0 0 10px rgba(255, 215, 106, 0.7), 0 2px 0 #8a5a14; animation: rvStar 1.8s ease-in-out infinite; }
+.rv-stars i:nth-child(2) { animation-delay: 0.12s; } .rv-stars i:nth-child(3) { animation-delay: 0.24s; } .rv-stars i:nth-child(4) { animation-delay: 0.36s; } .rv-stars i:nth-child(5) { animation-delay: 0.48s; }
+@keyframes rvStar { 0%, 60%, 100% { transform: translateY(0) scale(1); } 30% { transform: translateY(-5px) scale(1.15); } }
+.rv h2 { margin: 6px 0 4px; font-size: 18px; color: #fff; }
+.rv p { margin: 0 16px 14px; font-size: 12px; line-height: 1.6; color: #e4dcff; }

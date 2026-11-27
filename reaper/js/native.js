@@ -40,6 +40,12 @@ const Native = (() => {
     else if (platform() === 'android') location.href = `market://details?id=${st.android}`;
     else window.open(`https://play.google.com/store/apps/details?id=${st.android}`, '_blank');
   }
+  // 리뷰 쓰기 화면 바로 열기 (애플은 별점 · 리뷰 쓰기 창, 구글은 스토어 앱의 게임 페이지)
+  function openReview() {
+    const st = APP.store || {};
+    if (platform() === 'ios' && st.iosId) location.href = `itms-apps://apps.apple.com/app/id${st.iosId}?action=write-review`;
+    else openStore();
+  }
   async function openUrl(url) { const B = P('Browser'); if (B) await B.open({ url, presentationStyle: 'popover' }); else location.href = url; }
   async function closeBrowser() { const B = P('Browser'); if (B) try { await B.close(); } catch (e) {} }
 
@@ -230,7 +236,7 @@ const Native = (() => {
 
   return {
     setVerifier: (fn, fake) => { verifier = fn; onFake = fake || null; },
-    isApp, platform, plugin: P, adActive: () => adBusy && Date.now() - adStartedAt < 120000, init, hideSplash, openUrl, appBuild, openStore, closeBrowser, rewardAd, price, buy, restore, payOn,
+    isApp, platform, plugin: P, adActive: () => adBusy && Date.now() - adStartedAt < 120000, init, hideSplash, openUrl, appBuild, openStore, openReview, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
     notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest, exactAlarm, exactAlarmAsk, notifyDelivered, diag, openAppSettings,
     setPay: (grant, owned, priceChange, txDone) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; onTxDone = txDone; const q = pendingTx; pendingTx = []; q.forEach(handleTx); if (payOn()) ownedCheck(); },

@@ -2145,6 +2145,22 @@ const UI = (() => {
     box.querySelector('#rb-ex').onclick = () => confirmBox(`<h2>윤회석 교환</h2><p>옥 ${Game.STONE_EX_JADE}개로 윤회석 ${Game.STONE_EX_N}개를 받을까요?<br><span class="mute">매주 월요일에 1번 교환할 수 있어요.</span></p>`, () => { if (Game.buyStones()) { Sound.play('buy'); toast(`윤회석 +${Game.STONE_EX_N}`, 1800); hud(); render(); } else toast('옥이 부족해요'); perkModal(); });
     box.querySelector('#rb-reset').onclick = () => confirmBox(`<h2>특성 초기화</h2><p>옥 ${Game.PERK_RESET_JADE}개로 찍은 특성을 모두 되돌리고<br>윤회석 ${spent}개를 돌려받을까요?</p>`, () => { const n = Game.resetPerks(); if (n) { Sound.play('open'); toast(`윤회석 ${n}개를 돌려받았어요`, 2000); hud(); render(); } else toast('옥이 부족해요'); perkModal(); });
   }
+  // ---------- 리뷰 · 별점 부탁 (앱에서만) ----------
+  // 승진 직후 기분 좋은 순간에: 2계급 이상 · 처음 켠 지 2일 이상 · 플레이 1시간 이상 · 지난번 부탁 뒤 7일 이상 · 최대 3번
+  // '평가하러 가기'를 누르면 다시 묻지 않음. 보상은 주지 않음 (스토어 정책: 리뷰 대가 금지)
+  function reviewAsk(tries = 0) {
+    const s = S(), r = s.review || (s.review = { n: 0, at: 0, done: 0 });
+    if (!Native.isApp() || r.done || r.n >= 3 || s.rank < 2 || Date.now() - (s.created || Date.now()) < 2 * 864e5 || (s.playSec || 0) < 3600 || Date.now() - r.at < 7 * 864e5) return;
+    if ($('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut') || parade) { if (tries < 120) setTimeout(() => reviewAsk(tries + 1), 1000); return; }   // 다른 창이 닫힐 때까지 기다림 (최대 2분)
+    r.n++; r.at = Date.now(); Game.save();
+    const box = modal(`<div class="rv"><canvas id="rv-cv" width="44" height="51"></canvas><div class="rv-stars">${'<i>★</i>'.repeat(5)}</div>
+      <h2>저승 생활, 즐거우신가요?</h2><p>별점과 리뷰를 남겨 주시면<br>1인 개발자에게 정말 큰 힘이 돼요 🙏</p>
+      <button class="up-go" id="rv-go"><span>★ 평가하러 가기</span></button><button class="up-later" id="rv-no">다음에 할게요</button></div>`, true);
+    box.classList.add('up-box');
+    previews.push({ c: box.querySelector('#rv-cv'), kind: s.kind || 'm', rank: s.rank, pose: 'reap', dc: 1 });
+    box.querySelector('#rv-go').onclick = () => { r.done = 1; Game.save(); closeModal(); Native.openReview(); };
+    box.querySelector('#rv-no').onclick = () => { closeModal(); Sound.play('open'); };
+  }
   function promoted(newRegion, oldRank) {
     const R = RANKS[S().rank], O = RANKS[oldRank != null ? oldRank : S().rank - 1], gifts = Decor.grantRank(S().rank);
     Sound.play('promote');
@@ -2160,7 +2176,7 @@ const UI = (() => {
     previews.push({ c: o.querySelector('#pr-new'), kind: S().kind, rank: S().rank, pose: 'reap', keep: 1, dc: 1 });
     previews.push({ c: o.querySelector('#pr-mg'), magic: S().rank, anchor: o.querySelector('#pr-new'), keep: 1 }, { c: o.querySelector('#pr-mg0'), magic: O === R ? S().rank : oldRank, keep: 1 }, { c: o.querySelector('#pr-mg1'), magic: S().rank, keep: 1 });
     setTimeout(() => Sound.play('kill'), 1100);
-    o.querySelector('#pr-go').onclick = () => { closeOverlay(); Sound.play('open'); };
+    o.querySelector('#pr-go').onclick = () => { closeOverlay(); Sound.play('open'); setTimeout(reviewAsk, 900); };
   }
 
   // ---------- 펫 ----------
