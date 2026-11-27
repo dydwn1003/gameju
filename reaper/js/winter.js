@@ -48,7 +48,7 @@ const Winter = (() => {
   const ATT_SEED = [{ lotus: 3 }, { honbul: 2 }, { lotus: 3 }, { saengsa: 1 }];
   function attReward(d) {          // d: 몇 번째 출석 (1~28)
     const w = Math.floor((d - 1) / 7), k = (d - 1) % 7;
-    return [{ hours: 1 }, { jade: 20 }, { tickets: 1 }, { seed: ATT_SEED[w % 4] }, { hours: 2 }, { jade: 30 }, { tickets: 2 }][k];
+    return [{ hours: 1 }, { jade: 20 }, { tickets: 5 }, { seed: ATT_SEED[w % 4] }, { hours: 2 }, { jade: 30 }, { tickets: 5 }][k];
   }
   const att = () => { const e = st(); const a = e.att || (e.att = { n: 0, day: '' }); a.mk = a.mk || 0; return a; };
   // 놓친 날 채우기: 옥 50개로 지나간 날 출석을 하루씩 채움 (횟수 제한 없음 · 놓친 날만큼)
