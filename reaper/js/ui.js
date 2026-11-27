@@ -315,7 +315,7 @@ const UI = (() => {
     if (attDay && dNow !== attDay && document.querySelector('#modal.on .wa')) winterAttBox();
     attDay = dNow;
     const on = Winter.active(), b = $('#btn-winter'); if (!b) return;
-    b.hidden = !on; $('#snow').hidden = !on || Scene.inOffice();
+    b.hidden = !on; $('#snow').hidden = !on || Scene.inOffice() || !!S().snowOff;   // 설정에서 눈을 끌 수 있음
     const wa = $('#btn-wattend'); if (wa) { wa.hidden = !on; wa.querySelector('.dot').classList.toggle('on', on && (Winter.canAttend() || Winter.canMakeup())); if (on && !$('#wattend-ic').src) $('#wattend-ic').src = toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, 'a'), 2); }
     if (!on) { Scene.setXmas(false); if (Scene.patCount()) Scene.clearPat();
       if (S().kind && Winter.st().n && !winterLate) { winterLate = true; const gs = Winter.goals.map((g, i) => Winter.claimable(g) ? Winter.claim(i) : null).filter(Boolean); // 끝나기 전에 모았는데 못 받은 보상은 자동으로 지급
@@ -1699,6 +1699,7 @@ const UI = (() => {
       ${Board.online() ? '<div class="set-row" id="s-blkrow" style="display:none"><span>🚫 차단한 사람 <b id="s-blkn">0</b>명</span><button class="btn dark" id="s-unblk">모두 풀기</button></div>' : ''}
       <div class="set-row"><span>효과음</span><button class="btn ${s.sound ? '' : 'dark'}" id="s-snd">${s.sound ? '켜짐' : '꺼짐'}</button></div>
       <div class="set-row"><span>배경음</span><button class="btn ${s.bgm ? '' : 'dark'}" id="s-bgm">${s.bgm ? '켜짐' : '꺼짐'}</button></div>
+      ${Winter.active() ? `<div class="set-row"><span style="text-align:left;align-items:flex-start">❄️ 눈 내리기<small class="set-sub">겨울 이벤트 기간(12/3~12/31)에만 보여요</small></span><button class="btn ${s.snowOff ? 'dark' : ''}" id="s-snow">${s.snowOff ? '꺼짐' : '켜짐'}</button></div>` : ''}
       ${Native.isApp() ? `<div class="set-row"><span>알림 <small class="set-sub">장부 · 파견 · 꽃 · 백귀야행 · 우편 · 아침 9시 출석 (밤 11시~아침 8시는 아침에)</small><small class="set-sub" id="s-pushst">확인하는 중…</small></span><span class="set-btns">${Board.isOwner() ? '<button class="btn dark" id="s-ptest">시험</button>' : ''}<button class="btn dark" id="s-push">…</button></span></div>` : ''}
       <div class="set-row"><span>퇴치한 원귀 / 터치 수확</span><span>${s.stats.wraith} / ${s.stats.tap}</span></div>
       <div class="set-sec">고객 지원</div>
@@ -1780,6 +1781,7 @@ const UI = (() => {
       toast(ok ? '10초 뒤에 시험 알림이 와요. 홈으로 나가서 기다려 보세요' : '알림이 허용되지 않았어요. 켜짐을 먼저 눌러 주세요', 3500);
     });
     on('#s-snd', () => { s.sound = !s.sound; Sound.set(s.sound, s.bgm); Game.save(); settings(); });
+    on('#s-snow', () => { s.snowOff = !s.snowOff; Game.save(); winterHud(); settings(); });
     on('#s-bgm', () => { s.bgm = !s.bgm; Sound.set(s.sound, s.bgm); Game.save(); settings(); });
     on('#s-reset', () => confirmBox(`<h2>${inn ? '이 기기 기록 지우기' : '처음부터'}</h2><p>${inn ? '이 기기의 기록만 지워요. 계정에 저장된 기록은 남아 있어요.' : '모든 진행이 지워집니다. 정말 할까요?'}</p>`, () => { if (inn) { Game.reset(); location.reload(); return; } Game.reset(); render(); charSelect(true); }));
     if (Board.online()) Board.checkOwner().then(o => {
