@@ -50,12 +50,19 @@ const Winter = (() => {
     const w = Math.floor((d - 1) / 7), k = (d - 1) % 7;
     return [{ hours: 1 }, { jade: 20 }, { tickets: 1 }, { seed: ATT_SEED[w % 4] }, { hours: 2 }, { jade: 30 }, { tickets: 2 }][k];
   }
-  const att = () => { const e = st(); return e.att || (e.att = { n: 0, day: '' }); };
+  const att = () => { const e = st(); const a = e.att || (e.att = { n: 0, day: '' }); a.mk = a.mk || 0; return a; };
+  // 놓친 날 채우기: 옥 50개로 지나간 날 출석을 채움 (이벤트 동안 최대 2번)
+  const MK_JADE = 50, MK_MAX = 2;
+  const dayNo = () => Math.floor((now() + 9 * 3600e3) / 864e5) - Math.floor((WINTER.start + 9 * 3600e3) / 864e5) + 1;   // 오늘이 이벤트 며칠째인지 (한국 시간)
+  const missed = () => { const a = att(); if (!active()) return 0; return Math.max(0, dayNo() - a.n - (a.day === kstDay(now()) ? 0 : 1)); };   // 지나간 날 중 출석 못 한 날 (오늘은 빼고)
+  const canMakeup = () => active() && att().n < ATT_MAX && att().mk < MK_MAX && missed() > 0;
   const canAttend = () => active() && att().n < ATT_MAX && att().day !== kstDay(now());
-  function attend() {
-    if (!canAttend()) return null;
-    const a = att(), s = S(), d = a.n + 1, r = attReward(d);
-    a.n = d; a.day = kstDay(now());
+  function attend(makeup) {
+    const s = S();
+    if (makeup) { if (!canMakeup() || s.jade < MK_JADE) return null; s.jade -= MK_JADE; att().mk++; }
+    else if (!canAttend()) return null;
+    const a = att(), d = a.n + 1, r = attReward(d);
+    a.n = d; if (!makeup) a.day = kstDay(now());
     if (r.jade) s.jade += r.jade;
     if (r.tickets) s.tickets = (s.tickets || 0) + r.tickets;
     if (r.hours) Game.gain(Game.incomePerSec(true) * 3600 * r.hours);
@@ -80,10 +87,10 @@ const Winter = (() => {
   }
   const left = () => Math.max(0, end() - now());
   const nextIn = () => Math.max(0, WINTER.per - st().prog) / (window.__evSpeed || 1);
-  const hasDot = () => active() && (st().pend > 0 || WINTER.goals.some(claimable) || canAttend());
+  const hasDot = () => active() && (st().pend > 0 || WINTER.goals.some(claimable));
   return {
     SHOP, ITEMS, bowlLeft, buyBowl, owns, wearing, toggleWear, deco,
-    att, attReward, canAttend, attend, attMax: ATT_MAX, attGoals: ATT_GOALS,
+    att, attReward, canAttend, attend, missed, canMakeup, mkJade: MK_JADE, mkMax: MK_MAX, attMax: ATT_MAX, attGoals: ATT_GOALS,
     active, st, room, tick, collect, claim, claimable, left, nextIn, hasDot, done,
     goals: WINTER.goals, max: WINTER.max, per: WINTER.per, startAt: WINTER.start, endAt: end,
     setEnd: ms => { if (ms > 0) endOverride = ms; }, onSpawn: f => { onSpawn = f; },
