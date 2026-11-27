@@ -99,10 +99,27 @@ revoke all on public.iap_receipts from anon, authenticated;
 --   select set_iap_verify(false);  -- 끄기: 예전처럼 바로 지급 (문제가 생겼을 때 임시로)
 create or replace function public.set_iap_verify(p_on boolean) returns jsonb
 language plpgsql security definer set search_path = public as $$
-declare d jsonb := jsonb_build_object('verify', p_on);
+declare d jsonb;
 begin
-  insert into public.docs (path, col, doc_id, data) values ('config/iap', 'config', 'iap', d)
-  on conflict (path) do update set data = excluded.data, updated_at = now();
+  insert into public.docs (path, col, doc_id, data) values ('config/iap', 'config', 'iap', jsonb_build_object('verify', p_on))
+  on conflict (path) do update set data = public.docs.data || jsonb_build_object('verify', p_on), updated_at = now()
+  returning data into d;
   return d;
 end $$;
 revoke all on function public.set_iap_verify(boolean) from public, anon, authenticated;
+
+-- 플랫폼별로 검증 끄기 · 다시 켜기 (검증 전체 스위치가 켜져 있을 때만 의미 있음)
+--   select set_iap_platform('ios', false);   -- 아이폰은 확인 없이 통과 (애플 설정이 아직 안 끝났을 때)
+--   select set_iap_platform('ios', true);    -- 아이폰도 확인
+--   select data from docs where path = 'config/iap';  -- 지금 설정 보기
+create or replace function public.set_iap_platform(p_platform text, p_on boolean) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare d jsonb;
+begin
+  if p_platform not in ('android', 'ios') then raise exception 'p_platform 은 android 또는 ios 로 써 주세요'; end if;
+  insert into public.docs (path, col, doc_id, data) values ('config/iap', 'config', 'iap', jsonb_build_object(p_platform, p_on))
+  on conflict (path) do update set data = public.docs.data || jsonb_build_object(p_platform, p_on), updated_at = now()
+  returning data into d;
+  return d;
+end $$;
+revoke all on function public.set_iap_platform(text, boolean) from public, anon, authenticated;
