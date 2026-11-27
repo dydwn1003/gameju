@@ -236,6 +236,7 @@ const Scene = (() => {
       { id: 'jumo', x: tvx - 12, y: tvy + 10 }, { id: 'elder', x: bdx + 2, y: bdy + 10, face: -1 }, { id: 'gob', x: stx, y: sty + 10, face: -1, cond: 'merchant' },
       { id: 'mudang', x: mdx, y: mdy + 10 }, { id: 'kkachi', x: bdx, y: bdy - 22, perch: 1 },
       { id: 'sansin', x: shx + 2, y: shy + 10 }, { id: 'judge', x: gtx + 30, y: gty - 2, face: -1 }, { id: 'boat', x: gtx - 30, y: gty - 2 },
+      { id: 'santa', x: ofx + 46, y: ofy + 18, cond: 'xmas' }, { id: 'deer', x: ofx + 68, y: ofy + 18, cond: 'xmas' },   // 겨울 이벤트 기간에만: 산타 · 순록
     ];
     // 길가 등불
     for (let x = 2; x < TW - 1; x += 5) if (Math.abs(x - 12.5) > 3) lampPost(x * T + 8, 13.6 * T, region >= 7);
@@ -488,6 +489,24 @@ const Scene = (() => {
   function glow(x, y, r, col, a) { const C = hex(col); g.fillStyle = `rgba(${C[0]},${C[1]},${C[2]},${a})`; for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) { const d = Math.hypot(xx, yy) / r; if (d <= 1 && BAYER[(yy + 64) & 3][(xx + 64) & 3] > d * 0.95) g.fillRect(Math.round(x + xx), Math.round(y + yy), 1, 1); } }
   const vis = (x, y, m = 30) => x - camX > -m && x - camX < W + m && y - camY > -m && y - camY < H + m + 30;
   function shadow(x, y, w) { g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.round(x - camX - w / 2), Math.round(y - camY - 1), w, 2); }
+  // ---------- 겨울 이벤트: 산타 · 순록 (도트) ----------
+  const XPAL = { K: '#1a0f14', R: '#d8323c', r: '#9a1c28', W: '#f4ecdc', w: '#c8bfae', S: '#f0c8a0', E: '#2a1a1a', N: '#e89a88', B: '#2a2028', G: '#ffd34a', D: '#8a5a34', d: '#5e3a20', L: '#d8b48a', v: '#c8a070', V: '#8a6a40', O: '#3a2418', g: '#2f8a4a', y: '#ffe08a' };
+  const SANTA = ['....KKKKK....', '...KRRRRRKK..', '..KRRRRRRRWK.', '..KWWWWWWWKK.', '..KSSSSSSSK..', '..KSESSSESK..', '.KWWSSNSSWWK.', '.KWWWWWWWWWK.', 'KRKWWWWWWWKRK', 'KRRKWWWWWKRRK', 'KSRRRKWKRRRSK', '.KRRRRWRRRRK.', '.KBBBBGBBBBK.', '.KRRRRWRRRRK.', '.KWWWWWWWWWK.', '..KBBK.KBBK..', '..KKKK.KKKK..'];
+  const SACK = ['..KK..', '.KyyK.', 'KgggK.', 'KggggK', 'KggggK', '.KKKK.'];
+  const DEER = ['..v.v.............', '..vVv.v...........', '...vVv............', '....KK............', '...KDDK...........', '.KKDEDDK..........', 'KODDDDDK..........', '.KKLDDDKKKKKKKK...', '...KDDDDDDDDDDDKK.', '...KDLLLLDDDDDDDLK', '...KDDDDDDDDDDDK..', '....KDK.KDK.KDK.KDK', '....KdK.KdK.KdK.KdK', '....KK..KK..KK..KK.'];
+  const xmasImg = {};
+  function pixImg(key, rows, dy) {
+    const k = key + dy; if (xmasImg[k]) return xmasImg[k];
+    const w = Math.max(...rows.map(r => r.length)), c = document.createElement('canvas'); c.width = w; c.height = rows.length + 1; const x2 = c.getContext('2d');
+    rows.forEach((row, y) => [...row].forEach((ch, x) => { if (XPAL[ch]) { x2.fillStyle = XPAL[ch]; x2.fillRect(x, y + dy, 1, 1); } }));
+    return (xmasImg[k] = c);
+  }
+  function santaImg(f) { // 산타 + 옆에 선물 자루
+    const k = 'santa' + (f % 2); if (xmasImg[k]) return xmasImg[k];
+    const s = pixImg('s', SANTA, f % 2 ? 0 : 1), b = pixImg('b', SACK, 0), c = document.createElement('canvas'); c.width = s.width + b.width - 1; c.height = s.height; const x2 = c.getContext('2d');
+    x2.drawImage(b, s.width - 1, c.height - b.height); x2.drawImage(s, 0, 0); return (xmasImg[k] = c);
+  }
+  const deerImg = f => pixImg('d', DEER, f % 4 === 1 ? 1 : 0);
   function sprite(img, x, y, flip) { const im = flip ? flipOf(img) : img; g.drawImage(im, Math.round(x - camX - im.width / 2), Math.round(y - camY - im.height + 1)); return im; }
   // 계급 아우라: 발밑 기운 + 떠오르는 빛가루 (계급이 오를수록 진하고 많아짐)
   const AURA = [null, ['#9ab0d8'], ['#6fb0ff'], ['#c8d0ff', '#ffffff'], ['#ffd34a', '#6fb0ff'], ['#ff5a5a', '#ffb0b0'], ['#ff3a5a', '#ffd34a'], ['#6a8aff', '#ffd34a', '#ffffff'], ['#ffd34a', '#ff7a30', '#fff0a0']];
@@ -661,9 +680,9 @@ const Scene = (() => {
     const cl = hooks.clue ? hooks.clue() : -1;
     if (cl >= 0) { const p = clueSpot(cl); if (vis(p.x, p.y)) list.push({ y: p.y, f: () => { const x = Math.round(p.x - camX), y = Math.round(p.y - camY), b = Math.sin(time * 3) * 1.5; glow(x, y - 5 + b, 9, '#9fd6ff', 0.35 + Math.sin(time * 5) * 0.1); g.fillStyle = '#0f0c18'; g.fillRect(x - 4, Math.round(y - 9 + b), 8, 7); g.fillStyle = '#efe2bf'; g.fillRect(x - 3, Math.round(y - 8 + b), 6, 5); g.fillStyle = '#2a1a14'; g.fillRect(x - 2, Math.round(y - 7 + b), 4, 1); g.fillRect(x - 2, Math.round(y - 5 + b), 3, 1); if (Math.random() < 0.15) parts.push({ x: p.x + rnd(-4, 4), y: p.y - 8, vx: rnd(-2, 2), vy: -rnd(8, 14), life: 0.8, max: 0.8, col: '#c8ecff', g: 0 }); } }); }
     for (const n of NPCS) {
-      if (n.cond === 'merchant' && !cfg.merchant) continue; if (!vis(n.x, n.y)) continue;
+      if (n.cond === 'merchant' && !cfg.merchant) continue; if (n.cond === 'xmas' && !xmas) continue; if (!vis(n.x, n.y)) continue;
       list.push({ y: n.y, f: () => {
-        let img = n.id === 'judge' ? SP.tinyReaper('m', 5, 'down', 'idle', Math.floor(time * 2.5)) : n.id === 'kkachi' ? SP.pet(PETS[0], Math.floor(time * 2)) : SP.npct(n.id, Math.floor(time * 2.5));
+        let img = n.id === 'santa' ? santaImg(Math.floor(time * 2)) : n.id === 'deer' ? deerImg(Math.floor(time * 1.5)) : n.id === 'judge' ? SP.tinyReaper('m', 5, 'down', 'idle', Math.floor(time * 2.5)) : n.id === 'kkachi' ? SP.pet(PETS[0], Math.floor(time * 2)) : SP.npct(n.id, Math.floor(time * 2.5));
         if (!n.perch) shadow(n.x, n.y, 8);
         const im = sprite(img, n.x, n.y, (n.face || 1) < 0);
         if (hooks.npcHot && hooks.npcHot(n.id)) { const ex = Math.round(n.x - camX), ey = Math.round(n.y - camY - im.height - 6 + Math.sin(time * 5) * 1.5); g.fillStyle = '#0f0c18'; g.fillRect(ex - 2, ey - 1, 5, 9); g.fillStyle = '#ffd34a'; g.fillRect(ex - 1, ey, 3, 4); g.fillRect(ex - 1, ey + 5, 3, 2); }
@@ -757,7 +776,7 @@ const Scene = (() => {
       let gb = null, gd = 15; for (const gh of ghosts) { const d = Math.hypot(gh.x - x, gh.y - 8 - y); if (d < gd) { gd = d; gb = gh; } }
       if (gb) { gb.dead = true; burst(gb.x, gb.y - 8, gb.gold ? '#ffd34a' : '#c890ff', 22, 45); burst(gb.x, gb.y - 8, '#ffffff', 10, 30); shake = Math.max(shake, 1.2); const sp = scr(gb.x, gb.y - 10); hooks.ghostTap && hooks.ghostTap(sp.x, sp.y, gb.gold); return; }
     }
-    for (const n of NPCS) { if (n.cond === 'merchant' && !cfg.merchant) continue; if (Math.abs(x - n.x) < 7 && y > n.y - 20 && y < n.y + 3) { hooks.poi && hooks.poi(n.id === 'gob' ? 'merchant' : n.id); return; } }
+    for (const n of NPCS) { if (n.cond === 'merchant' && !cfg.merchant) continue; if (n.cond === 'xmas' && !xmas) continue; if (Math.abs(x - n.x) < 7 && y > n.y - 20 && y < n.y + 3) { hooks.poi && hooks.poi(n.id === 'gob' ? 'merchant' : n.id); return; } }
     let best = null, bd = cfg.parade ? 18 : 10;
     for (const s of souls) if (s.st === 'float') { const d = Math.hypot(s.x - x, s.y - s.h - y); if (d < bd) { bd = d; best = s; } }
     if (best) { if (best.who && best.who.target === best) best.who.target = null; const tp = { face: 1, tap: true }; Object.defineProperty(tp, 'x', { get: () => reaper.x }); Object.defineProperty(tp, 'y', { get: () => reaper.y }); best.who = tp; best.st = 'pull'; best.t = 0; best.sx = best.x; best.sy = best.y - best.h; best.dur = 0.35; Sound.play('tap'); return; }

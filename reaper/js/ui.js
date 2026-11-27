@@ -1341,6 +1341,8 @@ const UI = (() => {
     else if (id === 'elder') questModal();
     else if (id === 'boat') openLife('expe');
     else if (id === 'judge') { goTab('rank'); toast(Game.canTest() ? '판관: 승진할 수 있네! 승진 탭에서 승진하게' : `판관: 레벨 ${Game.nextRank() ? Game.nextRank().lv : '-'}이 되면 다시 오게`); }
+    else if (id === 'santa') { const L = ['🎅 호호호! 메리 크리스마스!', '🎅 저승에도 선물이 왔다네. 겨울 출석은 잊지 않았겠지?', '🎅 착한 차사에게는 팥죽 한 그릇을!', '🎅 눈꽃 백록은 내 순록의 친구라네']; toast(L[Math.floor(Math.random() * L.length)], 2600); }
+    else if (id === 'deer') toast('🦌 순록이 코를 킁킁거려요', 2200);
     else if (id === 'mudang') fortuneModal();
     else if (id === 'sansin') offerModal();
     else if (id === 'kkachi') mailOpen();
