@@ -1215,3 +1215,5 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 @keyframes rvStar { 0%, 60%, 100% { transform: translateY(0) scale(1); } 30% { transform: translateY(-5px) scale(1.15); } }
 .rv h2 { margin: 6px 0 4px; font-size: 18px; color: #fff; }
 .rv p { margin: 0 16px 14px; font-size: 12px; line-height: 1.6; color: #e4dcff; }
+/* hidden 속성이 display 설정에 덮이지 않게 (이벤트 기간 밖에는 버튼 · 눈 숨김) */
+.sbtn[hidden], #snow[hidden], [hidden] { display: none !important; }
