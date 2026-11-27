@@ -97,6 +97,7 @@ Deno.serve(async (req) => {
       const g = await r.json();
       if (g.purchaseState === 1) return invalid('canceled');   // 취소된 결제
       if (g.purchaseState !== 0) return retry('pending');      // 2 = 대기 중 (아직 돈이 안 들어옴)
+      if (g.consumptionState === 1) return invalid('already consumed'); // 이미 지급 · 소비된 결제를 다른 거래 번호로 다시 보내는 것 막기 (게임은 지급한 뒤에만 소비함)
       store = 'google'; id = g.orderId || token;
       info = { orderId: g.orderId, test: g.purchaseType === 0, time: g.purchaseTimeMillis };
     } else {

@@ -113,9 +113,8 @@ const UI = (() => {
   }
   async function verifyPay(gid, info) {
     const on = await iapVerifyOn();
-    if (!on) return 'skip';                 // 검증 꺼짐 → 예전처럼 바로 지급
-    if (on === 'cached') return 'retry';     // 켜져 있던 걸 알지만 지금 서버에 못 닿음 → 나중에 다시
-    return Cloud.verifyPurchase(info);
+    if (on === false && localStorage.getItem(IAPV) === '0') return 'skip';   // 서버 설정을 읽었고 검증이 꺼져 있을 때만 바로 지급
+    return Cloud.verifyPurchase(info);       // 그 밖(켜짐 · 설정을 못 읽음 · 처음 설치 후 오프라인)은 항상 서버 확인 → 못 닿으면 'retry' (확인 전엔 지급 안 함)
   }
   // ---------- 계정 정지: 서버 bans 에 오른 계정은 게임을 막음 (정지: SQL select ban_user('회원 코드', '사유');) ----------
   const BANK = 'reaper_ban';
@@ -225,8 +224,9 @@ const UI = (() => {
     Native.setPause(() => { Sound.pause(); Stats.send(true); if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
     Native.setResume(() => { Sound.resume(); Push.back().then(opNotices); maintCheck(); banCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
     Push.back(); setInterval(() => { if (!document.hidden) { Push.keep().then(opNotices); maintCheck(); banCheck(); } }, 60e3); // 앱을 켜면 곧 울릴 알림은 지우고, 켜 둔 동안에도 알림을 미리 예약
-    Native.setVerifier(verifyPay, () => toast('결제를 확인할 수 없어요. 문제가 있으면 1:1 문의로 알려 주세요', 3200));
-    Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));
+    let retryNoteAt = 0;
+    Native.setVerifier(verifyPay, () => toast('결제를 확인할 수 없어요. 문제가 있으면 1:1 문의로 알려 주세요', 3200), () => { if (Date.now() - retryNoteAt > 60e3) { retryNoteAt = Date.now(); toast('⏳ 결제를 확인하는 중이에요. 확인되면 바로 지급돼요 (인터넷 연결을 확인해 주세요)', 3600); } });
+    Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; if (!S().bought[gid]) { S().bought[gid] = 1; S().ownedOnly = S().ownedOnly || {}; S().ownedOnly[gid] = 1; } Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));   // ownedOnly: 스토어가 '가지고 있음'만 알려 준 상태 → 나중에 검증된 거래가 오면 내용물(옥 · 졸개)을 지급
     render(); hud();
     // 로그인 성공 → 다시 켜지 않고 그 자리에서 서버 기록을 맞춤
     Cloud.setOnLogin(() => { Cloud.setSynced(false); closeModal(); toast('☁️ 로그인했어요', 1600); Board.init(); cloudSync(); });
@@ -311,7 +311,7 @@ const UI = (() => {
   }
   let attDay = '', winterLate = false;
   function winterHud(spawned) {
-    const dNow = kstDay(Date.now() + (window.__evShift || 0));                       // 한국 시간 0시가 지나면 출석 창 · 빨간 점을 바로 새로 고침
+    const dNow = kstDay(Date.now() + (Native.isApp() ? 0 : window.__evShift || 0));                       // 한국 시간 0시가 지나면 출석 창 · 빨간 점을 바로 새로 고침
     if (attDay && dNow !== attDay && document.querySelector('#modal.on .wa')) winterAttBox();
     attDay = dNow;
     const on = Winter.active(), b = $('#btn-winter'); if (!b) return;

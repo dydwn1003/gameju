@@ -300,7 +300,9 @@ const Game = (() => {
   // paid: 실제로 결제된 지급 → 하루 한도로 막지 않음 (한 번만 사는 상품을 이미 가졌을 때만 막음)
   function iap(id, paid) {
     const P = SHOP_IAP.find(p => p.id === id);
-    if (paid ? (P.once && S.bought[id]) : iapLeft(id) <= 0) return false;
+    const owned = paid && P.once && S.ownedOnly && S.ownedOnly[id];   // 스토어 '보유' 표시만 있고 아직 지급 안 됨 → 검증된 결제면 지급
+    if (paid ? (P.once && S.bought[id] && !owned) : iapLeft(id) <= 0) return false;
+    if (owned) { delete S.ownedOnly[id]; S.bought[id] = 0; }
     if (P.daily) { const d = iapDay(); d.n[id] = (d.n[id] || 0) + 1; }
     if (P.seal) S.sealUntil = Math.max(Date.now(), S.sealUntil || 0) + P.seal * 86400e3;
     S.bought[id] = (S.bought[id] || 0) + 1;

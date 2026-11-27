@@ -19,7 +19,8 @@ const WINTER = {
 const Winter = (() => {
   let endOverride = null, onSpawn = null;
   const S = () => Game.S;
-  const now = () => Date.now() + (window.__evShift || 0);          // __evShift: 미리보기에서 날짜 옮기기용
+  const dbg = () => !(typeof Native !== 'undefined' && Native.isApp && Native.isApp());   // 미리보기(웹)에서만 시간 옮기기 · 빨리 감기 허용
+  const now = () => Date.now() + (dbg() ? window.__evShift || 0 : 0);          // __evShift: 미리보기에서 날짜 옮기기용
   const st = () => { const s = S(); s.ev = s.ev || {}; const e = s.ev[WINTER.id] || (s.ev[WINTER.id] = { n: 0, prog: 0, pend: 0, got: {}, seen: false, last: 0 }); if (e.ready) { e.pend = (e.pend || 0) + 1; delete e.ready; } e.pend = e.pend || 0; return e; };
   const end = () => endOverride || WINTER.end;
   const active = () => { const t = now(); return t >= WINTER.start && t < end(); };
@@ -30,10 +31,10 @@ const Winter = (() => {
   function tick(dt) {
     if (!active() || !S().kind || document.hidden || !(dt > 0)) return;
     const e = st(), t = now();
-    if (e.last && t - e.last > 60e3) { if (room() > 0 && e.prog + (t - e.last) / 1000 * (window.__evSpeed || 1) >= WINTER.per) { e.pend++; e.prog = 0; Game.save(); if (onSpawn) onSpawn(); } }
+    if (e.last && t - e.last > 60e3) { if (room() > 0 && e.prog + (t - e.last) / 1000 * (dbg() ? window.__evSpeed || 1 : 1) >= WINTER.per) { e.pend++; e.prog = 0; Game.save(); if (onSpawn) onSpawn(); } }
     e.last = t;
     if (dt > 1 || room() <= 0) return;
-    e.prog += dt * (window.__evSpeed || 1);
+    e.prog += dt * (dbg() ? window.__evSpeed || 1 : 1);
     if (e.prog >= WINTER.per) { e.prog = 0; e.pend++; Game.save(); if (onSpawn) onSpawn(); }
   }
   // 맵에 나타난 팥 영혼 줍기
@@ -93,7 +94,7 @@ const Winter = (() => {
     e.got[g.id] = 1; Game.save(); return g;
   }
   const left = () => Math.max(0, end() - now());
-  const nextIn = () => Math.max(0, WINTER.per - st().prog) / (window.__evSpeed || 1);
+  const nextIn = () => Math.max(0, WINTER.per - st().prog) / (dbg() ? window.__evSpeed || 1 : 1);
   const hasDot = () => active() && (st().pend > 0 || WINTER.goals.some(claimable));
   return {
     giftMul, giftOn, giftLeft, giftWait, takeGift,
