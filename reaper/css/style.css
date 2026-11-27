@@ -1142,3 +1142,11 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .wv-item .wv-th img { max-width: 36px; max-height: 36px; }
 .wv-item .btn { flex: none; min-width: 72px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; }
 .wv-item .btn img { width: 14px; }
+/* 내 정보 → 꾸미기 */
+.it-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+.it-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 6px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); text-align: center; }
+.it-card img { height: 46px; }
+.it-card b { font-size: 12px; }
+.it-card small { font-size: 10px; color: var(--mute); line-height: 1.4; }
+.it-card.lock img { filter: grayscale(1) brightness(0.55); }
+.it-card .btn { min-width: 72px; padding: 4px 10px; font-size: 11px; }

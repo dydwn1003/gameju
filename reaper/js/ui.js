@@ -341,7 +341,7 @@ const UI = (() => {
     box.classList.add('wv-box');
     const bb = box.querySelector('#wv-bowl'); if (bb) bb.onclick = () => { closeModal(); if (S().jade < Winter.SHOP.bowl.jade) { buyPage('jade'); return; } askBuy('팥죽 한 그릇', '팥 영혼 1개가 바로 맵에 나타나요. (하루 2번)', Winter.SHOP.bowl.jade, 0, () => { if (Winter.buyBowl()) { Sound.play('buy'); hud(); winterHud(true); toast('🥣 팥죽 냄새를 맡고 팥 영혼이 나타났어요!', 2600); } else toast('지금은 살 수 없어요'); }, winterBox); };
     box.querySelectorAll('[data-ri]').forEach(bt => bt.onclick = () => { const id = bt.dataset.ri, it = Winter.SHOP[id], nm = id === 'rscarf' ? '저승사자 목도리' : '사슴뿔 머리띠'; closeModal(); if (S().jade < it.jade) { buyPage('jade'); return; }
-      askBuy(nm, '저승사자가 바로 착용해요. 판매는 12월 31일까지, 산 꾸미기는 이벤트가 끝나도 계속 쓸 수 있어요.', it.jade, 0, () => { if (Winter.buyItem(id)) { Sound.play('buy'); hud(); got(`<b>${nm}</b><br>저승사자가 착용했어요. 이벤트 창에서 쓰기 · 벗기를 고를 수 있어요`, { src: toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, it.ch), 5), title: '겨울 꾸미기 획득!', then: winterBox }); } else toast('지금은 살 수 없어요'); }, winterBox); });
+      askBuy(nm, '저승사자가 바로 착용해요. 판매는 12월 31일까지, 산 꾸미기는 이벤트가 끝나도 계속 쓸 수 있어요.', it.jade, 0, () => { if (Winter.buyItem(id)) { Sound.play('buy'); hud(); got(`<b>${nm}</b><br>저승사자가 착용했어요. 내 정보에서 언제든 쓰기 · 벗기를 고를 수 있어요`, { src: toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, it.ch), 5), title: '겨울 꾸미기 획득!', then: winterBox }); } else toast('지금은 살 수 없어요'); }, winterBox); });
     box.querySelectorAll('[data-wear]').forEach(bt => bt.onclick = () => { const on = Winter.toggleWear(bt.dataset.wear); Sound.play('open'); bt.textContent = on ? '쓰는 중' : '벗음'; bt.className = 'btn ' + (on ? 'red' : 'dark'); });
     box.querySelectorAll('[data-wg]').forEach(bt => bt.onclick = () => {
       const g = Winter.claim(+bt.dataset.wg); if (!g) return; Sound.play('buy'); closeModal(); render(); winterHud();
@@ -778,12 +778,21 @@ const UI = (() => {
   }
   function exitOffice() { decoEnd(true); if (visiting) { visiting = null; } Scene.exitOffice(); const bar = $('#office-bar'); if (bar) bar.classList.remove('on'); $('#office-acts') && $('#office-acts').classList.remove('on'); $('#side').style.display = ''; $('#stage').classList.remove('in-office'); document.body.classList.remove('in-office-t'); Sound.play('open'); }
   // ---------- 내 정보 (왼쪽 위 초상화를 누르면) ----------
+  // 내 정보 → 꾸미기 (기간 없이 언제든 쓰기 · 벗기): 겨울 목도리 · 사슴뿔 머리띠
+  const ITEMS = [['rscarf', '저승사자 목도리', 's'], ['antler', '사슴뿔 머리띠', 'a']];
+  function itemsSection() {
+    const icon = ch => toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, ch), 2);
+    return `<div class="st-sec">🎒 착용 아이템</div><div class="it-grid">${ITEMS.map(([id, nm, ch]) => { const own = Winter.owns(id), on = Winter.wearing(id);
+      return `<div class="it-card ${own ? '' : 'lock'}"><img class="px" src="${icon(ch)}"><b>${nm}</b>${own ? `<button class="btn ${on ? 'red' : 'dark'}" data-itw="${id}">${on ? '쓰는 중' : '벗음'}</button>` : `<small>${Winter.active() ? '겨울 상점에서 구할 수 있어요' : '2026 겨울 이벤트 한정'}</small>`}</div>`; }).join('')}</div>`;
+  }
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-itw]'); if (!b) return; const on = Winter.toggleWear(b.dataset.itw); Sound.play('open'); b.textContent = on ? '쓰는 중' : '벗음'; b.className = 'btn ' + (on ? 'red' : 'dark'); });
   function statsModal() {
     const s = S(), R = RANKS[s.rank], N = Game.nextRank(), pct = x => `${x >= 1 ? '+' : ''}${Math.round((x - 1) * 100)}%`, f1 = x => (Math.round(x * 100) / 100).toString();
     const pet = s.petEq && s.pets && s.pets[s.petEq] ? Pets.P(s.petEq) : null, pst = pet ? Pets.stats(pet.id) : [0, 0, 0];
     const buffs = [Game.boosting() ? `2배 부적 ×2` : '', Game.sealLeft() > 0 ? `염라의 인장 ×2 (${fmtDays(Game.sealLeft())})` : '', Life.fortuneMul() > 1 ? `운세 ${s.fortune.last} ×${Life.fortuneMul()}` : '', ...['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0).map(k => `${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}`)].filter(Boolean);
     const row = (k, v, sub) => `<div class="st-row"><span>${k}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
     const box = modal(`<div class="st-head"><canvas id="st-por" class="pf-mini" width="120" height="84"></canvas><div><b>${esc(s.name || '')}</b><span class="badge">${R.name}</span><small>Lv.${Game.level()} · ${REGIONS[R.region].name}${s.reborn ? ` · 윤회 ${s.reborn}회` : ''}</small>${N ? `<div class="prog"><i style="width:${Math.min(100, Game.level() / N.lv * 100)}%"></i></div><small>다음 계급 <b style="color:var(--gold)">${N.name}</b>까지 Lv.${N.lv}</small>` : '<small style="color:var(--gold)">최고 계급!</small>'}</div></div>
+      ${itemsSection()}
       <div class="st-sec">⚡ 수확</div>
       ${row('혼 1개 가치', fmt(Game.value() * Game.avgTier()), `평균 등급 ×${f1(Game.avgTier())}`)}
       ${row('수확 시간', f1(Game.reap()) + '초', '거두는 데 걸리는 시간')}

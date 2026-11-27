@@ -55,17 +55,20 @@ const Tiny = (() => {
     const fy = 11 + bd.length - 1;
     const feet = dir === 'side' ? [[['KF'], 6 + (k === 0 ? -1 : k === 2 ? 1 : 0), fy + 1], [['KF'], 8 + (k === 0 ? 1 : k === 2 ? -1 : 0), fy + 1]] : [[['KF'], 5, fy + 1 + lf], [['FK'], 9, fy + 1 + rf]];
     const dp = spec.deco ? decoParts(dir, spec.deco, spec.hat) : { back: [], front: [] };
-    const parts = feet.concat([[bd, 0, 11 + bob]], dp.back.map(p => [p[0], p[1], p[2] + bob]), [[hd, 0, bob]], dp.front.map(p => [p[0], p[1], p[2] + bob]));
+    let parts = feet.concat([[bd, 0, 11 + bob]], dp.back.map(p => [p[0], p[1], p[2] + bob]), [[hd, 0, bob]], dp.front.map(p => [p[0], p[1], p[2] + bob]));
+    const pad = Math.max(0, -Math.min(0, ...dp.back.concat(dp.front).map(p => p[2])));   // 꾸미기가 그림 위로 나가면 그만큼 위를 늘림 (발 위치는 그대로)
+    if (pad) parts = parts.map(p => [p[0], p[1], p[2] + pad]);
     if (spec.extra) spec.extra.forEach(e => parts.push([e[2], e[0], e[1] + bob]));
     if (pose === 'reap' && dir !== 'up') parts.push([['KTK', 'TxT', 'KTK'], dir === 'side' ? 11 : 12, 12]);
-    return compose(16, fy + 3, parts, Object.assign({}, TINY_PAL, spec.deco ? DECO_PAL : {}, spec.pal || {}));
+    return compose(16, fy + 3 + pad, parts, Object.assign({}, TINY_PAL, spec.deco ? DECO_PAL : {}, spec.pal || {}));
   }
   // 겨울 꾸미기 (deco 글자: s = 목도리 · a = 사슴뿔 머리띠) — 지금 옷 · 모자 위에 살짝 더함
   const DECO_PAL = { Q: '#d8323c', q: '#9a1c28', Z: '#f4ecdc', V: '#d8a878', v: '#8a5a34' };
   const ANTLER = ['v.v', 'vVv', '.v.', '.V.'];
   function decoParts(dir, deco, hat) {
     const back = [], front = [];
-    if (deco.includes('a')) { const L = hat === 'myeon' ? front : back; if (dir === 'side') L.push([ANTLER, 5, 0], [ANTLER, 9, 0]); else L.push([ANTLER, hat === 'myeon' ? 3 : 2, 0], [ANTLER, hat === 'myeon' ? 10 : 11, 0]); } // 보통은 모자 뒤(모자가 뿔 밑동을 덮음) · 넓은 면류관은 앞에
+    if (deco.includes('a')) { if (hat === 'myeon') { if (dir === 'side') back.push([ANTLER, 5, -3], [ANTLER, 9, -3]); else back.push([ANTLER, 3, -3], [ANTLER, 10, -3]); } // 면류관: 판 위로 솟게 (그림을 위로 3칸 늘림)
+      else if (dir === 'side') back.push([ANTLER, 5, 0], [ANTLER, 9, 0]); else back.push([ANTLER, 2, 0], [ANTLER, 11, 0]); } // 보통은 모자 뒤(모자가 뿔 밑동을 덮음)
     if (deco.includes('s')) {
       if (dir === 'side') front.push([['KQZQQK', '.KqqK.'], 4, 11], [['Qq.', '.qQ', '..Z'], 2, 12]);          // 옆: 뒤로 날리는 끝자락
       else if (dir === 'up') front.push([['KQQZQQZQQK', '.KqqqqqqK.'], 3, 11], [['Qq', 'qQ', '.Z'], 7, 13]); // 뒤: 등 가운데로
