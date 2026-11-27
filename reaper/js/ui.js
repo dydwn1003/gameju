@@ -914,7 +914,7 @@ const UI = (() => {
     const seen = S().noticeSeen || 0; // 이 값보다 나중에 올라온 공지 = 새 공지
     const box = modal(`<h2>📢 공지사항</h2><div class="nt-list">${list.length ? list.map((n, i) => `<div class="nt-item ${i === 0 ? 'open' : ''}" data-nt="${esc(n.id)}"><div class="nt-head">${n.pin ? '<em>📌</em>' : ''}${(n.at || 0) > seen ? '<span class="new-tag">N</span>' : ''}<b>${esc(n.title)}</b><small>${fmtDate(n.at)}</small>${admin ? `<button class="nt-del" data-ntdel="${esc(n.id)}">삭제</button>` : ''}</div><div class="nt-body">${esc(n.body || '').replace(/\n/g, '<br>')}</div></div>`).join('') : '<div class="rkload">아직 공지사항이 없어요</div>'}</div>
       ${admin ? '<button class="btn" id="nt-write">✍️ 공지 쓰기 (운영자)</button>' : ''}
-      <label class="nt-hide"><input type="checkbox" id="nt-today" ${S().noticeMute && Math.max(0, ...list.map(n => n.at || 0)) <= S().noticeMute ? 'checked' : ''}> 새 공지가 올라올 때까지 안 보기 <small>(새 공지가 올라오면 다시 떠요)</small></label>
+      <label class="nt-hide"><input type="checkbox" id="nt-today" ${S().noticeMute && Math.max(0, ...list.map(n => n.at || 0)) <= S().noticeMute ? 'checked' : ''}> 다시는 보지 않기 <small>(새 공지가 올라오면 다시 떠요)</small></label>
       <div class="acts"><button class="btn dark" id="nt-close">닫기</button></div>`);
     S().noticeSeen = Math.max(S().noticeSeen || 0, ...list.map(n => n.at || 0)); Game.save(); $('#btn-notice .dot').classList.remove('on');
     box.querySelectorAll('.nt-head').forEach(h => h.onclick = e => { if (e.target.closest('[data-ntdel]')) return; h.parentElement.classList.toggle('open'); });
