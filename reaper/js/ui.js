@@ -1328,7 +1328,9 @@ const UI = (() => {
   // gid: SHOP_IAP 의 id, 또는 현금 의자는 'decor:<소품 id>'
   const testPay = () => !Native.isApp() && (!!window.claude || !Cloud.enabled());
   const priceOf = gid => Native.price(gid) || LocalPrice.of(gid.startsWith('decor:') ? Decor.D(gid.slice(6)).cash : SHOP_IAP.find(p => p.id === gid).price);
-  const payNote = () => testPay() ? '<p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>' : Native.isApp() ? `<p style="color:var(--mute);font-size:10px">${Native.platform() === 'ios' ? 'App Store' : 'Google Play'} 계정으로 결제돼요.</p>` : '';
+  // 청약철회 안내 (전자상거래법 제17조: 철회 제한 사실을 구매 화면에 표시) — 모든 유료 결제 창에 표시
+  const refundNote = () => `<p class="refund-note"><span>구매 즉시 지급되는 상품이에요. 지급된 재화·아이템을 사용했거나 기간이 시작된 상품은 청약철회가 제한돼요.</span><br><span>사용하지 않은 상품은 구매 후 7일 이내에 청약철회할 수 있어요.</span></p>`;
+  const payNote = () => refundNote() + (testPay() ? '<p style="color:var(--mute);font-size:10px">테스트 결제: 실제로 청구되지 않습니다.</p>' : Native.isApp() ? `<p style="color:var(--mute);font-size:10px">${Native.platform() === 'ios' ? 'App Store' : 'Google Play'} 계정으로 결제돼요.</p>` : '');
   // 결제 지급 (key: 스토어 거래 번호 → 게임 저장에도 기록해 두 번 지급하지 않음)
   function grantPaid(gid, key) {
     const s = S(); if (key) { s.txDone = s.txDone || []; if (s.txDone.includes(key)) return; s.txDone.push(key); if (s.txDone.length > 300) s.txDone = s.txDone.slice(-300); }

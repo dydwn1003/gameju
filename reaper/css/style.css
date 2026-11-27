@@ -1069,3 +1069,5 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .pi-next .pn-nav button { background: rgba(255,255,255,.08); border: 0; color: var(--text); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
 .pi-next .pn-nav button:disabled { opacity: .3; }
 .rb-ex .btn { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; white-space: nowrap; } .rb-ex .btn img { height: 14px; width: auto; margin: 0; } .rb-ex { margin-top: 6px; }
+/* 청약철회 안내 (결제 창) */
+.refund-note { margin: 8px 0 2px; padding: 7px 9px; border-radius: 8px; background: rgba(255, 211, 74, 0.08); border: 1px solid rgba(255, 211, 74, 0.25); color: #d8cfa8; font-size: 10.5px; line-height: 1.5; text-align: left; }
