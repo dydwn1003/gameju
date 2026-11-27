@@ -1,6 +1,8 @@
 -- 저승사자 키우기 · 운영 데이터 한 번에 보기 (전체 붙여 넣고 Run 한 번)
--- 먼저 stats_setup.sql 을 한 번 실행해 두세요 · 운영자 계정 제외 · 한국 시간 · 매출은 판매가 기준
-with adm as (select user_id from public.admins),
+-- 먼저 stats_setup.sql · security_update.sql 을 한 번 실행해 두세요 · 운영자 · 정지(가짜 결제) 계정 제외 · 한국 시간 · 매출은 판매가 기준
+-- 기기 통계(stats: DAU · 리텐션 등)는 계정과 연결되지 않아 정지 계정도 포함됨 (1명이라 영향 미미)
+with adm as (select user_id from public.admins union select user_id from public.bans
+   union select '9a9d13d8-25a5-4956-bd57-b2d32918c223'::uuid),  -- 똘순이 (가짜 결제) · 정지 전이어도 제외
  sv as (select * from public.saves where user_id not in (select user_id from adm)),
  td as (select (now() at time zone 'Asia/Seoul')::date as d),
  price as (select * from (values ('jade100','옥 100개',1200),('jade550','옥 550개',5900),('jade1200','옥 1,200개',12000),
