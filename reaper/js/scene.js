@@ -394,6 +394,7 @@ const Scene = (() => {
     souls.push({ x, y, tier: r.tier, sp: r.sp, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0, h: 9 });
   }
   // 겨울 이벤트 팥 영혼: 저승사자 본인이 가장 먼저 거두러 감 (졸개는 안 건드림)
+  const petDeco = im => (hooks.petDeco ? hooks.petDeco(im) : im); // 영물 그림 꾸미기 (겨울 목도리 등)
   function spawnPat() {
     for (let k = 0; k < 30; k++) { const x = camX + W * rnd(0.2, 0.8), y = camY + H * rnd(0.4, 0.8); if (walkable(x, y)) { souls.push({ x, y, tier: 0, sp: -1, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true; } }
     const [x, y] = randGround(); souls.push({ x, y, tier: 0, sp: -1, ph: 0, t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true;
@@ -620,7 +621,7 @@ const Scene = (() => {
         g.globalAlpha = 1;
         if (!wraith.dead) { const bw = Math.round(W * 0.6), bx = Math.round((W - bw) / 2), by = Math.round(H * 0.22) + 4; g.fillStyle = '#0f0c18'; g.fillRect(bx - 1, by - 1, bw + 2, 6); g.fillStyle = '#4a1020'; g.fillRect(bx, by, bw, 4); g.fillStyle = '#ff3a5a'; g.fillRect(bx, by, Math.round(bw * wraith.hp / wraith.max), 4); g.fillStyle = '#ff9aaa'; g.fillRect(bx, by, Math.round(bw * wraith.hp / wraith.max), 1); }
       }
-      if (pet && petData) { const im = SP.petTiny(petData, Math.floor(pet.t * 3)); drawPetAura(g, pet.x, pet.y + 1, im.width, im.height, petData.g, petData.star, time, 1); g.drawImage(im, Math.round(pet.x - im.width / 2), Math.round(pet.y - im.height + 1)); }
+      if (pet && petData) { const im = petDeco(SP.petTiny(petData, Math.floor(pet.t * 3))); drawPetAura(g, pet.x, pet.y + 1, im.width, im.height, petData.g, petData.star, time, 1); g.drawImage(im, Math.round(pet.x - im.width / 2), Math.round(pet.y - im.height + 1)); }
       shadow(reaper.x, reaper.y, 10);
       const im = sprite(SP.tinyReaper(kind, rank, 'up', 'idle', Math.floor(reaper.ft * 2.5)), reaper.x, reaper.y, false);
       if (reaper.st === 'reap') glow(reaper.x, reaper.y - 14, 5, '#ffe08a', 0.4);
@@ -677,7 +678,7 @@ const Scene = (() => {
         aura(u); }
       if (u.st === 'reap') { const p = handPos(u); glow(p.x - camX, p.y - camY, u.mini ? 3 : 5, '#ffe08a', 0.35); }
     } }); });
-    if (pet && vis(pet.x, pet.y)) list.push({ y: pet.y, f: () => { const hop = pet.fly ? -8 + Math.sin(pet.t * 4) * 1.5 : -Math.abs(Math.sin(pet.t * 6)) * 1.2; shadow(pet.x, pet.y, 6); if (petData.aura) glow(pet.x - camX, pet.y - camY - 5 + hop, 5, petData.aura, 0.25); const im = SP.petTiny(petData, Math.floor(pet.t * (pet.fly ? 6 : 3))); drawPetAura(g, pet.x - camX, pet.y - camY + 1 + hop, im.width, im.height, petData.g, petData.star, time, 1); g.drawImage(pet.face < 0 ? flipOf(im) : im, Math.round(pet.x - camX - im.width / 2), Math.round(pet.y - camY - im.height + 1 + hop)); } });
+    if (pet && vis(pet.x, pet.y)) list.push({ y: pet.y, f: () => { const hop = pet.fly ? -8 + Math.sin(pet.t * 4) * 1.5 : -Math.abs(Math.sin(pet.t * 6)) * 1.2; shadow(pet.x, pet.y, 6); if (petData.aura) glow(pet.x - camX, pet.y - camY - 5 + hop, 5, petData.aura, 0.25); const im = petDeco(SP.petTiny(petData, Math.floor(pet.t * (pet.fly ? 6 : 3)))); drawPetAura(g, pet.x - camX, pet.y - camY + 1 + hop, im.width, im.height, petData.g, petData.star, time, 1); g.drawImage(pet.face < 0 ? flipOf(im) : im, Math.round(pet.x - camX - im.width / 2), Math.round(pet.y - camY - im.height + 1 + hop)); } });
     for (const s of souls) { const x = s.st === 'pull' ? s.px : s.x, y = s.st === 'pull' ? s.py + s.h : s.y; if (!vis(x, y)) continue; list.push({ y: y + 0.5, f: () => {
       const img = s.pat && hooks.patImg ? hooks.patImg() : s.sp >= 0 ? SP.special(s.sp) : SP.soult(s.tier, Math.floor(time * 6 + s.ph) % 3), fy = y - s.h + (s.st === 'float' ? Math.sin(time * 2 + s.ph) * 1.5 : 0);
       if (s.st === 'float') { g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(Math.round(x - camX - 2), Math.round(y - camY), 4, 1); }

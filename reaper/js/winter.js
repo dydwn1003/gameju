@@ -37,6 +37,13 @@ const Winter = (() => {
   }
   // 맵에 나타난 팥 영혼 줍기
   function collect() { const e = st(); if (e.pend <= 0 || !active()) return 0; e.pend--; e.n = Math.min(WINTER.max, e.n + 1); Game.save(); return e.n; }
+  // 겨울 상점 (이벤트 기간에만): 팥죽 한 그릇(옥 80 · 하루 2번 · 팥 영혼 1개 바로) · 영물 목도리(옥 200 · 이벤트 기간 동안 영물이 목도리를 두름)
+  const SHOP = { bowl: { jade: 80, day: 2 }, scarf: { jade: 200 } };
+  const bowlDay = () => { const e = st(), d = kstDay(now()); if (!e.bowl || e.bowl.d !== d) e.bowl = { d, n: 0 }; return e.bowl; };
+  const bowlLeft = () => SHOP.bowl.day - bowlDay().n;
+  function buyBowl() { const s = S(); if (!active() || bowlLeft() <= 0 || room() <= 0 || s.jade < SHOP.bowl.jade) return false; s.jade -= SHOP.bowl.jade; bowlDay().n++; st().pend++; Game.save(); if (onSpawn) onSpawn(); return true; }
+  function buyScarf() { const s = S(), e = st(); if (!active() || e.scarf || s.jade < SHOP.scarf.jade) return false; s.jade -= SHOP.scarf.jade; e.scarf = 1; Game.save(); return true; }
+  const scarfOn = () => active() && !!st().scarf;
   const claimable = g => st().n >= g.n && !st().got[g.id];
   function claim(i) {
     const g = WINTER.goals[i], e = st(); if (!g || !claimable(g)) return null;
@@ -48,6 +55,7 @@ const Winter = (() => {
   const nextIn = () => Math.max(0, WINTER.per - st().prog) / (window.__evSpeed || 1);
   const hasDot = () => active() && (st().pend > 0 || WINTER.goals.some(claimable));
   return {
+    SHOP, bowlLeft, buyBowl, buyScarf, scarfOn,
     active, st, room, tick, collect, claim, claimable, left, nextIn, hasDot, done,
     goals: WINTER.goals, max: WINTER.max, per: WINTER.per, startAt: WINTER.start, endAt: end,
     setEnd: ms => { if (ms > 0) endOverride = ms; }, onSpawn: f => { onSpawn = f; },
