@@ -2149,7 +2149,7 @@ const UI = (() => {
   // 이 버전부터 다음 승진 때 딱 한 번만 띄우고, 그 뒤로는 어떤 버튼을 눌러도 다시 묻지 않음. 보상은 주지 않음 (스토어 정책: 리뷰 대가 금지)
   function reviewAsk(tries = 0) {
     const s = S(), r = s.review || (s.review = { n: 0, at: 0, done: 0 });
-    if (!Native.isApp() || r.n >= 1 || r.done) return;
+    if (!Native.isApp() || Native.platform() === 'ios' || r.n >= 1 || r.done) return;   // 아이폰은 직접 만든 리뷰 부탁 창을 금지(심사 지침 5.6.1)해서 안드로이드만
     if ($('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut') || parade) { if (tries < 120) setTimeout(() => reviewAsk(tries + 1), 1000); return; }   // 다른 창이 닫힐 때까지 기다림 (최대 2분)
     r.n++; r.at = Date.now(); Game.save();
     const box = modal(`<div class="rv"><canvas id="rv-cv" width="44" height="51"></canvas><div class="rv-stars">${'<i>★</i>'.repeat(5)}</div>
