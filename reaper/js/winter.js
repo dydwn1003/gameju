@@ -57,7 +57,7 @@ const Winter = (() => {
   const dayNo = () => Math.floor((now() + 9 * 3600e3) / 864e5) - Math.floor((WINTER.start + 9 * 3600e3) / 864e5) + 1;   // 오늘이 이벤트 며칠째인지 (한국 시간)
   const missed = () => { const a = att(); if (!active()) return 0; return Math.max(0, dayNo() - a.n - (a.day === kstDay(now()) ? 0 : 1)); };   // 지나간 날 중 출석 못 한 날 (오늘은 빼고)
   const canMakeup = () => active() && att().n < ATT_MAX && missed() > 0;
-  const canAttend = () => active() && att().n < ATT_MAX && att().day !== kstDay(now());
+  const canAttend = () => active() && att().n < ATT_MAX && att().day !== kstDay(now()) && !(att().day > kstDay(now()));   // 기기 시계를 앞으로 돌렸다가 되돌린 경우 막기
   function attend(makeup) {
     const s = S();
     if (makeup) { if (!canMakeup() || s.jade < MK_JADE) return null; s.jade -= MK_JADE; att().mk++; }
@@ -75,16 +75,17 @@ const Winter = (() => {
   const bowlDay = () => { const e = st(), d = kstDay(now()); if (!e.bowl || e.bowl.d !== d) e.bowl = { d, n: 0 }; return e.bowl; };
   const bowlLeft = () => SHOP.bowl.day - bowlDay().n;
   function buyBowl() { const s = S(); if (!active() || bowlLeft() <= 0 || room() <= 0 || s.jade < SHOP.bowl.jade) return false; s.jade -= SHOP.bowl.jade; bowlDay().n++; st().pend++; Game.save(); if (onSpawn) onSpawn(); return true; }
-  const owns = id => !!(st().items || {})[id];
-  const wearing = id => owns(id) && (st().wear || {})[id] !== false;
+  const ev0 = () => ((S() && S().ev) || {})[WINTER.id] || {};          // 읽기만 (매 프레임 불려서 저장을 만들지 않음)
+  const owns = id => !!(ev0().items || {})[id];
+  const wearing = id => owns(id) && (ev0().wear || {})[id] !== false;
   function toggleWear(id) { if (!owns(id)) return false; const e = st(); e.wear = e.wear || {}; e.wear[id] = !wearing(id); Game.save(); return e.wear[id]; }
   const deco = () => (wearing('rscarf') ? 's' : '') + (wearing('antler') ? 'a' : '');   // 저승사자 그림에 넘길 꾸미기 글자
   // 산타의 선물 (노점 · 산타 · 순록을 누르면): 혼 수확 +10% 30분 · 받은 뒤 1시간 지나야 다시 받음 · 이벤트 기간에만
   const GIFT = { mul: 1.1, dur: 1800e3, cd: 3600e3 };
-  const giftOn = () => active() && now() < (st().gift || 0);
+  const giftOn = () => { const e = st(); return active() && now() < Math.min(e.gift || 0, (e.giftAt || 0) + GIFT.dur) && (e.giftAt || 0) <= now(); };   // 시계를 돌려도 30분 넘게 못 가게
   const giftMul = () => (giftOn() ? GIFT.mul : 1);
-  const giftLeft = () => Math.max(0, ((st().gift || 0) - now()) / 1000);
-  const giftWait = () => Math.max(0, ((st().giftAt || 0) + GIFT.cd - now()) / 1000);   // 다시 받을 수 있을 때까지 (초)
+  const giftLeft = () => giftOn() ? Math.max(0, (Math.min(st().gift || 0, (st().giftAt || 0) + GIFT.dur) - now()) / 1000) : 0;
+  const giftWait = () => { const e = st(); if ((e.giftAt || 0) > now() + 60e3) return 0; return Math.max(0, ((e.giftAt || 0) + GIFT.cd - now()) / 1000); };   // 다시 받을 수 있을 때까지 (초)
   function takeGift() { if (!active() || giftWait() > 0) return false; const e = st(); e.giftAt = now(); e.gift = now() + GIFT.dur; Game.save(); return true; }
   const claimable = g => st().n >= g.n && !st().got[g.id];
   function claim(i) {

@@ -326,7 +326,7 @@ const UI = (() => {
     $('#winter-t').textContent = `${e.n}/${Winter.max}`;
     b.querySelector('.dot').classList.toggle('on', Winter.hasDot());
     Scene.setXmas(on);
-    if (!Scene.inOffice()) { let k = e.pend - Scene.patCount(); while (k-- > 0) Scene.spawnPat(); } // 맵에 진짜 혼령처럼 나타남 → 저승사자가 거두거나 눌러서 거둠
+    if (!Scene.inOffice() && !(Scene.inArena && Scene.inArena())) { if (Scene.patCount() > e.pend) Scene.clearPat(); let k = e.pend - Scene.patCount(); while (k-- > 0) Scene.spawnPat(); } // 맵에 진짜 혼령처럼 나타남 → 저승사자가 거두거나 눌러서 거둠
     const nx = $('#wv-next'); if (nx) nx.textContent = Winter.room() <= 0 ? (Winter.done() ? '모두 모았어요' : '맵에 나타났어요!') : mmss(Winter.nextIn());
     if (!winterIntro && !e.seen && S().tut === 'done' && !$('#modal').classList.contains('on') && !document.getElementById('tut') && !parade) { winterIntro = true; e.seen = true; Game.save(); setTimeout(winterBox, 600); }
   }
@@ -1335,6 +1335,7 @@ const UI = (() => {
   function openLife(k) { sub = k; goTab('life'); }
   // 산타의 선물: 혼 수확 +10% 30분 (1시간마다)
   function santaGift(id) {
+    if (!Winter.active()) return;
     if (Winter.takeGift()) { Sound.play('promote'); Game.apply(); hud(); got('<b>혼 수확 +10%</b> · 30분<br>호호호! 착한 차사에게 주는 선물이라네', { emo: '🎁', title: '산타의 선물!' }); return; }
     const L = ['🎅 호호호! 메리 크리스마스!', '🎅 저승에도 선물이 왔다네. 겨울 출석은 잊지 않았겠지?', '🎅 착한 차사에게는 팥죽 한 그릇을!', '🎅 눈꽃 백록은 내 순록의 친구라네'];
     const box = modal(`<div class="got"><div class="got-ic">⏳</div><h2>산타의 선물 쿨타임</h2><p class="got-t">${id === 'deer' ? '🦌 순록이 코를 킁킁거려요' : L[Math.floor(Math.random() * L.length)]}</p><p class="gift-cd">다음 선물까지 <b id="gift-cd">${fmtClock(Winter.giftWait())}</b></p>${Winter.giftOn() ? `<p class="mute">지금 받은 선물 효과: 혼 수확 +10% · ${fmtClock(Winter.giftLeft())} 남음</p>` : ''}</div>

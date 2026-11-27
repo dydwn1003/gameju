@@ -112,9 +112,9 @@ const Game = (() => {
   function buyPerk(id) { const P = PERKS.find(x => x.id === id); if (!P || perkLv(id) >= P.max) return false; const c = perkCost(id); if ((S.rbStone || 0) < c) return false; S.rbStone -= c; S.rbPerk = S.rbPerk || {}; S.rbPerk[id] = perkLv(id) + 1; apply(); save(); return true; }
   const PEN = UPGRADES[0];
   const penMul = L => (1 + L * PEN.pa + PEN.pb * Math.sqrt(L)) * Math.pow(2, Math.floor(L / PEN.pd)); // 처음엔 강화마다 크게(+pa), 갈수록 비율이 줄어듦 · pd번마다 ×2
-  const valueBase = () => SOUL_MUL * penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (1 + 0.1 * perkLv('value')) * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1) * (typeof Winter !== 'undefined' ? Winter.giftMul() : 1);
+  const valueBase = () => SOUL_MUL * penMul(lv('pen')) * (1 + Life.dexBonus()) * Pets.mul('value') * (typeof Decor !== 'undefined' ? Decor.mul() : 1) * masteryMul() * RANKS[S.rank].mult * rebornMult() * (1 + 0.1 * perkLv('value')) * (S.perm2 || (S.sealUntil || 0) > Date.now() ? 2 : 1);
   const boosting = () => Date.now() < S.boostUntil;
-  const value = () => valueBase() * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
+  const value = () => valueBase() * (typeof Winter !== 'undefined' ? Winter.giftMul() : 1) * (boosting() ? 2 : 1) * (Life.buffLeft('value') > 0 ? 1.5 : 1) * Life.fortuneMul();
   const walk = () => (30 + le('step') * 3) * Life.mul('spawn') * Pets.mul('walk');
   const spawn = () => Math.max(0.1, 0.7 * Math.pow(0.93, le('call'))) / Life.mul('spawn');
   const reap = () => Math.max(0.12, 0.9 * Math.pow(0.93, le('hand')) / Pets.mul('reap'));
