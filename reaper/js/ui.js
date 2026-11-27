@@ -317,6 +317,25 @@ const UI = (() => {
     if (!reward) { toast(`<img class="px" src="${patIcon(2)}" style="width:16px;vertical-align:-3px"> 팥 영혼 ${n}/${Winter.max}`, 2600); return; }
     got(`<b>${n}/${Winter.max}</b><br>🎁 보상을 받을 수 있어요!`, { src: patIcon(5), title: '팥 영혼 +1', actions: [{ label: '보상 받으러 가기', cls: 'red', fn: winterBox }] });
   }
+  // ---------- 겨울 출석 (동짓날 팥죽 창 맨 위) ----------
+  const attTxt = r => r.hours ? `${r.hours}시간치 혼` : r.jade ? `옥 ${r.jade}개` : r.tickets ? `소환권 ${r.tickets}장` : Object.keys(r.seed).map(k => `${FLOWERS.find(f => f.id === k).name} 씨앗 ${r.seed[k]}개`).join(' · ');
+  const TICKET = ['.KKKKKKKKKK.', 'KRRRRRRRRRRK', 'KRYYRRRRYYRK', '.RRRRWWRRRR.', 'KRYYRRRRYYRK', 'KRRRRRRRRRRK', '.KKKKKKKKKK.'];   // 소환권 도트
+  const ticketIc = sc => urls['tk' + sc] || (urls['tk' + sc] = (() => { const c = document.createElement('canvas'); c.width = 12; c.height = 7; const g = c.getContext('2d'), P = { K: '#3a1018', R: '#d8323c', Y: '#ffd76a', W: '#fff4e0' };
+    TICKET.forEach((row, y) => [...row].forEach((ch, x) => { if (P[ch]) { g.fillStyle = P[ch]; g.fillRect(x, y, 1, 1); } })); return toURL(c, sc); })());
+  const attIc = (r, sc = 2) => r.hours ? IC('soul', sc) : r.jade ? IC('jade', sc) : r.tickets ? ticketIc(sc) : FIC(Object.keys(r.seed)[0], 0, sc);
+  function winterAttHtml() {
+    const a = Winter.att(), can = Winter.canAttend(), nx = a.n + 1;
+    const cell = d => { const g = Winter.attGoals.find(x => x.n === d), r = Winter.attReward(d), done = d <= a.n, today = can && d === nx;
+      const ic = g ? toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, Winter.ITEMS[g.id].ch), 2) : attIc(r, 2);
+      const q = r.hours ? r.hours + 'h' : r.jade || r.tickets || Object.values(r.seed)[0];
+      return `<div class="wa-c ${done ? 'done' : ''} ${today ? 'now' : ''} ${g ? 'big' : ''}"><small>${d}</small><img class="px" src="${ic}">${g ? '' : `<em>${q}</em>`}${done ? '<i>✓</i>' : ''}</div>`; };
+    const goal = g => `<span class="${a.n >= g.n ? 'on' : ''}">${g.n}일 · ${Winter.ITEMS[g.id].name}${a.n >= g.n ? ' ✓' : ''}</span>`;
+    return `<div class="wa"><div class="wa-hd"><h4>❄️ 겨울 출석</h4><span><span>출석한 날</span> <b>${a.n}</b>/${Winter.attMax}</span></div>
+      <div class="wa-goal">${Winter.attGoals.map(goal).join('')}</div>
+      <div class="wa-grid">${Array.from({ length: Winter.attMax }, (_, i) => cell(i + 1)).join('')}</div>
+      <div class="wa-ft"><small>하루 한 번 · 29일 중 28일 출석하면 목도리까지 받아요</small>
+      <button class="btn ${can ? 'red' : 'dark'}" id="wa-go" ${can ? '' : 'disabled'}>${a.n >= Winter.attMax ? '모두 받았어요' : can ? `출석하기<small class="wa-r">${attTxt(Winter.attReward(nx))}</small>` : '내일 또 만나요'}</button></div></div>`;
+  }
   function winterBox() {
     if (!Winter.active()) return;
     const e = Winter.st(), pct = Math.min(100, e.n / Winter.max * 100);
@@ -327,6 +346,7 @@ const UI = (() => {
         <button class="btn ${can ? 'red' : 'dark'}" data-wg="${i}" ${can ? '' : 'disabled'}>${got_ ? '받음 ✓' : can ? '받기' : `${Math.min(e.n, g.n)}/${g.n}`}</button></div>`;
     };
     const box = modal(`<div class="wv"><div class="wv-hd"><div class="wv-sn">${Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 53) % 100}%;width:${2 + (i % 3)}px;height:${2 + (i % 3)}px;animation-duration:${5 + (i * 7) % 5}s;animation-delay:-${(i * 11) % 7}s"></i>`).join('')}</div><span class="wv-tag">겨울 한정 이벤트</span><h2>동짓날 팥죽</h2><p>남은 기간 ${dleft(Winter.left())} · 12월 31일까지</p></div>
+      ${winterAttHtml()}
       <div class="wv-how"><img class="px" src="${patIcon(4)}"><p><b>게임을 켜 두면 30분마다 팥 영혼이 나타나요</b><br>맵에 나타난 팥 영혼을 눌러서 모아 보세요<small>접속하지 않은 동안에는 1개까지만 모여요</small></p></div>
       <div class="wv-prog"><div class="wv-top"><span><img class="px" src="${patIcon(2)}"> <b>${e.n}</b> / ${Winter.max}</span><span class="wv-nx">다음 팥 영혼 <b id="wv-next">${Winter.room() <= 0 ? (Winter.done() ? '모두 모았어요' : '맵에 나타났어요!') : mmss(Winter.nextIn())}</b></span></div>
         <div class="wv-bar"><i style="width:${pct}%"></i><em style="left:50%" class="${e.n >= 20 ? 'on' : ''}">20</em><em style="left:100%" class="${e.n >= 40 ? 'on' : ''}">40</em></div></div>
@@ -334,15 +354,13 @@ const UI = (() => {
       <div class="wv-shop"><h4>겨울 상점 <small>12월 31일까지</small></h4>
         <div class="wv-item"><div class="wv-th"><img class="px" src="${patIcon(4)}"></div><div class="wv-gi"><b>팥죽 한 그릇</b><small>팥 영혼 1개가 바로 나타나요 · 오늘 ${Winter.bowlLeft()}/${Winter.SHOP.bowl.day}번 남음</small></div>
           <button class="btn jade" id="wv-bowl" ${Winter.bowlLeft() > 0 && Winter.room() > 0 ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${Winter.bowlLeft() > 0 ? Winter.SHOP.bowl.jade : '내일'}</button></div>
-        ${[['rscarf', '저승사자 목도리', '목에 두르는 빨간 줄무늬 목도리'], ['antler', '사슴뿔 머리띠', '모자 양옆으로 작은 사슴뿔이 나와요']].map(([id, nm, ds]) => `<div class="wv-item"><div class="wv-th"><img class="px" src="${toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, Winter.SHOP[id].ch), 3)}"></div><div class="wv-gi"><b>${nm}</b><small>${ds}${Winter.owns(id) ? ' · 이벤트가 끝나도 계속' : ''}</small></div>
-          ${Winter.owns(id) ? `<button class="btn ${Winter.wearing(id) ? 'red' : 'dark'}" data-wear="${id}">${Winter.wearing(id) ? '쓰는 중' : '벗음'}</button>` : `<button class="btn jade" data-ri="${id}"><img class="px" src="${IC('jade', 2)}">${Winter.SHOP[id].jade}</button>`}</div>`).join('')}
       </div></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`, true);
     box.classList.add('wv-box');
+    const ab = box.querySelector('#wa-go'); if (ab) ab.onclick = () => { const r = Winter.attend(); if (!r) return; Sound.play('buy'); closeModal(); hud(); winterHud(); render();
+      const after = () => r.item ? got(`<b>${Winter.ITEMS[r.item].name}</b><br>겨울 출석 ${r.d}일 달성! 저승사자가 바로 착용했어요.<br>내 정보에서 언제든 쓰기 · 벗기를 고를 수 있어요`, { src: toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, Winter.ITEMS[r.item].ch), 5), title: '겨울 꾸미기 획득!', then: winterBox }) : winterBox();
+      got(`<b>${attTxt(r.r)}</b>`, { src: attIc(r.r, 5), title: `겨울 출석 ${r.d}일째!`, then: after }); };
     const bb = box.querySelector('#wv-bowl'); if (bb) bb.onclick = () => { closeModal(); if (S().jade < Winter.SHOP.bowl.jade) { buyPage('jade'); return; } askBuy('팥죽 한 그릇', '팥 영혼 1개가 바로 맵에 나타나요. (하루 2번)', Winter.SHOP.bowl.jade, 0, () => { if (Winter.buyBowl()) { Sound.play('buy'); hud(); winterHud(true); toast('🥣 팥죽 냄새를 맡고 팥 영혼이 나타났어요!', 2600); } else toast('지금은 살 수 없어요'); }, winterBox); };
-    box.querySelectorAll('[data-ri]').forEach(bt => bt.onclick = () => { const id = bt.dataset.ri, it = Winter.SHOP[id], nm = id === 'rscarf' ? '저승사자 목도리' : '사슴뿔 머리띠'; closeModal(); if (S().jade < it.jade) { buyPage('jade'); return; }
-      askBuy(nm, '저승사자가 바로 착용해요. 판매는 12월 31일까지, 산 꾸미기는 이벤트가 끝나도 계속 쓸 수 있어요.', it.jade, 0, () => { if (Winter.buyItem(id)) { Sound.play('buy'); hud(); got(`<b>${nm}</b><br>저승사자가 착용했어요. 내 정보에서 언제든 쓰기 · 벗기를 고를 수 있어요`, { src: toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, it.ch), 5), title: '겨울 꾸미기 획득!', then: winterBox }); } else toast('지금은 살 수 없어요'); }, winterBox); });
-    box.querySelectorAll('[data-wear]').forEach(bt => bt.onclick = () => { const on = Winter.toggleWear(bt.dataset.wear); Sound.play('open'); bt.textContent = on ? '쓰는 중' : '벗음'; bt.className = 'btn ' + (on ? 'red' : 'dark'); });
     box.querySelectorAll('[data-wg]').forEach(bt => bt.onclick = () => {
       const g = Winter.claim(+bt.dataset.wg); if (!g) return; Sound.play('buy'); closeModal(); render(); winterHud();
       if (g.kind === 'decor') got(`<b>${Decor.D(g.id).name}</b><br>집무실 꾸미기에서 놓을 수 있어요`, { src: decoThumb(g.id, 5), title: '겨울 소품 획득!', then: winterBox });
@@ -783,7 +801,7 @@ const UI = (() => {
   function itemsSection() {
     const icon = ch => toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, ch), 2);
     return `<div class="st-sec">🎒 착용 아이템</div><div class="it-grid">${ITEMS.map(([id, nm, ch]) => { const own = Winter.owns(id), on = Winter.wearing(id);
-      return `<div class="it-card ${own ? '' : 'lock'}"><img class="px" src="${icon(ch)}"><b>${nm}</b>${own ? `<button class="btn ${on ? 'red' : 'dark'}" data-itw="${id}">${on ? '쓰는 중' : '벗음'}</button>` : `<small>${Winter.active() ? '겨울 상점에서 구할 수 있어요' : '2026 겨울 이벤트 한정'}</small>`}</div>`; }).join('')}</div>`;
+      return `<div class="it-card ${own ? '' : 'lock'}"><img class="px" src="${icon(ch)}"><b>${nm}</b>${own ? `<button class="btn ${on ? 'red' : 'dark'}" data-itw="${id}">${on ? '쓰는 중' : '벗음'}</button>` : `<small>${Winter.active() ? `겨울 출석 ${id === 'antler' ? 14 : 28}일 보상` : '2026 겨울 출석 한정'}</small>`}</div>`; }).join('')}</div>`;
   }
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-itw]'); if (!b) return; const on = Winter.toggleWear(b.dataset.itw); Sound.play('open'); b.textContent = on ? '쓰는 중' : '벗음'; b.className = 'btn ' + (on ? 'red' : 'dark'); });
   function statsModal() {

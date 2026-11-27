@@ -1,6 +1,7 @@
 // ===== 겨울 이벤트 '동짓날 팥죽' (2026-12-03 0시 ~ 12-31 업데이트 전, 한국 시간) =====
 // - 게임을 켜 두면 30분마다 맵에 '팥 영혼'이 하나씩 나타남 (못 먹어도 쌓임) → 저승사자가 거두거나 눌러서 모음
 // - 접속하지 않은 동안은 30분 넘게 지나도 하나만 나옴
+// - 겨울 출석: 하루 1번 · 매번 기본 보상 · 14일 사슴뿔 머리띠 · 28일 저승사자 목도리
 // - 20개: 겨울 소품 '동짓날 팥죽 가마솥' · 40개: SS 영물 '눈꽃 백록'
 // - 끝나는 시각은 서버 docs 'config/event' 의 winterEnd(ISO 문자열)로 바꿀 수 있음 (없으면 12-31 24시)
 const WINTER = {
@@ -38,14 +39,36 @@ const Winter = (() => {
   // 맵에 나타난 팥 영혼 줍기
   function collect() { const e = st(); if (e.pend <= 0 || !active()) return 0; e.pend--; e.n = Math.min(WINTER.max, e.n + 1); Game.save(); return e.n; }
   // 겨울 상점 (이벤트 기간에만 판매): 팥죽 한 그릇(옥 80 · 하루 2번 · 팥 영혼 1개 바로)
-  // 저승사자 꾸미기: 목도리 · 사슴뿔 머리띠 (각 옥 200) — 산 것은 이벤트가 끝나도 계속 쓸 수 있고, 쓰기 · 벗기를 고를 수 있음
-  const SHOP = { bowl: { jade: 80, day: 2 }, rscarf: { jade: 200, ch: 's' }, antler: { jade: 200, ch: 'a' } };
+  const SHOP = { bowl: { jade: 80, day: 2 } };
+  // 저승사자 꾸미기 (겨울 출석 보상): 받은 것은 이벤트가 끝나도 계속 쓸 수 있고, 내 정보에서 쓰기 · 벗기를 고를 수 있음
+  const ITEMS = { antler: { ch: 'a', name: '사슴뿔 머리띠' }, rscarf: { ch: 's', name: '저승사자 목도리' } };
+  // ---------- 겨울 출석 (12-03 ~ 12-31, 한국 시간 하루 1번) ----------
+  // 출석한 날 수(이어지지 않아도 됨)로 셈 · 매번 기본 보상 · 14일째 사슴뿔 머리띠 · 28일째 저승사자 목도리
+  const ATT_MAX = 28, ATT_GOALS = [{ n: 14, id: 'antler' }, { n: 28, id: 'rscarf' }];
+  const ATT_SEED = [{ lotus: 3 }, { honbul: 2 }, { lotus: 3 }, { saengsa: 1 }];
+  function attReward(d) {          // d: 몇 번째 출석 (1~28)
+    const w = Math.floor((d - 1) / 7), k = (d - 1) % 7;
+    return [{ hours: 1 }, { jade: 20 }, { tickets: 1 }, { seed: ATT_SEED[w % 4] }, { hours: 2 }, { jade: 30 }, { tickets: 2 }][k];
+  }
+  const att = () => { const e = st(); return e.att || (e.att = { n: 0, day: '' }); };
+  const canAttend = () => active() && att().n < ATT_MAX && att().day !== kstDay(now());
+  function attend() {
+    if (!canAttend()) return null;
+    const a = att(), s = S(), d = a.n + 1, r = attReward(d);
+    a.n = d; a.day = kstDay(now());
+    if (r.jade) s.jade += r.jade;
+    if (r.tickets) s.tickets = (s.tickets || 0) + r.tickets;
+    if (r.hours) Game.gain(Game.incomePerSec(true) * 3600 * r.hours);
+    if (r.seed) { s.seeds = s.seeds || {}; for (const k in r.seed) s.seeds[k] = (s.seeds[k] || 0) + r.seed[k]; }
+    const g = ATT_GOALS.find(x => x.n === d); let item = null;
+    if (g && !owns(g.id)) { const e = st(); e.items = e.items || {}; e.items[g.id] = 1; e.wear = e.wear || {}; e.wear[g.id] = true; item = g.id; }
+    Game.save(); return { d, r, item };
+  }
   const bowlDay = () => { const e = st(), d = kstDay(now()); if (!e.bowl || e.bowl.d !== d) e.bowl = { d, n: 0 }; return e.bowl; };
   const bowlLeft = () => SHOP.bowl.day - bowlDay().n;
   function buyBowl() { const s = S(); if (!active() || bowlLeft() <= 0 || room() <= 0 || s.jade < SHOP.bowl.jade) return false; s.jade -= SHOP.bowl.jade; bowlDay().n++; st().pend++; Game.save(); if (onSpawn) onSpawn(); return true; }
   const owns = id => !!(st().items || {})[id];
   const wearing = id => owns(id) && (st().wear || {})[id] !== false;
-  function buyItem(id) { const s = S(), e = st(), it = SHOP[id]; if (!it || !it.ch || !active() || owns(id) || s.jade < it.jade) return false; s.jade -= it.jade; e.items = e.items || {}; e.items[id] = 1; e.wear = e.wear || {}; e.wear[id] = true; Game.save(); return true; }
   function toggleWear(id) { if (!owns(id)) return false; const e = st(); e.wear = e.wear || {}; e.wear[id] = !wearing(id); Game.save(); return e.wear[id]; }
   const deco = () => (wearing('rscarf') ? 's' : '') + (wearing('antler') ? 'a' : '');   // 저승사자 그림에 넘길 꾸미기 글자
   const claimable = g => st().n >= g.n && !st().got[g.id];
@@ -57,9 +80,10 @@ const Winter = (() => {
   }
   const left = () => Math.max(0, end() - now());
   const nextIn = () => Math.max(0, WINTER.per - st().prog) / (window.__evSpeed || 1);
-  const hasDot = () => active() && (st().pend > 0 || WINTER.goals.some(claimable));
+  const hasDot = () => active() && (st().pend > 0 || WINTER.goals.some(claimable) || canAttend());
   return {
-    SHOP, bowlLeft, buyBowl, owns, wearing, buyItem, toggleWear, deco,
+    SHOP, ITEMS, bowlLeft, buyBowl, owns, wearing, toggleWear, deco,
+    att, attReward, canAttend, attend, attMax: ATT_MAX, attGoals: ATT_GOALS,
     active, st, room, tick, collect, claim, claimable, left, nextIn, hasDot, done,
     goals: WINTER.goals, max: WINTER.max, per: WINTER.per, startAt: WINTER.start, endAt: end,
     setEnd: ms => { if (ms > 0) endOverride = ms; }, onSpawn: f => { onSpawn = f; },
