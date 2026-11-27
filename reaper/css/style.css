@@ -1228,3 +1228,7 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .rv p { margin: 0 16px 14px; font-size: 12px; line-height: 1.6; color: #e4dcff; }
 /* hidden 속성이 display 설정에 덮이지 않게 (이벤트 기간 밖에는 버튼 · 눈 숨김) */
 .sbtn[hidden], #snow[hidden], [hidden] { display: none !important; }
+.wa-mk .btn { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 10px; line-height: 1.2; }
+.wa-mk .btn span { font-size: 11px; }
+.wa-mk .btn em { display: flex; align-items: center; gap: 2px; font-style: normal; font-size: 10px; opacity: 0.95; }
+.wa-mk .btn em img { width: 12px; }
