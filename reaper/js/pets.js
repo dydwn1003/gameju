@@ -124,7 +124,7 @@ const PETS = [
   { id: 'heukryong', name: '아기 흑룡', g: 'SS', kind: 'dragon', e: 'v', pal: {"H": "#2a2440", "B": "#2a2440", "b": "#8a7ab8", "y": "#ff4a5a"}, aura: '#a07aff', desc: '먹구름을 부르는 흑룡의 새끼' },
   { id: 'eungryong', name: '아기 응룡', g: 'SSS', kind: 'dragon', e: 'all', pal: {"H": "#9a6aff", "B": "#9a6aff", "b": "#f0e8ff", "y": "#ffd34a"}, aura: '#c8a0ff', desc: '날개 달린 용, 응룡의 새끼' },
   { id: 'geumsijo', name: '금시조', g: 'SSS', kind: 'bird', e: 'all', pal: {"H": "#ffc83a", "B": "#ffc83a", "b": "#fff4c0", "y": "#ff3a5a"}, aura: '#ffd34a', desc: '용을 잡아먹는 황금 새' },
-  { id: 'seollok', name: '눈꽃 백록', g: 'SS', ex: 1, kind: 'quad', e: 'all', pal: {"H": "#f4f8ff", "B": "#f4f8ff", "b": "#ffffff", "y": "#7ad0ff"}, aura: '#bfe8ff', desc: '동짓날 밤에만 나타나는 흰 사슴 (2026 겨울 이벤트)' },
+  { id: 'seollok', name: '눈꽃 백록', g: 'SS', ex: 1, mapArt: 1, kind: 'quad', e: 'all', pal: {"H": "#f4f8ff", "B": "#f4f8ff", "b": "#ffffff", "y": "#7ad0ff"}, aura: '#bfe8ff', desc: '동짓날 밤에만 나타나는 흰 사슴 (2026 겨울 이벤트)' },
   { id: 'yunhoe', name: '윤회의 봉황', g: 'SSS', ex: 1, kind: 'bird', e: 'all', pal: {"H": "#f4f0ff", "B": "#f4f0ff", "b": "#b88aff", "y": "#6ac8ff"}, aura: '#e8d8ff', desc: '다섯 번의 생을 함께한 불사조 (5환 전용)' },
 ];
 const PULL_COST = { 1: 50, 10: 450 };

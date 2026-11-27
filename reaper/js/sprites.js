@@ -276,7 +276,7 @@ const SP = (() => {
     npct: (name, i) => get(`tn${name}${i % 4}`, () => Tiny.npc(name, i)),
     soult: (tier, i) => get(`ts${tier}${i % 3}`, () => Tiny.soul(SOUL_PAL[tier], i)),
     wraitht: i => get(`tw${i % 2}`, () => Tiny.wraith(i)),
-    petTiny: (pet, i) => get(`pt${pet.id}${i % 2}`, () => petFrame(pet, i, true)),
+    petTiny: (pet, i) => get(`pt${pet.id}${i % 2}`, () => (pet.mapArt && typeof petArt3 === 'function' && petArt3(pet.id, i)) || petFrame(pet, i, true)), // mapArt: 맵에서도 도감 그림 그대로 (이벤트 영물)
     mini: (pose, i) => get(`m${pose}${i % 4}`, () => Art3.mini(pose, i)),
     lantern: (lit) => get(`l${lit}`, () => bake(LANTERN, lit === 2 ? { B: '#e8b030', c: '#9a6a10', o: '#fff0a0', q: '#c88a10', Q: '#ffd040' } : null)),
     jangseung: () => get('js', () => bake(JANGSEUNG, { E: '#c3313e' })),

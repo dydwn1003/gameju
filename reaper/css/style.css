@@ -1082,20 +1082,28 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .sbtn.winter { background: linear-gradient(180deg, rgba(40, 70, 120, 0.95), rgba(20, 30, 60, 0.95)); box-shadow: 0 0 0 1.5px #9fd4ff, 0 0 10px rgba(159, 212, 255, 0.45); }
 .sbtn.winter span { color: #dff2ff; }
 .sbtn.winter small { color: #ffd0c0; }
-#snow { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
-#snow i { position: absolute; top: -6px; background: #fff; border-radius: 50%; box-shadow: 0 0 4px rgba(255, 255, 255, 0.8); animation: snowfall linear infinite; }
-@keyframes snowfall { from { transform: translate(0, -10px); } 50% { transform: translate(10px, 50vh); } to { transform: translate(-4px, 100vh); } }
+#snow { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
 #patsoul { position: absolute; z-index: 3; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0; background: none; border: 0; cursor: pointer; animation: patbob 1.6s ease-in-out infinite; }
 #patsoul img { width: 44px; filter: drop-shadow(0 0 6px rgba(255, 120, 90, 0.9)) drop-shadow(0 0 14px rgba(255, 80, 60, 0.5)); }
 #patsoul span { font-size: 10px; font-weight: 700; color: #fff; background: rgba(120, 20, 30, 0.85); padding: 1px 6px; border-radius: 8px; box-shadow: 0 0 0 1px #ff9a8a; }
 @keyframes patbob { 0%, 100% { margin-top: 0; } 50% { margin-top: -8px; } }
 .wv { text-align: left; }
-.wv-hd { position: relative; margin: -4px -4px 12px; padding: 16px 12px 12px; border-radius: 12px; text-align: center; overflow: hidden;
-  background: radial-gradient(ellipse at 50% 0%, #3a6ab0 0%, #1c2c58 60%, #141a38 100%); box-shadow: inset 0 0 0 1.5px #8ac4ff; }
-.wv-hd h2 { margin: 2px 0 4px; font-size: 22px; color: #fff; text-shadow: 0 2px 0 #0a1028, 0 0 12px rgba(160, 210, 255, 0.6); }
-.wv-hd p { margin: 0; font-size: 11px; color: #cfe6ff; }
-.wv-hd p b { color: #ffd0c0; }
-.wv-flakes { font-size: 12px; letter-spacing: 8px; color: rgba(220, 240, 255, 0.7); }
+.wv-hd { position: relative; margin: -4px -4px 12px; padding: 22px 44px 14px; border-radius: 14px; text-align: center; overflow: hidden;
+  background: radial-gradient(circle at 82% 18%, rgba(255, 244, 214, 0.35) 0 14px, transparent 30px), linear-gradient(180deg, #2c4f8e 0%, #1a2c5e 55%, #121c42 100%);
+  box-shadow: inset 0 0 0 1.5px rgba(160, 205, 255, 0.55), 0 6px 18px rgba(10, 20, 50, 0.45); }
+.wv-hd::before { content: ''; position: absolute; left: -6px; right: -6px; top: -7px; height: 16px; z-index: 1;   /* 머리 위에 소복이 쌓인 눈 */
+  background: radial-gradient(circle at 10px 6px, #f4f9ff 9px, transparent 10px) 0 0 / 26px 16px repeat-x, linear-gradient(#f4f9ff, #f4f9ff) 0 0 / 100% 6px no-repeat;
+  filter: drop-shadow(0 2px 0 rgba(120, 170, 230, 0.6)); }
+.wv-hd::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 10px;   /* 아래쪽 눈 언덕 */
+  background: radial-gradient(ellipse at 20% 100%, rgba(230, 242, 255, 0.35) 0 40%, transparent 41%), radial-gradient(ellipse at 75% 110%, rgba(230, 242, 255, 0.3) 0 45%, transparent 46%); }
+.wv-sn { position: absolute; inset: 0; pointer-events: none; }
+.wv-sn i { position: absolute; top: -6px; border-radius: 50%; background: #fff; opacity: 0.8; box-shadow: 0 0 3px #fff; animation: wvsnow linear infinite; }
+@keyframes wvsnow { 0% { transform: translate(0, 0); } 50% { transform: translate(7px, 60px); } 100% { transform: translate(-3px, 130px); opacity: 0; } }
+.wv-tag { position: relative; z-index: 2; display: inline-block; font-size: 10px; letter-spacing: 1px; color: #dff0ff; padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 1px rgba(200, 230, 255, 0.35); }
+.wv-hd h2 { position: relative; z-index: 2; margin: 6px 0 4px; font-size: 24px; color: #fff; letter-spacing: 2px; text-shadow: 0 2px 0 #0a1430, 0 0 14px rgba(170, 215, 255, 0.75); }
+.wv-hd p { position: relative; z-index: 2; margin: 0; font-size: 11px; color: #cfe4ff; }
+.wv-hd .m-x { position: absolute; top: 12px; right: 10px; float: none; margin: 0; z-index: 3; width: 28px; height: 28px; background: rgba(255, 255, 255, 0.14); border-color: rgba(210, 235, 255, 0.5); color: #fff; }
+.wv-box { overflow: visible; }
 .wv-how { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 10px; }
 .wv-how img { width: 40px; flex: none; }
 .wv-how p { margin: 0; font-size: 12px; line-height: 1.55; }

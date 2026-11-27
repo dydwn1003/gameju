@@ -359,16 +359,23 @@ const Scene = (() => {
     else [x, y] = randGround();
     souls.push({ x, y, tier: r.tier, sp: r.sp, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0, h: 9 });
   }
+  // 겨울 이벤트 팥 영혼: 저승사자 본인이 가장 먼저 거두러 감 (졸개는 안 건드림)
+  function spawnPat() {
+    if (souls.some(s => s.pat && s.st !== 'done')) return true;
+    for (let k = 0; k < 30; k++) { const x = camX + W * rnd(0.2, 0.8), y = camY + H * rnd(0.4, 0.8); if (walkable(x, y)) { souls.push({ x, y, tier: 0, sp: -1, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true; } }
+    const [x, y] = randGround(); souls.push({ x, y, tier: 0, sp: -1, ph: 0, t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true;
+  }
   function pickSoul(u) {
     let best = null, bd = 1e9;
-    for (const s of souls) if (s.st === 'float' && !s.who && !s.tut && s.a > 0.6) { const d = Math.hypot(s.x - u.x, s.y - u.y); if (d < bd) { bd = d; best = s; } }
+    if (u === reaper) for (const s of souls) if (s.pat && s.st === 'float' && !s.who && s.a > 0.6) return s;
+    for (const s of souls) if (s.st === 'float' && !s.who && !s.tut && !(s.pat && u !== reaper) && s.a > 0.6) { const d = Math.hypot(s.x - u.x, s.y - u.y); if (d < bd) { bd = d; best = s; } }
     return bd < 220 ? best : null;
   }
   function setDir(u, dx, dy) { if (Math.abs(dx) > Math.abs(dy) * 1.1) { u.dir = 'side'; u.face = dx < 0 ? -1 : 1; } else u.dir = dy < 0 ? 'up' : 'down'; }
   function stepTo(u, tx, ty, v) { const dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy); if (d <= v) { u.x = tx; u.y = ty; return true; } u.x += dx / d * v; u.y += dy / d * v; setDir(u, dx, dy); return false; }
   function sweep(u, s, reap, isMain) {
     const Rr = isMain ? (cfg.reapR || 14) * 1.3 : 10, max = isMain ? (cfg.reapMax || 3) : 1; let n = 0;
-    for (const o of souls) { if (n >= max) break; if (o === s || o.st !== 'float' || o.who || o.a < 0.6) continue; if (Math.hypot(o.x - s.x, o.y - s.y) > Rr) continue; o.st = 'pull'; o.t = -rnd(0, 0.15); o.who = u; o.sx = o.x; o.sy = o.y - o.h; o.dur = reap; n++; }
+    for (const o of souls) { if (n >= max) break; if (o === s || o.st !== 'float' || o.who || o.a < 0.6 || (o.pat && !isMain)) continue; if (Math.hypot(o.x - s.x, o.y - s.y) > Rr) continue; o.st = 'pull'; o.t = -rnd(0, 0.15); o.who = u; o.sx = o.x; o.sy = o.y - o.h; o.dur = reap; n++; }
   }
   function think(u, dt, walk, reap, isMain) {
     u.t += dt; u.ft += dt;
@@ -536,7 +543,7 @@ const Scene = (() => {
       // 벽 소품
       placed.forEach((p, i) => { const d = Decor.D(p.id); if (!d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy), im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h / 2, 10, d.glow, 0.22 + Math.sin(time * 4 + i) * 0.05); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + (r.h - im.height) / 2)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } });
       // 바닥 소품 (깊이 정렬)
-      placed.forEach((p, i) => { const d = Decor.D(p.id); if (d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy); list.push({ y: r.y + r.h - 1, f: () => { const im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h - im.height / 2, 10, d.glow, 0.2 + Math.sin(time * 4 + i) * 0.05); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 2); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height)); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } } }); });
+      placed.forEach((p, i) => { const d = Decor.D(p.id); if (d.wall || (pend && pend.from === i)) return; const r = decoRect(p.id, p.gx, p.gy); list.push({ y: r.y + r.h - 1, f: () => { const im = Decor.img(p.id); if (d.glow) glow(r.x + r.w / 2, r.y + r.h - im.height / 2, 10, d.glow, 0.2 + Math.sin(time * 4 + i) * 0.05); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(r.x + 2, r.y + r.h - 2, r.w - 4, 2); g.drawImage(im, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height)); if (d.anim) d.anim(g, Math.round(r.x + (r.w - im.width) / 2), Math.round(r.y + r.h - im.height), time + i); if (edit) { g.strokeStyle = 'rgba(255,211,74,0.7)'; g.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1); } } }); });
       // 남의 방: 주인이 책상 의자에 앉아 있다
       if (visit) { const os = seatSpots().find(q => q.atDesk || q.desk); if (os) list.push({ y: os.desk ? officeData.desk.y - 2 : os.r.y + os.r.h - 0.5, f: () => { const fy = seatFoot(os); drawMagic(g, os.x, fy, Math.min(visit.rank, 8), time); const sv = rbTier; rbTier = visit.rb || 0; rbUnder({ x: os.x + camX, y: fy + camY }, 16, true); rbTier = sv; const im = SP.tinyReaper(visit.kind || 'm', visit.rank, 'down', 'idle', Math.floor(time * 2.5)); drawSeated(im, os.x, os); } }); }
       // 나 (앉아 있거나 걸어 다님)
@@ -638,9 +645,9 @@ const Scene = (() => {
     } }); });
     if (pet && vis(pet.x, pet.y)) list.push({ y: pet.y, f: () => { const hop = pet.fly ? -8 + Math.sin(pet.t * 4) * 1.5 : -Math.abs(Math.sin(pet.t * 6)) * 1.2; shadow(pet.x, pet.y, 6); if (petData.aura) glow(pet.x - camX, pet.y - camY - 5 + hop, 5, petData.aura, 0.25); const im = SP.petTiny(petData, Math.floor(pet.t * (pet.fly ? 6 : 3))); drawPetAura(g, pet.x - camX, pet.y - camY + 1 + hop, im.width, im.height, petData.g, petData.star, time, 1); g.drawImage(pet.face < 0 ? flipOf(im) : im, Math.round(pet.x - camX - im.width / 2), Math.round(pet.y - camY - im.height + 1 + hop)); } });
     for (const s of souls) { const x = s.st === 'pull' ? s.px : s.x, y = s.st === 'pull' ? s.py + s.h : s.y; if (!vis(x, y)) continue; list.push({ y: y + 0.5, f: () => {
-      const img = s.sp >= 0 ? SP.special(s.sp) : SP.soult(s.tier, Math.floor(time * 6 + s.ph) % 3), fy = y - s.h + (s.st === 'float' ? Math.sin(time * 2 + s.ph) * 1.5 : 0);
+      const img = s.pat && hooks.patImg ? hooks.patImg() : s.sp >= 0 ? SP.special(s.sp) : SP.soult(s.tier, Math.floor(time * 6 + s.ph) % 3), fy = y - s.h + (s.st === 'float' ? Math.sin(time * 2 + s.ph) * 1.5 : 0);
       if (s.st === 'float') { g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(Math.round(x - camX - 2), Math.round(y - camY), 4, 1); }
-      glow(x - camX, fy - camY, s.sp >= 0 ? 7 : s.tier ? 6 : 4, s.sp >= 0 ? '#e0a0ff' : SP.SOUL_PAL[s.tier].Q, (s.sp >= 0 ? 0.4 : 0.25) * s.a);
+      glow(x - camX, fy - camY, s.pat ? 9 : s.sp >= 0 ? 7 : s.tier ? 6 : 4, s.pat ? '#ff7a5a' : s.sp >= 0 ? '#e0a0ff' : SP.SOUL_PAL[s.tier].Q, (s.pat ? 0.5 : s.sp >= 0 ? 0.4 : 0.25) * s.a);
       g.globalAlpha = s.a; const sc = s.scale || 1;
       g.drawImage(img, Math.round(x - camX - img.width * sc / 2), Math.round(fy - camY - img.height * sc / 2), Math.round(img.width * sc), Math.round(img.height * sc)); g.globalAlpha = 1;
     } }); }
@@ -782,6 +789,7 @@ const Scene = (() => {
     focusClue(ch) { const p = clueSpot(ch); camX = p.x - W / 2; camY = p.y - H / 2; follow = false; followAt = time + 8; },
     focus(id) { const p = POIS.find(q => q.id === id) || POIS.find(q => q.id === 'stall'); if (p) { camX = p.x + p.w / 2 - W / 2; camY = p.y + p.h / 2 - H / 2; follow = false; followAt = time + 8; } },
     burstAt(xc, yc, col, n) { burst(xc / S + camX, yc / S + camY, col, n, 40); },
+    spawnPat, hasPat: () => souls.some(s => s.pat && s.st !== 'done'),
     soulNear() { for (const [fx, fy] of [[0.4, 0.62], [0.3, 0.7], [0.5, 0.75], [0.35, 0.5], [0.2, 0.6]]) { const x = camX + W * fx, y = camY + H * fy; if (walkable(x, y)) { souls.push({ x, y, tier: 0, sp: -1, ph: 0, t: 0, st: 'float', who: null, a: 1, h: 9, tut: 1 }); follow = false; followAt = time + 30; return; } } },
     groundSpot() {
       for (const [dx, dy] of [[34, 10], [-34, 10], [30, -20], [-30, -20], [0, 30], [40, 30], [-40, 30]]) {
