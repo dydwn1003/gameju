@@ -6,7 +6,7 @@ const UI = (() => {
   const urls = {};
   const IC = (name, sc = 3) => urls[name + sc] || (urls[name + sc] = toURL(name === 'petic' ? SP.pet(PETS.find(p => p.id === 'heukmyo'), 0) : name === 'flower' ? SP.plant(3, FLOWERS[1].pal, 'lotus') : ['soul', 'jade', 'scroll'].includes(name) ? SP.icon(name) : SP.ui(name), sc));
   const FIC = (fid, stage = 3, sc = 2) => { const k = 'f' + fid + stage + sc; return urls[k] || (urls[k] = toURL(SP.plant(stage, FLOWERS.find(f => f.id === fid).pal, fid), sc)); };
-  const SPIC = (i, known, sc = 4) => { const k = 'sp' + i + known + sc; if (urls[k]) return urls[k]; let c = SP.special(i); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, sc)); };
+  const SPIC = (i, known, sc = 4) => { const k = 'sp' + i + known + sc; if (urls[k]) return urls[k]; let c = SPECIALS[i] && SPECIALS[i].ev ? patImg() : SP.special(i); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, sc)); };
   let sub = 'garden', lifeSig = '', lifeT = 0, buffSig = '', parade = null, buffChips = '', buffLive = new Set();
   const BUFF_EFF = { value: '×1.5', spawn: '×1.4', fight: '×3' };
   const S = () => Game.S;
@@ -312,7 +312,7 @@ const UI = (() => {
     if (!winterIntro && !e.seen && S().tut === 'done' && !$('#modal').classList.contains('on') && !document.getElementById('tut') && !parade) { winterIntro = true; e.seen = true; Game.save(); setTimeout(winterBox, 600); }
   }
   function patCollected(x, y) {
-    const n = Winter.collect(); if (!n) return; Sound.play('buy'); winterHud(); if (x != null) float(x, y, '+1 팥 영혼', 't2');
+    const n = Winter.collect(); if (!n) return; const first = Life.catchSpecial(SP_PAT); if (first) setTimeout(() => toast('📖 도감 등록! 팥 영혼을 거뒀다 (혼 수확 +2%)', 3200), 2700); Sound.play('buy'); winterHud(); if (x != null) float(x, y, '+1 팥 영혼', 't2');
     const reward = Winter.goals.find(g => g.n === n);
     if (!reward) { toast(`<img class="px" src="${patIcon(2)}" style="width:16px;vertical-align:-3px"> 팥 영혼 ${n}/${Winter.max}`, 2600); return; }
     got(`<b>${n}/${Winter.max}</b><br>🎁 보상을 받을 수 있어요!`, { src: patIcon(5), title: '팥 영혼 +1', actions: [{ label: '보상 받으러 가기', cls: 'red', fn: winterBox }] });
@@ -1369,7 +1369,7 @@ const UI = (() => {
     } else {
       const n = Object.keys(s.dex).length;
       h += `<div class="ph"><h3>혼령 도감</h3><span class="sub">${n}/${SPECIALS.length}종 · 혼 수확 +${Math.round(Life.dexBonus() * 100)}%</span></div>
-        <div class="dex">${SPECIALS.map(p => { const c = s.dex[p.i] || 0; return `<div class="pbox ${c ? '' : 'unk'}" data-dexi="${p.i}"><img class="px" src="${SPIC(p.i, !!c)}"><b>${c ? p.name : '???'}</b><small>${c ? `${c}마리${c >= 10 ? ' ★' : ''}` : REGIONS[p.region].name}</small></div>`; }).join('')}</div>
+        <div class="dex">${SPECIALS.map(p => { const c = s.dex[p.i] || 0; return `<div class="pbox ${c ? '' : 'unk'}" data-dexi="${p.i}"><img class="px" src="${SPIC(p.i, !!c)}"><b>${c ? p.name : '???'}</b><small>${c ? `${c}마리${c >= 10 ? ' ★' : ''}` : p.ev ? '겨울 이벤트' : REGIONS[p.region].name}</small></div>`; }).join('')}</div>
         <p class="note">특별한 혼령은 아주 가끔 나타나요 (귀한 인연을 올리면 더 자주).<br>처음 거두면 혼 수확 +2%, 10마리 모으면 +1% 더. 근무지마다 나오는 혼령이 달라요.</p>`;
     }
     P.innerHTML = h;
@@ -1377,11 +1377,11 @@ const UI = (() => {
   }
   function brewGo(id) { const d = { brew: id }; const r = Life.brew(d.brew); if (r) { Sound.play('promote'); Life.qEvent('brew'); const R = RECIPES.find(x => x.id === d.brew); toast(typeof r === 'number' ? `${R.name}! +${fmt(r)} 혼 · 옥 +${R.instant.jade}` : `${R.name}${eul(R.name)} 마셨다! ${R.desc}`); } renderLife($('#panel')); }
   function dexInfo(i) {
-    const p = SPECIALS[i], c = S().dex[i] || 0, reg = REGIONS[p.region].name;
+    const p = SPECIALS[i], c = S().dex[i] || 0, reg = p.ev ? '겨울 이벤트 (동짓날 팥죽)' : REGIONS[p.region].name;
     modal(`<div class="pinfo dexinfo"><img class="px" src="${SPIC(i, !!c, 6)}" style="height:96px"><h2>${c ? p.name : '???'}</h2>
       ${c ? `<p class="mute">${p.desc}</p><p class="lore">${p.lore}</p>` : `<p class="lore">아직 만나지 못한 혼령이에요.</p>`}
       <div class="dexmeta"><span>📍 ${reg}</span>${c ? `<span>거둔 수 ${c}마리${c >= 10 ? ' ★' : ''}</span>` : ''}</div>
-      <p class="mute" style="font-size:11px">${c ? (c >= 10 ? '도감 보너스 혼 수확 +3% (완성)' : `도감 보너스 혼 수확 +2% · 10마리 모으면 +1% 더 (${c}/10)`) : `${reg}에서 아주 가끔 나타나요. 처음 거두면 혼 수확 +2%`}</p></div>
+      <p class="mute" style="font-size:11px">${c ? (c >= 10 ? '도감 보너스 혼 수확 +3% (완성)' : `도감 보너스 혼 수확 +2% · 10마리 모으면 +1% 더 (${c}/10)`) : (p.ev ? '겨울 이벤트 기간에 게임을 켜 두면 나타나요. 처음 거두면 혼 수확 +2%' : `${reg}에서 아주 가끔 나타나요. 처음 거두면 혼 수확 +2%`)}</p></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
   }
   function lifeClick(t) {

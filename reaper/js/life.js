@@ -46,6 +46,9 @@ const SPECIALS = [
   ['약초꾼 혼', '머리에 잎이 난 혼령', 5], ['장군 혼', '금빛 투구의 혼령', 6], ['기생 혼', '비녀를 꽂은 혼령', 5],
   ['도깨비 혼', '뿔 달린 장난꾸러기 혼령', 7], ['용의 혼', '용의 뿔이 난 혼령', 8], ['태고의 혼', '아주 오래된 보랏빛 혼령', 8],
 ].map(([name, desc, region], i) => ({ i, name, desc, region, lore: SPECIAL_LORE[i] }));
+// 겨울 이벤트 전용 혼령 (팥 영혼을 처음 거두면 도감에 들어옴 · 평소에는 나오지 않음)
+SPECIALS.push({ i: SPECIALS.length, name: '팥 영혼', desc: '동짓날에만 나타나는 붉은 팥알 혼령', region: 0, ev: 'w26', lore: '동짓날 밤, 팥죽 냄새를 따라 저승까지 굴러온 팥알이에요. 잡귀를 쫓는 붉은 기운 덕분에 다른 혼령들이 슬금슬금 피해 다녀요.' });
+const SP_PAT = SPECIALS.length - 1;
 const PLOT_COST = [0, 0, 0, 100, 200, 400]; // 옥으로 여는 밭
 // 일일 의뢰 (게시판): 하루 4개, 모두 끝내면 보너스 — 하루 약 옥 150
 const QUEST_POOL = [ // 모두 쉽게: 어느 계급이든 하루에 가볍게 끝낼 수 있는 양 (office: 집무실이 열린 뒤에만 나옴)
@@ -398,14 +401,14 @@ const Life = (() => {
     const E = EXPEDITIONS.find(e => e.id === x.id), r = { seeds: E.seed, jade: E.jade, souls: Game.incomePerSec(true) * 3600 * E.hours, dex: null };
     Object.entries(E.seed).forEach(([k, v]) => (s.seeds[k] = (s.seeds[k] || 0) + v));
     s.jade += E.jade; Game.gain(r.souls);
-    if (E.dex) { const pool = SPECIALS.filter(p => !s.dex[p.i]); const pick = (pool.length ? pool : SPECIALS)[Math.floor(Math.random() * (pool.length || SPECIALS.length))]; s.dex[pick.i] = (s.dex[pick.i] || 0) + 1; r.dex = pick; }
+    if (E.dex) { const base = SPECIALS.filter(p => !p.ev), pool = base.filter(p => !s.dex[p.i]); const pick = (pool.length ? pool : base)[Math.floor(Math.random() * (pool.length || base.length))]; s.dex[pick.i] = (s.dex[pick.i] || 0) + 1; r.dex = pick; }
     s.expe.splice(idx, 1); Game.save(); return r;
   }
 
   // ---------- 도감 ----------
   function rollSpecial(region, luck) {
     if (Math.random() > 0.012 * (1 + luck * 0.05)) return -1;
-    const pool = SPECIALS.filter(p => p.region <= region);
+    const pool = SPECIALS.filter(p => p.region <= region && !p.ev);
     return pool[Math.floor(Math.random() * pool.length)].i;
   }
   function catchSpecial(i) { const s = S(), first = !s.dex[i]; s.dex[i] = (s.dex[i] || 0) + 1; Game.save(); return first; }
