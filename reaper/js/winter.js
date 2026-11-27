@@ -65,11 +65,11 @@ const Winter = (() => {
     a.n = d; if (!makeup) a.day = kstDay(now());
     if (r.jade) s.jade += r.jade;
     if (r.tickets) s.tickets = (s.tickets || 0) + r.tickets;
-    if (r.hours) Game.gain(Game.incomePerSec(true) * 3600 * r.hours);
+    let souls = 0; if (r.hours) { souls = Game.incomePerSec(true) * 3600 * r.hours; Game.gain(souls); }
     if (r.seed) { s.seeds = s.seeds || {}; for (const k in r.seed) s.seeds[k] = (s.seeds[k] || 0) + r.seed[k]; }
     const g = ATT_GOALS.find(x => x.n === d); let item = null;
     if (g && !owns(g.id)) { const e = st(); e.items = e.items || {}; e.items[g.id] = 1; e.wear = e.wear || {}; e.wear[g.id] = true; item = g.id; }
-    Game.save(); return { d, r, item };
+    Game.save(); return { d, r, item, souls };
   }
   const bowlDay = () => { const e = st(), d = kstDay(now()); if (!e.bowl || e.bowl.d !== d) e.bowl = { d, n: 0 }; return e.bowl; };
   const bowlLeft = () => SHOP.bowl.day - bowlDay().n;
