@@ -2146,11 +2146,10 @@ const UI = (() => {
     box.querySelector('#rb-reset').onclick = () => confirmBox(`<h2>특성 초기화</h2><p>옥 ${Game.PERK_RESET_JADE}개로 찍은 특성을 모두 되돌리고<br>윤회석 ${spent}개를 돌려받을까요?</p>`, () => { const n = Game.resetPerks(); if (n) { Sound.play('open'); toast(`윤회석 ${n}개를 돌려받았어요`, 2000); hud(); render(); } else toast('옥이 부족해요'); perkModal(); });
   }
   // ---------- 리뷰 · 별점 부탁 (앱에서만) ----------
-  // 승진 직후 기분 좋은 순간에: 2계급 이상 · 처음 켠 지 2일 이상 · 플레이 1시간 이상 · 지난번 부탁 뒤 7일 이상 · 최대 3번
-  // '평가하러 가기'를 누르면 다시 묻지 않음. 보상은 주지 않음 (스토어 정책: 리뷰 대가 금지)
+  // 이 버전부터 다음 승진 때 딱 한 번만 띄우고, 그 뒤로는 어떤 버튼을 눌러도 다시 묻지 않음. 보상은 주지 않음 (스토어 정책: 리뷰 대가 금지)
   function reviewAsk(tries = 0) {
     const s = S(), r = s.review || (s.review = { n: 0, at: 0, done: 0 });
-    if (!Native.isApp() || r.done || r.n >= 3 || s.rank < 2 || Date.now() - (s.created || Date.now()) < 2 * 864e5 || (s.playSec || 0) < 3600 || Date.now() - r.at < 7 * 864e5) return;
+    if (!Native.isApp() || r.n >= 1 || r.done) return;
     if ($('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut') || parade) { if (tries < 120) setTimeout(() => reviewAsk(tries + 1), 1000); return; }   // 다른 창이 닫힐 때까지 기다림 (최대 2분)
     r.n++; r.at = Date.now(); Game.save();
     const box = modal(`<div class="rv"><canvas id="rv-cv" width="44" height="51"></canvas><div class="rv-stars">${'<i>★</i>'.repeat(5)}</div>
