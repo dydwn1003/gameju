@@ -472,13 +472,14 @@ const UI = (() => {
     if (Game.boosting()) chips.push(['boost', '🧧', '2배 부적 ×2', fmtClock((S().boostUntil - Date.now()) / 1000), '수확량 · 화력 2배']);
     bs.forEach(k => chips.push(['b-' + k, { value: '🍵', spawn: '🪷', fight: '🍶' }[k], `${BUFF_NAME[k]} ${BUFF_EFF[k]}`, fmtClock(Life.buffLeft(k)), { value: '혼 가치 1.5배', spawn: '혼령이 1.4배 빨리 나타나요', fight: '원귀 퇴치 화력 3배' }[k]]));
     if (Life.fortuneMul() > 1) chips.push(['fortune', '🔮', `운세 ${S().fortune.last} ×${Life.fortuneMul()}`, fmtClock((S().fortune.until - Date.now()) / 1000), '오늘의 운세 효과']);
+    if (Winter.giftOn()) chips.push(['gift', '🎁', '산타의 선물 +10%', fmtClock(Winter.giftLeft()), '혼 수확 10% 증가']);
     if (Game.sealLeft() > 0) chips.push(['seal', '📜', '염라의 인장 ×2', fmtDays(Game.sealLeft()), '모든 혼 수확 2배']);
     const bsig = chips.map(c => c[0] + c[2]).join('|');
     if (bsig !== buffChips) { buffChips = bsig; $('#buffs').innerHTML = chips.map(c => `<span class="bf bf-${c[0]}" data-bf="${c[4]}" data-nm="${c[2]}"><i>${c[1]}</i>${c[2]} <b>${c[3]}</b></span>`).join(''); }
     else chips.forEach((c, i) => { const el = $('#buffs').children[i]; if (el) { const t = el.querySelector('b'); if (t.textContent !== c[3]) t.textContent = c[3]; } });
     // 효과가 끝나면 알려 주기
     const live = new Set(chips.map(c => c[0])); buffLive.forEach(k => { if (false) toast(''); }); buffLive = live;
-    const sig = bs.join() + Game.boosting() + (Game.sealLeft() > 0); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
+    const sig = bs.join() + Game.boosting() + (Game.sealLeft() > 0) + Winter.giftOn(); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
     refresh(); officeBar(); officeTutCheck();
     if (++stuckT % 25 === 0) checkStuck();
     if (stuckT % 5 === 0) { checkRbCatch(); checkUpdGift(); }
@@ -835,7 +836,7 @@ const UI = (() => {
   function statsModal() {
     const s = S(), R = RANKS[s.rank], N = Game.nextRank(), pct = x => `${x >= 1 ? '+' : ''}${Math.round((x - 1) * 100)}%`, f1 = x => (Math.round(x * 100) / 100).toString();
     const pet = s.petEq && s.pets && s.pets[s.petEq] ? Pets.P(s.petEq) : null, pst = pet ? Pets.stats(pet.id) : [0, 0, 0];
-    const buffs = [Game.boosting() ? `2배 부적 ×2` : '', Game.sealLeft() > 0 ? `염라의 인장 ×2 (${fmtDays(Game.sealLeft())})` : '', Life.fortuneMul() > 1 ? `운세 ${s.fortune.last} ×${Life.fortuneMul()}` : '', ...['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0).map(k => `${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}`)].filter(Boolean);
+    const buffs = [Game.boosting() ? `2배 부적 ×2` : '', Game.sealLeft() > 0 ? `염라의 인장 ×2 (${fmtDays(Game.sealLeft())})` : '', Life.fortuneMul() > 1 ? `운세 ${s.fortune.last} ×${Life.fortuneMul()}` : '', Winter.giftOn() ? `산타의 선물 +10% (${fmtClock(Winter.giftLeft())})` : '', ...['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0).map(k => `${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}`)].filter(Boolean);
     const row = (k, v, sub) => `<div class="st-row"><span>${k}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
     const box = modal(`<div class="st-head"><canvas id="st-por" class="pf-mini" width="120" height="84"></canvas><div><b>${esc(s.name || '')}</b><span class="badge">${R.name}</span><small>Lv.${Game.level()} · ${REGIONS[R.region].name}${s.reborn ? ` · 윤회 ${s.reborn}회` : ''}</small>${N ? `<div class="prog"><i style="width:${Math.min(100, Game.level() / N.lv * 100)}%"></i></div><small>다음 계급 <b style="color:var(--gold)">${N.name}</b>까지 Lv.${N.lv}</small>` : '<small style="color:var(--gold)">최고 계급!</small>'}</div></div>
       ${itemsSection()}
@@ -1330,6 +1331,12 @@ const UI = (() => {
     if (r.buff) Game.apply();
   }
   function openLife(k) { sub = k; goTab('life'); }
+  // 산타의 선물: 혼 수확 +10% 30분 (1시간마다)
+  function santaGift(id) {
+    if (Winter.takeGift()) { Sound.play('promote'); Game.apply(); hud(); got('<b>혼 수확 +10%</b> · 30분<br>호호호! 착한 차사에게 주는 선물이라네', { emo: '🎁', title: '산타의 선물!' }); return; }
+    const L = ['🎅 호호호! 메리 크리스마스!', '🎅 저승에도 선물이 왔다네. 겨울 출석은 잊지 않았겠지?', '🎅 착한 차사에게는 팥죽 한 그릇을!', '🎅 눈꽃 백록은 내 순록의 친구라네'];
+    toast(`${id === 'deer' ? '🦌 순록이 코를 킁킁거려요' : L[Math.floor(Math.random() * L.length)]} · 다음 선물까지 ${fmtClock(Winter.giftWait())}`, 2800);
+  }
   function poi(id, i) {
     Sound.play('open');
     if (id === 'office') enterOffice();
@@ -1341,8 +1348,7 @@ const UI = (() => {
     else if (id === 'elder') questModal();
     else if (id === 'boat') openLife('expe');
     else if (id === 'judge') { goTab('rank'); toast(Game.canTest() ? '판관: 승진할 수 있네! 승진 탭에서 승진하게' : `판관: 레벨 ${Game.nextRank() ? Game.nextRank().lv : '-'}이 되면 다시 오게`); }
-    else if (id === 'santa') { const L = ['🎅 호호호! 메리 크리스마스!', '🎅 저승에도 선물이 왔다네. 겨울 출석은 잊지 않았겠지?', '🎅 착한 차사에게는 팥죽 한 그릇을!', '🎅 눈꽃 백록은 내 순록의 친구라네']; toast(L[Math.floor(Math.random() * L.length)], 2600); }
-    else if (id === 'deer') toast('🦌 순록이 코를 킁킁거려요', 2200);
+    else if (id === 'santa' || id === 'deer' || (id === 'stall' && Winter.active())) santaGift(id);
     else if (id === 'mudang') fortuneModal();
     else if (id === 'sansin') offerModal();
     else if (id === 'kkachi') mailOpen();

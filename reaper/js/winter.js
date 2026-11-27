@@ -78,6 +78,13 @@ const Winter = (() => {
   const wearing = id => owns(id) && (st().wear || {})[id] !== false;
   function toggleWear(id) { if (!owns(id)) return false; const e = st(); e.wear = e.wear || {}; e.wear[id] = !wearing(id); Game.save(); return e.wear[id]; }
   const deco = () => (wearing('rscarf') ? 's' : '') + (wearing('antler') ? 'a' : '');   // 저승사자 그림에 넘길 꾸미기 글자
+  // 산타의 선물 (노점 · 산타 · 순록을 누르면): 혼 수확 +10% 30분 · 받은 뒤 1시간 지나야 다시 받음 · 이벤트 기간에만
+  const GIFT = { mul: 1.1, dur: 1800e3, cd: 3600e3 };
+  const giftOn = () => active() && now() < (st().gift || 0);
+  const giftMul = () => (giftOn() ? GIFT.mul : 1);
+  const giftLeft = () => Math.max(0, ((st().gift || 0) - now()) / 1000);
+  const giftWait = () => Math.max(0, ((st().giftAt || 0) + GIFT.cd - now()) / 1000);   // 다시 받을 수 있을 때까지 (초)
+  function takeGift() { if (!active() || giftWait() > 0) return false; const e = st(); e.giftAt = now(); e.gift = now() + GIFT.dur; Game.save(); return true; }
   const claimable = g => st().n >= g.n && !st().got[g.id];
   function claim(i) {
     const g = WINTER.goals[i], e = st(); if (!g || !claimable(g)) return null;
@@ -89,6 +96,7 @@ const Winter = (() => {
   const nextIn = () => Math.max(0, WINTER.per - st().prog) / (window.__evSpeed || 1);
   const hasDot = () => active() && (st().pend > 0 || WINTER.goals.some(claimable));
   return {
+    giftMul, giftOn, giftLeft, giftWait, takeGift,
     SHOP, ITEMS, bowlLeft, buyBowl, owns, wearing, toggleWear, deco,
     att, attReward, canAttend, attend, missed, canMakeup, mkJade: MK_JADE, attMax: ATT_MAX, attGoals: ATT_GOALS,
     active, st, room, tick, collect, claim, claimable, left, nextIn, hasDot, done,

@@ -236,7 +236,7 @@ const Scene = (() => {
       { id: 'jumo', x: tvx - 12, y: tvy + 10 }, { id: 'elder', x: bdx + 2, y: bdy + 10, face: -1 }, { id: 'gob', x: stx, y: sty + 10, face: -1, cond: 'merchant' },
       { id: 'mudang', x: mdx, y: mdy + 10 }, { id: 'kkachi', x: bdx, y: bdy - 22, perch: 1 },
       { id: 'sansin', x: shx + 2, y: shy + 10 }, { id: 'judge', x: gtx + 30, y: gty - 2, face: -1 }, { id: 'boat', x: gtx - 30, y: gty - 2 },
-      { id: 'santa', x: ofx + 46, y: ofy + 18, cond: 'xmas' }, { id: 'deer', x: ofx + 68, y: ofy + 18, cond: 'xmas' },   // 겨울 이벤트 기간에만: 산타 · 순록
+      { id: 'santa', x: stx - 9, y: sty - 44, cond: 'xmas' }, { id: 'deer', x: stx + 10, y: sty - 44, cond: 'xmas' },   // 노점 바로 위에 나란히   // 겨울 이벤트 기간에만: 산타 · 순록
     ];
     // 길가 등불
     for (let x = 2; x < TW - 1; x += 5) if (Math.abs(x - 12.5) > 3) lampPost(x * T + 8, 13.6 * T, region >= 7);
@@ -493,7 +493,7 @@ const Scene = (() => {
   const XPAL = { K: '#1a0f14', R: '#d8323c', r: '#9a1c28', W: '#f4ecdc', w: '#c8bfae', S: '#f0c8a0', E: '#2a1a1a', N: '#e89a88', B: '#2a2028', G: '#ffd34a', D: '#8a5a34', d: '#5e3a20', L: '#d8b48a', v: '#c8a070', V: '#8a6a40', O: '#3a2418', g: '#2f8a4a', y: '#ffe08a' };
   const SANTA = ['....KKKKK....', '...KRRRRRKK..', '..KRRRRRRRWK.', '..KWWWWWWWKK.', '..KSSSSSSSK..', '..KSESSSESK..', '.KWWSSNSSWWK.', '.KWWWWWWWWWK.', 'KRKWWWWWWWKRK', 'KRRKWWWWWKRRK', 'KSRRRKWKRRRSK', '.KRRRRWRRRRK.', '.KBBBBGBBBBK.', '.KRRRRWRRRRK.', '.KWWWWWWWWWK.', '..KBBK.KBBK..', '..KKKK.KKKK..'];
   const SACK = ['..KK..', '.KyyK.', 'KgggK.', 'KggggK', 'KggggK', '.KKKK.'];
-  const DEER = ['..v.v.............', '..vVv.v...........', '...vVv............', '....KK............', '...KDDK...........', '.KKDEDDK..........', 'KODDDDDK..........', '.KKLDDDKKKKKKKK...', '...KDDDDDDDDDDDKK.', '...KDLLLLDDDDDDDLK', '...KDDDDDDDDDDDK..', '....KDK.KDK.KDK.KDK', '....KdK.KdK.KdK.KdK', '....KK..KK..KK..KK.'];
+  const DEER = ['v.v..v.v..........', 'vVv.vVv.v.........', '.vVvVv.vV.........', '..vVVvVv..........', '...vVVv...........', '....KK............', '...KDDK...........', '.KKDEDDK..........', 'KODDDDDK..........', '.KKLDDDKKKKKKKK...', '...KDDDDDDDDDDDKK.', '...KDLLLLDDDDDDDLK', '...KDDDDDDDDDDDK..', '....KDK.KDK.KDK.KDK', '....KdK.KdK.KdK.KdK', '....KK..KK..KK..KK.'];
   const xmasImg = {};
   function pixImg(key, rows, dy) {
     const k = key + dy; if (xmasImg[k]) return xmasImg[k];
