@@ -741,6 +741,7 @@ const UI = (() => {
   }
   function npcHot(id) {
     const s = S(); if (!s || !s.kind) return false;
+    if (id === 'santa') return Winter.active() && Winter.giftWait() <= 0;   // 산타의 선물을 받을 수 있으면 노란 이름표
     if (id === 'mudang') return Life.fortuneLeft() >= 2;
     if (id === 'sansin') { const o = Life.offerState(); return (o.small > 0 && s.souls >= o.smallCost) || (o.big > 0 && s.souls >= o.bigCost); }
     if (id === 'kkachi') return Life.mailCount() > 0;

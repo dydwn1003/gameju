@@ -236,7 +236,7 @@ const Scene = (() => {
       { id: 'jumo', x: tvx - 12, y: tvy + 10 }, { id: 'elder', x: bdx + 2, y: bdy + 10, face: -1 }, { id: 'gob', x: stx, y: sty + 10, face: -1, cond: 'merchant' },
       { id: 'mudang', x: mdx, y: mdy + 10 }, { id: 'kkachi', x: bdx, y: bdy - 22, perch: 1 },
       { id: 'sansin', x: shx + 2, y: shy + 10 }, { id: 'judge', x: gtx + 30, y: gty - 2, face: -1 }, { id: 'boat', x: gtx - 30, y: gty - 2 },
-      { id: 'santa', x: stx - 22, y: sty - 44, cond: 'xmas' }, { id: 'deer', x: stx + 10, y: sty - 44, cond: 'xmas' },   // 산타와 1픽셀 간격   // 노점 바로 위에 나란히   // 겨울 이벤트 기간에만: 산타 · 순록
+      { id: 'santa', x: stx - 22, y: sty - 44, cond: 'xmas', lx: stx }, { id: 'deer', x: stx + 10, y: sty - 44, cond: 'xmas' },   // 산타와 1픽셀 간격   // 노점 바로 위에 나란히   // 겨울 이벤트 기간에만: 산타 · 순록
     ];
     // 길가 등불
     for (let x = 2; x < TW - 1; x += 5) if (Math.abs(x - 12.5) > 3) lampPost(x * T + 8, 13.6 * T, region >= 7);
@@ -858,7 +858,7 @@ const Scene = (() => {
     hitWraith(dmg) { if (!wraith || wraith.dead) return false; if (arena) { for (let k = 0; k < 6; k++) { const t = k / 6; parts.push({ x: reaper.x + rnd(-2, 2), y: reaper.y - 14, vx: (wraith.x - reaper.x) * 2.4 + rnd(-8, 8), vy: (wraith.y - reaper.y + 14) * 2.4 + rnd(-8, 8), life: 0.4 - t * 0.05, max: 0.4, col: k % 2 ? '#6fb0ff' : '#c4ecff', g: 0, big: 1 }); } } wraith.hp = Math.max(0, wraith.hp - dmg); wraith.flash = 0.15; shake = Math.max(shake, 1.5); burst(wraith.x + rnd(-5, 5), wraith.y + rnd(-6, 6), '#ffffff', 4, 25); if (wraith.hp <= 0) { wraith.dead = true; wraith.fade = 0.8; burst(wraith.x, wraith.y, '#ff6a8a', 30, 50); burst(wraith.x, wraith.y, '#ffffff', 20, 40); return true; } return false; },
     wraithAlive: () => !!(wraith && !wraith.dead), wraithHp: () => wraith ? wraith.hp : 0, wraithPos: () => wraith ? scr(wraith.x, wraith.y) : null,
     labels: () => arena || office ? [] : POIS.filter(p => ['office', 'stall', 'stele', 'garden'].includes(p.id)).map(p => ({ id: p.id, x: (p.x + p.w / 2 - camX) * S, y: (p.y - 3 - camY) * S, vis: vis(p.x + p.w / 2, p.y, 4) }))
-      .concat(NPCS.map(n => ({ id: 'n_' + n.id, x: (n.x - camX) * S, y: (n.y - (n.id === 'kkachi' ? 14 : 24) - camY) * S, vis: vis(n.x, n.y, 4) && !(n.cond === 'merchant' && !cfg.merchant) && !(n.cond === 'xmas' && !xmas) }))),
+      .concat(NPCS.map(n => ({ id: 'n_' + n.id, x: ((n.lx != null ? n.lx : n.x) - camX) * S, y: (n.y - (n.id === 'kkachi' ? 14 : 24) - camY) * S, vis: vis(n.x, n.y, 4) && !(n.cond === 'merchant' && !cfg.merchant) && !(n.cond === 'xmas' && !xmas) }))),
     ghostsOnScreen() { return ghosts.filter(gh => !gh.dead).map(gh => ({ x: (gh.x - camX) * S, y: (gh.y - 8 - camY) * S, gold: gh.gold })); },
     clueScreen(ch) { const p = clueSpot(ch); return { x: (p.x - camX) * S, y: (p.y - 6 - camY) * S }; },
     propsOnScreen() { return objs.filter(o => o.prop && vis(o.x + o.img.width / 2, o.base, 0)).map(o => ({ kind: o.prop, key: o.key, x: (o.x + o.img.width / 2 - camX) * S, y: (o.base - 6 - camY) * S })); },
