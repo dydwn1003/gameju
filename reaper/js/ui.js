@@ -121,7 +121,7 @@ const UI = (() => {
   async function refundCheck() {
     if (!Native.isApp() || !Cloud.ready() || !S().kind || Date.now() - refundAt < 600e3) return; refundAt = Date.now();
     const rows = await Cloud.rpcRows('my_refunds', { p_dev: Stats.devId() }); if (!rows || !rows.length) return;
-    const s = S(), ids = [], names = [], wasNeg = s.jade < 0; s.refunded = s.refunded || [];
+    const s = S(), ids = [], names = []; s.refunded = s.refunded || [];
     for (const r of rows) {
       ids.push(r.tx_id); if (s.refunded.includes(r.tx_id)) continue; s.refunded.push(r.tx_id); if (s.refunded.length > 200) s.refunded = s.refunded.slice(-200);
       const gid = Native.gidOf(r.product); if (!gid) continue;
@@ -131,7 +131,7 @@ const UI = (() => {
         names.push(d ? d.name : id); continue;
       }
       const P = SHOP_IAP.find(p => p.id === gid); if (!P) continue;
-      if (P.jade) s.jade -= P.jade;                                       // 이미 써 버렸으면 마이너스로 남음 (갚을 때까지)
+      if (P.jade) { s.jade -= P.jade; if (s.jade < 0) s.refundStrike = (s.refundStrike || 0) + 1; }   // 이미 써 버렸으면 마이너스로 남음 (갚을 때까지) · 쓰고 나서 환불 = 경고 1회
       if (P.seal) s.sealUntil = Math.max(0, (s.sealUntil || 0) - P.seal * 86400e3);
       if (P.minion) s.upg.minion = Math.max(0, (s.upg.minion || 0) - P.minion);
       if (P.boost) s.boostUntil = Math.max(0, (s.boostUntil || 0) - P.boost * 60e3);
@@ -139,7 +139,7 @@ const UI = (() => {
       if (P.once) s.bought[gid] = 0;
       names.push(P.name);
     }
-    const repeat = names.length && (s.refunded.length >= 2 || wasNeg);   // 두 번째 환불부터(또는 마이너스 상태에서 또 환불) 이용 제한
+    const repeat = names.length && ((s.refundStrike || 0) >= 2 || s.refunded.length >= 3);   // 쓰고 나서 환불 2회 또는 환불 3회 이상이면 이용 제한 (안 쓴 상품 환불은 회수만)
     Game.apply(); Game.save(); if (Cloud.signedIn()) Cloud.pushSave(s, true); hud(); render();
     await Cloud.rpc('ack_refunds', { p_dev: Stats.devId(), p_ids: ids });
     if (repeat) { const reason = '사용한 유료 상품을 반복해서 환불받음'; try { localStorage.setItem(BANK, JSON.stringify({ reason })); } catch (e) {} showBan(reason); return; }
