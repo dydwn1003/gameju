@@ -176,7 +176,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function initGame() {
     Game.load();
-    Scene.init($('#cv'), { patImg, petDeco: im => Winter.scarfOn() ? scarfOf(im) : im, collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => (visiting ? visiting.placed : Decor.ensure().placed).filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { patImg, petDeco: (im, pet) => Winter.scarfOn() ? scarfOf(im, pet) : im, collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => (visiting ? visiting.placed : Decor.ensure().placed).filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply(); if (S().kind) { Decor.grantRank(S().rank); Decor.grantStory(Math.max(-1, (S().story || {}).ch - 1)); }
@@ -298,19 +298,31 @@ const UI = (() => {
       g.fillStyle = gr; g.beginPath(); g.arc(x, f.y, f.r * 1.8, 0, 6.2832); g.fill();
     }
   }
-  // 영물 목도리: 영물 그림의 목 높이(머리 쪽 절반)에 빨강 · 흰 줄무늬 목도리를 두르고, 끝자락을 아래로 늘어뜨림
-  const scarfCache = new WeakMap();
-  function scarfOf(im) {
-    let c = scarfCache.get(im); if (c) return c;
-    const w = im.width, h = im.height; c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.drawImage(im, 0, 0);
-    const d = g.getImageData(0, 0, w, h).data, op = (x, y) => x >= 0 && y >= 0 && x < w && y < h && d[(y * w + x) * 4 + 3] > 40;
-    let top = h, bot = 0; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (op(x, y)) { top = Math.min(top, y); bot = Math.max(bot, y); }
-    const y0 = Math.round(top + (bot - top) * 0.42), cx = Math.floor(w * 0.45);
-    let x1 = -1, x0 = w; for (let x = cx; x < w; x++) if (op(x, y0)) { x0 = Math.min(x0, x); x1 = x; }
-    if (x1 < 0) { scarfCache.set(im, im); return im; }
-    for (let x = x0; x <= x1; x++) for (let k = 0; k < 2; k++) if (op(x, y0 + k)) { g.fillStyle = (x + k) % 3 === 0 ? '#f4f4f4' : '#d8323c'; g.fillRect(x, y0 + k, 1, 1); }
-    g.fillStyle = '#b82230'; g.fillRect(x0, y0 + 2, 2, 2); g.fillStyle = '#f4f4f4'; g.fillRect(x0, y0 + 4, 2, 1); // 늘어진 끝자락
-    scarfCache.set(im, c); return c;
+  // 영물 목도리: 눈 바로 아래(목)에 줄무늬 목도리를 감고, 뒤쪽에 끝자락을 늘어뜨림
+  // 작은 그림(맵용 12×11): 2줄 두께 · 짧은 끝자락 / 큰 그림: 3줄(밝음·기본·그림자) · 매듭 · 두 갈래 끝자락 + 술
+  const scarfCache = new Map();
+  function scarfOf(im, pet) {
+    const key = im; let c = scarfCache.get(key); if (c) return c;
+    const w = im.width, h = im.height, P = 2, small = h < 14;
+    c = document.createElement('canvas'); c.width = w + P * 2; c.height = h; const g = c.getContext('2d'); g.drawImage(im, P, 0);
+    const d = im.getContext('2d').getImageData(0, 0, w, h).data, at = (x, y) => (y * w + x) * 4, op = (x, y) => x >= 0 && y >= 0 && x < w && y < h && d[at(x, y) + 3] > 40;
+    const hex = s => [1, 3, 5].map(k => parseInt(s.substr(k, 2), 16)), E = hex((pet && pet.pal && pet.pal.E) || '#1a1024');
+    let ex = -1, ey = -1; for (let y = 0; y < h && ey < 0; y++) for (let x = w - 1; x >= 0; x--) { const i = at(x, y); if (d[i + 3] > 40 && Math.abs(d[i] - E[0]) + Math.abs(d[i + 1] - E[1]) + Math.abs(d[i + 2] - E[2]) < 24) { ex = x; ey = y; break; } }
+    if (ey < 0) { let top = h; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (op(x, y)) top = Math.min(top, y); ey = top + Math.round(h * 0.25); ex = Math.floor(w * 0.7); }
+    const R0 = '#ff6a6a', R1 = '#e0343e', R2 = '#a01e2c', W0 = '#fff4e8', W1 = '#d8c8b8', K = '#3a0c14';
+    const px = (x, y, col) => { if (y < 0 || y >= h) return; g.fillStyle = col; g.fillRect(x + P, y, 1, 1); };
+    const rows = small ? [R1, R2] : [R0, R1, R2], wrows = small ? [W0, W1] : [W0, W0, W1], y0 = ey + (small ? 1 : 2);
+    // 목 줄: 눈보다 조금 뒤쪽부터 앞쪽 끝까지, 몸 위에만 칠함
+    // 목 폭만큼만: 눈 아래 칸을 중심으로 좌우 몇 칸 (몸통까지 덮지 않게)
+    const span = small ? 2 : 3, xs = Math.max(0, ex - span - 1), xe = Math.min(w - 1, ex + span);
+    let x0 = w, x1 = -1;
+    for (let k = 0; k < rows.length; k++) for (let x = xs; x <= xe; x++) if (op(x, y0 + k)) { const st = ((x - xs) % 3) === 1; px(x, y0 + k, st ? wrows[k] : rows[k]); if (k === 0) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); } }
+    if (x1 < 0) { scarfCache.set(key, im); return im; }
+    // 끝자락: 뒷목에서 뒤로 살짝 날리며 아래로 (큰 그림은 두 갈래, 끝에 크림색 술)
+    const tail = (sx, len, dx) => { for (let k = 0; k < len; k++) { const tx = sx - Math.round(k * dx); px(tx, y0 + 1 + k, k % 3 === 2 ? W0 : (k % 2 ? R2 : R1)); } px(sx - Math.round(len * dx), y0 + 1 + len, W0); };
+    if (small) tail(x0 - 1, 2, 0.4);
+    else { px(x0 - 1, y0, R0); px(x0 - 1, y0 + 1, R2); tail(x0 - 2, Math.min(4, h - y0 - 3), 0.45); tail(x0 - 1, Math.min(3, h - y0 - 3), 0.1); }
+    scarfCache.set(key, c); return c;
   }
   function winterHud(spawned) {
     const on = Winter.active(), b = $('#btn-winter'); if (!b) return;
@@ -348,7 +360,7 @@ const UI = (() => {
       <div class="wv-shop"><h4>겨울 상점 <small>12월 31일까지</small></h4>
         <div class="wv-item"><div class="wv-th"><img class="px" src="${patIcon(4)}"></div><div class="wv-gi"><b>팥죽 한 그릇</b><small>팥 영혼 1개가 바로 나타나요 · 오늘 ${Winter.bowlLeft()}/${Winter.SHOP.bowl.day}번 남음</small></div>
           <button class="btn jade" id="wv-bowl" ${Winter.bowlLeft() > 0 && Winter.room() > 0 ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${Winter.bowlLeft() > 0 ? Winter.SHOP.bowl.jade : '내일'}</button></div>
-        <div class="wv-item"><div class="wv-th"><img class="px" src="${eqPet ? toURL(scarfOf(SP.petTiny(eqPet, 0)), 3) : patIcon(4)}"></div><div class="wv-gi"><b>영물 목도리</b><small>함께 다니는 영물이 이벤트 기간 동안 목도리를 둘러요</small></div>
+        <div class="wv-item"><div class="wv-th"><img class="px" src="${eqPet ? toURL(scarfOf(SP.petTiny(eqPet, 0), eqPet), 3) : patIcon(4)}"></div><div class="wv-gi"><b>영물 목도리</b><small>함께 다니는 영물이 이벤트 기간 동안 목도리를 둘러요</small></div>
           <button class="btn jade" id="wv-scarf" ${e.scarf ? 'disabled' : ''}>${e.scarf ? '보유 ✓' : `<img class="px" src="${IC('jade', 2)}">${Winter.SHOP.scarf.jade}`}</button></div>
       </div></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`, true);
@@ -2323,5 +2335,5 @@ const UI = (() => {
       .querySelector('#st-pkg').onclick = () => { closeModal(); iapBox('promo'); };
   }
 
-  return { init, toast, _cloudSync: () => cloudSync() }; // _cloudSync: 저장 맞추기 시험용
+  return { init, toast, _cloudSync: () => cloudSync(), _scarfOf: (im, pet) => scarfOf(im, pet) }; // _cloudSync: 저장 맞추기 시험용
 })();

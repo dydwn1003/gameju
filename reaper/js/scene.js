@@ -394,7 +394,7 @@ const Scene = (() => {
     souls.push({ x, y, tier: r.tier, sp: r.sp, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0, h: 9 });
   }
   // 겨울 이벤트 팥 영혼: 저승사자 본인이 가장 먼저 거두러 감 (졸개는 안 건드림)
-  const petDeco = im => (hooks.petDeco ? hooks.petDeco(im) : im); // 영물 그림 꾸미기 (겨울 목도리 등)
+  const petDeco = im => (hooks.petDeco ? hooks.petDeco(im, petData) : im); // 영물 그림 꾸미기 (겨울 목도리 등)
   function spawnPat() {
     for (let k = 0; k < 30; k++) { const x = camX + W * rnd(0.2, 0.8), y = camY + H * rnd(0.4, 0.8); if (walkable(x, y)) { souls.push({ x, y, tier: 0, sp: -1, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true; } }
     const [x, y] = randGround(); souls.push({ x, y, tier: 0, sp: -1, ph: 0, t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true;

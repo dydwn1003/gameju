@@ -43,7 +43,7 @@ const Winter = (() => {
   const bowlLeft = () => SHOP.bowl.day - bowlDay().n;
   function buyBowl() { const s = S(); if (!active() || bowlLeft() <= 0 || room() <= 0 || s.jade < SHOP.bowl.jade) return false; s.jade -= SHOP.bowl.jade; bowlDay().n++; st().pend++; Game.save(); if (onSpawn) onSpawn(); return true; }
   function buyScarf() { const s = S(), e = st(); if (!active() || e.scarf || s.jade < SHOP.scarf.jade) return false; s.jade -= SHOP.scarf.jade; e.scarf = 1; Game.save(); return true; }
-  const scarfOn = () => active() && !!st().scarf;
+  const scarfOn = () => !!st().scarf; // 산 목도리는 이벤트가 끝나도 계속 보임 (판매만 12월 31일까지)
   const claimable = g => st().n >= g.n && !st().got[g.id];
   function claim(i) {
     const g = WINTER.goals[i], e = st(); if (!g || !claimable(g)) return null;

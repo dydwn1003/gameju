@@ -258,6 +258,17 @@ const SP = (() => {
     return compose(12, 11, [[rows, 1, i % 2 ? 1 : 2]], Object.assign({ E: '#1a1024', o: '#ff7a30' }, pet.pal));
   }
 
+  // 도감 그림(큰 그림)으로 걷는 두 프레임 만들기: 1번 프레임은 몸이 1칸 올라가고, 다리(맨 아래 3줄)가 앞뒤로 엇갈림
+  function walkFrame(src, f) {
+    if (!src) return null; if (!f) return src;
+    const w = src.width, h = src.height, c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+    const d = src.getContext('2d').getImageData(0, 0, w, h).data; let bot = 0; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) bot = y;
+    const legTop = bot - 2, mid = Math.floor(w / 2);
+    g.drawImage(src, 0, 0, w, legTop, 0, -1, w, legTop);                                   // 몸통: 1칸 위로
+    g.drawImage(src, 0, legTop, mid, h - legTop, 1, legTop - 1, mid, h - legTop);          // 뒷다리: 앞으로
+    g.drawImage(src, mid, legTop, w - mid, h - legTop, mid - 1, legTop - 1, w - mid, h - legTop); // 앞다리: 뒤로
+    return c;
+  }
   const cache = {};
   function get(key, fn) { return cache[key] || (cache[key] = fn()); }
   return {
@@ -276,7 +287,7 @@ const SP = (() => {
     npct: (name, i) => get(`tn${name}${i % 4}`, () => Tiny.npc(name, i)),
     soult: (tier, i) => get(`ts${tier}${i % 3}`, () => Tiny.soul(SOUL_PAL[tier], i)),
     wraitht: i => get(`tw${i % 2}`, () => Tiny.wraith(i)),
-    petTiny: (pet, i) => get(`pt${pet.id}${i % 2}`, () => (pet.mapArt && typeof petArt3 === 'function' && petArt3(pet.id, i)) || petFrame(pet, i, true)), // mapArt: 맵에서도 도감 그림 그대로 (이벤트 영물)
+    petTiny: (pet, i) => get(`pt${pet.id}${i % 2}`, () => (pet.mapArt && typeof petArt3 === 'function' && walkFrame(petArt3(pet.id, 0), i % 2)) || petFrame(pet, i, true)), // mapArt: 맵에서도 도감 그림 그대로 (이벤트 영물) + 걷는 프레임
     mini: (pose, i) => get(`m${pose}${i % 4}`, () => Art3.mini(pose, i)),
     lantern: (lit) => get(`l${lit}`, () => bake(LANTERN, lit === 2 ? { B: '#e8b030', c: '#9a6a10', o: '#fff0a0', q: '#c88a10', Q: '#ffd040' } : null)),
     jangseung: () => get('js', () => bake(JANGSEUNG, { E: '#c3313e' })),
