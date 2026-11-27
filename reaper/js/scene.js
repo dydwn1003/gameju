@@ -236,7 +236,7 @@ const Scene = (() => {
       { id: 'jumo', x: tvx - 12, y: tvy + 10 }, { id: 'elder', x: bdx + 2, y: bdy + 10, face: -1 }, { id: 'gob', x: stx, y: sty + 10, face: -1, cond: 'merchant' },
       { id: 'mudang', x: mdx, y: mdy + 10 }, { id: 'kkachi', x: bdx, y: bdy - 22, perch: 1 },
       { id: 'sansin', x: shx + 2, y: shy + 10 }, { id: 'judge', x: gtx + 30, y: gty - 2, face: -1 }, { id: 'boat', x: gtx - 30, y: gty - 2 },
-      { id: 'santa', x: stx - 9, y: sty - 44, cond: 'xmas' }, { id: 'deer', x: stx + 10, y: sty - 44, cond: 'xmas' },   // 노점 바로 위에 나란히   // 겨울 이벤트 기간에만: 산타 · 순록
+      { id: 'santa', x: stx - 9, y: sty - 44, cond: 'xmas' }, { id: 'deer', x: stx + 10, y: sty - 44, cond: 'xmas' },   // 산타와 1픽셀 간격   // 노점 바로 위에 나란히   // 겨울 이벤트 기간에만: 산타 · 순록
     ];
     // 길가 등불
     for (let x = 2; x < TW - 1; x += 5) if (Math.abs(x - 12.5) > 3) lampPost(x * T + 8, 13.6 * T, region >= 7);
@@ -504,7 +504,7 @@ const Scene = (() => {
   function santaImg(f) { // 산타 + 옆에 선물 자루
     const k = 'santa' + (f % 2); if (xmasImg[k]) return xmasImg[k];
     const s = pixImg('s', SANTA, f % 2 ? 0 : 1), b = pixImg('b', SACK, 0), c = document.createElement('canvas'); c.width = s.width + b.width - 1; c.height = s.height; const x2 = c.getContext('2d');
-    x2.drawImage(b, s.width - 1, c.height - b.height); x2.drawImage(s, 0, 0); return (xmasImg[k] = c);
+    x2.drawImage(b, 0, c.height - b.height); x2.drawImage(s, b.width - 1, 0); return (xmasImg[k] = c);   // 자루는 왼쪽, 산타는 순록 쪽
   }
   const deerImg = f => pixImg('d', DEER, f % 4 === 1 ? 1 : 0);
   function sprite(img, x, y, flip) { const im = flip ? flipOf(img) : img; g.drawImage(im, Math.round(x - camX - im.width / 2), Math.round(y - camY - im.height + 1)); return im; }
