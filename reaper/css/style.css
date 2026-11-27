@@ -821,7 +821,8 @@ input, textarea { user-select: text !important; -webkit-user-select: text !impor
 .rankline { pointer-events: auto; }
 #me-card { display: flex; align-items: center; gap: 6px; padding: 3px 9px 3px 3px; border-radius: 14px; background: rgba(14, 10, 30, .78); border: 1.5px solid rgba(255, 210, 110, .35); box-shadow: 0 3px 10px rgba(0,0,0,.35); }
 .me-por { width: 34px; height: 34px; border-radius: 11px; overflow: hidden; background: radial-gradient(circle at 50% 35%, #3a3170, #18132e); display: grid; place-items: center; border: 1px solid rgba(255,255,255,.15); }
-.me-por canvas { width: 34px; height: 40px; margin-top: 4px; image-rendering: pixelated; }
+.me-por { position: relative; }
+.me-por canvas { position: absolute; left: -5px; top: -7px; width: 44px; height: 51px; margin: 0; image-rendering: pixelated; }   /* 게임 속 모습(2배) 그대로 · 모자부터 허리까지 가운데 */
 .me-txt { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; } .me-txt b { font-size: 11px; color: #fff; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .me-txt > span { display: flex; gap: 4px; align-items: center; } .me-txt .lvtag, .me-txt .badge { font-size: 9.5px !important; padding: 1px 6px !important; }
 .st-head { display: flex; gap: 10px; align-items: center; text-align: left; margin-bottom: 6px; } .st-head canvas { width: 66px; height: 77px; image-rendering: pixelated; background: radial-gradient(circle at 50% 40%, #3a3170, transparent 70%); border-radius: 14px; }
