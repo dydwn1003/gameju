@@ -111,10 +111,43 @@ const UI = (() => {
     try { if (on !== null) localStorage.setItem(IAPV, on ? '1' : '0'); else on = localStorage.getItem(IAPV) === '1' ? 'cached' : false; } catch (e) { if (on === null) on = false; }
     return on;
   }
+  // 다른 설치에서 이미 지급한 한 번만 사는 상품(앱 재설치 후 '구매 복원'): 보유만 표시, 내용물은 다시 안 줌
+  function ownedVerified(gid) {
+    const s = S(); if (gid === 'noads') s.noAds = true; s.bought[gid] = Math.max(1, s.bought[gid] || 0); if (s.ownedOnly) delete s.ownedOnly[gid];
+    Game.save(); render(); toast('구매 기록을 복원했어요 (이미 받은 패키지 내용물은 다시 지급되지 않아요)', 3200);
+  }
+  // ---------- 환불 회수: 구글 · 애플에서 환불된 결제는 지급했던 것을 되돌림 (서버 iap_refunds → my_refunds) ----------
+  let refundAt = 0;
+  async function refundCheck() {
+    if (!Native.isApp() || !Cloud.ready() || !S().kind || Date.now() - refundAt < 600e3) return; refundAt = Date.now();
+    const rows = await Cloud.rpcRows('my_refunds', { p_dev: Stats.devId() }); if (!rows || !rows.length) return;
+    const s = S(), ids = [], names = []; s.refunded = s.refunded || [];
+    for (const r of rows) {
+      ids.push(r.tx_id); if (s.refunded.includes(r.tx_id)) continue; s.refunded.push(r.tx_id); if (s.refunded.length > 200) s.refunded = s.refunded.slice(-200);
+      const gid = Native.gidOf(r.product); if (!gid) continue;
+      if (gid.startsWith('decor:')) {
+        const id = gid.slice(6), dc = Decor.ensure(), d = Decor.D(id); dc.own[id] = Math.max(0, (dc.own[id] || 0) - 1);
+        let extra = dc.placed.filter(p => p.id === id).length - dc.own[id]; dc.placed = dc.placed.filter(p => !(p.id === id && extra-- > 0));
+        names.push(d ? d.name : id); continue;
+      }
+      const P = SHOP_IAP.find(p => p.id === gid); if (!P) continue;
+      if (P.jade) s.jade -= P.jade;                                       // 이미 써 버렸으면 마이너스로 남음 (갚을 때까지)
+      if (P.seal) s.sealUntil = Math.max(0, (s.sealUntil || 0) - P.seal * 86400e3);
+      if (P.minion) s.upg.minion = Math.max(0, (s.upg.minion || 0) - P.minion);
+      if (P.boost) s.boostUntil = Math.max(0, (s.boostUntil || 0) - P.boost * 60e3);
+      if (P.noAds) s.noAds = false;
+      if (P.once) s.bought[gid] = 0;
+      names.push(P.name);
+    }
+    Game.apply(); Game.save(); if (Cloud.signedIn()) Cloud.pushSave(s, true); hud(); render();
+    await Cloud.rpc('ack_refunds', { p_dev: Stats.devId(), p_ids: ids });
+    if (names.length) modal(`<div class="got"><div class="got-ic">↩️</div><h2>환불된 결제</h2><p class="got-t">환불된 결제가 있어 지급했던 것을 회수했어요</p><p>${names.map(esc).join('<br>')}</p><p class="mute">옥이 모자라면 마이너스로 남아요. 문의는 설정 › 1:1 문의로 보내 주세요</p></div>
+      <div class="acts"><button class="btn red" data-act="close">확인</button></div>`, true);
+  }
   async function verifyPay(gid, info) {
     const on = await iapVerifyOn();
     if (on === false && localStorage.getItem(IAPV) === '0') return 'skip';   // 서버 설정을 읽었고 검증이 꺼져 있을 때만 바로 지급
-    return Cloud.verifyPurchase(info);       // 그 밖(켜짐 · 설정을 못 읽음 · 처음 설치 후 오프라인)은 항상 서버 확인 → 못 닿으면 'retry' (확인 전엔 지급 안 함)
+    return Cloud.verifyPurchase(Object.assign({ dev: Stats.devId() }, info));       // 그 밖(켜짐 · 설정을 못 읽음 · 처음 설치 후 오프라인)은 항상 서버 확인 → 못 닿으면 'retry' (확인 전엔 지급 안 함)
   }
   // ---------- 계정 정지: 서버 bans 에 오른 계정은 게임을 막음 (정지: SQL select ban_user('회원 코드', '사유');) ----------
   const BANK = 'reaper_ban';
@@ -222,10 +255,11 @@ const UI = (() => {
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
     Native.setPause(() => { Sound.pause(); Stats.send(true); if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
-    Native.setResume(() => { Sound.resume(); Push.back().then(opNotices); maintCheck(); banCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
+    Native.setResume(() => { Sound.resume(); setTimeout(refundCheck, 3000); Push.back().then(opNotices); maintCheck(); banCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
     Push.back(); setInterval(() => { if (!document.hidden) { Push.keep().then(opNotices); maintCheck(); banCheck(); } }, 60e3); // 앱을 켜면 곧 울릴 알림은 지우고, 켜 둔 동안에도 알림을 미리 예약
     let retryNoteAt = 0;
-    Native.setVerifier(verifyPay, () => toast('결제를 확인할 수 없어요. 문제가 있으면 1:1 문의로 알려 주세요', 3200), () => { if (Date.now() - retryNoteAt > 60e3) { retryNoteAt = Date.now(); toast('⏳ 결제를 확인하는 중이에요. 확인되면 바로 지급돼요 (인터넷 연결을 확인해 주세요)', 3600); } });
+    Native.setVerifier(verifyPay, () => toast('결제를 확인할 수 없어요. 문제가 있으면 1:1 문의로 알려 주세요', 3200), () => { if (Date.now() - retryNoteAt > 60e3) { retryNoteAt = Date.now(); toast('⏳ 결제를 확인하는 중이에요. 확인되면 바로 지급돼요 (인터넷 연결을 확인해 주세요)', 3600); } }, ownedVerified);
+    setTimeout(refundCheck, 9000);
     Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; if (!S().bought[gid]) { S().bought[gid] = 1; S().ownedOnly = S().ownedOnly || {}; S().ownedOnly[gid] = 1; } Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));   // ownedOnly: 스토어가 '가지고 있음'만 알려 준 상태 → 나중에 검증된 거래가 오면 내용물(옥 · 졸개)을 지급
     render(); hud();
     // 로그인 성공 → 다시 켜지 않고 그 자리에서 서버 기록을 맞춤
@@ -463,7 +497,7 @@ const UI = (() => {
     const al = Life.alerts(); dot('life', al.garden || al.expe);
     $('#btn-quest .dot').classList.toggle('on', Life.qReady());
     $('#btn-office .dot').classList.toggle('on', Life.docsCount() > 0 || Life.judgeLeft() > 0);
-    if (Life.merchantTick() === 'arrive' && S().kind) toast('👺 도깨비 상인이 노점에 왔어요! (5분)', 5000, [{ label: '보러 가기', cls: '', fn: () => { Scene.focus('stall'); merchantModal(); } }]);
+    if (Life.merchantTick() === 'arrive' && S().kind) toast('👺 도깨비 상인이 마을에 왔어요! (5분)', 5000, [{ label: '보러 가기', cls: '', fn: () => { Scene.focus('stall'); merchantModal(); } }]);
     Scene.config({ merchant: Life.merchantHere() });
     // 버프 표시 + 만료 시 설정 다시 적용
     const bs = ['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0);
@@ -1353,7 +1387,7 @@ const UI = (() => {
     else if (id === 'elder') questModal();
     else if (id === 'boat') openLife('expe');
     else if (id === 'judge') { goTab('rank'); toast(Game.canTest() ? '판관: 승진할 수 있네! 승진 탭에서 승진하게' : `판관: 레벨 ${Game.nextRank() ? Game.nextRank().lv : '-'}이 되면 다시 오게`); }
-    else if (id === 'santa' || id === 'deer' || (id === 'stall' && Winter.active())) santaGift(id);
+    else if (id === 'santa' || id === 'deer') santaGift(id);
     else if (id === 'mudang') fortuneModal();
     else if (id === 'sansin') offerModal();
     else if (id === 'kkachi') mailOpen();
@@ -1362,7 +1396,7 @@ const UI = (() => {
     else if (id === 'stele') openLife('dex');
     else if (id === 'board') questModal();
     else if (id === 'merchant') merchantModal();
-    else if (id === 'stall') { goTab('shop'); toast('노점: 옥 상점과 패키지를 볼 수 있어요. 가끔 도깨비 상인도 들러요'); }
+    else if (id === 'stall') { /* 노점 자리는 눌러도 아무 일 없음 (도깨비 상인은 상인을 눌러야) */ }
     else if (id === 'plot') {
       openLife('garden');
       if (i >= S().plots) { toast('잠긴 밭이에요. 옥으로 열 수 있어요'); return; }
@@ -1384,7 +1418,7 @@ const UI = (() => {
     const bb = box.querySelector('[data-qb]'); if (bb) bb.onclick = () => { const j = Life.qBonus(); if (j) { Sound.play('promote'); const qd = Decor.grantQuest(); got(`오늘 의뢰를 모두 끝냈다! 옥 +${j}${qd ? ` · 🏮 의뢰 보상 소품 「${qd.name}」` : ''}`, { ic: 'jade', then: questModal }); } else questModal(); };
   }
   function merchantModal() {
-    if (!Life.merchantHere()) { toast('도깨비 상인은 지금 없어요. 가끔 노점에 들러요'); return; }
+    if (!Life.merchantHere()) { toast('도깨비 상인은 지금 없어요. 가끔 마을에 들러요'); return; }
     const m = S().merchant, left = (m.until - Date.now()) / 1000;
     const box = modal(`<h2>👺 도깨비 상인</h2><p>"헤헤, 좋은 물건 있어! 금방 떠날 거야." <span class="mute">(${fmtTime(left)} 남음)</span></p>
       ${m.offers.map(id => { const o = MERCHANT_POOL.find(x => x.id === id), pr = Life.offerPrice(o), sold = m.bought.includes(id), ok = pr.jade ? S().jade >= pr.jade : S().souls >= pr.soul;

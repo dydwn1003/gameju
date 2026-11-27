@@ -19,7 +19,10 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, 'content-type': 'application/json' } });
-// 결과: ok (진짜 · 지급) · invalid (가짜 · 지급 안 함, 거래 끝냄) · retry (지금은 확인 못 함 · 나중에 다시)
+// 결과: ok (진짜 · 지급) · owned (진짜지만 이미 다른 설치에서 지급됨 → 한 번만 사는 상품은 '보유'만, 내용물은 다시 안 줌) · invalid (가짜 · 지급 안 함, 거래 끝냄) · retry (지금은 확인 못 함 · 나중에 다시)
+// 환불 회수: { refundCheck: true } 로 부르면 구글 '취소된 구매' 목록을 훑어 iap_refunds 에 기록 (하루 한 번 예약 실행)
+//            애플 App Store Server Notifications V2 (환불 알림)도 이 주소로 받음 → 애플에 다시 확인한 뒤 기록
+//            게임은 my_refunds() 로 자기 환불을 받아 지급했던 것을 회수하고 ack_refunds() 로 처리 완료 표시
 const ok = (extra: Record<string, unknown> = {}) => json({ result: 'ok', ...extra });
 const invalid = (why: string) => json({ result: 'invalid', why });
 const retry = (why: string) => json({ result: 'retry', why });
@@ -58,6 +61,52 @@ async function appleToken(issuer: string, kid: string, pem: string, bid: string)
 }
 const jwsPayload = (jws: string) => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(jws.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0))));
 
+// ---------- 환불 회수: 구글 '취소된 구매'(환불 · 지불 거절) 목록 → iap_refunds ----------
+// deno-lint-ignore no-explicit-any
+async function googleRefunds(admin: any) {
+  const raw = Deno.env.get('GOOGLE_SERVICE_ACCOUNT'); if (!raw) return retry('google not set');
+  try {
+    const sa = JSON.parse(raw), pkg = Deno.env.get('ANDROID_PACKAGE') ?? 'com.jeoseungsaja.idle', at = await googleToken(sa);
+    const since = Date.now() - 30 * 86400e3; let token = '', added = 0, seen = 0;
+    for (let page = 0; page < 20; page++) {
+      const u = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}/purchases/voidedpurchases?startTime=${since}&maxResults=1000${token ? '&token=' + encodeURIComponent(token) : ''}`;
+      const r = await fetch(u, { headers: { Authorization: `Bearer ${at}` } }); if (!r.ok) return retry('google voided ' + r.status);
+      const j = await r.json();
+      for (const v of j.voidedPurchases ?? []) {
+        seen++;
+        const { data: rc } = await admin.from('iap_receipts').select('tx_id, product, user_id, dev').eq('store', 'google').in('tx_id', [v.orderId, v.purchaseToken].filter(Boolean)).maybeSingle();
+        if (!rc) continue;
+        const ins = await admin.from('iap_refunds').insert({ store: 'google', tx_id: rc.tx_id, product: rc.product, user_id: rc.user_id, dev: rc.dev, refunded_at: new Date(+v.voidedTimeMillis || Date.now()).toISOString() });
+        if (!ins.error) added++;
+      }
+      token = j.tokenPagination?.nextPageToken ?? ''; if (!token) break;
+    }
+    return json({ result: 'ok', seen, added });
+  } catch (e) { return retry('error ' + (e as Error).message); }
+}
+// ---------- 환불 회수: 애플 환불 알림 (App Store Server Notifications V2) ----------
+// 알림 내용은 믿지 않고, 거래 번호로 애플에 다시 물어서 '환불됨(revocationDate)'일 때만 기록
+// deno-lint-ignore no-explicit-any
+async function appleNotification(admin: any, signedPayload: string) {
+  try {
+    const n = jwsPayload(signedPayload);
+    if (n.notificationType !== 'REFUND' && n.notificationType !== 'REVOKE') return json({ result: 'ok', ignored: n.notificationType });
+    const info = jwsPayload(n.data?.signedTransactionInfo ?? ''), txId = String(info.transactionId ?? '');
+    const issuer = Deno.env.get('APPLE_ISSUER_ID'), kid = Deno.env.get('APPLE_KEY_ID'), pem = Deno.env.get('APPLE_PRIVATE_KEY');
+    if (!txId || !issuer || !kid || !pem) return retry('apple not set');
+    const bid = Deno.env.get('IOS_BUNDLE_ID') ?? 'com.jeoseungsaja.idle', at = await appleToken(issuer, kid, pem, bid);
+    let t: Record<string, unknown> | null = null;
+    for (const host of ['https://api.storekit.itunes.apple.com', 'https://api.storekit-sandbox.itunes.apple.com']) {
+      const r = await fetch(`${host}/inApps/v1/transactions/${encodeURIComponent(txId)}`, { headers: { Authorization: `Bearer ${at}` } });
+      if (r.ok) { t = jwsPayload((await r.json()).signedTransactionInfo); break; }
+    }
+    if (!t || !t.revocationDate) return json({ result: 'ok', ignored: 'not revoked' });
+    const { data: rc } = await admin.from('iap_receipts').select('tx_id, product, user_id, dev').eq('store', 'apple').eq('tx_id', txId).maybeSingle();
+    if (rc) await admin.from('iap_refunds').insert({ store: 'apple', tx_id: rc.tx_id, product: rc.product, user_id: rc.user_id, dev: rc.dev, refunded_at: new Date(Number(t.revocationDate)).toISOString() });
+    return json({ result: 'ok' });
+  } catch (e) { return retry('error ' + (e as Error).message); }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
@@ -66,8 +115,10 @@ Deno.serve(async (req) => {
   if (!key) return retry('server key');
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, key, { auth: { persistSession: false } });
 
-  let p: { platform?: string; product?: string; token?: string; tx?: string } = {};
+  let p: { platform?: string; product?: string; token?: string; tx?: string; dev?: string; refundCheck?: boolean; signedPayload?: string } = {};
   try { p = await req.json(); } catch (_) { return invalid('body'); }
+  if (p.refundCheck) return await googleRefunds(admin);
+  if (p.signedPayload) return await appleNotification(admin, p.signedPayload);
   const platform = p.platform, product = String(p.product ?? ''), token = String(p.token ?? ''), txId = String(p.tx ?? '');
   if (!product || (platform !== 'android' && platform !== 'ios')) return invalid('params');
 
@@ -122,12 +173,17 @@ Deno.serve(async (req) => {
   }
 
   // 같은 결제 번호는 한 번만: 처음이면 기록, 이미 있으면 같은 사람(같은 계정 · 게스트끼리)만 허용
-  const row = { store, tx_id: id, product, user_id: uid, info };
+  const dev = String(p.dev ?? '').slice(0, 64) || null;
+  const row = { store, tx_id: id, product, user_id: uid, info, dev };
   const ins = await admin.from('iap_receipts').insert(row);
   if (ins.error) {
     if (ins.error.code !== '23505') return retry('db ' + ins.error.code);
-    const { data: old } = await admin.from('iap_receipts').select('user_id').eq('store', store).eq('tx_id', id).maybeSingle();
+    const { data: old } = await admin.from('iap_receipts').select('user_id, dev, created_at').eq('store', store).eq('tx_id', id).maybeSingle();
     if (old && old.user_id && uid && old.user_id !== uid) return invalid('used by another account');
+    // 같은 설치(dev)에서 3일 안에 다시 확인 = 응답을 못 받아 다시 묻는 것 → 정상 지급
+    // 다른 설치(앱을 지웠다 다시 깔고 '구매 복원' 등) → 'owned': 한 번만 사는 상품은 보유만 표시, 내용물은 다시 안 줌
+    const fresh = old && old.dev && dev && old.dev === dev && Date.now() - new Date(old.created_at).getTime() < 3 * 86400e3;
+    if (!fresh) return json({ result: 'owned', id });
   }
   return ok({ id });
 });

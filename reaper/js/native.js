@@ -172,7 +172,7 @@ const Native = (() => {
   const isDone = key => doneTx().includes(key) || !!(onTxDone && onTxDone(key));
   // 결제 승인 처리: 지급 → 저장 → 거래 끝내기 (게임이 준비되기 전에 온 거래는 끝내지 않고 기다렸다가 지급)
   // 결제 검증기 (ui 가 넣어 줌): (게임 상품 id, {platform, product, token, tx}) → 'ok' · 'invalid'(가짜) · 'retry'(지금은 확인 못 함) · 'skip'(검증 꺼짐)
-  let verifier = null, onFake = null, onRetryNote = null; const verifying = new Set(), retryTx = [];
+  let verifier = null, onFake = null, onRetryNote = null, onOwnedVerified = null; const verifying = new Set(), retryTx = [];
   function retryPending() { const L = retryTx.splice(0); L.forEach(tx => handleTx(tx)); }   // 확인 못 한 결제 다시 확인
   setInterval(retryPending, 180e3);
   async function handleTx(tx) {
@@ -188,6 +188,10 @@ const Native = (() => {
       try { r = await verifier(gid, { platform: platform(), product: sid, token: String(tx.purchaseId || ''), tx: String(tx.transactionId || '') }); } catch (e) { r = 'retry'; }
       verifying.delete(vk);
       if (r === 'invalid') { tx.finish(); if (onFake) onFake(gid); return; } // 가짜: 지급하지 않고 끝냄
+      if (r === 'owned') { // 진짜지만 다른 설치에서 이미 지급한 결제: 한 번만 사는 상품은 '보유'만 표시, 내용물은 다시 안 줌
+        if (prods()[gid] && prods()[gid].type === 'nonconsumable' && onOwnedVerified) onOwnedVerified(gid);
+        if (key) markTx(key); tx.finish(); return;
+      }
       if (r === 'retry') { if (!retryTx.includes(tx)) retryTx.push(tx); if (onRetryNote) onRetryNote(); return; } // 확인 못 함: 끝내지 않음 → 몇 분마다 · 앱으로 돌아올 때 다시 확인 (구글은 3일 안에 확인 못 하면 자동 환불)
       if (key && isDone(key)) { tx.finish(); return; }
     }
@@ -237,7 +241,8 @@ const Native = (() => {
   async function restore() { if (!payOn() || restoring) return false; restoring = true; try { await store.restorePurchases(); ownedCheck(); return true; } catch (e) { return false; } finally { restoring = false; } }
 
   return {
-    setVerifier: (fn, fake, wait) => { verifier = fn; onFake = fake || null; onRetryNote = wait || null; },
+    setVerifier: (fn, fake, wait, owned) => { verifier = fn; onFake = fake || null; onRetryNote = wait || null; onOwnedVerified = owned || null; },
+    gidOf: sid => byStoreId(sid),
     isApp, platform, plugin: P, adActive: () => adBusy && Date.now() - adStartedAt < 120000, init, hideSplash, openUrl, appBuild, openStore, openReview, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
     notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest, exactAlarm, exactAlarmAsk, notifyDelivered, diag, openAppSettings,
