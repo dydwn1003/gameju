@@ -156,21 +156,34 @@ const Scene = (() => {
   // 겨울 이벤트 기간: 맵의 나무를 모두 크리스마스 트리로 (눈 쌓인 가지 · 장식 구슬 · 꼭대기 별 · 반짝이는 전구)
   let xmas = false;
   function xmasTree(x, y, big) {
-    const w = big ? 28 : 22, h = big ? 40 : 32, cx = Math.floor(w / 2), lights = [];
+    // 나무마다 위치로 정해지는 무작위 값 → 크기 · 층 수 · 잎 색 · 장식(구슬/리본/전구줄) · 별 색 · 눈 양이 조금씩 다름 (같은 자리는 늘 같은 모양)
+    let sd = Math.floor(x * 73.1 + y * 19.7) >>> 0; const rr = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };
+    const size = big ? (rr() < 0.5 ? 2 : 1) : (rr() < 0.35 ? 1 : 0);               // 0 작음 · 1 보통 · 2 큼
+    const w = [18, 22, 28][size], h = [26, 32, 40][size], cx = Math.floor(w / 2), lights = [];
+    const greens = [['#1f5a34', '#2f7a44', '#164428'], ['#24543e', '#357a5a', '#173a2c'], ['#2a6030', '#3f8a3e', '#1a4020'], ['#1c4a40', '#2c6a5a', '#123630']][Math.floor(rr() * 4)];
+    const deco = Math.floor(rr() * 3);                                              // 0 구슬 · 1 리본 · 2 전구줄
+    const star = ['#ffd34a', '#f4f4ff', '#ff6a6a'][Math.floor(rr() * 3)];
+    const snowy = rr() < 0.6, nT = size === 0 ? 3 : (rr() < 0.5 ? 3 : 4), lean = rr() < 0.3 ? (rr() < 0.5 ? -1 : 1) : 0;
     const o = makeObj(w, h, (x2) => {
-      const r = rectOn(x2), G1 = '#1f5a34', G2 = '#2f7a44', G3 = '#164428', SN = '#f4f9ff';
-      r(cx - 2, h - 6, 4, 6, '#4a2e1c'); r(cx - 2, h - 6, 1, 6, '#6a4630');                        // 줄기
-      const tiers = big ? [[h - 7, 12], [h - 15, 10], [h - 22, 8], [h - 28, 5]] : [[h - 7, 10], [h - 13, 8], [h - 19, 6], [h - 24, 4]];
-      tiers.forEach(([by, hw], ti) => { const th = big ? 10 : 8;
-        for (let k = 0; k < th; k++) { const ww = Math.round(hw * (k + 1) / th); r(cx - ww, by - th + k + 1, ww * 2, 1, k === th - 1 ? G3 : G1); r(cx - ww, by - th + k + 1, Math.max(1, Math.round(ww * 0.6)), 1, G2); }
-        r(cx - hw, by, hw * 2, 1, SN); r(cx - hw + 1, by - 1, Math.max(2, hw - 2), 1, SN);          // 가지 끝에 쌓인 눈
-        [[-hw + 2, -2], [hw - 3, -3], [-1, -5]].forEach(([dx, dy], j) => { if (cx + dx > 1 && cx + dx < w - 2) lights.push([cx + dx, by + dy, (ti + j) % 4]); });
+      const r = rectOn(x2), [G1, G2, G3] = greens, SN = '#f4f9ff';
+      r(cx - 1 - (size > 0), h - 5, 2 + 2 * (size > 0), 5, '#4a2e1c'); r(cx - 1 - (size > 0), h - 5, 1, 5, '#6a4630');   // 줄기
+      if (rr() < 0.5) { r(cx + 3, h - 4, 4, 3, ['#c83a3a', '#3a6ac8', '#e0b040'][Math.floor(rr() * 3)]); r(cx + 4, h - 4, 1, 3, '#fff6c0'); r(cx + 3, h - 3, 4, 1, '#fff6c0'); } // 선물 상자
+      const th = [6, 8, 10][size], base = h - 6, step = Math.round(th * 0.72), maxW = [8, 10, 12][size];
+      const tiers = Array.from({ length: nT }, (_, i) => [base - i * step, Math.max(3, Math.round(maxW * (1 - i / (nT + 0.6))))]);
+      tiers.forEach(([by, hw], ti) => {
+        const off = lean * Math.min(ti, 2) * 0.5;
+        for (let k = 0; k < th; k++) { const ww = Math.max(1, Math.round(hw * (k + 1) / th)); const xx = Math.round(cx - ww + off); r(xx, by - th + k + 1, ww * 2, 1, k === th - 1 ? G3 : G1); r(xx, by - th + k + 1, Math.max(1, Math.round(ww * 0.55)), 1, G2); }
+        if (snowy) { r(Math.round(cx - hw + off), by, hw * 2, 1, SN); if (hw > 3) r(Math.round(cx - hw + 2 + off), by - 1, Math.max(2, hw - 3), 1, SN); }
+        else if (rr() < 0.5) r(Math.round(cx - hw + 1 + off), by, 2, 1, SN);
+        if (deco === 1 && hw > 3) for (let k = 0; k < hw * 2 - 2; k++) r(Math.round(cx - hw + 1 + k + off), by - 2 - Math.round(k * 0.25) % 2, 1, 1, '#d83a4a');   // 빨간 리본
+        if (deco === 2) for (let k = 0; k < hw * 2 - 2; k += 2) lights.push([Math.round(cx - hw + 1 + k + off), by - 2, (k / 2 + ti) % 4]);                   // 전구줄
+        else [[-hw + 2, -2], [hw - 3, -3], [-1, -Math.min(5, th - 2)]].forEach(([dx, dy], j) => { const lx = Math.round(cx + dx + off); if (lx > 1 && lx < w - 2) { if (deco === 0 && j < 2) { r(lx, by + dy, 2, 2, ['#e04050', '#f0c040', '#5ab0ff', '#c070ff'][(ti + j) % 4]); r(lx, by + dy, 1, 1, '#ffffff'); } else lights.push([lx, by + dy, (ti + j) % 4]); } });
       });
-      const top = tiers[tiers.length - 1][0] - (big ? 10 : 8);
-      r(cx - 1, top - 2, 2, 3, '#ffd34a'); r(cx - 2, top - 1, 4, 1, '#ffd34a'); r(cx, top - 3, 1, 1, '#fff6c0'); // 꼭대기 별
-      r(cx - 5, h - 3, 10, 2, 'rgba(244,249,255,0.85)');                                             // 발밑 눈
+      const top = tiers[nT - 1][0] - th + 1, sx = Math.round(cx + lean * 1);
+      r(sx - 1, top - 2, 2, 3, star); r(sx - 2, top - 1, 4, 1, star); r(sx, top - 3, 1, 1, '#ffffff');   // 꼭대기 별
+      if (snowy) r(cx - 5, h - 2, 10, 2, 'rgba(244,249,255,0.85)');                                       // 발밑 눈
     }, x, y);
-    if (o) { o.xmas = lights.map(([lx, ly, c]) => [lx, ly, c]); o.prop = 'tree'; }
+    if (o) { o.xmas = lights; o.prop = 'tree'; }
     return o;
   }
   function treeObj(x, y, kindT) {
