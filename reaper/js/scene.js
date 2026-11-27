@@ -826,6 +826,7 @@ const Scene = (() => {
     focusClue(ch) { const p = clueSpot(ch); camX = p.x - W / 2; camY = p.y - H / 2; follow = false; followAt = time + 8; },
     focus(id) { const p = POIS.find(q => q.id === id) || POIS.find(q => q.id === 'stall'); if (p) { camX = p.x + p.w / 2 - W / 2; camY = p.y + p.h / 2 - H / 2; follow = false; followAt = time + 8; } },
     burstAt(xc, yc, col, n) { burst(xc / S + camX, yc / S + camY, col, n, 40); },
+    clearPat: () => { for (let i = souls.length - 1; i >= 0; i--) if (souls[i].pat) souls.splice(i, 1); },   // 이벤트가 끝나면 맵의 팥 영혼 치우기
     spawnPat, patCount: () => souls.filter(s => s.pat && s.st !== 'done').length,
     soulNear() { for (const [fx, fy] of [[0.4, 0.62], [0.3, 0.7], [0.5, 0.75], [0.35, 0.5], [0.2, 0.6]]) { const x = camX + W * fx, y = camY + H * fy; if (walkable(x, y)) { souls.push({ x, y, tier: 0, sp: -1, ph: 0, t: 0, st: 'float', who: null, a: 1, h: 9, tut: 1 }); follow = false; followAt = time + 30; return; } } },
     groundSpot() {

@@ -298,7 +298,7 @@ const UI = (() => {
       g.fillStyle = gr; g.beginPath(); g.arc(x, f.y, f.r * 1.8, 0, 6.2832); g.fill();
     }
   }
-  let attDay = '';
+  let attDay = '', winterLate = false;
   function winterHud(spawned) {
     const dNow = kstDay(Date.now() + (window.__evShift || 0));                       // 한국 시간 0시가 지나면 출석 창 · 빨간 점을 바로 새로 고침
     if (attDay && dNow !== attDay && document.querySelector('#modal.on .wa')) winterAttBox();
@@ -306,7 +306,10 @@ const UI = (() => {
     const on = Winter.active(), b = $('#btn-winter'); if (!b) return;
     b.hidden = !on; $('#snow').hidden = !on || Scene.inOffice();
     const wa = $('#btn-wattend'); if (wa) { wa.hidden = !on; wa.querySelector('.dot').classList.toggle('on', on && (Winter.canAttend() || Winter.canMakeup())); if (on && !$('#wattend-ic').src) $('#wattend-ic').src = toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, 'a'), 2); }
-    if (!on) { Scene.setXmas(false); return; }
+    if (!on) { Scene.setXmas(false); if (Scene.patCount()) Scene.clearPat();
+      if (S().kind && Winter.st().n && !winterLate) { winterLate = true; const gs = Winter.goals.map((g, i) => Winter.claimable(g) ? Winter.claim(i) : null).filter(Boolean); // 끝나기 전에 모았는데 못 받은 보상은 자동으로 지급
+        if (gs.length) { render(); setTimeout(() => toast(`🎁 동짓날 팥죽 보상을 받지 않아 자동으로 넣어 드렸어요: ${gs.map(g => g.kind === 'decor' ? Decor.D(g.id).name : Pets.P(g.id).name).join(' · ')}`, 4200), 1500); } }
+      return; }
     const e = Winter.st();
     if (!$('#winter-ic').src) $('#winter-ic').src = patIcon(2);
     $('#winter-t').textContent = `${e.n}/${Winter.max}`;
