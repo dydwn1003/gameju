@@ -168,8 +168,19 @@ const UI = (() => {
       const d = doc.data() || {}, v = d[plat] || {}, latest = +v.latest || 0, min = +v.min || 0;
       if (mine >= latest && mine >= min) return;
       const force = mine < min;
-      const box = modal(`<div class="got"><div class="got-ic">🆕</div><h2>새 버전이 나왔어요</h2><p class="got-t">${d.msg ? esc(d.msg) : '더 나아진 저승사자 키우기를 만나 보세요!'}</p><p class="mute">${force ? '이 버전은 더 이상 이용할 수 없어요. 업데이트해 주세요.' : '스토어에서 최신 버전으로 업데이트해 주세요.'}</p></div>
-        <div class="acts"><button class="btn red" id="up-go">스토어 가기</button>${force ? '' : '<button class="btn dark" data-act="close">닫기</button>'}</div>`, force);
+      // 서버 msg: 첫 줄은 소개 문구, 다음 줄부터(- 로 시작해도 됨)는 '새로워진 점' 목록
+      const lines = String(d.msg || '').split('\n').map(x => x.trim()).filter(Boolean), head = lines.length ? lines[0] : '더 나아진 저승사자 키우기를 만나 보세요!', notes = lines.slice(1).map(x => x.replace(/^[-•·]\s*/, ''));
+      const box = modal(`<div class="up">
+        <div class="up-hd"><div class="up-sn">${Array.from({ length: 12 }, (_, i) => `<i style="left:${(i * 37) % 100}%;animation-delay:-${(i * 13) % 6}s;animation-duration:${4 + (i % 4)}s"></i>`).join('')}</div>
+          <span class="up-tag ${force ? 'must' : ''}">${force ? '🔒 필수 업데이트' : '✨ 새 버전'}</span>
+          <div class="up-stage"><div class="up-ring"></div><canvas id="up-cv" width="44" height="51"></canvas></div>
+          <h2>새 버전이 나왔어요</h2><p>${esc(head)}</p></div>
+        ${notes.length ? `<div class="up-notes"><h4>새로워진 점</h4><ul>${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
+        <p class="up-sub">${force ? '이 버전은 더 이상 이용할 수 없어요.<br>업데이트하면 저장된 기록 그대로 이어서 할 수 있어요.' : '업데이트해도 저장된 기록은 그대로 남아요.'}</p>
+        <button class="up-go" id="up-go"><span>${plat === 'ios' ? 'App Store' : 'Google Play'}에서 업데이트</span></button>
+        ${force ? '' : '<button class="up-later" data-act="close">나중에 할게요</button>'}</div>`, true);
+      box.classList.add('up-box');
+      previews.push({ c: box.querySelector('#up-cv'), kind: S().kind || 'm', rank: S().rank || 0, pose: 'reap', dc: 1 });
       box.querySelector('#up-go').onclick = () => Native.openStore();
     } catch (e) { /* 서버에 못 닿으면 조용히 넘어감 */ }
   }
@@ -886,14 +897,14 @@ const UI = (() => {
   // ---------- 공지사항 · 전체 우편 ----------
   // 오늘 하루 그만보기: 한국 시간(UTC+9) 다음 날 00시까지 숨김
   const nextKstMidnight = () => { const D = 864e5, K = 9 * 3600e3; return Math.floor((Date.now() + K) / D) * D + D - K; };
-  const DEFAULT_NOTICES = [{ id: 'n_welcome', title: '저승사자 키우기에 오신 걸 환영해요!', body: '떠도는 혼을 거두고 승진해서 염라대왕이 되어 보세요.\n집무실을 꾸미고 이웃 집무실에 놀러 가 방명록도 남겨 보세요.\n매일 출석·의뢰·결재를 챙기면 더 빨리 성장해요!', at: Date.now(), pin: 1 }];
+  const DEFAULT_NOTICES = [{ id: 'n_welcome', title: '저승사자 키우기에 오신 걸 환영해요!', body: '떠도는 혼을 거두고 승진해서 염라대왕이 되어 보세요.\n집무실을 꾸미고 이웃 집무실에 놀러 가 방명록도 남겨 보세요.\n매일 출석·의뢰·결재를 챙기면 더 빨리 성장해요!', at: 1767225600000, pin: 1 }];
   let noticeCache = null, mailCache = null;
   const fmtDate = t => { const d = new Date(t + 9 * 3600e3); return `${d.getUTCFullYear()}.${String(d.getUTCMonth() + 1).padStart(2, '0')}.${String(d.getUTCDate()).padStart(2, '0')}`; };
   async function loadNotices() { try { const n = Board.online() ? await Board.notices() : null; noticeCache = n && n.length ? n.sort((a, b) => (b.pin || 0) - (a.pin || 0) || b.at - a.at) : (Board.online() ? [] : DEFAULT_NOTICES); } catch (e) { noticeCache = noticeCache || DEFAULT_NOTICES; } return noticeCache; }
   async function noticeStartup() {
     if (!S().kind) { setTimeout(noticeStartup, 3000); return; }
-    if ((S().noticeHide || 0) > Date.now()) return;
     const list = await loadNotices(); if (!list.length) return;
+    if (S().noticeMute && Math.max(...list.map(n => n.at || 0)) <= S().noticeMute) return;   // '새 공지가 올라올 때까지 안 보기'를 눌렀고 그 뒤로 새 공지가 없음
     // 창 · 안내 · 집무실 · 꾸미기 · 아래 메뉴가 열려 있으면 기다렸다가 마을 화면으로 돌아왔을 때 띄움 (최대 3분)
     const busy = () => (!Story.cur().end && !Story.cur().intro) || $('#modal').classList.contains('on') || $('#promo').classList.contains('on') || document.getElementById('tut') || Scene.inOffice() || sheetOpen() || parade;
     let tries = 0; const go = () => { if (busy() && tries++ < 180) { setTimeout(go, 1000); return; } if (!busy()) noticeModal(true); }; go();
@@ -903,11 +914,11 @@ const UI = (() => {
     const seen = S().noticeSeen || 0; // 이 값보다 나중에 올라온 공지 = 새 공지
     const box = modal(`<h2>📢 공지사항</h2><div class="nt-list">${list.length ? list.map((n, i) => `<div class="nt-item ${i === 0 ? 'open' : ''}" data-nt="${esc(n.id)}"><div class="nt-head">${n.pin ? '<em>📌</em>' : ''}${(n.at || 0) > seen ? '<span class="new-tag">N</span>' : ''}<b>${esc(n.title)}</b><small>${fmtDate(n.at)}</small>${admin ? `<button class="nt-del" data-ntdel="${esc(n.id)}">삭제</button>` : ''}</div><div class="nt-body">${esc(n.body || '').replace(/\n/g, '<br>')}</div></div>`).join('') : '<div class="rkload">아직 공지사항이 없어요</div>'}</div>
       ${admin ? '<button class="btn" id="nt-write">✍️ 공지 쓰기 (운영자)</button>' : ''}
-      <label class="nt-hide"><input type="checkbox" id="nt-today" ${(S().noticeHide || 0) > Date.now() ? 'checked' : ''}> 오늘 하루 그만보기 <small>(한국 시간 00시에 다시 떠요)</small></label>
+      <label class="nt-hide"><input type="checkbox" id="nt-today" ${S().noticeMute && Math.max(0, ...list.map(n => n.at || 0)) <= S().noticeMute ? 'checked' : ''}> 새 공지가 올라올 때까지 안 보기 <small>(새 공지가 올라오면 다시 떠요)</small></label>
       <div class="acts"><button class="btn dark" id="nt-close">닫기</button></div>`);
     S().noticeSeen = Math.max(S().noticeSeen || 0, ...list.map(n => n.at || 0)); Game.save(); $('#btn-notice .dot').classList.remove('on');
     box.querySelectorAll('.nt-head').forEach(h => h.onclick = e => { if (e.target.closest('[data-ntdel]')) return; h.parentElement.classList.toggle('open'); });
-    box.querySelector('#nt-close').onclick = () => { S().noticeHide = box.querySelector('#nt-today').checked ? nextKstMidnight() : 0; Game.save(); closeModal(); };
+    box.querySelector('#nt-close').onclick = () => { S().noticeMute = box.querySelector('#nt-today').checked ? Math.max(0, ...list.map(n => n.at || 0)) : 0; delete S().noticeHide; Game.save(); closeModal(); };
     const w = box.querySelector('#nt-write'); if (w) w.onclick = () => { closeModal(); adminNotice(); };
     box.querySelectorAll('[data-ntdel]').forEach(b => b.onclick = () => { const id = b.dataset.ntdel; closeModal(); confirmBox('<h2>공지 삭제</h2><p>이 공지를 삭제할까요?</p>', async () => { try { await Board.delNotice(id); toast('공지를 삭제했어요'); } catch (e) { toast('삭제하지 못했어요'); } noticeCache = null; noticeModal(false); }, '삭제'); });
   }
