@@ -1071,3 +1071,10 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .rb-ex .btn { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; white-space: nowrap; } .rb-ex .btn img { height: 14px; width: auto; margin: 0; } .rb-ex { margin-top: 6px; }
 /* 청약철회 안내 (결제 창) */
 .refund-note { margin: 8px 0 2px; padding: 7px 9px; border-radius: 8px; background: rgba(255, 211, 74, 0.08); border: 1px solid rgba(255, 211, 74, 0.25); color: #d8cfa8; font-size: 10.5px; line-height: 1.5; text-align: left; }
+/* 계정 정지 화면 */
+#banned { position: fixed; inset: 0; z-index: 450; display: none; place-items: center; padding: 20px; background: radial-gradient(ellipse at 50% 35%, #3a1630 0%, #0b0a1c 70%); }
+#banned.on { display: grid; }
+#banned .mt-box { max-width: 320px; text-align: center; background: rgba(20, 16, 40, .92); border-radius: 16px; padding: 22px 18px; box-shadow: 0 0 0 2px #5a2a48, 0 20px 40px #0008; }
+#banned .mt-ic { font-size: 44px; margin-bottom: 6px; }
+#banned h2 { margin: 0 0 10px; color: #ff6a7a; }
+#banned p { margin: 6px 0; line-height: 1.6; }

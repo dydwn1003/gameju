@@ -146,6 +146,13 @@ const Cloud = (() => {
     isOwner: async () => { try { const { data, error } = await sb.rpc('is_admin'); if (error) return null; return !!data; } catch (e) { return null; } }, // null: 확인 실패 (모름)
   };
   // 서버 함수 부르기 (게스트도 공개 키로 부를 수 있는 것만: track 등)
+  // 계정 정지 확인: 정지 사유(문자) · 정지 아님 '' · 확인 실패 null
+  async function myBan() { if (!sb || !uid()) return ''; try { const { data, error } = await sb.rpc('my_ban'); if (error) return null; return data || ''; } catch (e) { return null; } }
+  // 결제 검증: 서버가 구글 · 애플에 직접 확인 → 'ok' · 'invalid'(가짜) · 'retry'(지금은 확인 못 함)
+  async function verifyPurchase(body) {
+    if (!sb) return 'retry';
+    try { const { data, error } = await sb.functions.invoke(CLOUD.verifyFunction || 'verify-purchase', { method: 'POST', body }); if (error || !data) return 'retry'; return data.result === 'ok' || data.result === 'invalid' ? data.result : 'retry'; } catch (e) { return 'retry'; }
+  }
   async function rpc(fn, args) { if (!sb) return false; try { const { error } = await sb.rpc(fn, args); return !error; } catch (e) { return false; } }
-  return { enabled, init, ready: () => !!sb, rpc, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, syncBase, setSyncBase, setSynced: v => { synced = !!v; }, hold: v => { held = !!v; }, isSynced: () => synced, db, user, onChange: f => listeners.push(f), setOnLogin: f => { onLogin = f; } };
+  return { enabled, init, ready: () => !!sb, rpc, myBan, verifyPurchase, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, syncBase, setSyncBase, setSynced: v => { synced = !!v; }, hold: v => { held = !!v; }, isSynced: () => synced, db, user, onChange: f => listeners.push(f), setOnLogin: f => { onLogin = f; } };
 })();

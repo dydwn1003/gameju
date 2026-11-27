@@ -165,12 +165,24 @@ const Native = (() => {
   // 이미 지급한 거래인지: 이 기기 기록 + 게임 저장(계정에 함께 저장되어 다시 설치해도 남음)
   const isDone = key => doneTx().includes(key) || !!(onTxDone && onTxDone(key));
   // 결제 승인 처리: 지급 → 저장 → 거래 끝내기 (게임이 준비되기 전에 온 거래는 끝내지 않고 기다렸다가 지급)
-  function handleTx(tx) {
+  // 결제 검증기 (ui 가 넣어 줌): (게임 상품 id, {platform, product, token, tx}) → 'ok' · 'invalid'(가짜) · 'retry'(지금은 확인 못 함) · 'skip'(검증 꺼짐)
+  let verifier = null, onFake = null; const verifying = new Set();
+  async function handleTx(tx) {
     const sid = tx.products && tx.products[0] && tx.products[0].id, gid = byStoreId(sid);
     const key = tx.transactionId || tx.purchaseId || (sid ? sid + ':' + (tx.purchaseDate ? +new Date(tx.purchaseDate) : '') : '');
     if (!gid) { tx.finish(); return; }
     if (!onGrant) { if (!pendingTx.includes(tx)) pendingTx.push(tx); return; }
     if (key && isDone(key)) { tx.finish(); return; } // 같은 거래 두 번 지급 안 함
+    // 서버 검증: 구글 · 애플에 진짜 결제인지 확인한 뒤에만 지급 (조작된 앱의 가짜 결제 막기)
+    if (verifier) {
+      const vk = key || sid; if (verifying.has(vk)) return; verifying.add(vk);
+      let r = 'retry';
+      try { r = await verifier(gid, { platform: platform(), product: sid, token: String(tx.purchaseId || ''), tx: String(tx.transactionId || '') }); } catch (e) { r = 'retry'; }
+      verifying.delete(vk);
+      if (r === 'invalid') { tx.finish(); if (onFake) onFake(gid); return; } // 가짜: 지급하지 않고 끝냄
+      if (r === 'retry') return;                                            // 확인 못 함: 끝내지 않음 → 다음에 다시 (구글은 3일 안에 확인 못 하면 자동 환불)
+      if (key && isDone(key)) { tx.finish(); return; }
+    }
     try { onGrant(gid, key); } catch (e) { return; } // 지급 중 오류면 끝내지 않음 → 다음에 다시 지급 시도
     if (key) markTx(key);
     tx.finish();
@@ -217,6 +229,7 @@ const Native = (() => {
   async function restore() { if (!payOn() || restoring) return false; restoring = true; try { await store.restorePurchases(); ownedCheck(); return true; } catch (e) { return false; } finally { restoring = false; } }
 
   return {
+    setVerifier: (fn, fake) => { verifier = fn; onFake = fake || null; },
     isApp, platform, plugin: P, adActive: () => adBusy && Date.now() - adStartedAt < 120000, init, hideSplash, openUrl, appBuild, openStore, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
     notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest, exactAlarm, exactAlarmAsk, notifyDelivered, diag, openAppSettings,

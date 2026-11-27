@@ -90,6 +90,7 @@ const UI = (() => {
     await step(90, '명부를 펼치는 중…', () => initGame());
     await step(93, '저승 문이 열렸는지 확인하는 중…', () => Promise.race([maintCheck(), new Promise(r => setTimeout(r, 3000))]));
     if (Cloud.signedIn()) await step(96, '내 기록을 불러오는 중…', () => cloudSync());
+    banCheck();
     const wait = Math.max(0, 1200 - (performance.now() - t0)); await new Promise(r => setTimeout(r, wait));
     fill.style.width = '100%'; wc.style.left = 'calc(100% - 8px)'; msg.textContent = '근무 시작!';
     await new Promise(r => setTimeout(r, 250)); clearInterval(walk);
@@ -100,6 +101,37 @@ const UI = (() => {
   // 켜기: SQL select set_maintenance(true, '안내 문구', 60);  끄기: select set_maintenance(false);
   // 점검 중에는 서버로 저장을 올리지 않음 (이 기기에는 그대로 저장). 1분마다 · 앱으로 돌아올 때 다시 확인
   let maintOn = false, maintAdminToast = false;
+  // ---------- 결제 검증: 서버(config/iap.verify)가 켜져 있으면 구글 · 애플에 진짜 결제인지 확인한 뒤에만 지급 ----------
+  // 켜기: SQL select set_iap_verify(true);  끄기: select set_iap_verify(false);
+  const IAPV = 'reaper_iapv';
+  async function iapVerifyOn() {
+    let on = null;
+    try { if (Cloud.ready()) { const doc = await Cloud.db.doc('config/iap').get(); on = !!(doc.exists && (doc.data() || {}).verify); } } catch (e) { on = null; }
+    try { if (on !== null) localStorage.setItem(IAPV, on ? '1' : '0'); else on = localStorage.getItem(IAPV) === '1' ? 'cached' : false; } catch (e) { if (on === null) on = false; }
+    return on;
+  }
+  async function verifyPay(gid, info) {
+    const on = await iapVerifyOn();
+    if (!on) return 'skip';                 // 검증 꺼짐 → 예전처럼 바로 지급
+    if (on === 'cached') return 'retry';     // 켜져 있던 걸 알지만 지금 서버에 못 닿음 → 나중에 다시
+    return Cloud.verifyPurchase(info);
+  }
+  // ---------- 계정 정지: 서버 bans 에 오른 계정은 게임을 막음 (정지: SQL select ban_user('회원 코드', '사유');) ----------
+  const BANK = 'reaper_ban';
+  let banned = false;
+  async function banCheck() {
+    if (!Cloud.signedIn()) { try { const c = JSON.parse(localStorage.getItem(BANK) || 'null'); if (c) showBan(c.reason); } catch (e) {} return; } // 정지된 기기에서 로그아웃해 게스트로 하는 것도 막음
+    const r = await Cloud.myBan();
+    if (r === null) { try { const c = JSON.parse(localStorage.getItem(BANK) || 'null'); if (c && c.uid === Cloud.uid()) showBan(c.reason); } catch (e) {} return; } // 서버 확인 실패 → 기억해 둔 정지 그대로
+    try { if (r) localStorage.setItem(BANK, JSON.stringify({ uid: Cloud.uid(), reason: r })); else localStorage.removeItem(BANK); } catch (e) {}
+    if (r) showBan(r); else if (banned) { banned = false; Cloud.hold(false); const el = $('#banned'); if (el) el.classList.remove('on'); }
+  }
+  function showBan(reason) {
+    banned = true; Cloud.hold(true);
+    let el = $('#banned'); if (!el) { el = document.createElement('div'); el.id = 'banned'; document.body.appendChild(el); }
+    el.innerHTML = `<div class="mt-box"><div class="mt-ic">⛔</div><h2>이용이 제한된 계정이에요</h2><p>${esc(reason || '운영 정책 위반')}</p>${Cloud.uid() ? `<p class="mt-t">회원 코드 <b>${esc(Cloud.uid().replace(/-/g, '').slice(0, 8).toUpperCase())}</b></p>` : ''}<p class="mute" style="font-size:11px">문의는 설정 → 1:1 문의 또는 스토어의 개발자 이메일로 보내 주세요.</p></div>`;
+    el.classList.add('on');
+  }
   async function maintCheck() {
     if (!Cloud.ready()) return;
     let d = null; try { const doc = await Cloud.db.doc('config/maintenance').get(); d = doc.exists ? doc.data() : null; } catch (e) { return; } // 서버에 못 닿으면 그대로 (게임은 이 기기에서 계속)
@@ -178,8 +210,9 @@ const UI = (() => {
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
     Native.setPause(() => { Sound.pause(); Stats.send(true); if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
-    Native.setResume(() => { Sound.resume(); Push.back().then(opNotices); maintCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
-    Push.back(); setInterval(() => { if (!document.hidden) { Push.keep().then(opNotices); maintCheck(); } }, 60e3); // 앱을 켜면 곧 울릴 알림은 지우고, 켜 둔 동안에도 알림을 미리 예약
+    Native.setResume(() => { Sound.resume(); Push.back().then(opNotices); maintCheck(); banCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
+    Push.back(); setInterval(() => { if (!document.hidden) { Push.keep().then(opNotices); maintCheck(); banCheck(); } }, 60e3); // 앱을 켜면 곧 울릴 알림은 지우고, 켜 둔 동안에도 알림을 미리 예약
+    Native.setVerifier(verifyPay, () => toast('결제를 확인할 수 없어요. 문제가 있으면 1:1 문의로 알려 주세요', 3200));
     Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; S().bought[gid] = S().bought[gid] || 1; Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));
     render(); hud();
     // 로그인 성공 → 다시 켜지 않고 그 자리에서 서버 기록을 맞춤
