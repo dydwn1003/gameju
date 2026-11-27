@@ -179,12 +179,13 @@ const Decor = (() => {
   const REMOVED = { throne: 1500, yongsang: 1100 }; // 삭제된 소품: 갖고 있던 만큼 옥으로 돌려줌
   function ensure() { const s = S(); if (!s.decor) s.decor = { own: {}, placed: [], gift: 0 };
     if (!s.decor.clean2) { Object.keys(s.decor.own).forEach(id => { if (!D(id)) { if (REMOVED[id]) s.jade += REMOVED[id] * s.decor.own[id]; delete s.decor.own[id]; } }); s.decor.placed = s.decor.placed.filter(p => D(p.id)); s.decor.clean2 = 1; } if (!s.decor.gift) { DECOR.filter(d => d.free).forEach(d => (s.decor.own[d.id] = (s.decor.own[d.id] || 0) + 1)); s.decor.gift = 1; } return s.decor; }
-  const isEx = d => d.rank != null || d.story != null || !!d.quest || d.rb != null; // 승진·이야기·의뢰·윤회로만 얻는 소품
+  const isEx = d => d.rank != null || d.story != null || !!d.quest || d.rb != null || !!d.ev; // 승진·이야기·의뢰·윤회·이벤트로만 얻는 소품
   // 유료 특제 의자 (테스트 결제): 그 직급에 오르면 살 수 있다
   // paid: 결제된 것은 계급과 상관없이 지급
   function buyCash(id, paid) { const d = D(id), s = S(); if (!d || !d.cash || (!paid && s.rank < (d.rankReq || 0))) return false; ensure().own[id] = owned(id) + 1; Game.save(); return true; }
   // 한정 소품 지급: 승진·이야기·의뢰 (중복 지급 방지)
   function grant(d) { const dc = ensure(); dc.got = dc.got || {}; if (dc.got[d.id]) return null; dc.got[d.id] = 1; dc.own[d.id] = (dc.own[d.id] || 0) + 1; return d; }
+  function grantId(id) { const d = D(id); if (!d) return null; const r = grant(d); if (r) Game.save(); return r; } // 이벤트 보상 등 하나만 주기
   function grantRank(rank) { const out = DECOR.filter(d => d.rank != null && d.rank <= rank).map(grant).filter(Boolean); if (out.length) Game.save(); return out; }
   function grantRb(n) { const out = DECOR.filter(d => d.rb != null && d.rb <= n).map(grant).filter(Boolean); if (out.length) Game.save(); return out; } // 윤회 기념 (그 환까지)
   function grantStory(ch) { const out = DECOR.filter(d => d.story != null && d.story <= ch).map(grant).filter(Boolean); if (out.length) Game.save(); return out; }
@@ -203,5 +204,5 @@ const Decor = (() => {
   const score = () => ensure().placed.reduce((a, p) => a + (D(p.id) ? D(p.id).pt : 0), 0);
   const mul = () => (S() && S().decor ? 1 + Math.min(0.25, score() * 0.0015) : 1);
   const title = sc => sc >= 160 ? '저승 제일의 집무실' : sc >= 100 ? '화려한 집무실' : sc >= 50 ? '품위 있는 집무실' : sc >= 20 ? '아늑한 집무실' : '소박한 집무실';
-  return { D, isEx, buyCash, ensure, grantRank, grantRb, grantStory, grantQuest, img, packBought, owned, spare, placedCount, maxPlace, buy, buyPack, place, remove, score, mul, title };
+  return { D, isEx, buyCash, ensure, grantId, grantRank, grantRb, grantStory, grantQuest, img, packBought, owned, spare, placedCount, maxPlace, buy, buyPack, place, remove, score, mul, title };
 })();

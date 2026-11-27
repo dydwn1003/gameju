@@ -292,7 +292,10 @@ const Game = (() => {
   // ---------- 상점 ----------
   // 하루 구매 제한(daily)이 있는 상품: 오늘 몇 번 더 살 수 있는지
   function iapDay() { const d = kstDay(); if (!S.iapDay || S.iapDay.day !== d) S.iapDay = { day: d, n: {} }; return S.iapDay; }
-  function iapLeft(id) { const P = SHOP_IAP.find(p => p.id === id); if (P.once) return S.bought[id] ? 0 : 1; return P.daily ? P.daily - (iapDay().n[id] || 0) : Infinity; }
+  // 염라의 인장: 한 번에 최대 4개(28일)까지만 쌓임 — 4개가 활성화돼 있으면 더 못 삼
+  const SEAL_MAX = 4;
+  const sealCount = () => Math.ceil(Math.max(0, (S.sealUntil || 0) - Date.now()) / (7 * 86400e3));
+  function iapLeft(id) { const P = SHOP_IAP.find(p => p.id === id); if (P.once) return S.bought[id] ? 0 : 1; if (P.seal) return sealCount() >= SEAL_MAX ? 0 : SEAL_MAX - sealCount(); return P.daily ? P.daily - (iapDay().n[id] || 0) : Infinity; }
   const sealLeft = () => Math.max(0, ((S.sealUntil || 0) - Date.now()) / 1000);
   // paid: 실제로 결제된 지급 → 하루 한도로 막지 않음 (한 번만 사는 상품을 이미 가졌을 때만 막음)
   function iap(id, paid) {
@@ -380,7 +383,7 @@ const Game = (() => {
     get S() { return S; }, lv, load, save, apply, reset, replace,
     value, valueBase, incomePerSec, walk, spawn, reap, minions, mWalk, mReap, avgTier, offHours, tierProbs, tapDmg, wraithDps, drillMul, boosting,
     eff, cost, maxBuy, buy, nextRank, level, ulv, uxp, xpNeed, MAX_LEVEL, canTest, testHp, promote, canReborn, reborn, rebornMult, PERKS, perkLv, perkCost, buyPerk, PERK_RESET_JADE, perkSpent, resetPerks, STONE_EX_JADE, STONE_EX_N, stoneExLeft, buyStones, stoneGain, lateOf,
-    collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, markAway, offDone: () => { S.offPend = null; save(); }, OFFLINE_RATE, fingerprint, loadedFp: () => loadedFp, loadedTotal: () => loadedTotal, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
+    sealCount, SEAL_MAX, collect, gain, mainBoost, minionUnits, ELITE, umax, minionCap, minionCapCost, buyMinionCap, MINION_CAP_JADE, addBoost, markAway, offDone: () => { S.offPend = null; save(); }, OFFLINE_RATE, fingerprint, loadedFp: () => loadedFp, loadedTotal: () => loadedTotal, adLeft, useAd, attendState, attend, iap, jadeBuy, jadeCost, jadeLeft, jadeMaxed, iapLeft, sealLeft, offline, OFFLINE_RATE,
   };
 })();
 

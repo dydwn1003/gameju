@@ -33,5 +33,6 @@ Object.assign(PET3, {
   heukryong: { base: 'cheongryong', pal: {"B": "#4a3a78", "W": "#b8a8e8", "A": "#2a2050", "y": "#ff4a5a", "o": "#c8a8ff"} },
   eungryong: { base: 'hwangryong', pal: {"B": "#9a6aff", "W": "#f0e8ff", "A": "#6a3ac8", "y": "#ffd34a", "o": "#7affe0"} },
   geumsijo: { base: 'bonghwang', pal: {"B": "#ffc83a", "W": "#fff4c0", "A": "#d08a1a", "y": "#ff3a5a", "o": "#ff7a2a", "L": "#ffffff"} },
+  seollok: { rows: PET_SHAPES.deer, pal: {"B": "#f4f8ff", "W": "#ffffff", "A": "#9ab8dc", "y": "#7ad0ff", "E": "#2a3a5a"} },
   yunhoe: { base: 'bonghwang', pal: {"B": "#f4f0ff", "W": "#b88aff", "A": "#8a6ac8", "y": "#6ac8ff", "o": "#ff8ad0", "L": "#ffffff"} },
 });
