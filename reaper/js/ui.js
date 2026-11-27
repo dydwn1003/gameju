@@ -360,13 +360,13 @@ const UI = (() => {
       <div class="wv-shop"><h4>겨울 상점 <small>12월 31일까지</small></h4>
         <div class="wv-item"><div class="wv-th"><img class="px" src="${patIcon(4)}"></div><div class="wv-gi"><b>팥죽 한 그릇</b><small>팥 영혼 1개가 바로 나타나요 · 오늘 ${Winter.bowlLeft()}/${Winter.SHOP.bowl.day}번 남음</small></div>
           <button class="btn jade" id="wv-bowl" ${Winter.bowlLeft() > 0 && Winter.room() > 0 ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${Winter.bowlLeft() > 0 ? Winter.SHOP.bowl.jade : '내일'}</button></div>
-        <div class="wv-item"><div class="wv-th"><img class="px" src="${eqPet ? toURL(scarfOf(SP.petTiny(eqPet, 0), eqPet), 3) : patIcon(4)}"></div><div class="wv-gi"><b>영물 목도리</b><small>함께 다니는 영물이 이벤트 기간 동안 목도리를 둘러요</small></div>
+        <div class="wv-item"><div class="wv-th"><img class="px" src="${eqPet ? toURL(scarfOf(SP.petTiny(eqPet, 0), eqPet), 3) : patIcon(4)}"></div><div class="wv-gi"><b>영물 목도리</b><small>함께 다니는 영물이 목도리를 둘러요 · 이벤트가 끝나도 계속</small></div>
           <button class="btn jade" id="wv-scarf" ${e.scarf ? 'disabled' : ''}>${e.scarf ? '보유 ✓' : `<img class="px" src="${IC('jade', 2)}">${Winter.SHOP.scarf.jade}`}</button></div>
       </div></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`, true);
     box.classList.add('wv-box');
     const bb = box.querySelector('#wv-bowl'); if (bb) bb.onclick = () => { closeModal(); if (S().jade < Winter.SHOP.bowl.jade) { buyPage('jade'); return; } askBuy('팥죽 한 그릇', '팥 영혼 1개가 바로 맵에 나타나요. (하루 2번)', Winter.SHOP.bowl.jade, 0, () => { if (Winter.buyBowl()) { Sound.play('buy'); hud(); winterHud(true); toast('🥣 팥죽 냄새를 맡고 팥 영혼이 나타났어요!', 2600); } else toast('지금은 살 수 없어요'); }, winterBox); };
-    const sb = box.querySelector('#wv-scarf'); if (sb) sb.onclick = () => { closeModal(); if (S().jade < Winter.SHOP.scarf.jade) { buyPage('jade'); return; } askBuy('영물 목도리', '함께 다니는 영물이 이벤트 기간(12월 31일까지) 동안 빨간 목도리를 둘러요.', Winter.SHOP.scarf.jade, 0, () => { if (Winter.buyScarf()) { Sound.play('buy'); hud(); got('함께 다니는 영물이 목도리를 둘렀어요<br><small class="mute">12월 31일까지 보여요</small>', { emo: '🧣', title: '영물 목도리 획득!', then: winterBox }); } else toast('지금은 살 수 없어요'); }, winterBox); };
+    const sb = box.querySelector('#wv-scarf'); if (sb) sb.onclick = () => { closeModal(); if (S().jade < Winter.SHOP.scarf.jade) { buyPage('jade'); return; } askBuy('영물 목도리', '함께 다니는 영물이 빨간 목도리를 둘러요. 판매는 12월 31일까지, 산 목도리는 이벤트가 끝나도 계속 보여요.', Winter.SHOP.scarf.jade, 0, () => { if (Winter.buyScarf()) { Sound.play('buy'); hud(); got('함께 다니는 영물이 목도리를 둘렀어요<br><small class="mute">이벤트가 끝나도 계속 보여요</small>', { emo: '🧣', title: '영물 목도리 획득!', then: winterBox }); } else toast('지금은 살 수 없어요'); }, winterBox); };
     box.querySelectorAll('[data-wg]').forEach(bt => bt.onclick = () => {
       const g = Winter.claim(+bt.dataset.wg); if (!g) return; Sound.play('buy'); closeModal(); render(); winterHud();
       if (g.kind === 'decor') got(`<b>${Decor.D(g.id).name}</b><br>집무실 꾸미기에서 놓을 수 있어요`, { src: decoThumb(g.id, 5), title: '겨울 소품 획득!', then: winterBox });
