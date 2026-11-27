@@ -797,7 +797,8 @@ const Scene = (() => {
       let gb = null, gd = 15; for (const gh of ghosts) { const d = Math.hypot(gh.x - x, gh.y - 8 - y); if (d < gd) { gd = d; gb = gh; } }
       if (gb) { gb.dead = true; burst(gb.x, gb.y - 8, gb.gold ? '#ffd34a' : '#c890ff', 22, 45); burst(gb.x, gb.y - 8, '#ffffff', 10, 30); shake = Math.max(shake, 1.2); const sp = scr(gb.x, gb.y - 10); hooks.ghostTap && hooks.ghostTap(sp.x, sp.y, gb.gold); return; }
     }
-    for (const n of NPCS) { if (n.cond === 'merchant' && !cfg.merchant) continue; if (n.cond === 'xmas' && !xmas) continue; if (Math.abs(x - n.x) < 7 && y > n.y - 20 && y < n.y + 3) { hooks.poi && hooks.poi(n.id === 'gob' ? 'merchant' : n.id); return; } }
+    if (xmas) for (const n of NPCS) { if (n.cond !== 'xmas') continue; const hw = n.id === 'deer' ? 24 : 12; if (Math.abs(x - n.x) < hw && y > n.y - 26 && y < n.y + 6) { hooks.poi && hooks.poi(n.id); return; } }   // 산타 · 썰매 · 순록: 그림 전체를 넉넉히 눌리게
+    for (const n of NPCS) { if (n.cond === 'merchant' && !cfg.merchant) continue; if (n.cond === 'xmas') continue; if (Math.abs(x - n.x) < 7 && y > n.y - 20 && y < n.y + 3) { hooks.poi && hooks.poi(n.id === 'gob' ? 'merchant' : n.id); return; } }
     let best = null, bd = cfg.parade ? 18 : 10;
     for (const s of souls) if (s.st === 'float') { const d = Math.hypot(s.x - x, s.y - s.h - y); if (d < bd) { bd = d; best = s; } }
     if (best) { if (best.who && best.who.target === best) best.who.target = null; const tp = { face: 1, tap: true }; Object.defineProperty(tp, 'x', { get: () => reaper.x }); Object.defineProperty(tp, 'y', { get: () => reaper.y }); best.who = tp; best.st = 'pull'; best.t = 0; best.sx = best.x; best.sy = best.y - best.h; best.dur = 0.35; Sound.play('tap'); return; }

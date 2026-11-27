@@ -1232,3 +1232,4 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 .wa-mk .btn span { font-size: 11px; }
 .wa-mk .btn em { display: flex; align-items: center; gap: 2px; font-style: normal; font-size: 10px; opacity: 0.95; }
 .wa-mk .btn em img { width: 12px; }
+.gift-cd { margin: 8px 0 2px; font-size: 13px; color: #dff2ff; } .gift-cd b { color: var(--gold); font-size: 18px; margin-left: 4px; }

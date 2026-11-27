@@ -730,7 +730,7 @@ const UI = (() => {
     if (Scene.inArena && Scene.inArena()) { document.querySelectorAll('.plabel').forEach(e => e.classList.add('hide')); return; }
     Scene.labels().forEach(l => {
       const e = document.getElementById('lb-' + l.id); if (!e) return;
-      const dup = l.id === 'stall' && Life.merchantHere();   // 도깨비 상인이 오면 상인 이름표만 남기고 노점 이름표는 숨김 (겹쳐 보이던 것)
+      const dup = l.id === 'stall';   // '노점' 글자는 쓰지 않음 (도깨비 상인이 오면 상인 이름표만)
       e.classList.toggle('hide', !l.vis || dup);
       if (!l.vis || dup) return;
       e.style.left = l.x + 'px'; e.style.top = l.y + 'px';
@@ -1336,7 +1336,9 @@ const UI = (() => {
   function santaGift(id) {
     if (Winter.takeGift()) { Sound.play('promote'); Game.apply(); hud(); got('<b>혼 수확 +10%</b> · 30분<br>호호호! 착한 차사에게 주는 선물이라네', { emo: '🎁', title: '산타의 선물!' }); return; }
     const L = ['🎅 호호호! 메리 크리스마스!', '🎅 저승에도 선물이 왔다네. 겨울 출석은 잊지 않았겠지?', '🎅 착한 차사에게는 팥죽 한 그릇을!', '🎅 눈꽃 백록은 내 순록의 친구라네'];
-    toast(`${id === 'deer' ? '🦌 순록이 코를 킁킁거려요' : L[Math.floor(Math.random() * L.length)]} · 다음 선물까지 ${fmtClock(Winter.giftWait())}`, 2800);
+    const box = modal(`<div class="got"><div class="got-ic">⏳</div><h2>산타의 선물 쿨타임</h2><p class="got-t">${id === 'deer' ? '🦌 순록이 코를 킁킁거려요' : L[Math.floor(Math.random() * L.length)]}</p><p class="gift-cd">다음 선물까지 <b id="gift-cd">${fmtClock(Winter.giftWait())}</b></p>${Winter.giftOn() ? `<p class="mute">지금 받은 선물 효과: 혼 수확 +10% · ${fmtClock(Winter.giftLeft())} 남음</p>` : ''}</div>
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    const tm = setInterval(() => { const el = box.querySelector('#gift-cd'); if (!el || !document.body.contains(el)) { clearInterval(tm); return; } const w = Winter.giftWait(); el.textContent = fmtClock(w); if (w <= 0) { clearInterval(tm); closeModal(); santaGift(id); } }, 500);
   }
   function poi(id, i) {
     Sound.play('open');
