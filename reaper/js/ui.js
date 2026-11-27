@@ -176,7 +176,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function initGame() {
     Game.load();
-    Scene.init($('#cv'), { patImg, petDeco: (im, pet) => Winter.scarfOn() ? scarfOf(im, pet) : im, collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => (visiting ? visiting.placed : Decor.ensure().placed).filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { patImg, reaperDeco: () => Winter.deco(), collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => (visiting ? visiting.placed : Decor.ensure().placed).filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply(); if (S().kind) { Decor.grantRank(S().rank); Decor.grantStory(Math.max(-1, (S().story || {}).ch - 1)); }
@@ -298,32 +298,6 @@ const UI = (() => {
       g.fillStyle = gr; g.beginPath(); g.arc(x, f.y, f.r * 1.8, 0, 6.2832); g.fill();
     }
   }
-  // 영물 목도리: 눈 바로 아래(목)에 줄무늬 목도리를 감고, 뒤쪽에 끝자락을 늘어뜨림
-  // 작은 그림(맵용 12×11): 2줄 두께 · 짧은 끝자락 / 큰 그림: 3줄(밝음·기본·그림자) · 매듭 · 두 갈래 끝자락 + 술
-  const scarfCache = new Map();
-  function scarfOf(im, pet) {
-    const key = im; let c = scarfCache.get(key); if (c) return c;
-    const w = im.width, h = im.height, P = 2, small = h < 14;
-    c = document.createElement('canvas'); c.width = w + P * 2; c.height = h; const g = c.getContext('2d'); g.drawImage(im, P, 0);
-    const d = im.getContext('2d').getImageData(0, 0, w, h).data, at = (x, y) => (y * w + x) * 4, op = (x, y) => x >= 0 && y >= 0 && x < w && y < h && d[at(x, y) + 3] > 40;
-    const hex = s => [1, 3, 5].map(k => parseInt(s.substr(k, 2), 16)), E = hex((pet && pet.pal && pet.pal.E) || '#1a1024');
-    let ex = -1, ey = -1; for (let y = 0; y < h && ey < 0; y++) for (let x = w - 1; x >= 0; x--) { const i = at(x, y); if (d[i + 3] > 40 && Math.abs(d[i] - E[0]) + Math.abs(d[i + 1] - E[1]) + Math.abs(d[i + 2] - E[2]) < 24) { ex = x; ey = y; break; } }
-    if (ey < 0) { let top = h; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (op(x, y)) top = Math.min(top, y); ey = top + Math.round(h * 0.25); ex = Math.floor(w * 0.7); }
-    const R0 = '#ff6a6a', R1 = '#e0343e', R2 = '#a01e2c', W0 = '#fff4e8', W1 = '#d8c8b8', K = '#3a0c14';
-    const px = (x, y, col) => { if (y < 0 || y >= h) return; g.fillStyle = col; g.fillRect(x + P, y, 1, 1); };
-    const rows = small ? [R1, R2] : [R0, R1, R2], wrows = small ? [W0, W1] : [W0, W0, W1], y0 = ey + (small ? 1 : 2);
-    // 목 줄: 눈보다 조금 뒤쪽부터 앞쪽 끝까지, 몸 위에만 칠함
-    // 목 폭만큼만: 눈 아래 칸을 중심으로 좌우 몇 칸 (몸통까지 덮지 않게)
-    const span = small ? 2 : 3, xs = Math.max(0, ex - span - 1), xe = Math.min(w - 1, ex + span);
-    let x0 = w, x1 = -1;
-    for (let k = 0; k < rows.length; k++) for (let x = xs; x <= xe; x++) if (op(x, y0 + k)) { const st = ((x - xs) % 3) === 1; px(x, y0 + k, st ? wrows[k] : rows[k]); if (k === 0) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); } }
-    if (x1 < 0) { scarfCache.set(key, im); return im; }
-    // 끝자락: 뒷목에서 뒤로 살짝 날리며 아래로 (큰 그림은 두 갈래, 끝에 크림색 술)
-    const tail = (sx, len, dx) => { for (let k = 0; k < len; k++) { const tx = sx - Math.round(k * dx); px(tx, y0 + 1 + k, k % 3 === 2 ? W0 : (k % 2 ? R2 : R1)); } px(sx - Math.round(len * dx), y0 + 1 + len, W0); };
-    if (small) tail(x0 - 1, 2, 0.4);
-    else { px(x0 - 1, y0, R0); px(x0 - 1, y0 + 1, R2); tail(x0 - 2, Math.min(4, h - y0 - 3), 0.45); tail(x0 - 1, Math.min(3, h - y0 - 3), 0.1); }
-    scarfCache.set(key, c); return c;
-  }
   function winterHud(spawned) {
     const on = Winter.active(), b = $('#btn-winter'); if (!b) return;
     b.hidden = !on; $('#snow').hidden = !on || Scene.inOffice();
@@ -345,7 +319,7 @@ const UI = (() => {
   }
   function winterBox() {
     if (!Winter.active()) return;
-    const e = Winter.st(), pct = Math.min(100, e.n / Winter.max * 100), eqPet = S().petEq && S().pets && S().pets[S().petEq] ? Pets.P(S().petEq) : null;
+    const e = Winter.st(), pct = Math.min(100, e.n / Winter.max * 100);
     const goal = (g, i) => {
       const got_ = !!e.got[g.id], can = Winter.claimable(g), d = g.kind === 'decor' ? Decor.D(g.id) : Pets.P(g.id);
       const img = g.kind === 'decor' ? decoThumb(g.id, 3) : petIcon(d, true);
@@ -360,13 +334,15 @@ const UI = (() => {
       <div class="wv-shop"><h4>겨울 상점 <small>12월 31일까지</small></h4>
         <div class="wv-item"><div class="wv-th"><img class="px" src="${patIcon(4)}"></div><div class="wv-gi"><b>팥죽 한 그릇</b><small>팥 영혼 1개가 바로 나타나요 · 오늘 ${Winter.bowlLeft()}/${Winter.SHOP.bowl.day}번 남음</small></div>
           <button class="btn jade" id="wv-bowl" ${Winter.bowlLeft() > 0 && Winter.room() > 0 ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${Winter.bowlLeft() > 0 ? Winter.SHOP.bowl.jade : '내일'}</button></div>
-        <div class="wv-item"><div class="wv-th"><img class="px" src="${eqPet ? toURL(scarfOf(SP.petTiny(eqPet, 0), eqPet), 3) : patIcon(4)}"></div><div class="wv-gi"><b>영물 목도리</b><small>함께 다니는 영물이 목도리를 둘러요 · 이벤트가 끝나도 계속</small></div>
-          <button class="btn jade" id="wv-scarf" ${e.scarf ? 'disabled' : ''}>${e.scarf ? '보유 ✓' : `<img class="px" src="${IC('jade', 2)}">${Winter.SHOP.scarf.jade}`}</button></div>
+        ${[['rscarf', '저승사자 목도리', '목에 두르는 빨간 줄무늬 목도리'], ['antler', '사슴뿔 머리띠', '모자 양옆으로 작은 사슴뿔이 나와요']].map(([id, nm, ds]) => `<div class="wv-item"><div class="wv-th"><img class="px" src="${toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, Winter.SHOP[id].ch), 3)}"></div><div class="wv-gi"><b>${nm}</b><small>${ds}${Winter.owns(id) ? ' · 이벤트가 끝나도 계속' : ''}</small></div>
+          ${Winter.owns(id) ? `<button class="btn ${Winter.wearing(id) ? 'red' : 'dark'}" data-wear="${id}">${Winter.wearing(id) ? '쓰는 중' : '벗음'}</button>` : `<button class="btn jade" data-ri="${id}"><img class="px" src="${IC('jade', 2)}">${Winter.SHOP[id].jade}</button>`}</div>`).join('')}
       </div></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`, true);
     box.classList.add('wv-box');
     const bb = box.querySelector('#wv-bowl'); if (bb) bb.onclick = () => { closeModal(); if (S().jade < Winter.SHOP.bowl.jade) { buyPage('jade'); return; } askBuy('팥죽 한 그릇', '팥 영혼 1개가 바로 맵에 나타나요. (하루 2번)', Winter.SHOP.bowl.jade, 0, () => { if (Winter.buyBowl()) { Sound.play('buy'); hud(); winterHud(true); toast('🥣 팥죽 냄새를 맡고 팥 영혼이 나타났어요!', 2600); } else toast('지금은 살 수 없어요'); }, winterBox); };
-    const sb = box.querySelector('#wv-scarf'); if (sb) sb.onclick = () => { closeModal(); if (S().jade < Winter.SHOP.scarf.jade) { buyPage('jade'); return; } askBuy('영물 목도리', '함께 다니는 영물이 빨간 목도리를 둘러요. 판매는 12월 31일까지, 산 목도리는 이벤트가 끝나도 계속 보여요.', Winter.SHOP.scarf.jade, 0, () => { if (Winter.buyScarf()) { Sound.play('buy'); hud(); got('함께 다니는 영물이 목도리를 둘렀어요<br><small class="mute">이벤트가 끝나도 계속 보여요</small>', { emo: '🧣', title: '영물 목도리 획득!', then: winterBox }); } else toast('지금은 살 수 없어요'); }, winterBox); };
+    box.querySelectorAll('[data-ri]').forEach(bt => bt.onclick = () => { const id = bt.dataset.ri, it = Winter.SHOP[id], nm = id === 'rscarf' ? '저승사자 목도리' : '사슴뿔 머리띠'; closeModal(); if (S().jade < it.jade) { buyPage('jade'); return; }
+      askBuy(nm, '저승사자가 바로 착용해요. 판매는 12월 31일까지, 산 꾸미기는 이벤트가 끝나도 계속 쓸 수 있어요.', it.jade, 0, () => { if (Winter.buyItem(id)) { Sound.play('buy'); hud(); got(`<b>${nm}</b><br>저승사자가 착용했어요. 이벤트 창에서 쓰기 · 벗기를 고를 수 있어요`, { src: toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, it.ch), 5), title: '겨울 꾸미기 획득!', then: winterBox }); } else toast('지금은 살 수 없어요'); }, winterBox); });
+    box.querySelectorAll('[data-wear]').forEach(bt => bt.onclick = () => { const on = Winter.toggleWear(bt.dataset.wear); Sound.play('open'); bt.textContent = on ? '쓰는 중' : '벗음'; bt.className = 'btn ' + (on ? 'red' : 'dark'); });
     box.querySelectorAll('[data-wg]').forEach(bt => bt.onclick = () => {
       const g = Winter.claim(+bt.dataset.wg); if (!g) return; Sound.play('buy'); closeModal(); render(); winterHud();
       if (g.kind === 'decor') got(`<b>${Decor.D(g.id).name}</b><br>집무실 꾸미기에서 놓을 수 있어요`, { src: decoThumb(g.id, 5), title: '겨울 소품 획득!', then: winterBox });
@@ -2335,5 +2311,5 @@ const UI = (() => {
       .querySelector('#st-pkg').onclick = () => { closeModal(); iapBox('promo'); };
   }
 
-  return { init, toast, _cloudSync: () => cloudSync(), _scarfOf: (im, pet) => scarfOf(im, pet) }; // _cloudSync: 저장 맞추기 시험용
+  return { init, toast, _cloudSync: () => cloudSync() }; // _cloudSync: 저장 맞추기 시험용
 })();

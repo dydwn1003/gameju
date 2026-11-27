@@ -282,7 +282,7 @@ const SP = (() => {
     cat: i => get(`cat${i}`, () => bake(CAT[i % 2], { A: '#3a3a4a', E: '#ffd34a' })),
     crow: i => get(`crow${i}`, () => bake(CROW[i % 2], { E: '#ff5a5a' })),
     pet: (pet, i) => get(`pet${pet.id}${i % 2}`, () => petArt3(pet.id, i) || petFrame(pet, i)),
-    tinyReaper: (kind, rank, dir, pose, i) => get(`tr${kind}${rank}${dir}${pose}${i % 4}`, () => Tiny.reaper(kind, rank, dir, pose, i)),
+    tinyReaper: (kind, rank, dir, pose, i, deco) => get(`tr${kind}${rank}${dir}${pose}${i % 4}${deco || ''}`, () => Tiny.reaper(kind, rank, dir, pose, i, deco)),
     minit: (dir, pose, i) => get(`tm${dir}${pose}${i % 4}`, () => Tiny.mini(dir, pose, i)),
     npct: (name, i) => get(`tn${name}${i % 4}`, () => Tiny.npc(name, i)),
     soult: (tier, i) => get(`ts${tier}${i % 3}`, () => Tiny.soul(SOUL_PAL[tier], i)),

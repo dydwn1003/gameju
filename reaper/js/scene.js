@@ -394,7 +394,8 @@ const Scene = (() => {
     souls.push({ x, y, tier: r.tier, sp: r.sp, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0, h: 9 });
   }
   // 겨울 이벤트 팥 영혼: 저승사자 본인이 가장 먼저 거두러 감 (졸개는 안 건드림)
-  const petDeco = im => (hooks.petDeco ? hooks.petDeco(im, petData) : im); // 영물 그림 꾸미기 (겨울 목도리 등)
+  const petDeco = im => (hooks.petDeco ? hooks.petDeco(im, petData) : im); // 영물 그림 꾸미기 (지금은 안 씀)
+  const myDeco = () => (hooks.reaperDeco ? hooks.reaperDeco() : ''); // 내 저승사자 꾸미기 (겨울 목도리 · 사슴뿔)
   function spawnPat() {
     for (let k = 0; k < 30; k++) { const x = camX + W * rnd(0.2, 0.8), y = camY + H * rnd(0.4, 0.8); if (walkable(x, y)) { souls.push({ x, y, tier: 0, sp: -1, ph: rnd(0, 6), t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true; } }
     const [x, y] = randGround(); souls.push({ x, y, tier: 0, sp: -1, ph: 0, t: 0, st: 'float', who: null, a: 0, h: 12, pat: 1 }); return true;
@@ -557,7 +558,7 @@ const Scene = (() => {
   function unitImg(u) {
     const moving = u.st === 'walk' || u.st === 'wander' || u.st === 'move', pose = moving ? 'walk' : u.st === 'reap' ? 'reap' : 'idle';
     const fi = Math.floor(u.ft * (moving ? 8 : 2.5));
-    return u.mini ? SP.minit(u.dir === 'up' ? 'up' : 'down', pose, fi) : SP.tinyReaper(kind, rank, u.dir, pose, fi);
+    return u.mini ? SP.minit(u.dir === 'up' ? 'up' : 'down', pose, fi) : SP.tinyReaper(kind, rank, u.dir, pose, fi, myDeco());
   }
   // 이야기 단서 위치: 장마다 지도 위 걸을 수 있는 빈자리 하나 (지역·장 번호로 고정)
   const clueCache = {};
@@ -584,7 +585,7 @@ const Scene = (() => {
       if (!visit && me && me.sit && !me.sit.desk && me.sit.r && !seatSpots().some(q => q.r && q.r.x === me.sit.r.x && q.r.y === me.sit.r.y)) me.sit = seatSpots().find(q => q.atDesk || q.desk);
       if (me) { const sit = me.sit, y0 = sit ? (sit.desk ? sit.y : seatFoot(sit)) : me.y; list.push({ y: sit ? (sit.desk ? officeData.desk.y - 2 : sit.r.y + sit.r.h - 0.5) : me.y, f: () => {
         const x = sit ? sit.x : me.x; auraUnder({ x: x + camX, y: y0 + camY }); rankFxUnder({ x: x + camX, y: y0 + camY }); if (!visit) rbUnder({ x: x + camX, y: y0 + camY }, 16, true);
-        const moving = me.walk && !sit, im0 = SP.tinyReaper(kind, rank, sit ? 'down' : me.dir, moving ? 'walk' : 'idle', Math.floor((moving ? me.ft * 8 : time * 2.5))), im = me.dir === 'side' && me.face < 0 && !sit ? flipOf(im0) : im0;
+        const moving = me.walk && !sit, im0 = SP.tinyReaper(kind, rank, sit ? 'down' : me.dir, moving ? 'walk' : 'idle', Math.floor((moving ? me.ft * 8 : time * 2.5)), myDeco()), im = me.dir === 'side' && me.face < 0 && !sit ? flipOf(im0) : im0;
         if (!sit) { g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.round(x - 5), Math.round(y0 - 1), 10, 2); }
         if (sit) { const sf = drawSeated(im, x, sit); rankFxOver({ x: x + camX, y: sf + camY - 6 }, im); }
         else { g.drawImage(im, Math.round(x - im.width / 2), Math.round(y0 - im.height + 1)); rankFxOver({ x: x + camX, y: y0 + camY }, im); } } }); }
@@ -623,7 +624,7 @@ const Scene = (() => {
       }
       if (pet && petData) { const im = petDeco(SP.petTiny(petData, Math.floor(pet.t * 3))); drawPetAura(g, pet.x, pet.y + 1, im.width, im.height, petData.g, petData.star, time, 1); g.drawImage(im, Math.round(pet.x - im.width / 2), Math.round(pet.y - im.height + 1)); }
       shadow(reaper.x, reaper.y, 10);
-      const im = sprite(SP.tinyReaper(kind, rank, 'up', 'idle', Math.floor(reaper.ft * 2.5)), reaper.x, reaper.y, false);
+      const im = sprite(SP.tinyReaper(kind, rank, 'up', 'idle', Math.floor(reaper.ft * 2.5), myDeco()), reaper.x, reaper.y, false);
       if (reaper.st === 'reap') glow(reaper.x, reaper.y - 14, 5, '#ffe08a', 0.4);
       for (const p of parts) { g.globalAlpha = Math.min(1, p.life / p.max * 1.5); g.fillStyle = p.col; g.fillRect(Math.round(p.x), Math.round(p.y), p.big ? 2 : 1, p.big ? 2 : 1); }
       g.globalAlpha = 1;

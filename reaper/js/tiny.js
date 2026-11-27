@@ -54,14 +54,28 @@ const Tiny = (() => {
     if (pose === 'walk') { lf = k === 0 ? -1 : 0; rf = k === 2 ? -1 : 0; }
     const fy = 11 + bd.length - 1;
     const feet = dir === 'side' ? [[['KF'], 6 + (k === 0 ? -1 : k === 2 ? 1 : 0), fy + 1], [['KF'], 8 + (k === 0 ? 1 : k === 2 ? -1 : 0), fy + 1]] : [[['KF'], 5, fy + 1 + lf], [['FK'], 9, fy + 1 + rf]];
-    const parts = feet.concat([[bd, 0, 11 + bob], [hd, 0, bob]]);
+    const dp = spec.deco ? decoParts(dir, spec.deco, spec.hat) : { back: [], front: [] };
+    const parts = feet.concat([[bd, 0, 11 + bob]], dp.back.map(p => [p[0], p[1], p[2] + bob]), [[hd, 0, bob]], dp.front.map(p => [p[0], p[1], p[2] + bob]));
     if (spec.extra) spec.extra.forEach(e => parts.push([e[2], e[0], e[1] + bob]));
     if (pose === 'reap' && dir !== 'up') parts.push([['KTK', 'TxT', 'KTK'], dir === 'side' ? 11 : 12, 12]);
-    return compose(16, fy + 3, parts, Object.assign({}, TINY_PAL, spec.pal || {}));
+    return compose(16, fy + 3, parts, Object.assign({}, TINY_PAL, spec.deco ? DECO_PAL : {}, spec.pal || {}));
   }
-  function reaper(kind, rank, dir, pose, i) {
+  // 겨울 꾸미기 (deco 글자: s = 목도리 · a = 사슴뿔 머리띠) — 지금 옷 · 모자 위에 살짝 더함
+  const DECO_PAL = { Q: '#d8323c', q: '#9a1c28', Z: '#f4ecdc', V: '#d8a878', v: '#8a5a34' };
+  const ANTLER = ['v.v', 'vVv', '.v.', '.V.'];
+  function decoParts(dir, deco, hat) {
+    const back = [], front = [];
+    if (deco.includes('a')) { const L = hat === 'myeon' ? front : back; if (dir === 'side') L.push([ANTLER, 5, 0], [ANTLER, 9, 0]); else L.push([ANTLER, hat === 'myeon' ? 3 : 2, 0], [ANTLER, hat === 'myeon' ? 10 : 11, 0]); } // 보통은 모자 뒤(모자가 뿔 밑동을 덮음) · 넓은 면류관은 앞에
+    if (deco.includes('s')) {
+      if (dir === 'side') front.push([['KQZQQK', '.KqqK.'], 4, 11], [['Qq.', '.qQ', '..Z'], 2, 12]);          // 옆: 뒤로 날리는 끝자락
+      else if (dir === 'up') front.push([['KQQZQQZQQK', '.KqqqqqqK.'], 3, 11], [['Qq', 'qQ', '.Z'], 7, 13]); // 뒤: 등 가운데로
+      else front.push([['KQQZQQZQQK', '.KqqqqqqK.'], 3, 11], [['qQ', 'Qq', 'Z.'], 9, 13]);                // 앞: 가슴 쪽으로
+    }
+    return { back, front };
+  }
+  function reaper(kind, rank, dir, pose, i, deco) {
     const look = LOOKS[Math.min(rank, 8)];
-    return person({ kind, hat: look.hat, beads: look.beads && look.hat === 'gat', pal: look }, dir, pose, i);
+    return person({ kind, hat: look.hat, beads: look.beads && look.hat === 'gat', pal: look, deco: deco || '' }, dir, pose, i);
   }
   const NPC_SPEC = {
     jumo: { kind: 'f', hat: 'bun', pal: { R: '#e8dfd2', r: '#bcae9a', L: '#ffffff', l: '#ffffff', W: '#ffffff', U: '#8a2e30', u: '#b04446' } },
