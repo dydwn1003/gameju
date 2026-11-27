@@ -2,7 +2,8 @@
 -- 먼저 stats_setup.sql · security_update.sql 을 한 번 실행해 두세요 · 운영자 · 정지(가짜 결제) 계정 제외 · 한국 시간 · 매출은 판매가 기준
 -- 기기 통계(stats: DAU · 리텐션 등)는 계정과 연결되지 않아 정지 계정도 포함됨 (1명이라 영향 미미)
 with adm as (select user_id from public.admins union select user_id from public.bans
-   union select '9a9d13d8-25a5-4956-bd57-b2d32918c223'::uuid),  -- 똘순이 (가짜 결제) · 정지 전이어도 제외
+   union select '9a9d13d8-25a5-4956-bd57-b2d32918c223'::uuid    -- 똘순이 (가짜 결제) · 정지 전이어도 제외
+   union select user_id from public.saves where data ->> 'name' in ('갓주')),  -- 개발자 본인 · 테스트 계정 (닉네임을 더 넣으려면 ('갓주', '다른닉') 처럼)
  sv as (select * from public.saves where user_id not in (select user_id from adm)),
  td as (select (now() at time zone 'Asia/Seoul')::date as d),
  price as (select * from (values ('jade100','옥 100개',1200),('jade550','옥 550개',5900),('jade1200','옥 1,200개',12000),
