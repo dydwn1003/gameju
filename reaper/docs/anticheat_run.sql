@@ -120,5 +120,5 @@ delete from bans
    and upper(left(replace(user_id::text, '-', ''), 8)) <> '6D806FB6';
 delete from anticheat_log;
 
--- 확인: 스릴 한 줄만 나오면 정상
-select upper(left(replace(user_id::text, '-', ''), 8)) as code, reason from bans where reason like '저장 데이터 조작%';
+-- 확인은 따로 실행 (Supabase 편집기는 마지막 select 를 괄호로 감싸서 함께 돌리면 오류가 남):
+--   select upper(left(replace(user_id::text, '-', ''), 8)) as code, reason from bans where reason like '저장 데이터 조작%'
