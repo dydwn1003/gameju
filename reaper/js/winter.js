@@ -47,13 +47,14 @@ const NEWYEAR = {
 
 // 이벤트 틀: 같은 규칙(켜 둔 시간마다 영혼 · 출석 28일 · 상점 1종 · 맵 NPC 선물)을 설정만 바꿔서 여러 번 씀
 function mkEvent(WINTER) {
-  let endOverride = null, onSpawn = null;
+  let endOverride = null, startOverride = null, onSpawn = null;
   const S = () => Game.S;
   const dbg = () => !(typeof Native !== 'undefined' && Native.isApp && Native.isApp());   // 미리보기(웹)에서만 시간 옮기기 · 빨리 감기 허용
   const now = () => Date.now() + (dbg() ? window.__evShift || 0 : 0);          // __evShift: 미리보기에서 날짜 옮기기용
   const st = () => { const s = S(); s.ev = s.ev || {}; const e = s.ev[WINTER.id] || (s.ev[WINTER.id] = { n: 0, prog: 0, pend: 0, got: {}, seen: false, last: 0 }); if (e.ready) { e.pend = (e.pend || 0) + 1; delete e.ready; } e.pend = e.pend || 0; return e; };
   const end = () => endOverride || WINTER.end;
-  const active = () => { const t = now(); return t >= WINTER.start && t < end(); };
+  const start = () => startOverride || WINTER.start;   // 운영자 시험: 서버 config/event 의 winterStart · nyStart (test:'owner' 면 운영자만)
+  const active = () => { const t = now(); return t >= start() && t < end(); };
   const done = () => st().n >= WINTER.max;
   const room = () => WINTER.max - st().n - st().pend;     // 더 나올 수 있는 개수 (모은 것 + 맵에 있는 것 ≤ 40)
   // 켜 둔 동안: 30분마다 하나씩 계속 나옴 (못 먹어도 쌓임)
@@ -84,7 +85,7 @@ function mkEvent(WINTER) {
   const att = () => { const e = st(); const a = e.att || (e.att = { n: 0, day: '' }); a.mk = a.mk || 0; return a; };
   // 놓친 날 채우기: 옥 50개로 지나간 날 출석을 하루씩 채움 (횟수 제한 없음 · 놓친 날만큼)
   const MK_JADE = 50;
-  const dayNo = () => Math.floor((now() + 9 * 3600e3) / 864e5) - Math.floor((WINTER.start + 9 * 3600e3) / 864e5) + 1;   // 오늘이 이벤트 며칠째인지 (한국 시간)
+  const dayNo = () => Math.floor((now() + 9 * 3600e3) / 864e5) - Math.floor((start() + 9 * 3600e3) / 864e5) + 1;   // 오늘이 이벤트 며칠째인지 (한국 시간)
   const missed = () => { const a = att(); if (!active()) return 0; return Math.max(0, dayNo() - a.n - (a.day === kstDay(now()) ? 0 : 1)); };   // 지나간 날 중 출석 못 한 날 (오늘은 빼고)
   const canMakeup = () => active() && att().n < ATT_MAX && missed() > 0;
   const canAttend = () => active() && att().n < ATT_MAX && att().day !== kstDay(now()) && !(att().day > kstDay(now()));   // 기기 시계를 앞으로 돌렸다가 되돌린 경우 막기
@@ -132,8 +133,8 @@ function mkEvent(WINTER) {
     SHOP, ITEMS, bowlLeft, buyBowl, owns, wearing, toggleWear, deco,
     att, attReward, canAttend, attend, missed, canMakeup, mkJade: MK_JADE, attMax: ATT_MAX, attGoals: ATT_GOALS,
     active, st, room, tick, collect, claim, claimable, left, nextIn, hasDot, done,
-    goals: WINTER.goals, max: WINTER.max, per: WINTER.per, startAt: WINTER.start, endAt: end, id: WINTER.id, T: WINTER.T, cfg: WINTER,
-    setEnd: ms => { if (ms > 0) endOverride = ms; }, onSpawn: f => { onSpawn = f; },
+    goals: WINTER.goals, max: WINTER.max, per: WINTER.per, get startAt() { return start(); }, endAt: end, id: WINTER.id, T: WINTER.T, cfg: WINTER,
+    setEnd: ms => { if (ms > 0) endOverride = ms; }, setStart: ms => { startOverride = ms > 0 ? ms : null; }, onSpawn: f => { onSpawn = f; },
   };
 }
 const Winter = mkEvent(WINTER);

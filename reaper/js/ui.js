@@ -317,7 +317,10 @@ const UI = (() => {
   function wraithGone() {}
   let lastTickAt = 0;
   // 이벤트 끝나는 시각을 서버에서 바꿀 수 있게: docs 'config/event' { winterEnd: '2026-12-31T23:59:59+09:00' }
-  async function eventCfg() { try { if (!Cloud.ready()) return; const doc = await Cloud.db.doc('config/event').get(); const d = doc.exists ? doc.data() || {} : {}; if (d.winterEnd) Winter.setEnd(Date.parse(d.winterEnd)); if (d.nyEnd) NewYear.setEnd(Date.parse(d.nyEnd)); } catch (e) {} }
+  async function eventCfg() { try { if (!Cloud.ready()) return; const doc = await Cloud.db.doc('config/event').get(); const d = doc.exists ? doc.data() || {} : {}; if (d.winterEnd) Winter.setEnd(Date.parse(d.winterEnd)); if (d.nyEnd) NewYear.setEnd(Date.parse(d.nyEnd));
+      // 미리 켜서 시험: { winterStart · nyStart: ISO 시각, test: 'owner' 면 운영자 계정에만 } — 지우면 원래 날짜로
+      let me = true; if (d.test === 'owner') { me = Board.isOwner(); if (me === null) me = await Board.checkOwner(); }
+      Winter.setStart(me && d.winterStart ? Date.parse(d.winterStart) : 0); NewYear.setStart(me && d.nyStart ? Date.parse(d.nyStart) : 0); } catch (e) {} }
   // ---------- 겨울 이벤트 '동짓날 팥죽' ----------
   let winterAcc = 0, winterIntro = false;
   // 팥 영혼 그림 (팥알 모양 혼불 · 작은 눈)
