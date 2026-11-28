@@ -47,10 +47,10 @@ const NEWYEAR = {
 
 // 이벤트 틀: 같은 규칙(켜 둔 시간마다 영혼 · 출석 28일 · 상점 1종 · 맵 NPC 선물)을 설정만 바꿔서 여러 번 씀
 function mkEvent(WINTER) {
-  let endOverride = null, startOverride = null, onSpawn = null;
+  let endOverride = null, startOverride = null, shift = 0, onSpawn = null;
   const S = () => Game.S;
   const dbg = () => !(typeof Native !== 'undefined' && Native.isApp && Native.isApp());   // 미리보기(웹)에서만 시간 옮기기 · 빨리 감기 허용
-  const now = () => Date.now() + (dbg() ? window.__evShift || 0 : 0);          // __evShift: 미리보기에서 날짜 옮기기용
+  const now = () => Date.now() + shift + (dbg() ? window.__evShift || 0 : 0);   // shift: 운영자 시험용 날짜 옮기기 (서버 config/event 의 now)          // __evShift: 미리보기에서 날짜 옮기기용
   const st = () => { const s = S(); s.ev = s.ev || {}; const e = s.ev[WINTER.id] || (s.ev[WINTER.id] = { n: 0, prog: 0, pend: 0, got: {}, seen: false, last: 0 }); if (e.ready) { e.pend = (e.pend || 0) + 1; delete e.ready; } e.pend = e.pend || 0; return e; };
   const end = () => endOverride || WINTER.end;
   const start = () => startOverride || WINTER.start;   // 운영자 시험: 서버 config/event 의 winterStart · nyStart (test:'owner' 면 운영자만)
@@ -135,7 +135,7 @@ function mkEvent(WINTER) {
     att, attReward, canAttend, attend, missed, canMakeup, mkJade: MK_JADE, attMax: ATT_MAX, attGoals: ATT_GOALS,
     active, st, room, tick, collect, claim, claimable, left, nextIn, hasDot, done,
     goals: WINTER.goals, max: WINTER.max, per: WINTER.per, get startAt() { return start(); }, endAt: end, id: WINTER.id, T: WINTER.T, cfg: WINTER,
-    setEnd: ms => { if (ms > 0) endOverride = ms; }, setStart: ms => { startOverride = ms > 0 ? ms : null; }, onSpawn: f => { onSpawn = f; },
+    setEnd: ms => { if (ms > 0) endOverride = ms; }, setStart: ms => { startOverride = ms > 0 ? ms : null; }, setShift: ms => { shift = ms || 0; }, onSpawn: f => { onSpawn = f; },
   };
 }
 const Winter = mkEvent(WINTER);

@@ -321,7 +321,9 @@ const UI = (() => {
   async function eventCfg() { try { if (!Cloud.ready()) return; const doc = await Cloud.db.doc('config/event').get(); const d = doc.exists ? doc.data() || {} : {}; if (d.winterEnd) Winter.setEnd(Date.parse(d.winterEnd)); if (d.nyEnd) NewYear.setEnd(Date.parse(d.nyEnd));
       // 미리 켜서 시험: { winterStart · nyStart: ISO 시각, test: 'owner' 면 운영자 계정에만 } — 지우면 원래 날짜로
       let me = true; if (d.test === 'owner') { me = Cloud.signedIn() ? await Cloud.user.isOwner() : null; if (me === null && evCfgTry++ < 6) setTimeout(eventCfg, 5000); me = !!me; }   // 로그인 · 확인이 늦으면 5초 뒤 다시   // 순위판(Board) 준비를 기다리지 않고 서버에 바로 확인
-      Winter.setStart(me && d.winterStart ? Date.parse(d.winterStart) : 0); NewYear.setStart(me && d.nyStart ? Date.parse(d.nyStart) : 0); } catch (e) {} }
+      Winter.setStart(me && d.winterStart ? Date.parse(d.winterStart) : 0); NewYear.setStart(me && d.nyStart ? Date.parse(d.nyStart) : 0);
+      // 그 날짜인 것처럼 보기: { now: '2027-02-01T09:00:00+09:00' } — 이벤트 시계만 옮김 (예: 이벤트가 다 끝난 2월 화면)
+      const sh = me && d.now ? Date.parse(d.now) - Date.now() : 0; Winter.setShift(sh > 0 || sh < 0 ? sh : 0); NewYear.setShift(sh > 0 || sh < 0 ? sh : 0); winterHud(); } catch (e) {} }
   // ---------- 겨울 이벤트 '동짓날 팥죽' ----------
   let winterAcc = 0, winterIntro = false;
   // 팥 영혼 그림 (팥알 모양 혼불 · 작은 눈)
