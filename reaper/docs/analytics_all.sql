@@ -10,20 +10,21 @@ with adm as (select user_id from public.admins union select user_id from public.
    ('starter','신입 차사 패키지',1200),('promo','승진 응원 패키지',3300),('perm2','염라의 인장',9900),('noads','광고 제거',6900)) as x(pid, pname, won)),
  buy as (select s.user_id, k.key as pid, k.value::int as n from sv s cross join lateral jsonb_each_text(coalesce(s.data -> 'bought', '{}'::jsonb)) as k),
  payer as (select b.user_id, sum(b.n * coalesce(p.won, 0)) as won from buy b left join price p on p.pid = b.pid group by b.user_id having sum(b.n) > 0),
- fd as (select dev, min(first_day) as d0 from public.stats group by dev),
+ fd as (select dev, min(first_day) as d0, bool_or(coalesce(login, false)) as lg from public.stats group by dev),   -- lg: 로그인한 적 있는 기기 (아니면 게스트)
  ret as (select s.dev, fd.d0, s.day - fd.d0 as n from public.stats s join fd on fd.dev = s.dev),
  r as (
   select 100 as o, '① 요약' as g, '가입 계정' as k, (select count(*) from auth.users where id not in (select user_id from adm))::text as v
   union all select 101, '① 요약', '저장 기록 있는 계정', (select count(*) from sv)::text
   union all select 102, '① 요약', '누적 기기', (select count(distinct dev) from public.stats)::text
+  union all select 102, '① 요약', '누적 기기 (로그인 / 게스트)', (select count(*) filter (where lg) || ' / ' || count(*) filter (where not lg) from fd)
   union all select 103, '① 요약', '오늘 DAU', (select count(*) from public.stats where day = (select d from td))::text
-  union all select 104, '① 요약', '오늘 신규', (select count(*) from public.stats where day = (select d from td) and first_day = (select d from td))::text
+  union all select 104, '① 요약', '오늘 신규 (그중 게스트)', (select count(*) || ' (' || count(*) filter (where not lg) || ')' from fd where d0 = (select d from td))
   union all select 105, '① 요약', '최근 7일 WAU', (select count(distinct dev) from public.stats where day > (select d from td) - 7)::text
   union all select 106, '① 요약', '오늘 평균 플레이(분)', (select coalesce(round(avg(sec) / 60.0, 1), 0) from public.stats where day = (select d from td))::text
   union all select 107, '① 요약', '하루 안에 저장한 계정', (select count(*) from sv where updated_at > now() - interval '1 day')::text
-  union all select 200 + ((select d from td) - day), '② 날짜별 (DAU / 신규 / 평균분)', to_char(day, 'MM-DD'),
-         count(*) || ' / ' || count(*) filter (where first_day = day) || ' / ' || round(avg(sec) / 60.0, 1)
-    from public.stats where day > (select d from td) - 7 group by day
+  union all select 200 + ((select d from td) - s.day), '② 날짜별 (DAU(게스트) / 신규(게스트) / 평균분)', to_char(s.day, 'MM-DD'),
+         count(*) || '(' || count(*) filter (where not fd.lg) || ') / ' || count(*) filter (where fd.d0 = s.day) || '(' || count(*) filter (where fd.d0 = s.day and not fd.lg) || ') / ' || round(avg(s.sec) / 60.0, 1)
+    from public.stats s join fd on fd.dev = s.dev where s.day > (select d from td) - 7 group by s.day
   union all select 300, '③ 재접속률', 'D1 %',
          coalesce((select round(100.0 * count(distinct dev) filter (where n = 1) / nullif(count(distinct dev) filter (where n = 0), 0), 1) from ret where d0 <= (select d from td) - 1 and d0 > (select d from td) - 15)::text, '-')
   union all select 301, '③ 재접속률', 'D7 %',

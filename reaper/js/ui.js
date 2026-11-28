@@ -987,14 +987,51 @@ const UI = (() => {
     const list = noticeCache || await loadNotices(), admin = Board.online() && await Board.checkOwner();
     const seen = S().noticeSeen || 0; // 이 값보다 나중에 올라온 공지 = 새 공지
     const box = modal(`<h2>📢 공지사항</h2><div class="nt-list">${list.length ? list.map((n, i) => `<div class="nt-item ${i === 0 ? 'open' : ''}" data-nt="${esc(n.id)}"><div class="nt-head">${n.pin ? '<em>📌</em>' : ''}${(n.at || 0) > seen ? '<span class="new-tag">N</span>' : ''}<b>${esc(n.title)}</b><small>${fmtDate(n.at)}</small>${admin ? `<button class="nt-del" data-ntdel="${esc(n.id)}">삭제</button>` : ''}</div><div class="nt-body">${esc(n.body || '').replace(/\n/g, '<br>')}</div></div>`).join('') : '<div class="rkload">아직 공지사항이 없어요</div>'}</div>
-      ${admin ? '<button class="btn" id="nt-write">✍️ 공지 쓰기 (운영자)</button>' : ''}
+      ${admin ? '<div class="nt-adm"><button class="btn" id="nt-write">✍️ 공지 쓰기 (운영자)</button><button class="btn dark" id="nt-dash">📊 운영 대시보드</button></div>' : ''}
       <label class="nt-hide"><input type="checkbox" id="nt-today" ${S().noticeMute && Math.max(0, ...list.map(n => n.at || 0)) <= S().noticeMute ? 'checked' : ''}> 다시는 보지 않기 <small>(새 공지가 올라오면 다시 떠요)</small></label>
       <div class="acts"><button class="btn dark" id="nt-close">닫기</button></div>`);
     S().noticeSeen = Math.max(S().noticeSeen || 0, ...list.map(n => n.at || 0)); Game.save(); $('#btn-notice .dot').classList.remove('on');
     box.querySelectorAll('.nt-head').forEach(h => h.onclick = e => { if (e.target.closest('[data-ntdel]')) return; h.parentElement.classList.toggle('open'); });
     box.querySelector('#nt-close').onclick = () => { S().noticeMute = box.querySelector('#nt-today').checked ? Math.max(0, ...list.map(n => n.at || 0)) : 0; delete S().noticeHide; Game.save(); closeModal(); };
     const w = box.querySelector('#nt-write'); if (w) w.onclick = () => { closeModal(); adminNotice(); };
+    const dsh = box.querySelector('#nt-dash'); if (dsh) dsh.onclick = () => { closeModal(); dashModal(); };
     box.querySelectorAll('[data-ntdel]').forEach(b => b.onclick = () => { const id = b.dataset.ntdel; closeModal(); confirmBox('<h2>공지 삭제</h2><p>이 공지를 삭제할까요?</p>', async () => { try { await Board.delNotice(id); toast('공지를 삭제했어요'); } catch (e) { toast('삭제하지 못했어요'); } noticeCache = null; noticeModal(false); }, '삭제'); });
+  }
+  // ---------- 운영 대시보드 (운영자): 서버 함수 admin_dashboard 를 한 번 불러 요약을 그래프 · 표로 (5분 동안은 다시 묻지 않음) ----------
+  let dashCache = null;
+  async function dashModal(force) {
+    const box = modal(`<h2>📊 운영 대시보드</h2><div class="dash" id="dash"><div class="rkload">불러오는 중…</div></div><div class="acts"><button class="btn dark" id="ds-re">↻ 새로 고침</button><button class="btn" data-act="close">닫기</button></div>`);
+    box.classList.add('dash-box');
+    box.querySelector('#ds-re').onclick = () => { closeModal(); dashModal(true); };
+    let d = dashCache && !force && Date.now() - dashCache.t < 300e3 ? dashCache.d : null;
+    if (!d) { d = await Cloud.rpcRows('admin_dashboard', { p_days: 14 }); if (d) dashCache = { t: Date.now(), d }; }
+    const el = box.querySelector('#dash'); if (!el || !document.body.contains(el)) return;
+    if (!d || !d.sum) { el.innerHTML = '<div class="rkload">불러오지 못했어요. 운영자 계정으로 로그인했는지, docs/dashboard.sql 을 실행했는지 확인해 주세요.</div>'; return; }
+    const S0 = d.sum, n = x => (x == null ? '-' : Number(x).toLocaleString()), won = x => `${n(x)}원`, pc = x => (x == null ? '-' : `${x}%`);
+    const tile = (k, v, sub) => `<div class="ds-t"><small>${k}</small><b>${v}</b>${sub ? `<em>${sub}</em>` : ''}</div>`;
+    const days = d.days || [], mx = Math.max(1, ...days.map(x => x.dau)), mxn = Math.max(1, ...days.map(x => x.new)), mxw = Math.max(1, ...days.map(x => x.won));
+    const bars = (val, gst, max, cls) => `<div class="ds-bars">${days.map(x => { const v = val(x), g = gst ? gst(x) : 0; return `<div class="ds-c" title="${x.d}"><i class="${cls}" style="height:${Math.round(v / max * 100)}%"><s style="height:${v ? Math.round(g / v * 100) : 0}%"></s></i><small>${v || ''}</small></div>`; }).join('')}</div><div class="ds-x">${days.map((x, i) => `<span>${i % 2 === days.length % 2 ? x.d.slice(3) : ''}</span>`).join('')}</div>`;
+    const list = (obj, unit) => { const e = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]); const m = Math.max(1, ...e.map(x => x[1])); return e.length ? e.map(([k, v]) => `<div class="ds-row"><span>${esc(k)}</span><i style="width:${Math.round(v / m * 100)}%"></i><b>${n(v)}${unit || ''}</b></div>`).join('') : '<p class="mute">아직 없어요</p>'; };
+    const F = d.funnel || {}, fl = [['저장 있음', F.save], ['캐릭터 만듦', F.kind], ['튜토리얼 끝', F.tut], ['닉네임', F.nick], ['집무실 안내', F.office], ['선임 차사 이상', F.r3], ['염라대왕 · 윤회', F.r8]];
+    const PN = { jade_100: '옥 100', jade_550: '옥 550', jade_1200: '옥 1,200', starter_pack: '신입 패키지', promo_pack: '승진 응원', yeomra_seal_7d: '염라의 인장', remove_ads: '광고 제거' };
+    const RT = d.ret || {}, P = d.pay || {}, SF = d.safe || {};
+    el.innerHTML = `<p class="mute ds-at">${esc(d.at)} 기준 · 기기 통계는 게스트 포함 · 계정 숫자는 운영자 · 정지 계정 제외</p>
+      <div class="ds-tiles">${tile('오늘 접속 (DAU)', n(S0.dau), `게스트 ${n(S0.dau_guest)}`)}${tile('오늘 신규 기기', n(S0.new), `게스트 ${n(S0.new_guest)}`)}${tile('7일 (WAU)', n(S0.wau))}${tile('30일 (MAU)', n(S0.mau))}
+        ${tile('가입 계정', n(S0.accounts), `저장 ${n(S0.saves)}`)}${tile('누적 기기', n(S0.devices), `로그인 ${n(S0.dev_login)} · 게스트 ${n(S0.dev_guest)}`)}${tile('오늘 평균 플레이', `${S0.avg_min}분`)}${tile('하루 안에 저장', n(S0.saved_1d))}</div>
+      <h4>날짜별 접속 <small>진한 부분 = 게스트</small></h4>${bars(x => x.dau, x => x.dau_g, mx, 'dau')}
+      <h4>날짜별 신규 기기 <small>진한 부분 = 게스트</small></h4>${bars(x => x.new, x => x.new_g, mxn, 'new')}
+      <h4>날짜별 매출 <small>서버가 확인한 결제 · 환불 제외</small></h4>${bars(x => x.won, null, mxw, 'won')}
+      <h4>재접속률 <small>처음 온 날 뒤 N일째 다시 온 기기</small></h4>
+      <div class="ds-tiles">${tile('D1', pc(RT.d1), `로그인 ${pc(RT.d1_login)} · 게스트 ${pc(RT.d1_guest)}`)}${tile('D3', pc(RT.d3))}${tile('D7', pc(RT.d7))}</div>
+      <table class="ds-tb"><tr><th>시작한 날</th><th>기기</th><th>D1</th><th>D3</th><th>D7</th><th>게스트</th></tr>${(d.cohort || []).map(c => `<tr><td>${c.d}</td><td>${c.size}</td><td>${c.d1}%</td><td>${c.d3}%</td><td>${c.d7}%</td><td>${c.guest}%</td></tr>`).join('') || '<tr><td colspan="6">아직 없어요</td></tr>'}</table>
+      <h4>처음 흐름 <small>저장 기록이 있는 계정</small></h4>${fl.map(([k, v]) => `<div class="ds-row"><span>${k}</span><i style="width:${Math.round((v || 0) / Math.max(1, F.save || 1) * 100)}%"></i><b>${n(v)} <small>${F.save ? Math.round((v || 0) / F.save * 100) : 0}%</small></b></div>`).join('')}
+      <h4>계급 <small>윤회 전 · 오른쪽은 일주일 넘게 안 온 비율</small></h4>${(d.rank || []).map(x => `<div class="ds-row"><span>${RANKS[x.r] ? RANKS[x.r].name : x.r}</span><i style="width:${Math.round(x.n / Math.max(1, ...(d.rank || []).map(y => y.n)) * 100)}%"></i><b>${x.n} <small>${x.gone}%</small></b></div>`).join('')}
+      ${Object.keys(d.reborn || {}).length ? `<h4>윤회</h4>${list(d.reborn, '명')}` : ''}
+      <h4>결제 <small>테스트 결제 · 환불 · 운영자 제외</small></h4>
+      <div class="ds-tiles">${tile('30일 매출', won(P.won30), `결제자 ${n(P.payers30)}`)}${tile('누적 매출', won(P.won_all), `결제자 ${n(P.payers_all)}`)}${tile('30일 환불', n(P.refunds30))}</div>
+      <table class="ds-tb"><tr><th>상품</th><th>건수</th><th>매출</th></tr>${(P.by || []).map(x => `<tr><td>${esc(PN[x.p] || (x.p.startsWith('chair_') ? '특제 의자 ' + x.p.slice(6) : x.p))}</td><td>${x.n}</td><td>${won(x.won)}</td></tr>`).join('') || '<tr><td colspan="3">아직 없어요</td></tr>'}</table>
+      <h4>기기 · 버전 · 언어 <small>최근 접속 기기</small></h4>${list(d.os)}${list(d.ver)}${list(d.lang)}
+      <h4>안전</h4><div class="ds-tiles">${tile('정지 계정', n(SF.bans))}${tile('7일 이상 기록', n(SF.flags7))}${tile('7일 자동 정지', n(SF.bans7))}${tile('옥 5만 넘는 계정', n(SF.jade50k))}</div>`;
   }
   function adminNotice() {
     const box = modal(`<h2>✍️ 공지 쓰기</h2><p class="mute">모든 플레이어에게 보여요</p>

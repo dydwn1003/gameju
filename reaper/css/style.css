@@ -1248,3 +1248,24 @@ html:lang(zh) body, html:lang(zh) button, html:lang(zh) input, html:lang(zh) tex
 @keyframes nyGlow { 50% { border-color: #fff4c0; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45), 0 0 16px rgba(255, 220, 140, 0.95), 0 0 3px #fff, inset 0 2px 0 rgba(255, 255, 255, 0.5), inset 0 -3px 6px rgba(60, 10, 20, 0.45); } }
 .ev-ny .sbtn.winter::before { color: #ffe08a; text-shadow: 0 0 4px #ffd34a, 0 0 8px #ff9a4a; }
 .ev-ny .sbtn.winter span { color: #fff0c8; }
+
+/* ===== 운영 대시보드 (운영자) ===== */
+.nt-adm { display: flex; gap: 6px; } .nt-adm .btn { flex: 1; }
+.dash-box { max-height: 88vh; overflow-y: auto; }
+.dash h4 { text-align: left; margin: 14px 0 6px; font-size: 13px; color: var(--gold); } .dash h4 small { color: var(--mute); font-weight: 400; font-size: 10px; margin-left: 4px; }
+.ds-at { font-size: 10px; margin: 0 0 8px; }
+.ds-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.ds-t { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px var(--line); }
+.ds-t small { font-size: 10px; color: var(--mute); } .ds-t b { font-size: 18px; color: #fff; font-variant-numeric: tabular-nums; } .ds-t em { font-style: normal; font-size: 10px; color: #c8bfe8; }
+.ds-bars { display: flex; align-items: flex-end; gap: 2px; height: 90px; margin-top: 18px; padding: 0 2px; border-bottom: 1px solid var(--line); }
+.ds-c { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
+.ds-c i { display: block; width: 100%; min-height: 1px; border-radius: 3px 3px 0 0; background: #5aa8ff; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+.ds-c i.new { background: #7ee2a0; } .ds-c i.won { background: #ffd34a; }
+.ds-c i s { display: block; width: 100%; background: rgba(0, 0, 0, 0.35); }
+.ds-c small { position: absolute; top: -12px; font-size: 8px; color: #c8bfe8; font-variant-numeric: tabular-nums; }
+.ds-x { display: flex; gap: 2px; padding: 2px 2px 0; } .ds-x span { flex: 1; text-align: center; font-size: 8px; color: var(--mute); }
+.ds-row { display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 6px; margin: 3px 0; font-size: 11px; }
+.ds-row span { color: #e8e0ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-row i { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #5aa8ff, #b88aff); min-width: 2px; }
+.ds-row b { font-variant-numeric: tabular-nums; color: #fff; font-size: 11px; } .ds-row b small { color: var(--mute); font-size: 9px; }
+.ds-tb { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.ds-tb th, .ds-tb td { padding: 4px 3px; text-align: center; border-bottom: 1px solid var(--line); } .ds-tb th { color: var(--mute); font-weight: 400; font-size: 10px; }
