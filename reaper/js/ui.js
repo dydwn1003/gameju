@@ -1855,10 +1855,12 @@ const UI = (() => {
     on('#s-nick', () => { closeModal(); nickModal(); });
     on('#s-link', () => { closeModal(); loginScreen(true); });
     on('#s-out', () => confirmBox('<h2>로그아웃</h2><p>기록은 계정에 저장돼요.<br>다시 로그인하면 이어서 할 수 있어요.</p>', async () => {
+      const out = async () => { await Cloud.signOut(); Game.reset(); location.reload(); };
+      if (!Cloud.isSynced()) return out();   // 아직 서버 기록과 맞추기 전: 올릴 것 없음 (서버 기록이 그대로 남음)
       toast('저장하는 중…', 1500);
-      const ok = await Cloud.pushSave(S(), true);
-      if (!ok) { toast('서버에 저장하지 못했어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요', 3000); return; }
-      await Cloud.signOut(); Game.reset(); location.reload();
+      const ok = await Promise.race([Cloud.pushSave(S(), true), new Promise(r => setTimeout(() => r(false), 8000))]);
+      if (ok) return out();
+      setTimeout(() => confirmBox('<h2>저장하지 못했어요</h2><p>인터넷 연결을 확인해 주세요.<br>그래도 로그아웃하면 서버에 마지막으로 저장된 기록이 남아요.<br><small class="mute">최근 몇 분 동안의 진행은 빠질 수 있어요</small></p>', out, '그래도 로그아웃'), 300);
     }, '로그아웃'));
     on('#s-del', () => confirmBox('<h2>계정 삭제</h2><p>계정과 <b style="color:var(--red)">모든 게임 기록 · 순위 · 집무실 · 방명록 · 문의 내역</b>이 영구히 지워져요.<br>구매한 상품도 되돌릴 수 없어요.</p>', () => setTimeout(() =>
       confirmBox('<h2>정말 삭제할까요?</h2><p>삭제하면 복구할 수 없어요.</p>', async () => {

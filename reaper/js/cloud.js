@@ -84,7 +84,10 @@ const Cloud = (() => {
     async all(open) { let q = sb.from('inquiries').select('*').order('created_at', { ascending: false }).limit(50); if (open) q = q.is('reply', null); const { data, error } = await q; if (error) throw error; return data || []; },
     async reply(id, text) { const { error } = await sb.from('inquiries').update({ reply: text, replied_at: new Date().toISOString() }).eq('id', id); if (error) throw error; },
   };
-  async function signOut() { if (sb) await sb.auth.signOut(); session = null; }
+  async function signOut() {   // 서버에 못 알려도(인터넷 · 만료된 토큰) 이 기기에서는 꼭 로그아웃되게
+    if (sb) { try { const r = await Promise.race([sb.auth.signOut(), new Promise(res => setTimeout(() => res({ error: 'timeout' }), 4000))]); if (r && r.error) throw r.error; } catch (e) { try { await sb.auth.signOut({ scope: 'local' }); } catch (x) {} }
+      try { Object.keys(localStorage).filter(k => /^sb-.*-auth-token/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) {} }
+    session = null; }
 
   // ---------- 게임 저장 ----------
   async function pullSave() {
