@@ -20,7 +20,7 @@ const REGIONS = [
     mt: ['#140a1e', '#1e1029'], rim: '#6a4a5a', ground: ['#1c1622', '#241c2a', '#2c2232'], tuft: '#4a3a4a', path: ['#4a3c42', '#5c4a4e'], fog: '#e8c8a0' },
 ];
 
-const POI_LABEL = { office: '집무실', stall: '노점', stele: '도감 비석', garden: '꽃밭', n_jumo: '주모 · 주막', n_elder: '할아버지 · 의뢰', n_gob: '도깨비 상인', n_mudang: '무당 · 운세', n_kkachi: '까치 · 우편', n_sansin: '산신령 · 공양', n_judge: '판관 · 승진', n_boat: '뱃사공 · 파견', n_santa: '산타클로스' };
+const POI_LABEL = { office: '집무실', stall: '노점', stele: '도감 비석', garden: '꽃밭', n_jumo: '주모 · 주막', n_elder: '할아버지 · 의뢰', n_gob: '도깨비 상인', n_mudang: '무당 · 운세', n_kkachi: '까치 · 우편', n_sansin: '산신령 · 공양', n_judge: '판관 · 승진', n_boat: '뱃사공 · 파견', n_santa: '산타클로스', n_ddeok: '떡국상' };
 // ===== 탑다운 맵 (스타듀밸리처럼 위에서 내려다보는 2D 타일 맵) =====
 const Scene = (() => {
   const T = 16, TW = 26, TH = 30, MW = TW * T, MH = TH * T;
@@ -154,7 +154,7 @@ const Scene = (() => {
   }
   function lampPost(x, y, gold) { makeObj(8, 26, (x2) => { rectOn(x2)(3, 8, 1, 18, '#3a2414'); x2.drawImage(SP.lantern(gold ? 2 : 1), 0, 0); }, x, y); lanterns.push({ x, y: y - 21, col: gold ? '#ffcf6a' : '#ff8a6a', r: 9, a: 0.25 }); }
   // 겨울 이벤트 기간: 맵의 나무를 모두 크리스마스 트리로 (눈 쌓인 가지 · 장식 구슬 · 꼭대기 별 · 반짝이는 전구)
-  let xmas = false;
+  let xmas = false, ny = false;   // ny: 새해 이벤트 (떡국상)
   function xmasTree(x, y, big) {
     // 나무마다 위치로 정해지는 무작위 값 → 크기 · 층 수 · 잎 색 · 장식(구슬/리본/전구줄) · 별 색 · 눈 양이 조금씩 다름 (같은 자리는 늘 같은 모양)
     let sd = Math.floor(x * 73.1 + y * 19.7) >>> 0; const rr = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };
@@ -236,7 +236,8 @@ const Scene = (() => {
       { id: 'jumo', x: tvx - 12, y: tvy + 10 }, { id: 'elder', x: bdx + 2, y: bdy + 10, face: -1 }, { id: 'gob', x: stx, y: sty + 10, face: -1, cond: 'merchant' },
       { id: 'mudang', x: mdx, y: mdy + 10 }, { id: 'kkachi', x: bdx, y: bdy - 22, perch: 1 },
       { id: 'sansin', x: shx + 2, y: shy + 10 }, { id: 'judge', x: gtx + 30, y: gty - 2, face: -1 }, { id: 'boat', x: gtx - 30, y: gty - 2 },
-      { id: 'santa', x: stx - 22, y: sty - 44, cond: 'xmas', lx: stx }, { id: 'deer', x: stx + 10, y: sty - 44, cond: 'xmas' },   // 산타와 1픽셀 간격   // 노점 바로 위에 나란히   // 겨울 이벤트 기간에만: 산타 · 순록
+      { id: 'santa', x: stx - 22, y: sty - 44, cond: 'xmas', lx: stx }, { id: 'deer', x: stx + 10, y: sty - 44, cond: 'xmas' },
+      { id: 'ddeok', x: stx, y: sty - 44, cond: 'ny' },   // 새해 이벤트 기간에만: 떡국상 (산타 자리)   // 산타와 1픽셀 간격   // 노점 바로 위에 나란히   // 겨울 이벤트 기간에만: 산타 · 순록
     ];
     // 길가 등불
     for (let x = 2; x < TW - 1; x += 5) if (Math.abs(x - 12.5) > 3) lampPost(x * T + 8, 13.6 * T, region >= 7);
@@ -475,6 +476,7 @@ const Scene = (() => {
     ghosts.forEach(gh => { gh.t += dt; gh.x += (gh.v || 16) * dt; }); ghosts = ghosts.filter(gh => !gh.dead && gh.x > camX - 30 && gh.x < camX + W + 30 && gh.t < 30); if (!cfg.parade && ghosts.length) ghosts = [];
     if (R().id === 'hell' && Math.random() < 0.3) parts.push({ x: camX + rnd(0, W), y: camY + rnd(0, H), vx: rnd(-3, 3), vy: -rnd(6, 14), life: 1.6, max: 1.6, col: Math.random() < 0.5 ? '#ff7a20' : '#ffd040', g: 0 });
     parts.forEach(p => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += p.g * dt; }); parts = parts.filter(p => p.life > 0);
+    talTick(dt);
     if (petData) { if (!pet) pet = { x: reaper.x, y: reaper.y, t: 0, face: 1 }; pet.t += dt; const tx = reaper.x - reaper.face * 12, ty = reaper.y + 2; pet.x += (tx - pet.x) * Math.min(1, dt * 4); pet.y += (ty - pet.y) * Math.min(1, dt * 4); pet.face = tx > pet.x + 0.5 ? 1 : tx < pet.x - 0.5 ? -1 : reaper.face; pet.fly = petData.kind === 'bird' || petData.kind === 'dragon'; } else pet = null;
     if (wraith) { wraith.t += dt; wraith.flash = Math.max(0, wraith.flash - dt); wraith.x += Math.sin(wraith.t * 0.7) * dt * 6; if (wraith.dead) { wraith.fade -= dt; if (wraith.fade <= 0) wraith = null; } else if (wraith.t > wraith.life) { wraith.dead = true; wraith.fade = 0.6; hooks.wraithGone && hooks.wraithGone(); } }
     shake = Math.max(0, shake - dt * 20);
@@ -527,6 +529,37 @@ const Scene = (() => {
     // 순록 (뒤집어서 오른쪽을 봄)
     x2.save(); x2.translate(c.width, 0); x2.scale(-1, 1); x2.drawImage(d, 0, c.height - d.height); x2.restore();
     return (xmasImg[k] = c);
+  }
+  // 떡국상: 붉은 칠 소반 위에 김이 오르는 떡국 세 그릇 · 옆에 복주머니
+  function ddeokImg(f) {
+    const k = 'ddeok' + (f % 2); if (xmasImg[k]) return xmasImg[k];
+    const c = document.createElement('canvas'); c.width = 34; c.height = 22; const x2 = c.getContext('2d'), P = (col, x, y, w, h) => { x2.fillStyle = col; x2.fillRect(x, y, w, h); };
+    P('#1a0f14', 2, 11, 28, 4); P('#a01a2a', 3, 12, 26, 2); P('#d8323c', 3, 12, 26, 1);                  // 소반 판
+    P('#1a0f14', 4, 15, 3, 6); P('#7a1020', 5, 15, 1, 5); P('#1a0f14', 25, 15, 3, 6); P('#7a1020', 26, 15, 1, 5); P('#1a0f14', 3, 20, 26, 1);   // 다리
+    [5, 13, 21].forEach((x, i) => { P('#1a0f14', x, 7, 7, 5); P('#f4ecdc', x + 1, 8, 5, 3); P('#c8c0b0', x + 1, 10, 5, 1);   // 하얀 그릇
+      P('#fffaf0', x + 1, 7, 5, 1); P('#e8e0c8', x + 2, 7, 1, 1); P('#e8e0c8', x + 4, 7, 1, 1); P('#2f8a4a', x + 3, 6, 1, 1);   // 떡국 · 파
+      const s = (f + i) % 2; P('rgba(255,255,255,0.6)', x + 2 + s, 3, 1, 2); P('rgba(255,255,255,0.45)', x + 4 - s, 1, 1, 2); P('rgba(255,255,255,0.3)', x + 3, 0 + s, 1, 1); });   // 김
+    P('#1a0f14', 29, 13, 5, 7); P('#d8323c', 30, 14, 3, 5); P('#ffd34a', 30, 13, 3, 1); P('#ffd34a', 31, 16, 1, 2);   // 복주머니
+    return (xmasImg[k] = c);
+  }
+  // 부적 날리기 (새해 출석 28일): 걸을 때 지나간 자리에 작은 부적이 흩날림
+  let tal = [], talD = 0, talLast = null;
+  function talTick(dt) {
+    const on = hooks.trail && hooks.trail();
+    if (on) { if (talLast) talD += Math.hypot(reaper.x - talLast.x, reaper.y - talLast.y); talLast = { x: reaper.x, y: reaper.y };
+      if (talD > 6) { talD = 0; tal.push({ x: reaper.x + rnd(-3, 3), y: reaper.y - rnd(0, 3), z: rnd(4, 9), vz: rnd(10, 18), vx: rnd(-6, 6), t: 0, life: rnd(1.4, 2.0), sp: rnd(5, 9), ph: rnd(0, 6) }); if (tal.length > 40) tal.shift(); } }
+    else { talLast = null; talD = 0; }
+    tal.forEach(p => { p.t += dt; p.vz -= 26 * dt; p.z = Math.max(0, p.z + p.vz * dt); if (p.z > 0) p.x += (p.vx + Math.sin(p.t * p.sp + p.ph) * 8) * dt; }); tal = tal.filter(p => p.t < p.life);
+  }
+  function talDraw(p) {
+    const a = Math.min(1, (p.life - p.t) / 0.5), x = Math.round(p.x - camX), y = Math.round(p.y - camY - p.z), fl = Math.floor(p.t * p.sp + p.ph) % 3;   // 팔랑팔랑: 세로 · 옆으로 누움 · 가로
+    const R = (c, x0, y0, w, h) => { g.fillStyle = c; g.fillRect(x0, y0, w, h); };
+    if (p.z <= 0) { g.globalAlpha = a * 0.3; R('#000', x - 2, y + 3, 4, 1); }
+    g.globalAlpha = a;
+    if (fl === 0) { R('#fff0a8', x - 2, y - 3, 4, 6); R('#d8a838', x + 1, y - 3, 1, 6); R('#d8323c', x - 1, y - 2, 2, 1); R('#d8323c', x - 1, y, 2, 2); }          // 세로 부적
+    else if (fl === 1) { R('#fff0a8', x - 1, y - 3, 2, 6); R('#d8a838', x, y - 3, 1, 6); R('#d8323c', x - 1, y - 1, 1, 2); }                                    // 옆으로 돌아감
+    else { R('#fff0a8', x - 3, y - 2, 6, 4); R('#d8a838', x - 3, y + 1, 6, 1); R('#d8323c', x - 2, y - 1, 1, 2); R('#d8323c', x, y - 1, 2, 2); }              // 가로로 누움
+    g.globalAlpha = 1;
   }
   function sprite(img, x, y, flip) { const im = flip ? flipOf(img) : img; g.drawImage(im, Math.round(x - camX - im.width / 2), Math.round(y - camY - im.height + 1)); return im; }
   // 계급 아우라: 발밑 기운 + 떠오르는 빛가루 (계급이 오를수록 진하고 많아짐)
@@ -701,9 +734,9 @@ const Scene = (() => {
     const cl = hooks.clue ? hooks.clue() : -1;
     if (cl >= 0) { const p = clueSpot(cl); if (vis(p.x, p.y)) list.push({ y: p.y, f: () => { const x = Math.round(p.x - camX), y = Math.round(p.y - camY), b = Math.sin(time * 3) * 1.5; glow(x, y - 5 + b, 9, '#9fd6ff', 0.35 + Math.sin(time * 5) * 0.1); g.fillStyle = '#0f0c18'; g.fillRect(x - 4, Math.round(y - 9 + b), 8, 7); g.fillStyle = '#efe2bf'; g.fillRect(x - 3, Math.round(y - 8 + b), 6, 5); g.fillStyle = '#2a1a14'; g.fillRect(x - 2, Math.round(y - 7 + b), 4, 1); g.fillRect(x - 2, Math.round(y - 5 + b), 3, 1); if (Math.random() < 0.15) parts.push({ x: p.x + rnd(-4, 4), y: p.y - 8, vx: rnd(-2, 2), vy: -rnd(8, 14), life: 0.8, max: 0.8, col: '#c8ecff', g: 0 }); } }); }
     for (const n of NPCS) {
-      if (n.cond === 'merchant' && !cfg.merchant) continue; if (n.cond === 'xmas' && !xmas) continue; if (!vis(n.x, n.y)) continue;
+      if (n.cond === 'merchant' && !cfg.merchant) continue; if (n.cond === 'xmas' && !xmas) continue; if (n.cond === 'ny' && !ny) continue; if (!vis(n.x, n.y)) continue;
       list.push({ y: n.y, f: () => {
-        let img = n.id === 'santa' ? santaImg(Math.floor(time * 2)) : n.id === 'deer' ? sleighImg(Math.floor(time * 1.5)) : n.id === 'judge' ? SP.tinyReaper('m', 5, 'down', 'idle', Math.floor(time * 2.5)) : n.id === 'kkachi' ? SP.pet(PETS[0], Math.floor(time * 2)) : SP.npct(n.id, Math.floor(time * 2.5));
+        let img = n.id === 'ddeok' ? ddeokImg(Math.floor(time * 2)) : n.id === 'santa' ? santaImg(Math.floor(time * 2)) : n.id === 'deer' ? sleighImg(Math.floor(time * 1.5)) : n.id === 'judge' ? SP.tinyReaper('m', 5, 'down', 'idle', Math.floor(time * 2.5)) : n.id === 'kkachi' ? SP.pet(PETS[0], Math.floor(time * 2)) : SP.npct(n.id, Math.floor(time * 2.5));
         if (!n.perch) shadow(n.x, n.y, 8);
         const im = sprite(img, n.x, n.y, (n.face || 1) < 0);
         if (hooks.npcHot && hooks.npcHot(n.id)) { const ex = Math.round((n.lx != null ? n.lx : n.x) - camX), ey = Math.round(n.y - camY - im.height - 6 + Math.sin(time * 5) * 1.5); g.fillStyle = '#0f0c18'; g.fillRect(ex - 2, ey - 1, 5, 9); g.fillStyle = '#ffd34a'; g.fillRect(ex - 1, ey, 3, 4); g.fillRect(ex - 1, ey + 5, 3, 2); }
@@ -740,6 +773,7 @@ const Scene = (() => {
       g.globalAlpha = 1;
       if (!wraith.dead) { const bw = 16, bx = Math.round(wx - bw / 2), by = Math.round(wy - img.height / 2 - 5); g.fillStyle = '#0f0c18'; g.fillRect(bx - 1, by - 1, bw + 2, 4); g.fillStyle = '#4a1020'; g.fillRect(bx, by, bw, 2); g.fillStyle = '#ff3a5a'; g.fillRect(bx, by, Math.round(bw * wraith.hp / wraith.max), 2); }
     } });
+    for (const p of tal) if (vis(p.x, p.y)) list.push({ y: p.y - 0.5, f: () => talDraw(p) });   // 흩날리는 부적
     list.sort((a, b) => a.y - b.y).forEach(o => o.f());
     // 목적지 고리
     if (reaper.manual) { const mx = reaper.manual.x - camX, my = reaper.manual.y - camY, rr = 5 + Math.sin(time * 8); g.fillStyle = 'rgba(255,224,138,0.9)'; for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2; g.fillRect(Math.round(mx + Math.cos(a) * rr), Math.round(my + Math.sin(a) * rr * 0.5), 1, 1); } }
@@ -798,7 +832,8 @@ const Scene = (() => {
       if (gb) { gb.dead = true; burst(gb.x, gb.y - 8, gb.gold ? '#ffd34a' : '#c890ff', 22, 45); burst(gb.x, gb.y - 8, '#ffffff', 10, 30); shake = Math.max(shake, 1.2); const sp = scr(gb.x, gb.y - 10); hooks.ghostTap && hooks.ghostTap(sp.x, sp.y, gb.gold); return; }
     }
     if (xmas) for (const n of NPCS) { if (n.cond !== 'xmas') continue; const hw = n.id === 'deer' ? 24 : 12; if (Math.abs(x - n.x) < hw && y > n.y - 26 && y < n.y + 6) { hooks.poi && hooks.poi(n.id); return; } }   // 산타 · 썰매 · 순록: 그림 전체를 넉넉히 눌리게
-    for (const n of NPCS) { if (n.cond === 'merchant' && !cfg.merchant) continue; if (n.cond === 'xmas') continue; if (Math.abs(x - n.x) < 7 && y > n.y - 20 && y < n.y + 3) { hooks.poi && hooks.poi(n.id === 'gob' ? 'merchant' : n.id); return; } }
+    if (ny) for (const n of NPCS) { if (n.cond !== 'ny') continue; if (Math.abs(x - n.x) < 18 && y > n.y - 24 && y < n.y + 6) { hooks.poi && hooks.poi(n.id); return; } }   // 떡국상: 상 전체를 넉넉히
+    for (const n of NPCS) { if (n.cond === 'merchant' && !cfg.merchant) continue; if (n.cond === 'xmas' || n.cond === 'ny') continue; if (Math.abs(x - n.x) < 7 && y > n.y - 20 && y < n.y + 3) { hooks.poi && hooks.poi(n.id === 'gob' ? 'merchant' : n.id); return; } }
     let best = null, bd = cfg.parade ? 18 : 10;
     for (const s of souls) if (s.st === 'float') { const d = Math.hypot(s.x - x, s.y - s.h - y); if (d < bd) { bd = d; best = s; } }
     if (best) { if (best.who && best.who.target === best) best.who.target = null; const tp = { face: 1, tap: true }; Object.defineProperty(tp, 'x', { get: () => reaper.x }); Object.defineProperty(tp, 'y', { get: () => reaper.y }); best.who = tp; best.st = 'pull'; best.t = 0; best.sx = best.x; best.sy = best.y - best.h; best.dur = 0.35; Sound.play('tap'); return; }
@@ -821,6 +856,7 @@ const Scene = (() => {
     },
     resize,
     setXmas(on) { on = !!on; if (on !== xmas) { xmas = on; if (groundC) build(); } },
+    setNy(on) { ny = !!on; },
     setRegion(i) { const n = Math.max(0, Math.min(REGIONS.length - 1, i)); if (n !== region || !groundC) { region = n; build(); } },
     setKind(k) { kind = k; }, setRank(r) { rank = r; }, setReborn(n) { rbTier = n || 0; }, rbDraw(ctx, x, y, h, t, tm, layer) { // 다른 캔버스(윤회 미리보기)에 윤회 이펙트 그리기. layer: 'under' 캐릭터 뒤 · 'over' 앞
       const sv = [g, camX, camY, rbTier, time]; g = ctx; camX = 0; camY = 0; rbTier = t; time = tm;
@@ -858,7 +894,7 @@ const Scene = (() => {
     hitWraith(dmg) { if (!wraith || wraith.dead) return false; if (arena) { for (let k = 0; k < 6; k++) { const t = k / 6; parts.push({ x: reaper.x + rnd(-2, 2), y: reaper.y - 14, vx: (wraith.x - reaper.x) * 2.4 + rnd(-8, 8), vy: (wraith.y - reaper.y + 14) * 2.4 + rnd(-8, 8), life: 0.4 - t * 0.05, max: 0.4, col: k % 2 ? '#6fb0ff' : '#c4ecff', g: 0, big: 1 }); } } wraith.hp = Math.max(0, wraith.hp - dmg); wraith.flash = 0.15; shake = Math.max(shake, 1.5); burst(wraith.x + rnd(-5, 5), wraith.y + rnd(-6, 6), '#ffffff', 4, 25); if (wraith.hp <= 0) { wraith.dead = true; wraith.fade = 0.8; burst(wraith.x, wraith.y, '#ff6a8a', 30, 50); burst(wraith.x, wraith.y, '#ffffff', 20, 40); return true; } return false; },
     wraithAlive: () => !!(wraith && !wraith.dead), wraithHp: () => wraith ? wraith.hp : 0, wraithPos: () => wraith ? scr(wraith.x, wraith.y) : null,
     labels: () => arena || office ? [] : POIS.filter(p => ['office', 'stall', 'stele', 'garden'].includes(p.id)).map(p => ({ id: p.id, x: (p.x + p.w / 2 - camX) * S, y: (p.y - 3 - camY) * S, vis: vis(p.x + p.w / 2, p.y, 4) }))
-      .concat(NPCS.map(n => ({ id: 'n_' + n.id, x: ((n.lx != null ? n.lx : n.x) - camX) * S, y: (n.y - (n.id === 'kkachi' ? 14 : 24) - camY) * S, vis: vis(n.x, n.y, 4) && !(n.cond === 'merchant' && !cfg.merchant) && !(n.cond === 'xmas' && !xmas) }))),
+      .concat(NPCS.map(n => ({ id: 'n_' + n.id, x: ((n.lx != null ? n.lx : n.x) - camX) * S, y: (n.y - (n.id === 'kkachi' ? 14 : 24) - camY) * S, vis: vis(n.x, n.y, 4) && !(n.cond === 'merchant' && !cfg.merchant) && !(n.cond === 'xmas' && !xmas) && !(n.cond === 'ny' && !ny) }))),
     ghostsOnScreen() { return ghosts.filter(gh => !gh.dead).map(gh => ({ x: (gh.x - camX) * S, y: (gh.y - 8 - camY) * S, gold: gh.gold })); },
     clueScreen(ch) { const p = clueSpot(ch); return { x: (p.x - camX) * S, y: (p.y - 6 - camY) * S }; },
     propsOnScreen() { return objs.filter(o => o.prop && vis(o.x + o.img.width / 2, o.base, 0)).map(o => ({ kind: o.prop, key: o.key, x: (o.x + o.img.width / 2 - camX) * S, y: (o.base - 6 - camY) * S })); },

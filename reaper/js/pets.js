@@ -64,6 +64,7 @@ const PET_LORE = {
  "eungryong": "날개 달린 용, 응룡의 새끼예요. 하늘과 저승을 자유롭게 날며 귀한 혼을 물어 와요.",
  "geumsijo": "용도 잡아먹는다는 황금 새, 금시조예요. 날개를 펴면 저승 하늘이 온통 금빛으로 빛나요.",
  "seollok": "동짓날 밤에만 나타나는 흰 사슴이에요. 뿔에 맺힌 눈꽃이 녹지 않아서, 지나간 자리엔 하얀 서리가 내려요.",
+ "jeongmi": "정미년 첫날, 복주머니 냄새를 따라 저승까지 내려온 붉은 양이에요. 금빛 뿔에 걸린 복을 지나가는 차사들에게 하나씩 나눠 줘요.",
  "yunhoe": "다섯 번 죽고 다섯 번 다시 태어난 불사조예요. 윤회를 다섯 번 이룬 저승사자 곁에만 내려앉아요."
 };
 const PET_ORDER = ['C', 'B', 'A', 'S', 'SS', 'SSS'];
@@ -125,6 +126,7 @@ const PETS = [
   { id: 'eungryong', name: '아기 응룡', g: 'SSS', kind: 'dragon', e: 'all', pal: {"H": "#9a6aff", "B": "#9a6aff", "b": "#f0e8ff", "y": "#ffd34a"}, aura: '#c8a0ff', desc: '날개 달린 용, 응룡의 새끼' },
   { id: 'geumsijo', name: '금시조', g: 'SSS', kind: 'bird', e: 'all', pal: {"H": "#ffc83a", "B": "#ffc83a", "b": "#fff4c0", "y": "#ff3a5a"}, aura: '#ffd34a', desc: '용을 잡아먹는 황금 새' },
   { id: 'seollok', name: '눈꽃 백록', g: 'SS', ex: 1, mapArt: 1, kind: 'quad', e: 'all', pal: {"H": "#f4f8ff", "B": "#f4f8ff", "b": "#ffffff", "y": "#7ad0ff"}, aura: '#bfe8ff', desc: '동짓날 밤에만 나타나는 흰 사슴 (2026 겨울 이벤트)' },
+  { id: 'jeongmi', name: '정미년 붉은 양', g: 'SS', ex: 1, mapArt: 1, kind: 'quad', e: 'all', pal: {"H": "#d8323c", "B": "#d8323c", "b": "#ff8a6a", "y": "#ffd34a"}, aura: '#ffb070', desc: '2027 정미년 새해에만 만나는 붉은 양 (2027 새해 이벤트)' },
   { id: 'yunhoe', name: '윤회의 봉황', g: 'SSS', ex: 1, kind: 'bird', e: 'all', pal: {"H": "#f4f0ff", "B": "#f4f0ff", "b": "#b88aff", "y": "#6ac8ff"}, aura: '#e8d8ff', desc: '다섯 번의 생을 함께한 불사조 (5환 전용)' },
 ];
 const PULL_COST = { 1: 50, 10: 450 };

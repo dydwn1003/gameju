@@ -6,7 +6,7 @@ const UI = (() => {
   const urls = {};
   const IC = (name, sc = 3) => urls[name + sc] || (urls[name + sc] = toURL(name === 'petic' ? SP.pet(PETS.find(p => p.id === 'heukmyo'), 0) : name === 'flower' ? SP.plant(3, FLOWERS[1].pal, 'lotus') : ['soul', 'jade', 'scroll'].includes(name) ? SP.icon(name) : SP.ui(name), sc));
   const FIC = (fid, stage = 3, sc = 2) => { const k = 'f' + fid + stage + sc; return urls[k] || (urls[k] = toURL(SP.plant(stage, FLOWERS.find(f => f.id === fid).pal, fid), sc)); };
-  const SPIC = (i, known, sc = 4) => { const k = 'sp' + i + known + sc; if (urls[k]) return urls[k]; let c = SPECIALS[i] && SPECIALS[i].ev ? patImg() : SP.special(i); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, sc)); };
+  const SPIC = (i, known, sc = 4) => { const k = 'sp' + i + known + sc; if (urls[k]) return urls[k]; let c = SPECIALS[i] && SPECIALS[i].ev ? patImgOf(SPECIALS[i].ev) : SP.special(i); if (!known) { const d = document.createElement('canvas'); d.width = c.width; d.height = c.height; const g = d.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#2a2444'; g.fillRect(0, 0, d.width, d.height); c = d; } return (urls[k] = toURL(c, sc)); };
   let sub = 'garden', lifeSig = '', lifeT = 0, buffSig = '', parade = null, buffChips = '', buffLive = new Set();
   const BUFF_EFF = { value: '×1.5', spawn: '×1.4', fight: '×3' };
   const S = () => Game.S;
@@ -221,7 +221,7 @@ const UI = (() => {
   // ---------- 시작 ----------
   function initGame() {
     Game.load();
-    Scene.init($('#cv'), { patImg, reaperDeco: () => Winter.deco(), collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => (visiting ? visiting.placed : Decor.ensure().placed).filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
+    Scene.init($('#cv'), { patImg, reaperDeco: () => evDeco(), trail: () => NewYear.wearing('bujeok'), collect, wraithTap, wraithGone, tick, poi, npcHot, docsCount: () => Life.docsCount(), ghostTap, decorPlaced: () => (visiting ? visiting.placed : Decor.ensure().placed).filter(p => Decor.D(p.id)), decorTap, decorPick, decorDrop, pendTap, pendMoved, propReady: k => Life.propReady(k), clue: () => Story.clueActive(), moved: () => tutEv('move'), gardenReady: () => Life.alerts().garden });
     setTimeout(() => { const h = $('#drag-hint'); if (h) h.classList.add('gone'); }, 6000);
     $('#labels').innerHTML = Object.entries(POI_LABEL).map(([k, v]) => `<span class="plabel" id="lb-${k}">${v}</span>`).join('');
     Game.apply(); if (S().kind) { Decor.grantRank(S().rank); Decor.grantStory(Math.max(-1, (S().story || {}).ch - 1)); }
@@ -235,7 +235,7 @@ const UI = (() => {
     $('#btn-attend').addEventListener('click', attendModal);
     $('#btn-quest').addEventListener('click', questModal);
     $('#btn-parade').addEventListener('click', paradeAsk);
-    $('#btn-winter').addEventListener('click', winterBox); $('#btn-wattend').addEventListener('click', winterAttBox); Winter.onSpawn(() => { winterHud(true); Sound.play('open'); });
+    $('#btn-winter').addEventListener('click', winterBox); $('#btn-wattend').addEventListener('click', winterAttBox); Winter.onSpawn(() => { winterHud(true); Sound.play('open'); }); NewYear.onSpawn(() => { winterHud(true); Sound.play('open'); });
     $('#btn-office').addEventListener('click', enterOffice);
     $('#btn-rankb').addEventListener('click', rankModal);
     $('#me-card').addEventListener('click', statsModal);
@@ -309,12 +309,21 @@ const UI = (() => {
   function wraithGone() {}
   let lastTickAt = 0;
   // 이벤트 끝나는 시각을 서버에서 바꿀 수 있게: docs 'config/event' { winterEnd: '2026-12-31T23:59:59+09:00' }
-  async function eventCfg() { try { if (!Cloud.ready()) return; const doc = await Cloud.db.doc('config/event').get(); const d = doc.exists ? doc.data() || {} : {}; if (d.winterEnd) Winter.setEnd(Date.parse(d.winterEnd)); } catch (e) {} }
+  async function eventCfg() { try { if (!Cloud.ready()) return; const doc = await Cloud.db.doc('config/event').get(); const d = doc.exists ? doc.data() || {} : {}; if (d.winterEnd) Winter.setEnd(Date.parse(d.winterEnd)); if (d.nyEnd) NewYear.setEnd(Date.parse(d.nyEnd)); } catch (e) {} }
   // ---------- 겨울 이벤트 '동짓날 팥죽' ----------
   let winterAcc = 0, winterIntro = false;
   // 팥 영혼 그림 (팥알 모양 혼불 · 작은 눈)
-  let patC = null; const patImg = () => patC || (patC = patCanvas());
-  const patIcon = sc => urls['pat' + sc] || (urls['pat' + sc] = toURL(patImg(), sc));
+  let patC = null, bokC = null; const patImgOf = id => id === 'n27' ? (bokC || (bokC = bokCanvas())) : (patC || (patC = patCanvas()));
+  const patImg = () => patImgOf(EvNow().id);
+  const patIcon = sc => { const k = 'pat' + EvNow().id + sc; return urls[k] || (urls[k] = toURL(patImg(), sc)); };
+  // 복주머니 영혼 그림 (붉은 복주머니 · 금빛 매듭 · 작은 눈)
+  function bokCanvas() { const c = document.createElement('canvas'); c.width = 12; c.height = 14; const g = c.getContext('2d'), r = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+    r(5, 0, 2, 1, '#fff4c0'); r(4, 1, 4, 2, '#ffd34a'); r(3, 2, 1, 1, '#ffd34a'); r(8, 2, 1, 1, '#ffd34a');                 // 금빛 매듭 · 끈
+    r(3, 3, 6, 1, '#1a0a0c'); r(2, 4, 8, 1, '#1a0a0c'); r(1, 5, 10, 6, '#1a0a0c'); r(2, 11, 8, 1, '#1a0a0c'); r(3, 12, 6, 1, '#1a0a0c'); // 외곽선
+    r(3, 4, 6, 1, '#ff5a5a'); r(2, 5, 8, 6, '#d8323c'); r(3, 11, 6, 1, '#8a1a26');                                        // 주머니
+    r(2, 5, 2, 2, '#ff8a7a'); r(4, 9, 4, 1, '#ffd34a'); r(5, 8, 2, 3, '#ffd34a');                                        // 윤기 · 복 무늬
+    r(4, 6, 1, 2, '#ffffff'); r(7, 6, 1, 2, '#ffffff');                                                                  // 눈
+    return c; }
   function patCanvas() { return (() => {
     const c = document.createElement('canvas'); c.width = 12; c.height = 14; const g = c.getContext('2d'), r = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
     r(5, 0, 2, 2, '#ff9a6a'); r(4, 1, 1, 2, '#ff9a6a'); r(6, 2, 2, 1, '#ffc8a0');                         // 위로 피어오르는 불꽃 끝
@@ -345,32 +354,35 @@ const UI = (() => {
       g.fillStyle = gr; g.beginPath(); g.arc(x, f.y, f.r * 1.8, 0, 6.2832); g.fill();
     }
   }
-  let attDay = '', winterLate = false;
+  let attDay = '', winterLate = {}, introShown = {};
   function winterHud(spawned) {
     const dNow = kstDay(Date.now() + (Native.isApp() ? 0 : window.__evShift || 0));                       // 한국 시간 0시가 지나면 출석 창 · 빨간 점을 바로 새로 고침
     if (attDay && dNow !== attDay && document.querySelector('#modal.on .wa')) winterAttBox();
     attDay = dNow;
-    const on = Winter.active(), b = $('#btn-winter'); if (!b) return;
-    b.hidden = !on; $('#snow').hidden = !on || Scene.inOffice() || !!S().snowOff;   // 설정에서 눈을 끌 수 있음
-    const wa = $('#btn-wattend'); if (wa) { wa.hidden = !on; wa.querySelector('.dot').classList.toggle('on', on && (Winter.canAttend() || Winter.canMakeup())); if (on && !$('#wattend-ic').src) $('#wattend-ic').src = toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, 'a'), 2); }
-    if (!on) { Scene.setXmas(false); if (Scene.patCount()) Scene.clearPat();
-      if (S().kind && Winter.st().n && !winterLate) { winterLate = true; const gs = Winter.goals.map((g, i) => Winter.claimable(g) ? Winter.claim(i) : null).filter(Boolean); // 끝나기 전에 모았는데 못 받은 보상은 자동으로 지급
-        if (gs.length) { render(); setTimeout(() => toast(`🎁 동짓날 팥죽 보상을 받지 않아 자동으로 넣어 드렸어요: ${gs.map(g => g.kind === 'decor' ? Decor.D(g.id).name : Pets.P(g.id).name).join(' · ')}`, 4200), 1500); } }
-      return; }
-    const e = Winter.st();
-    if (!$('#winter-ic').src) $('#winter-ic').src = patIcon(2);
-    $('#winter-t').textContent = `${e.n}/${Winter.max}`;
-    b.querySelector('.dot').classList.toggle('on', Winter.hasDot());
-    Scene.setXmas(on);
+    const E = EvNow(), on = E.active(), b = $('#btn-winter'); if (!b) return;
+    b.hidden = !on; $('#snow').hidden = !Winter.active() || Scene.inOffice() || !!S().snowOff;   // 눈은 겨울 이벤트에만 · 설정에서 끌 수 있음
+    Scene.setXmas(Winter.active()); Scene.setNy && Scene.setNy(NewYear.active());
+    const wch = E.ITEMS[E.attGoals[0].id].ch;
+    const wa = $('#btn-wattend'); if (wa) { wa.hidden = !on; wa.querySelector('.dot').classList.toggle('on', on && (E.canAttend() || E.canMakeup())); if (on && wa.dataset.ev !== E.id) { wa.dataset.ev = E.id; $('#wattend-ic').src = toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, wch), 2); } }
+    document.body.classList.toggle('ev-ny', on && E.T.theme === 'ny');
+    // 끝난 이벤트: 모았는데 못 받은 보상은 자동으로 지급 (이벤트마다 한 번)
+    [Winter, NewYear].forEach(X => { if (X.active() || X.left() > 0 || !S().kind || winterLate[X.id]) return; const e0 = (S().ev || {})[X.id]; if (!e0 || !e0.n) return; winterLate[X.id] = true;
+      const gs = X.goals.map((g, i) => X.claimable(g) ? X.claim(i) : null).filter(Boolean);
+      if (gs.length) { render(); setTimeout(() => toast(`🎁 ${X.T.name} 보상을 받지 않아 자동으로 넣어 드렸어요: ${gs.map(g => g.kind === 'decor' ? Decor.D(g.id).name : Pets.P(g.id).name).join(' · ')}`, 4200), 1500); } });
+    if (!on) { if (Scene.patCount()) Scene.clearPat(); return; }
+    const e = E.st();
+    if (b.dataset.ev !== E.id) { b.dataset.ev = E.id; $('#winter-ic').src = patIcon(2); Scene.clearPat(); b.querySelector('span').textContent = E.T.btn; const ws = $('#btn-wattend span'); if (ws) ws.textContent = E.T.att; }
+    $('#winter-t').textContent = `${e.n}/${EvNow().max}`;
+    b.querySelector('.dot').classList.toggle('on', EvNow().hasDot());
     if (!Scene.inOffice() && !(Scene.inArena && Scene.inArena())) { if (Scene.patCount() > e.pend) Scene.clearPat(); let k = e.pend - Scene.patCount(); while (k-- > 0) Scene.spawnPat(); } // 맵에 진짜 혼령처럼 나타남 → 저승사자가 거두거나 눌러서 거둠
-    const nx = $('#wv-next'); if (nx) nx.textContent = Winter.room() <= 0 ? (Winter.done() ? '모두 모았어요' : '맵에 나타났어요!') : mmss(Winter.nextIn());
-    if (!winterIntro && !e.seen && S().tut === 'done' && !$('#modal').classList.contains('on') && !document.getElementById('tut') && !parade) { winterIntro = true; e.seen = true; Game.save(); setTimeout(winterBox, 600); }
+    const nx = $('#wv-next'); if (nx) nx.textContent = EvNow().room() <= 0 ? (EvNow().done() ? '모두 모았어요' : '맵에 나타났어요!') : mmss(EvNow().nextIn());
+    if (!introShown[E.id] && !e.seen && S().tut === 'done' && !$('#modal').classList.contains('on') && !document.getElementById('tut') && !parade) { introShown[E.id] = true; e.seen = true; Game.save(); setTimeout(winterBox, 600); }
   }
   function patCollected(x, y) {
-    const n = Winter.collect(); if (!n) return; const first = Life.catchSpecial(SP_PAT); if (first) setTimeout(() => toast('📖 도감 등록! 팥 영혼을 거뒀다 (혼 수확 +2%)', 3200), 2700); Sound.play('buy'); winterHud(); if (x != null) float(x, y, '+1 팥 영혼', 't2');
-    const reward = Winter.goals.find(g => g.n === n);
-    if (!reward) { toast(`<img class="px" src="${patIcon(2)}" style="width:16px;vertical-align:-3px"> 팥 영혼 ${n}/${Winter.max}`, 2600); return; }
-    got(`<b>${n}/${Winter.max}</b><br>🎁 보상을 받을 수 있어요!`, { src: patIcon(5), title: '팥 영혼 +1', actions: [{ label: '보상 받으러 가기', cls: 'red', fn: winterBox }] });
+    const E = EvNow(), n = E.collect(); if (!n) return; const first = Life.catchSpecial(E.id === 'n27' ? SP_BOK : SP_PAT); if (first) setTimeout(() => toast(`📖 도감 등록! ${E.T.soul}을 거뒀다 (혼 수확 +2%)`, 3200), 2700); Sound.play('buy'); winterHud(); if (x != null) float(x, y, `+1 ${E.T.soul}`, 't2');
+    const reward = EvNow().goals.find(g => g.n === n);
+    if (!reward) { toast(`<img class="px" src="${patIcon(2)}" style="width:16px;vertical-align:-3px"> ${E.T.soul} ${n}/${E.max}`, 2600); return; }
+    got(`<b>${n}/${EvNow().max}</b><br>🎁 보상을 받을 수 있어요!`, { src: patIcon(5), title: `${E.T.soul} +1`, actions: [{ label: '보상 받으러 가기', cls: 'red', fn: winterBox }] });
   }
   // ---------- 겨울 출석 (동짓날 팥죽 창 맨 위) ----------
   const attTxt = r => r.hours ? `${r.hours}시간치 혼` : r.jade ? `옥 ${r.jade}개` : r.tickets ? `소환권 ${r.tickets}장` : Object.keys(r.seed).map(k => `${FLOWERS.find(f => f.id === k).name} 씨앗 ${r.seed[k]}개`).join(' · ');
@@ -378,57 +390,63 @@ const UI = (() => {
   const ticketIc = sc => urls['tk' + sc] || (urls['tk' + sc] = (() => { const c = document.createElement('canvas'); c.width = 12; c.height = 7; const g = c.getContext('2d'), P = { K: '#3a1018', R: '#d8323c', Y: '#ffd76a', W: '#fff4e0' };
     TICKET.forEach((row, y) => [...row].forEach((ch, x) => { if (P[ch]) { g.fillStyle = P[ch]; g.fillRect(x, y, 1, 1); } })); return toURL(c, sc); })());
   const attIc = (r, sc = 2) => r.hours ? IC('soul', sc) : r.jade ? IC('jade', sc) : r.tickets ? ticketIc(sc) : FIC(Object.keys(r.seed)[0], 0, sc);
+  // 이벤트 꾸미기 아이콘: 그림이 있는 건 저승사자에 입혀서, 부적 날리기는 부적 그림으로
+  const BUJEOK = ['KKKKKK', 'KYYYYK', 'KYRRYK', 'KYYRYK', 'KYRRYK', 'KYYYYK', 'KYRYRK', 'KYYYYK', 'KKKKKK'];
+  const bujeokIc = sc => urls['bj' + sc] || (urls['bj' + sc] = (() => { const c = document.createElement('canvas'); c.width = 6; c.height = 9; const g = c.getContext('2d'), P = { K: '#5a3a10', Y: '#ffe08a', R: '#d8323c' };
+    BUJEOK.forEach((row, y) => [...row].forEach((ch, x) => { if (P[ch]) { g.fillStyle = P[ch]; g.fillRect(x, y, 1, 1); } })); return toURL(c, sc); })());
+  const evItemIc = (X, id, sc) => X.ITEMS[id].ch ? toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, X.ITEMS[id].ch), sc) : bujeokIc(sc);
+  const evDays = X => Math.round((X.endAt() - X.startAt) / 864e5);
   function winterAttHtml() {
-    const a = Winter.att(), can = Winter.canAttend(), nx = a.n + 1;
-    const cell = d => { const g = Winter.attGoals.find(x => x.n === d), r = Winter.attReward(d), done = d <= a.n, today = can && d === nx;
-      const ic = g ? toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, Winter.ITEMS[g.id].ch), 2) : attIc(r, 2);
+    const a = EvNow().att(), can = EvNow().canAttend(), nx = a.n + 1;
+    const cell = d => { const g = EvNow().attGoals.find(x => x.n === d), r = EvNow().attReward(d), done = d <= a.n, today = can && d === nx;
+      const ic = g ? evItemIc(EvNow(), g.id, 2) : attIc(r, 2);
       const q = r.hours ? r.hours + 'h' : r.jade || r.tickets || Object.values(r.seed)[0];
       return `<div class="wa-c ${done ? 'done' : ''} ${today ? 'now' : ''} ${g ? 'big' : ''}"><small>${d}</small><img class="px" src="${ic}">${g ? '' : `<em>${q}</em>`}${done ? '<i>✓</i>' : ''}</div>`; };
-    const goal = g => `<span class="${a.n >= g.n ? 'on' : ''}">${g.n}일 · ${Winter.ITEMS[g.id].name}${a.n >= g.n ? ' ✓' : ''}</span>`;
-    return `<div class="wa"><div class="wa-hd"><h4>❄️ 출석부</h4><span><span>출석한 날</span> <b>${a.n}</b>/${Winter.attMax}</span></div>
-      <div class="wa-goal">${Winter.attGoals.map(goal).join('')}</div>
-      <div class="wa-grid">${Array.from({ length: Winter.attMax }, (_, i) => cell(i + 1)).join('')}</div>
-      <div class="wa-ft"><button class="btn ${can ? 'red' : 'dark'}" id="wa-go" ${can ? '' : 'disabled'}>${a.n >= Winter.attMax ? '모두 받았어요' : can ? `출석하기<small class="wa-r">${attTxt(Winter.attReward(nx))}</small>` : '내일 또 만나요'}</button>
-      ${a.n < Winter.attMax && Winter.missed() > 0 ? `<div class="wa-mk"><span><b>놓친 날 ${Winter.missed()}일</b><small>옥으로 하루씩 채울 수 있어요</small></span><button class="btn jade" id="wa-mk" ${Winter.canMakeup() ? '' : 'disabled'}><span>${a.n + 1}일차 출석하기</span><em><img class="px" src="${IC('jade', 2)}">${Winter.mkJade}</em></button></div>` : ''}
-      <small>하루 한 번 · 기간은 29일이라 하루는 빠져도 괜찮아요 · 놓친 날은 옥으로 모두 채울 수 있어요</small></div></div>`;
+    const goal = g => `<span class="${a.n >= g.n ? 'on' : ''}">${g.n}일 · ${EvNow().ITEMS[g.id].name}${a.n >= g.n ? ' ✓' : ''}</span>`;
+    return `<div class="wa"><div class="wa-hd"><h4>${EvNow().T.attEmo} 출석부</h4><span><span>출석한 날</span> <b>${a.n}</b>/${EvNow().attMax}</span></div>
+      <div class="wa-goal">${EvNow().attGoals.map(goal).join('')}</div>
+      <div class="wa-grid">${Array.from({ length: EvNow().attMax }, (_, i) => cell(i + 1)).join('')}</div>
+      <div class="wa-ft"><button class="btn ${can ? 'red' : 'dark'}" id="wa-go" ${can ? '' : 'disabled'}>${a.n >= EvNow().attMax ? '모두 받았어요' : can ? `출석하기<small class="wa-r">${attTxt(EvNow().attReward(nx))}</small>` : '내일 또 만나요'}</button>
+      ${a.n < EvNow().attMax && EvNow().missed() > 0 ? `<div class="wa-mk"><span><b>놓친 날 ${EvNow().missed()}일</b><small>옥으로 하루씩 채울 수 있어요</small></span><button class="btn jade" id="wa-mk" ${EvNow().canMakeup() ? '' : 'disabled'}><span>${a.n + 1}일차 출석하기</span><em><img class="px" src="${IC('jade', 2)}">${EvNow().mkJade}</em></button></div>` : ''}
+      <small>하루 한 번 · 기간은 ${evDays(EvNow())}일이라 ${evDays(EvNow()) - EvNow().attMax}일은 빠져도 괜찮아요 · 놓친 날은 옥으로 모두 채울 수 있어요</small></div></div>`;
   }
   function winterAttBox() {
-    if (!Winter.active()) return;
-    const box = modal(`<div class="wv"><div class="wv-hd wa-top"><div class="wv-sn">${Array.from({ length: 14 }, (_, i) => `<i style="left:${(i * 53) % 100}%;width:${2 + (i % 3)}px;height:${2 + (i % 3)}px;animation-duration:${5 + (i * 7) % 5}s;animation-delay:-${(i * 11) % 7}s"></i>`).join('')}</div><span class="wv-tag">12월 3일 ~ 12월 31일</span><h2>겨울 출석</h2><p>매일 출석하고 저승사자 꾸미기를 받아요</p></div>
+    if (!EvNow().active()) return;
+    const box = modal(`<div class="wv"><div class="wv-hd wa-top ${EvNow().T.theme}"><div class="wv-sn">${Array.from({ length: 14 }, (_, i) => `<i style="left:${(i * 53) % 100}%;width:${2 + (i % 3)}px;height:${2 + (i % 3)}px;animation-duration:${5 + (i * 7) % 5}s;animation-delay:-${(i * 11) % 7}s"></i>`).join('')}</div><span class="wv-tag">${EvNow().T.range}</span><h2>${EvNow().T.att}</h2><p>매일 출석하고 저승사자 꾸미기를 받아요</p></div>
       ${winterAttHtml()}</div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`, true);
     box.classList.add('wv-box');
     const done = r => { if (!r) return; Sound.play('buy'); closeModal(); hud(); winterHud(); render();
-      const after = () => r.item ? got(`<b>${Winter.ITEMS[r.item].name}</b><br>겨울 출석 ${r.d}일 달성! 저승사자가 바로 착용했어요.<br>내 정보에서 언제든 쓰기 · 벗기를 고를 수 있어요`, { src: toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, Winter.ITEMS[r.item].ch), 5), title: '겨울 꾸미기 획득!', then: winterAttBox }) : winterAttBox();
-      got(`<b>${attTxt(r.r)}</b>${r.souls ? `<br>혼 +${fmt(r.souls)}` : ''}`, { src: attIc(r.r, 5), title: `겨울 출석 ${r.d}일째!`, then: after }); };
-    const ab = box.querySelector('#wa-go'); if (ab) ab.onclick = () => done(Winter.attend());
-    const mk = box.querySelector('#wa-mk'); if (mk) mk.onclick = () => { closeModal(); if (S().jade < Winter.mkJade) { buyPage('jade'); return; } askBuy(`${Winter.att().n + 1}일차 출석하기`, '놓친 날 하루를 출석한 것으로 채워요. 그날 보상도 받아요.', Winter.mkJade, 0, () => done(Winter.attend(true)), winterAttBox); };
+      const after = () => r.item ? got(`<b>${EvNow().ITEMS[r.item].name}</b><br>${EvNow().T.att} ${r.d}일 달성! ${EvNow().ITEMS[r.item].trail ? '이제 걸을 때마다 지나간 자리에 부적이 흩날려요.' : '저승사자가 바로 착용했어요.'}<br>내 정보에서 언제든 쓰기 · 벗기를 고를 수 있어요`, { src: evItemIc(EvNow(), r.item, 5), title: `${EvNow().T.season} 꾸미기 획득!`, then: winterAttBox }) : winterAttBox();
+      got(`<b>${attTxt(r.r)}</b>${r.souls ? `<br>혼 +${fmt(r.souls)}` : ''}`, { src: attIc(r.r, 5), title: `${EvNow().T.att} ${r.d}일째!`, then: after }); };
+    const ab = box.querySelector('#wa-go'); if (ab) ab.onclick = () => done(EvNow().attend());
+    const mk = box.querySelector('#wa-mk'); if (mk) mk.onclick = () => { closeModal(); if (S().jade < EvNow().mkJade) { buyPage('jade'); return; } askBuy(`${EvNow().att().n + 1}일차 출석하기`, '놓친 날 하루를 출석한 것으로 채워요. 그날 보상도 받아요.', EvNow().mkJade, 0, () => done(EvNow().attend(true)), winterAttBox); };
   }
   function winterBox() {
-    if (!Winter.active()) return;
-    const e = Winter.st(), pct = Math.min(100, e.n / Winter.max * 100);
+    if (!EvNow().active()) return;
+    const e = EvNow().st(), pct = Math.min(100, e.n / EvNow().max * 100);
     const goal = (g, i) => {
-      const got_ = !!e.got[g.id], can = Winter.claimable(g), d = g.kind === 'decor' ? Decor.D(g.id) : Pets.P(g.id);
+      const got_ = !!e.got[g.id], can = EvNow().claimable(g), d = g.kind === 'decor' ? Decor.D(g.id) : Pets.P(g.id);
       const img = g.kind === 'decor' ? decoThumb(g.id, 3) : petIcon(d, true);
-      return `<div class="wv-goal ${got_ ? 'done' : can ? 'can' : ''}"><div class="wv-th"><img class="px" src="${img}"></div><div class="wv-gi"><b>${g.kind === 'pet' ? `<span class="gb" style="background:${PET_GRADES[d.g].col}">${d.g}</span> ` : ''}${d.name}</b><small>${g.kind === 'decor' ? '겨울 한정 소품 · 집무실 꾸미기' : '겨울 한정 영물 · 모든 수확 증가'}</small><span class="wv-req"><img class="px" src="${patIcon(2)}"> ${g.n}개</span></div>
+      return `<div class="wv-goal ${got_ ? 'done' : can ? 'can' : ''}"><div class="wv-th"><img class="px" src="${img}"></div><div class="wv-gi"><b>${g.kind === 'pet' ? `<span class="gb" style="background:${PET_GRADES[d.g].col}">${d.g}</span> ` : ''}${d.name}</b><small>${g.kind === 'decor' ? `${EvNow().T.season} 한정 소품 · 집무실 꾸미기` : `${EvNow().T.season} 한정 영물 · 모든 수확 증가`}</small><span class="wv-req"><img class="px" src="${patIcon(2)}"> ${g.n}개</span></div>
         <button class="btn ${can ? 'red' : 'dark'}" data-wg="${i}" ${can ? '' : 'disabled'}>${got_ ? '받음 ✓' : can ? '받기' : `${Math.min(e.n, g.n)}/${g.n}`}</button></div>`;
     };
-    const box = modal(`<div class="wv"><div class="wv-hd"><div class="wv-sn">${Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 53) % 100}%;width:${2 + (i % 3)}px;height:${2 + (i % 3)}px;animation-duration:${5 + (i * 7) % 5}s;animation-delay:-${(i * 11) % 7}s"></i>`).join('')}</div><span class="wv-tag">겨울 한정 이벤트</span><h2>동짓날 팥죽</h2><p>남은 기간 ${dleft(Winter.left())} · 12월 31일까지</p></div>
-      <div class="wv-how"><img class="px" src="${patIcon(4)}"><p><b>게임을 켜 두면 30분마다 팥 영혼이 나타나요</b><br>맵에 나타난 팥 영혼을 눌러서 모아 보세요<small>접속하지 않은 동안에는 1개까지만 모여요</small></p></div>
-      <div class="wv-prog"><div class="wv-top"><span><img class="px" src="${patIcon(2)}"> <b>${e.n}</b> / ${Winter.max}</span><span class="wv-nx">다음 팥 영혼 <b id="wv-next">${Winter.room() <= 0 ? (Winter.done() ? '모두 모았어요' : '맵에 나타났어요!') : mmss(Winter.nextIn())}</b></span></div>
+    const box = modal(`<div class="wv"><div class="wv-hd ${EvNow().T.theme}"><div class="wv-sn">${Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 53) % 100}%;width:${2 + (i % 3)}px;height:${2 + (i % 3)}px;animation-duration:${5 + (i * 7) % 5}s;animation-delay:-${(i * 11) % 7}s"></i>`).join('')}</div><span class="wv-tag">${EvNow().T.tag}</span><h2>${EvNow().T.name}</h2><p>남은 기간 ${dleft(EvNow().left())} · ${EvNow().T.until}</p></div>
+      <div class="wv-how"><img class="px" src="${patIcon(4)}"><p><b>게임을 켜 두면 30분마다 ${EvNow().T.soul}이 나타나요</b><br>맵에 나타난 ${EvNow().T.soul}을 눌러서 모아 보세요<small>접속하지 않은 동안에는 1개까지만 모여요</small></p></div>
+      <div class="wv-prog"><div class="wv-top"><span><img class="px" src="${patIcon(2)}"> <b>${e.n}</b> / ${EvNow().max}</span><span class="wv-nx">다음 ${EvNow().T.soul} <b id="wv-next">${EvNow().room() <= 0 ? (EvNow().done() ? '모두 모았어요' : '맵에 나타났어요!') : mmss(EvNow().nextIn())}</b></span></div>
         <div class="wv-bar"><i style="width:${pct}%"></i><em style="left:50%" class="${e.n >= 20 ? 'on' : ''}">20</em><em style="left:100%" class="${e.n >= 40 ? 'on' : ''}">40</em></div></div>
-      <div class="wv-goals">${Winter.goals.map(goal).join('')}</div>
-      <div class="wv-shop"><h4>겨울 상점 <small>12월 31일까지</small></h4>
-        <div class="wv-item"><div class="wv-th"><img class="px" src="${patIcon(4)}"></div><div class="wv-gi"><b>팥죽 한 그릇</b><small>팥 영혼 1개가 바로 나타나요 · 오늘 ${Winter.bowlLeft()}/${Winter.SHOP.bowl.day}번 남음</small></div>
-          <button class="btn jade" id="wv-bowl" ${Winter.bowlLeft() > 0 && Winter.room() > 0 ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${Winter.bowlLeft() > 0 ? Winter.SHOP.bowl.jade : '내일'}</button></div>
+      <div class="wv-goals">${EvNow().goals.map(goal).join('')}</div>
+      <div class="wv-shop"><h4>${EvNow().T.shop} <small>${EvNow().T.until}</small></h4>
+        <div class="wv-item"><div class="wv-th"><img class="px" src="${patIcon(4)}"></div><div class="wv-gi"><b>${EvNow().T.bowl}</b><small>${EvNow().T.soul} 1개가 바로 나타나요 · 오늘 ${EvNow().bowlLeft()}/${EvNow().SHOP.bowl.day}번 남음</small></div>
+          <button class="btn jade" id="wv-bowl" ${EvNow().bowlLeft() > 0 && EvNow().room() > 0 ? '' : 'disabled'}><img class="px" src="${IC('jade', 2)}">${EvNow().bowlLeft() > 0 ? EvNow().SHOP.bowl.jade : '내일'}</button></div>
       </div></div>
       <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`, true);
     box.classList.add('wv-box');
-    const bb = box.querySelector('#wv-bowl'); if (bb) bb.onclick = () => { closeModal(); if (S().jade < Winter.SHOP.bowl.jade) { buyPage('jade'); return; } askBuy('팥죽 한 그릇', '팥 영혼 1개가 바로 맵에 나타나요. (하루 2번)', Winter.SHOP.bowl.jade, 0, () => { if (Winter.buyBowl()) { Sound.play('buy'); hud(); winterHud(true); toast('🥣 팥죽 냄새를 맡고 팥 영혼이 나타났어요!', 2600); } else toast('지금은 살 수 없어요'); }, winterBox); };
+    const bb = box.querySelector('#wv-bowl'); if (bb) bb.onclick = () => { closeModal(); if (S().jade < EvNow().SHOP.bowl.jade) { buyPage('jade'); return; } askBuy(EvNow().T.bowl, `${EvNow().T.soul} 1개가 바로 맵에 나타나요. (하루 ${EvNow().SHOP.bowl.day}번)`, EvNow().SHOP.bowl.jade, 0, () => { if (EvNow().buyBowl()) { Sound.play('buy'); hud(); winterHud(true); toast(EvNow().T.bowlToast, 2600); } else toast('지금은 살 수 없어요'); }, winterBox); };
     box.querySelectorAll('[data-wg]').forEach(bt => bt.onclick = () => {
-      const g = Winter.claim(+bt.dataset.wg); if (!g) return; Sound.play('buy'); closeModal(); render(); winterHud();
-      if (g.kind === 'decor') got(`<b>${Decor.D(g.id).name}</b><br>집무실 꾸미기에서 놓을 수 있어요`, { src: decoThumb(g.id, 5), title: '겨울 소품 획득!', then: winterBox });
-      else { const p = Pets.P(g.id); got(`<b><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</b><br>영물 도감에 들어왔어요. 영물 탭에서 함께 다닐 수 있어요`, { src: petIcon(p, true), title: '겨울 한정 영물 획득!', then: winterBox }); }
+      const g = EvNow().claim(+bt.dataset.wg); if (!g) return; Sound.play('buy'); closeModal(); render(); winterHud();
+      if (g.kind === 'decor') got(`<b>${Decor.D(g.id).name}</b><br>집무실 꾸미기에서 놓을 수 있어요`, { src: decoThumb(g.id, 5), title: `${EvNow().T.season} 소품 획득!`, then: winterBox });
+      else { const p = Pets.P(g.id); got(`<b><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</b><br>영물 도감에 들어왔어요. 영물 탭에서 함께 다닐 수 있어요`, { src: petIcon(p, true), title: `${EvNow().T.season} 한정 영물 획득!`, then: winterBox }); }
     });
   }
   function tick(dt) {
@@ -437,7 +455,7 @@ const UI = (() => {
     placeLabels(); tutPlace();
     paradeTick(dt);
     if (!S().kind) return;
-    Winter.tick(dt); snowTick(dt); winterAcc += dt; if (winterAcc > 0.5) { winterAcc = 0; winterHud(); }
+    Winter.tick(dt); NewYear.tick(dt); snowTick(dt); winterAcc += dt; if (winterAcc > 0.5) { winterAcc = 0; winterHud(); }
     if (!document.hidden && dt < 1) S().playSec = (S().playSec || 0) + dt; // 실제로 켜 둔 시간
     Stats.tick(dt);
     if (Scene.wraithAlive()) {
@@ -509,13 +527,14 @@ const UI = (() => {
     bs.forEach(k => chips.push(['b-' + k, { value: '🍵', spawn: '🪷', fight: '🍶' }[k], `${BUFF_NAME[k]} ${BUFF_EFF[k]}`, fmtClock(Life.buffLeft(k)), { value: '혼 가치 1.5배', spawn: '혼령이 1.4배 빨리 나타나요', fight: '원귀 퇴치 화력 3배' }[k]]));
     if (Life.fortuneMul() > 1) chips.push(['fortune', '🔮', `운세 ${S().fortune.last} ×${Life.fortuneMul()}`, fmtClock((S().fortune.until - Date.now()) / 1000), '오늘의 운세 효과']);
     if (Winter.giftOn()) chips.push(['gift', '🎁', '산타의 선물 +10%', fmtClock(Winter.giftLeft()), '혼 수확 10% 증가']);
+    if (NewYear.giftOn()) chips.push(['gift', '🥣', '떡국 한 그릇 +10%', fmtClock(NewYear.giftLeft()), '혼 수확 10% 증가']);
     if (Game.sealLeft() > 0) chips.push(['seal', '📜', '염라의 인장 ×2', fmtDays(Game.sealLeft()), '모든 혼 수확 2배']);
     const bsig = chips.map(c => c[0] + c[2]).join('|');
     if (bsig !== buffChips) { buffChips = bsig; $('#buffs').innerHTML = chips.map(c => `<span class="bf bf-${c[0]}" data-bf="${c[4]}" data-nm="${c[2]}"><i>${c[1]}</i>${c[2]} <b>${c[3]}</b></span>`).join(''); }
     else chips.forEach((c, i) => { const el = $('#buffs').children[i]; if (el) { const t = el.querySelector('b'); if (t.textContent !== c[3]) t.textContent = c[3]; } });
     // 효과가 끝나면 알려 주기
     const live = new Set(chips.map(c => c[0])); buffLive.forEach(k => { if (false) toast(''); }); buffLive = live;
-    const sig = bs.join() + Game.boosting() + (Game.sealLeft() > 0) + Winter.giftOn(); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
+    const sig = bs.join() + Game.boosting() + (Game.sealLeft() > 0) + Winter.giftOn() + NewYear.giftOn(); if (sig !== buffSig) { buffSig = sig; Game.apply(); }
     refresh(); officeBar(); officeTutCheck();
     if (++stuckT % 25 === 0) checkStuck();
     if (stuckT % 5 === 0) { checkRbCatch(); checkUpdGift(); }
@@ -778,6 +797,7 @@ const UI = (() => {
   function npcHot(id) {
     const s = S(); if (!s || !s.kind) return false;
     if (id === 'santa') return Winter.active() && Winter.giftWait() <= 0;   // 산타의 선물을 받을 수 있으면 노란 이름표
+    if (id === 'ddeok') return NewYear.active() && NewYear.giftWait() <= 0;  // 떡국을 받을 수 있으면 노란 이름표
     if (id === 'mudang') return Life.fortuneLeft() >= 2;
     if (id === 'sansin') { const o = Life.offerState(); return (o.small > 0 && s.souls >= o.smallCost) || (o.big > 0 && s.souls >= o.bigCost); }
     if (id === 'kkachi') return Life.mailCount() > 0;
@@ -864,17 +884,19 @@ const UI = (() => {
   function exitOffice() { decoEnd(true); if (visiting) { visiting = null; } Scene.exitOffice(); const bar = $('#office-bar'); if (bar) bar.classList.remove('on'); $('#office-acts') && $('#office-acts').classList.remove('on'); $('#side').style.display = ''; $('#stage').classList.remove('in-office'); document.body.classList.remove('in-office-t'); Sound.play('open'); }
   // ---------- 내 정보 (왼쪽 위 초상화를 누르면) ----------
   // 내 정보 → 꾸미기 (기간 없이 언제든 쓰기 · 벗기): 겨울 목도리 · 사슴뿔 머리띠
-  const ITEMS = [['rscarf', '저승사자 목도리', 's'], ['antler', '사슴뿔 머리띠', 'a']];
+  const ITEMS = [['rscarf', '저승사자 목도리', 's', 'w26'], ['antler', '사슴뿔 머리띠', 'a', 'w26'], ['bokbag', '복주머니', 'b', 'n27'], ['bujeok', '부적 날리기', '', 'n27']];
+  const evOf = ev => (ev === 'n27' ? NewYear : Winter);
   function itemsSection() {
-    const icon = ch => toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, ch), 2);
-    return `<div class="st-sec">🎒 착용 아이템</div><div class="it-grid">${ITEMS.map(([id, nm, ch]) => { const own = Winter.owns(id), on = Winter.wearing(id);
-      return `<div class="it-card ${own ? '' : 'lock'}"><img class="px" src="${icon(ch)}"><b>${nm}</b>${own ? `<button class="btn ${on ? 'red' : 'dark'}" data-itw="${id}">${on ? '쓰는 중' : '벗음'}</button>` : `<small>${Winter.active() ? `겨울 출석 ${id === 'antler' ? 14 : 28}일 보상` : '2026 겨울 출석 한정'}</small>`}</div>`; }).join('')}</div>`;
+    // 지금 열린 이벤트 꾸미기는 늘 보여 주고, 지난 이벤트 꾸미기는 가진 것만
+    const list = ITEMS.filter(([id, , , ev]) => evOf(ev).owns(id) || evOf(ev).active() || ev === 'w26');
+    return `<div class="st-sec">🎒 착용 아이템</div><div class="it-grid">${list.map(([id, nm, ch, ev]) => { const X = evOf(ev), own = X.owns(id), on = X.wearing(id), g = X.attGoals.find(x => x.id === id);
+      return `<div class="it-card ${own ? '' : 'lock'}"><img class="px" src="${evItemIc(X, id, 2)}"><b>${nm}</b>${own ? `<button class="btn ${on ? 'red' : 'dark'}" data-itw="${ev}:${id}">${on ? (ch ? '쓰는 중' : '켜짐') : (ch ? '벗음' : '꺼짐')}</button>` : `<small>${X.active() ? `${X.T.att} ${g ? g.n : 28}일 보상` : `${ev === 'n27' ? '2027 새해' : '2026 겨울'} 출석 한정`}</small>`}</div>`; }).join('')}</div>`;
   }
-  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-itw]'); if (!b) return; const on = Winter.toggleWear(b.dataset.itw); Sound.play('open'); b.textContent = on ? '쓰는 중' : '벗음'; b.className = 'btn ' + (on ? 'red' : 'dark'); });
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-itw]'); if (!b) return; const [ev, id] = b.dataset.itw.split(':'), X = evOf(ev), on = X.toggleWear(id), ch = X.ITEMS[id].ch; Sound.play('open'); b.textContent = on ? (ch ? '쓰는 중' : '켜짐') : (ch ? '벗음' : '꺼짐'); b.className = 'btn ' + (on ? 'red' : 'dark'); });
   function statsModal() {
     const s = S(), R = RANKS[s.rank], N = Game.nextRank(), pct = x => `${x >= 1 ? '+' : ''}${Math.round((x - 1) * 100)}%`, f1 = x => (Math.round(x * 100) / 100).toString();
     const pet = s.petEq && s.pets && s.pets[s.petEq] ? Pets.P(s.petEq) : null, pst = pet ? Pets.stats(pet.id) : [0, 0, 0];
-    const buffs = [Game.boosting() ? `2배 부적 ×2` : '', Game.sealLeft() > 0 ? `염라의 인장 ×2 (${fmtDays(Game.sealLeft())})` : '', Life.fortuneMul() > 1 ? `운세 ${s.fortune.last} ×${Life.fortuneMul()}` : '', Winter.giftOn() ? `산타의 선물 +10% (${fmtClock(Winter.giftLeft())})` : '', ...['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0).map(k => `${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}`)].filter(Boolean);
+    const buffs = [Game.boosting() ? `2배 부적 ×2` : '', Game.sealLeft() > 0 ? `염라의 인장 ×2 (${fmtDays(Game.sealLeft())})` : '', Life.fortuneMul() > 1 ? `운세 ${s.fortune.last} ×${Life.fortuneMul()}` : '', Winter.giftOn() ? `산타의 선물 +10% (${fmtClock(Winter.giftLeft())})` : '', NewYear.giftOn() ? `떡국 한 그릇 +10% (${fmtClock(NewYear.giftLeft())})` : '', ...['value', 'spawn', 'fight'].filter(k => Life.buffLeft(k) > 0).map(k => `${BUFF_NAME[k]} ${fmtClock(Life.buffLeft(k))}`)].filter(Boolean);
     const row = (k, v, sub) => `<div class="st-row"><span>${k}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
     const box = modal(`<div class="st-head"><canvas id="st-por" class="pf-mini" width="120" height="84"></canvas><div><b>${esc(s.name || '')}</b><span class="badge">${R.name}</span><small>Lv.${Game.level()} · ${REGIONS[R.region].name}${s.reborn ? ` · 윤회 ${s.reborn}회` : ''}</small>${N ? `<div class="prog"><i style="width:${Math.min(100, Game.level() / N.lv * 100)}%"></i></div><small>다음 계급 <b style="color:var(--gold)">${N.name}</b>까지 Lv.${N.lv}</small>` : '<small style="color:var(--gold)">최고 계급!</small>'}</div></div>
       ${itemsSection()}
@@ -1066,7 +1088,7 @@ const UI = (() => {
   }
   const rankIcon = (kind, rank, dc) => { const k = 'rk' + kind + rank + (dc || ''); return urls[k] || (urls[k] = toURL(SP.tinyReaper(kind || 'm', rank || 0, 'down', 'idle', 0, dc || ''), 2)); };
   function rankRow(r, place, by) {
-    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank, r.me ? (Winter.deco ? Winter.deco() : '') : r.dc)}"><div class="rki"><b class="${rbCls(r.rb)}">${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · ${rbTitle(r.rb)}` : ''}${r.pt != null && by !== 'pt' ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">${by === 'pt' ? '⏱ ' + (r.pt != null ? fmtPlay(r.pt) : '-') : 'Lv.' + r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
+    const t = Board.tierOf(place); return `<div class="rkrow ${r.me ? 'me' : ''} ${t ? 'tier' + t : ''}" data-prof="${place || 0}"><span class="rkn">${place === 1 ? '👑' : place || '-'}</span><img class="px" src="${rankIcon(r.kind, r.rank, r.me ? evDeco() : r.dc)}"><div class="rki"><b class="${rbCls(r.rb)}">${esc(r.name)}${r.me && r.name !== '나' ? ' <em>나</em>' : ''}</b><small>${RANKS[Math.min(8, r.rank || 0)].name}${r.rb ? ` · ${rbTitle(r.rb)}` : ''}${r.pt != null && by !== 'pt' ? ` · ⏱ ${fmtPlay(r.pt)}` : ''}</small></div><span class="rklv">${by === 'pt' ? '⏱ ' + (r.pt != null ? fmtPlay(r.pt) : '-') : 'Lv.' + r.lv}</span>${r.id && !r.me ? `<button class="btn rk-visit" data-visit="${esc(r.id)}">🏘️</button>` : ''}</div>`;
   }
   // 실제 접속 시간 표기
   const fmtPlay = sec => { sec = sec || 0; const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : `${m}분`; };
@@ -1094,7 +1116,7 @@ const UI = (() => {
       S().name = n; S().nickSet = true; Game.save(); Board.push(true); Board.pushOffice(); Sound.play('promote'); closeModal(); toast(`「${esc(n)}」(으)로 정했어요!`); after && after();
     };
   }
-  const mineProf = () => { const s = S(); return { dc: (Winter.deco ? Winter.deco() : ''), name: s.nickSet ? s.name : '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 1 : 1, pt: s.playSec || 0 }; };
+  const mineProf = () => { const s = S(); return { dc: evDeco(), name: s.nickSet ? s.name : '나', kind: s.kind, rank: s.rank, rb: s.reborn || 0, lv: Game.level(), me: true, pet: s.petEq && s.pets && s.pets[s.petEq] ? s.petEq : '', ps: s.petEq && s.pets ? s.pets[s.petEq] || 1 : 1, pt: s.playSec || 0 }; };
   async function rankModal(by) {
     by = by === 'pt' ? 'pt' : 'lv';
     if (Board.online() && !S().nickSet) { nickModal(() => rankModal(by)); return; }
@@ -1370,6 +1392,15 @@ const UI = (() => {
   }
   function openLife(k) { sub = k; goTab('life'); }
   // 산타의 선물: 혼 수확 +10% 30분 (1시간마다)
+  // 떡국상: 떡국 한 그릇 → 혼 수확 +10% 30분 (1시간마다)
+  function ddeokGift() {
+    if (!NewYear.active()) return;
+    if (NewYear.takeGift()) { Sound.play('promote'); Game.apply(); hud(); got(`<b>혼 수확 +10%</b> · 30분<br>${NewYear.T.giftMsg}`, { emo: '🥣', title: '떡국 한 그릇!' }); return; }
+    const L = ['🥣 떡국은 한 그릇씩! 조금만 기다리게나', '🥣 새해 복 많이 받게. 새해 출석은 잊지 않았겠지?', '🥣 떡을 썰고 있으니 조금만 기다리게', '🐑 붉은 양도 떡국 냄새를 맡고 올지 모른다네'];
+    const box = modal(`<div class="got"><div class="got-ic">⏳</div><h2>떡국 쿨타임</h2><p class="got-t">${L[Math.floor(Math.random() * L.length)]}</p><p class="gift-cd">다음 떡국까지 <b id="gift-cd">${fmtClock(NewYear.giftWait())}</b></p>${NewYear.giftOn() ? `<p class="mute">지금 효과 중 · ${fmtClock(NewYear.giftLeft())} 남음</p>` : ''}
+      <div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`);
+    const tm = setInterval(() => { const el = box.querySelector('#gift-cd'); if (!el || !document.body.contains(el)) { clearInterval(tm); return; } const w = NewYear.giftWait(); el.textContent = fmtClock(w); if (w <= 0) { clearInterval(tm); closeModal(); ddeokGift(); } }, 500);
+  }
   function santaGift(id) {
     if (!Winter.active()) return;
     if (Winter.takeGift()) { Sound.play('promote'); Game.apply(); hud(); got('<b>혼 수확 +10%</b> · 30분<br>호호호! 착한 차사에게 주는 선물이라네', { emo: '🎁', title: '산타의 선물!' }); return; }
@@ -1390,6 +1421,7 @@ const UI = (() => {
     else if (id === 'boat') openLife('expe');
     else if (id === 'judge') { goTab('rank'); toast(Game.canTest() ? '판관: 승진할 수 있네! 승진 탭에서 승진하게' : `판관: 레벨 ${Game.nextRank() ? Game.nextRank().lv : '-'}이 되면 다시 오게`); }
     else if (id === 'santa' || id === 'deer') santaGift(id);
+    else if (id === 'ddeok') ddeokGift();
     else if (id === 'mudang') fortuneModal();
     else if (id === 'sansin') offerModal();
     else if (id === 'kkachi') mailOpen();
@@ -1663,7 +1695,7 @@ const UI = (() => {
         drawMagic(g, cx, cy, p.magic, t, p.msc || 1); return;
       }
       if (p.prof) { // 프로필: 마법진 → 영물 기운 → 저승사자 · 영물
-        const P = p.prof, W = p.c.width, H = p.c.height, f2 = Math.floor(t * 3), im = SP.reaper(P.kind, P.rank, 'idle', f2 % 4, P.me ? (Winter.deco ? Winter.deco() : '') : P.dc || ''), ft = feetOf(P.kind, P.rank);
+        const P = p.prof, W = p.c.width, H = p.c.height, f2 = Math.floor(t * 3), im = SP.reaper(P.kind, P.rank, 'idle', f2 % 4, P.me ? evDeco() : P.dc || ''), ft = feetOf(P.kind, P.rank);
         const rx = Math.round(W * 0.36 - im.width / 2), ry = H - 8 - im.height, fx = rx + ft.x * im.width, fy = ry + ft.y * im.height;
         drawMagic(g, fx, fy, P.rank, t, 1.6);
         g.drawImage(im, rx, ry);
@@ -1676,7 +1708,7 @@ const UI = (() => {
         drawPetAura(g, W / 2, y + pm.height, pm.width, pm.height, p.pet.g, p.aura, t, 1); g.drawImage(pm, x, y); return;
       }
       const f = Math.floor(t * 3 + (p.ph || 0));
-      const img = p.pet ? SP.pet(p.pet, f) : p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.rank != null ? p.rank : S().rank, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4, p.dc ? (Winter.deco ? Winter.deco() : '') : '');
+      const img = p.pet ? SP.pet(p.pet, f) : p.mini ? SP.mini('idle', f) : SP.reaper(p.kind, p.rank != null ? p.rank : S().rank, p.pose || 'idle', p.pose === 'reap' ? f % 2 : f % 4, p.dc ? evDeco() : '');
       g.drawImage(img, 0, 0, p.c.width, p.c.height);
     });
   }
@@ -1895,7 +1927,7 @@ const UI = (() => {
     const k = 'por' + sp + (sp === 'me' ? S().kind + S().rank : '');
     if (urls[k]) return urls[k];
     const dark = c0 => { const d = document.createElement('canvas'); d.width = c0.width; d.height = c0.height; const x2 = d.getContext('2d'); x2.filter = 'grayscale(1) brightness(0.55) sepia(1) hue-rotate(230deg) saturate(2.2)'; x2.drawImage(c0, 0, 0); return d; };
-    const c = sp === 'me' ? SP.reaper(S().kind || 'm', S().rank, 'idle', 0, (Winter.deco ? Winter.deco() : '')) : sp === 'gangrim' ? SP.reaper('m', 4, 'idle', 0) : sp === 'yeomra' ? SP.reaper('m', 8, 'idle', 0) : sp === 'wraith' ? SP.wraith(0)
+    const c = sp === 'me' ? SP.reaper(S().kind || 'm', S().rank, 'idle', 0, evDeco()) : sp === 'gangrim' ? SP.reaper('m', 4, 'idle', 0) : sp === 'yeomra' ? SP.reaper('m', 8, 'idle', 0) : sp === 'wraith' ? SP.wraith(0)
       : sp === 'judge' ? SP.reaper('m', 5, 'idle', 0) : sp === 'muk' ? dark(SP.reaper('m', 6, 'idle', 0)) : sp === 'minion' ? SP.mini('idle', 0) : sp === 'sib' ? SP.npc('elder') : sp === 'kkachi' ? SP.pet(PETS.find(p => p.id === 'kkachi'), 0) : SP.npc(sp);
     return (urls[k] = toURL(c, 5));
   }
@@ -2110,7 +2142,7 @@ const UI = (() => {
       if (!document.body.contains(c)) return;
       const now = performance.now(), t = (now - t0) / 1000, tm = now / 1000;
       ctx.clearRect(0, 0, c.width, c.height); ctx.imageSmoothingEnabled = false;
-      const im = SP.reaper(kind, rank, 'idle', Math.floor(tm * 3) % 4, (Winter.deco ? Winter.deco() : '')), ft = feetOf(kind, rank), h = Math.round(ft.y * im.height), ix = Math.round(X - ft.x * im.width), iy = Math.round(Y - ft.y * im.height); // 그림 상자가 아니라 실제 발 위치에 맞춤
+      const im = SP.reaper(kind, rank, 'idle', Math.floor(tm * 3) % 4, evDeco()), ft = feetOf(kind, rank), h = Math.round(ft.y * im.height), ix = Math.round(X - ft.x * im.width), iy = Math.round(Y - ft.y * im.height); // 그림 상자가 아니라 실제 발 위치에 맞춤
       let alpha = 1, white = 0, fx = 1;
       if (!done) { // 0~1.5초: 빛으로 물들며 혼불로 흩어짐
         white = Math.max(0, Math.min(1, (t - 0.3) / 0.8)); alpha = t < 1.1 ? 1 : Math.max(0, 1 - (t - 1.1) / 0.4); fx = Math.max(0, 1 - t / 0.8);
@@ -2178,7 +2210,7 @@ const UI = (() => {
     const kind = s.kind || 'm', rank = s.rank || 0;
     const loop = () => { if (!document.body.contains(c)) return; const t = performance.now() / 1000, x = 32, y = 40;
       ctx.clearRect(0, 0, c.width, c.height); ctx.imageSmoothingEnabled = false;
-      const im = SP.tinyReaper(kind, rank, 'down', 'idle', Math.floor(t * 2.5), (Winter.deco ? Winter.deco() : '')), h = im.height;
+      const im = SP.tinyReaper(kind, rank, 'down', 'idle', Math.floor(t * 2.5), evDeco()), h = im.height;
       drawMagic(ctx, x, y, Math.min(rank, 8), t); Scene.rbDraw(ctx, x, y, h, n, t, 'under');
       ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x - 4, y - 1, 8, 2); ctx.drawImage(im, Math.round(x - im.width / 2), Math.round(y - h + 1));
       Scene.rbDraw(ctx, x, y, h, n, t, 'over'); requestAnimationFrame(loop); };
@@ -2261,7 +2293,7 @@ const UI = (() => {
   }
   function petInfo(id) {
     const p = Pets.P(id), s = S(), st = s.pets[id];
-    if (!st) { modal(`<div class="pinfo"><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ???</h2><p class="mute">${p.g}등급 영물</p><p class="lore">${p.id === 'seollok' ? (Winter.active() ? '아직 만나지 못한 영물이에요. 겨울 이벤트(동짓날 팥죽)에서 팥 영혼 40개를 모으면 만날 수 있어요.' : '2026 겨울 이벤트(동짓날 팥죽) 한정 영물이에요.') : p.id === 'yunhoe' ? '아직 만나지 못한 영물이에요. 윤회를 다섯 번 이루면 만날 수 있어요.' : '아직 만나지 못한 영물이에요. 영물 소환으로 만날 수 있어요.'}</p></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
+    if (!st) { modal(`<div class="pinfo"><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ???</h2><p class="mute">${p.g}등급 영물</p><p class="lore">${p.id === 'seollok' ? (Winter.active() ? '아직 만나지 못한 영물이에요. 겨울 이벤트(동짓날 팥죽)에서 팥 영혼 40개를 모으면 만날 수 있어요.' : '2026 겨울 이벤트(동짓날 팥죽) 한정 영물이에요.') : p.id === 'jeongmi' ? (NewYear.active() ? '아직 만나지 못한 영물이에요. 새해 이벤트(정미년 복주머니)에서 복주머니 영혼 40개를 모으면 만날 수 있어요.' : '2027 새해 이벤트(정미년 복주머니) 한정 영물이에요.') : p.id === 'yunhoe' ? '아직 만나지 못한 영물이에요. 윤회를 다섯 번 이루면 만날 수 있어요.' : '아직 만나지 못한 영물이에요. 영물 소환으로 만날 수 있어요.'}</p></div><div class="acts"><button class="btn dark" data-act="close">닫기</button></div>`); return; }
     const inv = s.petInv[id] || 0, c = Pets.starCost(id), sv = Pets.stats(id);
     const box = modal(`<div class="pinfo"><canvas id="pi-big" ${PET_AURA[p.g] ? 'class="pa" width="40" height="40"' : 'width="12" height="11"'}></canvas><h2><span class="gb" style="background:${PET_GRADES[p.g].col}">${p.g}</span> ${p.name}</h2><div class="stars">${'★'.repeat(st)}${'☆'.repeat(5 - st)}</div><p class="mute">${p.desc}</p>${PET_LORE[id] ? `<p class="lore">${PET_LORE[id]}</p>` : ''}
       <p class="mute">수확량 +${Math.round(sv[0] * 100)}% · 이동 +${Math.round(sv[1] * 100)}% · 수확속도 +${Math.round(sv[2] * 100)}%<br>여분 <b style="color:var(--gold)">${inv}</b>마리${st < 5 ? `<br>별 올리기에 ${c}마리 필요` : ' · 최대 별!'}</p>

@@ -14,9 +14,39 @@ const WINTER = {
     { n: 20, kind: 'decor', id: 'ev_patjuk' },
     { n: 40, kind: 'pet', id: 'seollok' },
   ],
+  shop: { jade: 80, day: 2 },
+  items: { antler: { ch: 'a', name: '사슴뿔 머리띠' }, rscarf: { ch: 's', name: '저승사자 목도리' } },
+  attGoals: [{ n: 14, id: 'antler' }, { n: 28, id: 'rscarf' }],
+  gift: { mul: 1.1, dur: 1800e3, cd: 3600e3 },
+  T: { name: '동짓날 팥죽', soul: '팥 영혼', tag: '겨울 한정 이벤트', range: '12월 3일 ~ 12월 31일', until: '12월 31일까지', att: '겨울 출석', attEmo: '❄️', season: '겨울', shop: '겨울 상점', bowl: '팥죽 한 그릇',
+       bowlToast: '🥣 팥죽 냄새를 맡고 팥 영혼이 나타났어요!', gift: '산타의 선물', giftMsg: '호호호! 착한 차사에게 주는 선물이라네', giftEmo: '🎁', npc: 'santa', endKey: 'winterEnd', theme: 'winter', btn: '동짓날' },
 };
 
-const Winter = (() => {
+// ===== 새해 이벤트 '정미년 복주머니' (2027-01-01 0시 ~ 01-31 24시, 한국 시간) =====
+// - 게임을 켜 두면 30분마다 맵에 '복주머니 영혼'이 나타남 (팥 영혼과 같은 규칙)
+// - 새해 출석 28일: 14일 복주머니(손에 들고 다님) · 28일 부적 날리기(걸을 때마다 지나간 자리에 부적이 흩날림)
+// - 20개: 새해 소품 '정미년 복주머니 걸이' · 40개: SS 영물 '정미년 붉은 양'
+// - 맵의 떡국상(산타 자리): 떡국 한 그릇 → 혼 수확 +10% 30분 · 1시간마다
+const NEWYEAR = {
+  id: 'n27',
+  start: Date.parse('2027-01-01T00:00:00+09:00'),
+  end: Date.parse('2027-02-01T00:00:00+09:00'),
+  per: 1800,
+  max: 40,
+  goals: [
+    { n: 20, kind: 'decor', id: 'ev_bokgeori' },
+    { n: 40, kind: 'pet', id: 'jeongmi' },
+  ],
+  shop: { jade: 80, day: 2 },
+  items: { bokbag: { ch: 'b', name: '복주머니' }, bujeok: { ch: '', name: '부적 날리기', trail: 1 } },
+  attGoals: [{ n: 14, id: 'bokbag' }, { n: 28, id: 'bujeok' }],
+  gift: { mul: 1.1, dur: 1800e3, cd: 3600e3 },
+  T: { name: '정미년 복주머니', soul: '복주머니 영혼', tag: '2027 새해 이벤트', range: '1월 1일 ~ 1월 31일', until: '1월 31일까지', att: '새해 출석', attEmo: '🧧', season: '새해', shop: '새해 상점', bowl: '세뱃돈 봉투',
+       bowlToast: '🧧 세뱃돈 냄새를 맡고 복주머니 영혼이 나타났어요!', gift: '떡국 한 그릇', giftMsg: '떡국 한 그릇 먹고 한 살 더! 올해도 복 많이 받게나', giftEmo: '🥣', npc: 'ddeok', endKey: 'nyEnd', theme: 'ny', btn: '복주머니' },
+};
+
+// 이벤트 틀: 같은 규칙(켜 둔 시간마다 영혼 · 출석 28일 · 상점 1종 · 맵 NPC 선물)을 설정만 바꿔서 여러 번 씀
+function mkEvent(WINTER) {
   let endOverride = null, onSpawn = null;
   const S = () => Game.S;
   const dbg = () => !(typeof Native !== 'undefined' && Native.isApp && Native.isApp());   // 미리보기(웹)에서만 시간 옮기기 · 빨리 감기 허용
@@ -40,12 +70,12 @@ const Winter = (() => {
   // 맵에 나타난 팥 영혼 줍기
   function collect() { const e = st(); if (e.pend <= 0 || !active()) return 0; e.pend--; e.n = Math.min(WINTER.max, e.n + 1); Game.save(); return e.n; }
   // 겨울 상점 (이벤트 기간에만 판매): 팥죽 한 그릇(옥 80 · 하루 2번 · 팥 영혼 1개 바로)
-  const SHOP = { bowl: { jade: 80, day: 2 } };
+  const SHOP = { bowl: WINTER.shop };
   // 저승사자 꾸미기 (겨울 출석 보상): 받은 것은 이벤트가 끝나도 계속 쓸 수 있고, 내 정보에서 쓰기 · 벗기를 고를 수 있음
-  const ITEMS = { antler: { ch: 'a', name: '사슴뿔 머리띠' }, rscarf: { ch: 's', name: '저승사자 목도리' } };
+  const ITEMS = WINTER.items;
   // ---------- 겨울 출석 (12-03 ~ 12-31, 한국 시간 하루 1번) ----------
   // 출석한 날 수(이어지지 않아도 됨)로 셈 · 매번 기본 보상 · 14일째 사슴뿔 머리띠 · 28일째 저승사자 목도리
-  const ATT_MAX = 28, ATT_GOALS = [{ n: 14, id: 'antler' }, { n: 28, id: 'rscarf' }];
+  const ATT_MAX = 28, ATT_GOALS = WINTER.attGoals;
   const ATT_SEED = [{ lotus: 3 }, { honbul: 2 }, { lotus: 3 }, { saengsa: 1 }];
   function attReward(d) {          // d: 몇 번째 출석 (1~28)
     const w = Math.floor((d - 1) / 7), k = (d - 1) % 7;
@@ -79,9 +109,9 @@ const Winter = (() => {
   const owns = id => !!(ev0().items || {})[id];
   const wearing = id => owns(id) && (ev0().wear || {})[id] !== false;
   function toggleWear(id) { if (!owns(id)) return false; const e = st(); e.wear = e.wear || {}; e.wear[id] = !wearing(id); Game.save(); return e.wear[id]; }
-  const deco = () => (wearing('rscarf') ? 's' : '') + (wearing('antler') ? 'a' : '');   // 저승사자 그림에 넘길 꾸미기 글자
+  const deco = () => Object.keys(ITEMS).filter(id => ITEMS[id].ch && wearing(id)).map(id => ITEMS[id].ch).join('');   // 저승사자 그림에 넘길 꾸미기 글자 (그림이 없는 꾸미기는 빼고)
   // 산타의 선물 (노점 · 산타 · 순록을 누르면): 혼 수확 +10% 30분 · 받은 뒤 1시간 지나야 다시 받음 · 이벤트 기간에만
-  const GIFT = { mul: 1.1, dur: 1800e3, cd: 3600e3 };
+  const GIFT = WINTER.gift;
   const giftOn = () => { const e = st(); return active() && now() < Math.min(e.gift || 0, (e.giftAt || 0) + GIFT.dur) && (e.giftAt || 0) <= now(); };   // 시계를 돌려도 30분 넘게 못 가게
   const giftMul = () => (giftOn() ? GIFT.mul : 1);
   const giftLeft = () => giftOn() ? Math.max(0, (Math.min(st().gift || 0, (st().giftAt || 0) + GIFT.dur) - now()) / 1000) : 0;
@@ -102,7 +132,13 @@ const Winter = (() => {
     SHOP, ITEMS, bowlLeft, buyBowl, owns, wearing, toggleWear, deco,
     att, attReward, canAttend, attend, missed, canMakeup, mkJade: MK_JADE, attMax: ATT_MAX, attGoals: ATT_GOALS,
     active, st, room, tick, collect, claim, claimable, left, nextIn, hasDot, done,
-    goals: WINTER.goals, max: WINTER.max, per: WINTER.per, startAt: WINTER.start, endAt: end,
+    goals: WINTER.goals, max: WINTER.max, per: WINTER.per, startAt: WINTER.start, endAt: end, id: WINTER.id, T: WINTER.T, cfg: WINTER,
     setEnd: ms => { if (ms > 0) endOverride = ms; }, onSpawn: f => { onSpawn = f; },
   };
-})();
+}
+const Winter = mkEvent(WINTER);
+const NewYear = mkEvent(NEWYEAR);
+// 지금 열린 이벤트 (없으면 겨울 이벤트 — 창 · 보상 정리용)
+const EvNow = () => (NewYear.active() ? NewYear : Winter);
+// 저승사자 그림 꾸미기 글자: 지난 이벤트 것까지 모두 (s 목도리 · a 사슴뿔 · b 복주머니)
+const evDeco = () => Winter.deco() + NewYear.deco();

@@ -62,7 +62,7 @@ const Tiny = (() => {
     if (pose === 'reap' && dir !== 'up') parts.push([['KTK', 'TxT', 'KTK'], dir === 'side' ? 11 : 12, 12]);
     return compose(16, fy + 3 + pad, parts, Object.assign({}, TINY_PAL, spec.deco ? DECO_PAL : {}, spec.pal || {}));
   }
-  // 겨울 꾸미기 (deco 글자: s = 목도리 · a = 사슴뿔 머리띠) — 지금 옷 · 모자 위에 살짝 더함
+  // 이벤트 꾸미기 (deco 글자: s = 목도리 · a = 사슴뿔 머리띠 · b = 복주머니) — 지금 옷 · 모자 위에 살짝 더함
   const DECO_PAL = { Q: '#d8323c', q: '#9a1c28', Z: '#f4ecdc', V: '#d8a878', v: '#8a5a34' };
   const ANTLER = ['v.v', 'vVv', '.v.', '.V.'];
   function decoParts(dir, deco, hat) {
@@ -73,6 +73,10 @@ const Tiny = (() => {
       if (dir === 'side') front.push([['KQZQQK', '.KqqK.'], 4, 11], [['Qq.', '.qQ', '..Z'], 2, 12]);          // 옆: 뒤로 날리는 끝자락
       else if (dir === 'up') front.push([['KQQZQQZQQK', '.KqqqqqqK.'], 3, 11], [['Qq', 'qQ', '.Z'], 7, 13]); // 뒤: 등 가운데로
       else front.push([['KQQZQQZQQK', '.KqqqqqqK.'], 3, 11], [['qQ', 'Qq', 'Z.'], 9, 13]);                // 앞: 가슴 쪽으로
+    }
+    if (deco.includes('b')) {   // 새해 복주머니: 손에 든 빨간 주머니 (금빛 매듭 · 복 자 무늬)
+      const BAG = ['.YY.', 'KqqK', 'KQYK', 'KQQK', '.KK.'];
+      if (dir === 'side') front.push([BAG, 6, 12]); else if (dir === 'up') front.push([BAG, 11, 12]); else front.push([BAG, 0, 12]);
     }
     return { back, front };
   }

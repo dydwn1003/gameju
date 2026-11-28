@@ -49,6 +49,8 @@ const SPECIALS = [
 // 겨울 이벤트 전용 혼령 (팥 영혼을 처음 거두면 도감에 들어옴 · 평소에는 나오지 않음)
 SPECIALS.push({ i: SPECIALS.length, name: '팥 영혼', desc: '동짓날에만 나타나는 붉은 팥알 혼령', region: 0, ev: 'w26', lore: '동짓날 밤, 팥죽 냄새를 따라 저승까지 굴러온 팥알이에요. 잡귀를 쫓는 붉은 기운 덕분에 다른 혼령들이 슬금슬금 피해 다녀요.' });
 const SP_PAT = SPECIALS.length - 1;
+SPECIALS.push({ i: SPECIALS.length, name: '복주머니 영혼', desc: '정미년 새해에만 나타나는 붉은 복주머니 혼령', region: 0, ev: 'n27', lore: '새해 첫날, 세뱃돈을 받지 못한 아이들의 아쉬움이 모여 생긴 혼령이에요. 거두어 주면 한 해의 복을 나눠 주고 떠나요.' });
+const SP_BOK = SPECIALS.length - 1;
 const PLOT_COST = [0, 0, 0, 100, 200, 400]; // 옥으로 여는 밭
 // 일일 의뢰 (게시판): 하루 4개, 모두 끝내면 보너스 — 하루 약 옥 150
 const QUEST_POOL = [ // 모두 쉽게: 어느 계급이든 하루에 가볍게 끝낼 수 있는 양 (office: 집무실이 열린 뒤에만 나옴)
