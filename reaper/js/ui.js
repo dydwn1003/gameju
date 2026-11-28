@@ -38,7 +38,7 @@ const UI = (() => {
     if ((await Native.notifyPerm()) === 'granted') { s.pushAsked = true; Game.save(); return; }
     s.pushAsked = true; Game.save();
     confirmBox('<h2>🔔 알림을 받을까요?</h2><p>저승 장부가 가득 차거나, 파견이 끝나거나, 꽃이 피면 알려 드려요.<br><small class="mute">밤 11시 ~ 아침 8시에는 울리지 않아요 · 설정에서 언제든 끌 수 있어요</small></p>', async () => {
-      const ok = await Native.notifyAsk(); s.push = ok; Game.save(); Push.back(); toast(ok ? '🔔 알림을 켰어요' : '알림이 꺼져 있어요. 설정에서 다시 켤 수 있어요', 2400);
+      const ok = await Native.notifyAsk(); s.push = ok; Game.save(); Push.back(); if (ok) remotePush(); toast(ok ? '🔔 알림을 켰어요' : '알림이 꺼져 있어요. 설정에서 다시 켤 수 있어요', 2400);
     }, '알림 받기');
   }
   // 로그인 직후: 서버 기록과 이 기기 기록 맞추기
@@ -191,6 +191,13 @@ const UI = (() => {
     if (was && announce) { toast('🎉 점검이 끝났어요! 다시 근무를 시작해 볼까요?', 3000); if (S().kind) Cloud.pushSave(S(), true); }
   }
   // 운영자가 보낸 예약 알림: 게임을 켜 둔 사람에게는 그 시각에 게임 안에서 보여 줌
+  // 원격 푸시: 알림이 허용돼 있으면 토큰을 서버에 올려 둠 (운영자 우편 · 이벤트 소식이 폰으로 옴)
+  function remotePush() {
+    if (!Native.isApp() || !Cloud.ready()) return;
+    Native.pushInit(tok => { const k = tok + '|' + (Cloud.uid() || ''); if (S().pushTok === k) return; Cloud.rpc('save_push', { p_token: tok, p_dev: Stats.devId(), p_platform: Native.platform(), p_lang: I18N.lang || 'ko' }).then(ok => { if (ok) { S().pushTok = k; Game.save(); } }); },
+      (m, tapped) => { const kind = (m && m.data && m.data.kind) || ''; if (kind === 'mail') { refreshMail(); if (tapped) setTimeout(mailModal, 600); }
+        if (!tapped && m && m.title) toast(`${esc(m.title)}${m.body ? `<br><small>${esc(m.body)}</small>` : ''}`, 3200); });
+  }
   function opNotices() { Push.dueNow().forEach(x => got(`<b>${esc(x.title)}</b>${x.body ? `<br>${esc(x.body)}` : ''}`, { emo: '📣', soft: true })); }
   // ---------- 새 버전 안내: 서버의 config/version 과 내 앱 빌드 번호를 비교 ----------
   // data: { android: { latest, min }, ios: { latest, min }, msg } — latest 보다 낮으면 안내(닫기 가능), min 보다 낮으면 닫기 없이
@@ -251,13 +258,14 @@ const UI = (() => {
     setInterval(hud, 200);
     setInterval(() => { if (!document.hidden) { Game.save(); Board.push(); Stats.send(); if (S().kind) Cloud.pushSave(S()); } }, 5000);
     setTimeout(() => Stats.session(), 3000); // 이번 접속 기록 (익명 이용 통계)
+    setTimeout(remotePush, 4000); // 원격 푸시 토큰 등록
     setInterval(drawPreviews, 160);
     document.addEventListener('visibilitychange', () => { if (document.hidden) { if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); } else checkOffline(); });
     window.addEventListener('pagehide', () => { Game.save(); if (S().kind) Cloud.pushSave(S(), true); });
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
     Native.setPause(() => { Sound.pause(); Stats.send(true); if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
-    Native.setResume(() => { Sound.resume(); setTimeout(refundCheck, 3000); Push.back().then(opNotices); maintCheck(); banCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
+    Native.setResume(() => { Sound.resume(); setTimeout(refundCheck, 3000); setTimeout(remotePush, 2000); Push.back().then(opNotices); maintCheck(); banCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
     Push.back(); setInterval(() => { if (!document.hidden) { Push.keep().then(opNotices); maintCheck(); banCheck(); } }, 60e3); // 앱을 켜면 곧 울릴 알림은 지우고, 켜 둔 동안에도 알림을 미리 예약
     let retryNoteAt = 0;
     Native.setVerifier(verifyPay, () => toast('결제를 확인할 수 없어요. 문제가 있으면 1:1 문의로 알려 주세요', 3200), () => { if (Date.now() - retryNoteAt > 60e3) { retryNoteAt = Date.now(); toast('⏳ 결제를 확인하는 중이에요. 확인되면 바로 지급돼요 (인터넷 연결을 확인해 주세요)', 3600); } }, ownedVerified);
@@ -1892,6 +1900,8 @@ const UI = (() => {
         }
         // 운영자: 최근 알림 도착 기록 (예약한 시각이 지난 알림이 실제로 왔는지)
         if (Board.isOwner()) {
+          st.closest('.set-row').insertAdjacentHTML('afterend', `<div class="set-row"><span>원격 푸시 테스트 (운영자)<small class="set-sub">내 폰으로 서버에서 알림을 보내 봐요 · 게임을 홈으로 내린 뒤 확인<br>토큰 ${Native.pushToken() ? '✅ 받음' : '❌ 아직 없음 (알림 허용 후 게임을 다시 켜 주세요)'}</small></span><button class="btn" id="s-rpush">보내기</button></div>`);
+          const rp = box.querySelector('#s-rpush'); if (rp) rp.onclick = async () => { remotePush(); toast('5초 뒤에 보내요. 게임을 홈으로 내려 두세요', 2600); setTimeout(async () => { const r = await Cloud.fn('send-push', { test: true }); toast(r && r.sent ? `보냈어요 · 성공 ${r.sent} / ${r.total}` : `보내지 못했어요 ${esc(JSON.stringify(r || {}).slice(0, 120))}`, 4000); }, 5000); };
           const L = Push.arrivals().slice(-12).reverse(), f = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
           const raw = dg ? `${esc(dg.maker || '')} ${esc(dg.model || '')} · SDK ${dg.sdk} · 버킷 ${dg.bucket ?? '-'} · 제한 ${dg.bgRestricted ? 'O' : 'X'} · 최적화 제외 ${dg.batteryFree ? 'O' : 'X'} · 정확 ${dg.exact ? 'O' : 'X'} · 채널 ${dg.channel ?? '-'}` : '';
           (box.querySelector('#s-diagrow') || st.closest('.set-row')).insertAdjacentHTML('afterend', `<div class="set-row"><span>알림 도착 기록 (운영자)<small class="set-sub">${raw}</small><small class="set-sub">${L.length ? L.map(x => `${f(x.at)} ${x.ok ? '✅' : '❓'} ${esc(I18N.t(x.t || ''))}`).join('<br>') : '아직 기록이 없어요 (알림 시각이 지난 뒤 게임을 켜면 쌓여요)'}</small><small class="set-sub">✅ 알림 센터에 와 있었거나 눌러서 들어옴 · ❓ 확인 못 함 (안 왔거나, 이미 지웠음)</small></span></div>`);

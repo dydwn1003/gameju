@@ -49,6 +49,24 @@ const Native = (() => {
   async function openUrl(url) { const B = P('Browser'); if (B) await B.open({ url, presentationStyle: 'popover' }); else location.href = url; }
   async function closeBrowser() { const B = P('Browser'); if (B) try { await B.close(); } catch (e) {} }
 
+  // ---------- 원격 푸시 (운영자 우편 · 이벤트 소식) ----------
+  // 알림 허용은 로컬 알림과 같은 권한이라 따로 묻지 않음: 허용돼 있을 때만 등록해서 토큰을 받음
+  const PN = () => P('PushNotifications');
+  let pushTok = '', pushOn = false, pushCb = null;
+  async function pushInit(onToken, onMsg) {
+    const R = PN(); if (!R) return; pushCb = onToken;
+    if (!pushOn) { pushOn = true;
+      try {
+        R.addListener('registration', t => { pushTok = t.value; if (pushCb) pushCb(t.value); });
+        R.addListener('registrationError', () => {});
+        R.addListener('pushNotificationReceived', m => onMsg && onMsg(m, false));                         // 게임을 켜 둔 동안 온 알림
+        R.addListener('pushNotificationActionPerformed', a => onMsg && onMsg(a.notification, true));      // 알림을 눌러서 들어옴
+      } catch (e) {}
+    }
+    try { const p = await R.checkPermissions(); if (p.receive === 'granted') await R.register(); } catch (e) {}
+  }
+  const pushToken = () => pushTok;
+
   // ---------- 로컬 알림 ----------
   const LN = () => P('LocalNotifications');
   let chan = false;
@@ -245,7 +263,7 @@ const Native = (() => {
     gidOf: sid => byStoreId(sid),
     isApp, platform, plugin: P, adActive: () => adBusy && Date.now() - adStartedAt < 120000, init, hideSplash, openUrl, appBuild, openStore, openReview, closeBrowser, rewardAd, price, buy, restore, payOn,
     onUrl: f => urlHandlers.push(f), setBack: f => (onBack = f), setPause: f => (onPause = f), setResume: f => (onResume = f),
-    notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest, exactAlarm, exactAlarmAsk, notifyDelivered, diag, openAppSettings,
+    pushInit, pushToken, notifyPerm, notifyAsk, notifyClear, notifySchedule, notifyPending, notifyTest, exactAlarm, exactAlarmAsk, notifyDelivered, diag, openAppSettings,
     setPay: (grant, owned, priceChange, txDone) => { onGrant = grant; onRestoreOwned = owned; onPriceChange = priceChange; onTxDone = txDone; const q = pendingTx; pendingTx = []; q.forEach(handleTx); if (payOn()) ownedCheck(); },
   };
 })();

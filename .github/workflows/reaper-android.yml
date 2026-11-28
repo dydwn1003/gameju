@@ -86,6 +86,12 @@ jobs:
       - name: 게임 파일 → 앱 (www) → 안드로이드 프로젝트
         run: node build-www.js && npx cap sync android
 
+      - name: Firebase 설정 파일 (원격 푸시) — Secret GOOGLE_SERVICES_JSON 이 있으면
+        env:
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GSJ" ]; then printf '%s' "$GSJ" > android/app/google-services.json; echo "google-services.json 넣음 (원격 푸시 켜짐)"; else echo "GOOGLE_SERVICES_JSON 이 없어서 원격 푸시 없이 빌드"; fi
+
       - name: AAB · APK 빌드
         working-directory: reaper/app/android
         run: |

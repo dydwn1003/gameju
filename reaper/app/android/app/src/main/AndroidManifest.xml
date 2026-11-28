@@ -30,6 +30,9 @@
             </intent-filter>
         </activity>
 
+        <!-- 원격 푸시(FCM) 알림 아이콘: 로컬 알림과 같은 저승사자 실루엣 -->
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_reaper" />
+
         <!-- AdMob 앱 ID: 지금은 구글 테스트용. 출시 전 AdMob 콘솔의 내 앱 ID(ca-app-pub-…~…)로 바꾸기 -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

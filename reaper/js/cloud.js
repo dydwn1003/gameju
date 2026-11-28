@@ -153,7 +153,8 @@ const Cloud = (() => {
     if (!sb) return 'retry';
     try { const { data, error } = await sb.functions.invoke(CLOUD.verifyFunction || 'verify-purchase', { method: 'POST', body }); if (error || !data) return 'retry'; return ['ok', 'invalid', 'owned'].includes(data.result) ? data.result : 'retry'; } catch (e) { return 'retry'; }
   }
+  async function fn(name, body) { if (!sb) return null; try { const { data, error } = await sb.functions.invoke(name, { method: 'POST', body }); return error ? { error: String(error.message || error) } : data; } catch (e) { return { error: String(e) }; } }
   async function rpcRows(fn, args) { if (!sb) return null; try { const { data, error } = await sb.rpc(fn, args); return error ? null : data; } catch (e) { return null; } }
   async function rpc(fn, args) { if (!sb) return false; try { const { error } = await sb.rpc(fn, args); return !error; } catch (e) { return false; } }
-  return { enabled, init, ready: () => !!sb, rpc, rpcRows, myBan, verifyPurchase, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, syncBase, setSyncBase, setSynced: v => { synced = !!v; }, hold: v => { held = !!v; }, isSynced: () => synced, db, user, onChange: f => listeners.push(f), setOnLogin: f => { onLogin = f; } };
+  return { enabled, init, ready: () => !!sb, rpc, rpcRows, fn, myBan, verifyPurchase, signedIn: () => !!uid(), uid, provider, signIn, signOut, deleteAccount, inquiry, pullSave, pushSave, syncBase, setSyncBase, setSynced: v => { synced = !!v; }, hold: v => { held = !!v; }, isSynced: () => synced, db, user, onChange: f => listeners.push(f), setOnLogin: f => { onLogin = f; } };
 })();
