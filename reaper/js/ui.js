@@ -265,7 +265,7 @@ const UI = (() => {
     // 앱: 뒤로가기 = 열린 창 닫기, 백그라운드로 갈 때 저장, 결제 완료 → 지급
     Native.setBack(() => { if ($('#modal').classList.contains('on')) { const c = $('#modal [data-act="close"]'); if (c) c.click(); else if ($('#modal #lg-back')) langPicker(true); else if (!$('#modal .lg-list')) closeModal(); return true; } if ($('#promo').classList.contains('on')) { const c = $('#promo [data-act="close"], #promo #gs-skip:not(:disabled), #promo #ga-close'); if (c) c.click(); else closeOverlay(); return true; } return false; });
     Native.setPause(() => { Sound.pause(); Stats.send(true); if (!Native.adActive()) Game.markAway(); Game.save(); if (S().kind) Cloud.pushSave(S(), true); Push.leave(); });
-    Native.setResume(() => { Sound.resume(); setTimeout(refundCheck, 3000); setTimeout(remotePush, 2000); Push.back().then(opNotices); maintCheck(); banCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
+    Native.setResume(() => { Sound.resume(); eventCfg(); setTimeout(refundCheck, 3000); setTimeout(remotePush, 2000); Push.back().then(opNotices); maintCheck(); banCheck(); setTimeout(refreshMail, 800); setTimeout(checkOffline, 300); }); // 아이폰에서 '다시 보임' 신호가 늦거나 안 와도 보상
     Push.back(); setInterval(() => { if (!document.hidden) { Push.keep().then(opNotices); maintCheck(); banCheck(); } }, 60e3); // 앱을 켜면 곧 울릴 알림은 지우고, 켜 둔 동안에도 알림을 미리 예약
     let retryNoteAt = 0;
     Native.setVerifier(verifyPay, () => toast('결제를 확인할 수 없어요. 문제가 있으면 1:1 문의로 알려 주세요', 3200), () => { if (Date.now() - retryNoteAt > 60e3) { retryNoteAt = Date.now(); toast('⏳ 결제를 확인하는 중이에요. 확인되면 바로 지급돼요 (인터넷 연결을 확인해 주세요)', 3600); } }, ownedVerified);
@@ -273,7 +273,7 @@ const UI = (() => {
     Native.setPay((gid, key) => grantPaid(gid, key), gid => { if (gid === 'noads') S().noAds = true; if (!S().bought[gid]) { S().bought[gid] = 1; S().ownedOnly = S().ownedOnly || {}; S().ownedOnly[gid] = 1; } Game.save(); }, () => { if (tab === 'shop') render(); }, key => !!(S().txDone || []).includes(key));   // ownedOnly: 스토어가 '가지고 있음'만 알려 준 상태 → 나중에 검증된 거래가 오면 내용물(옥 · 졸개)을 지급
     render(); hud();
     // 로그인 성공 → 다시 켜지 않고 그 자리에서 서버 기록을 맞춤
-    Cloud.setOnLogin(() => { Cloud.setSynced(false); closeModal(); toast('☁️ 로그인했어요', 1600); Board.init(); cloudSync(); });
+    Cloud.setOnLogin(() => { Cloud.setSynced(false); closeModal(); toast('☁️ 로그인했어요', 1600); Board.init(); cloudSync(); setTimeout(eventCfg, 1500); });
     if (!S().kind && !I18N.chosen()) { langPicker(true); } // 처음 켜면 언어부터 고르기
     else if (!S().kind) startFlow();
     else if (!Cloud.signedIn()) afterLoad(); // 로그인했으면 서버 기록을 맞춘 뒤에
@@ -317,9 +317,10 @@ const UI = (() => {
   function wraithGone() {}
   let lastTickAt = 0;
   // 이벤트 끝나는 시각을 서버에서 바꿀 수 있게: docs 'config/event' { winterEnd: '2026-12-31T23:59:59+09:00' }
+  let evCfgTry = 0;
   async function eventCfg() { try { if (!Cloud.ready()) return; const doc = await Cloud.db.doc('config/event').get(); const d = doc.exists ? doc.data() || {} : {}; if (d.winterEnd) Winter.setEnd(Date.parse(d.winterEnd)); if (d.nyEnd) NewYear.setEnd(Date.parse(d.nyEnd));
       // 미리 켜서 시험: { winterStart · nyStart: ISO 시각, test: 'owner' 면 운영자 계정에만 } — 지우면 원래 날짜로
-      let me = true; if (d.test === 'owner') { me = Board.isOwner(); if (me === null) me = await Board.checkOwner(); }
+      let me = true; if (d.test === 'owner') { me = Cloud.signedIn() ? await Cloud.user.isOwner() : null; if (me === null && evCfgTry++ < 6) setTimeout(eventCfg, 5000); me = !!me; }   // 로그인 · 확인이 늦으면 5초 뒤 다시   // 순위판(Board) 준비를 기다리지 않고 서버에 바로 확인
       Winter.setStart(me && d.winterStart ? Date.parse(d.winterStart) : 0); NewYear.setStart(me && d.nyStart ? Date.parse(d.nyStart) : 0); } catch (e) {} }
   // ---------- 겨울 이벤트 '동짓날 팥죽' ----------
   let winterAcc = 0, winterIntro = false;
