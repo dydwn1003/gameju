@@ -913,7 +913,7 @@ const UI = (() => {
   const evOf = ev => (ev === 'n27' ? NewYear : Winter);
   function itemsSection() {
     // 이벤트가 시작된 뒤부터 보임 (겨울 12/3 · 새해 1/1) · 끝난 뒤에도 계속 보이고, 받은 꾸미기는 언제든 쓰기 · 벗기
-    const list = ITEMS.filter(([id, , , ev]) => evOf(ev).owns(id) || evOf(ev).started());
+    const list = ITEMS.filter(([id, , , ev]) => evOf(ev).owns(id) || evOf(ev).started() || (ev === 'w26' && NewYear.started()));   // 새해가 열렸으면 지난 겨울 꾸미기 칸도 (미리 켜기 시험 포함)
     if (!list.length) return '';
     return `<div class="st-sec">🎒 착용 아이템</div><div class="it-grid">${list.map(([id, nm, ch, ev]) => { const X = evOf(ev), own = X.owns(id), on = X.wearing(id), g = X.attGoals.find(x => x.id === id);
       return `<div class="it-card ${own ? '' : 'lock'}"><img class="px" src="${evItemIc(X, id, 2)}"><b>${nm}</b>${own ? `<button class="btn ${on ? 'red' : 'dark'}" data-itw="${ev}:${id}">${on ? (ch ? '쓰는 중' : '켜짐') : (ch ? '벗음' : '꺼짐')}</button>` : `<small>${X.active() ? `${X.T.att} ${g ? g.n : 28}일 보상` : `${ev === 'n27' ? '2027 새해' : '2026 겨울'} 출석 한정`}</small>`}</div>`; }).join('')}</div>`;
@@ -1588,7 +1588,7 @@ const UI = (() => {
     } else {
       const n = Object.keys(s.dex).length;
       h += `<div class="ph"><h3>혼령 도감</h3><span class="sub">${n}/${SPECIALS.length}종 · 혼 수확 +${Math.round(Life.dexBonus() * 100)}%</span></div>
-        <div class="dex">${SPECIALS.map(p => { const c = s.dex[p.i] || 0; return `<div class="pbox ${c ? '' : 'unk'}" data-dexi="${p.i}"><img class="px" src="${SPIC(p.i, !!c)}"><b>${c ? p.name : '???'}</b><small>${c ? `${c}마리${c >= 10 ? ' ★' : ''}` : p.ev ? '겨울 이벤트' : REGIONS[p.region].name}</small></div>`; }).join('')}</div>
+        <div class="dex">${SPECIALS.map(p => { const c = s.dex[p.i] || 0; return `<div class="pbox ${c ? '' : 'unk'}" data-dexi="${p.i}"><img class="px" src="${SPIC(p.i, !!c)}"><b>${c ? p.name : '???'}</b><small>${c ? `${c}마리${c >= 10 ? ' ★' : ''}` : p.ev ? (p.ev === 'n27' ? '신년 이벤트' : '겨울 이벤트') : REGIONS[p.region].name}</small></div>`; }).join('')}</div>
         <p class="note">특별한 혼령은 아주 가끔 나타나요 (귀한 인연을 올리면 더 자주).<br>처음 거두면 혼 수확 +2%, 10마리 모으면 +1% 더. 근무지마다 나오는 혼령이 달라요.</p>`;
     }
     P.innerHTML = h;
@@ -1596,7 +1596,7 @@ const UI = (() => {
   }
   function brewGo(id) { const d = { brew: id }; const r = Life.brew(d.brew); if (r) { Sound.play('promote'); Life.qEvent('brew'); const R = RECIPES.find(x => x.id === d.brew); toast(typeof r === 'number' ? `${R.name}! +${fmt(r)} 혼 · 옥 +${R.instant.jade}` : `${R.name}${eul(R.name)} 마셨다! ${R.desc}`); } renderLife($('#panel')); }
   function dexInfo(i) {
-    const p = SPECIALS[i], c = S().dex[i] || 0, reg = p.ev ? '겨울 이벤트 (동짓날 팥죽)' : REGIONS[p.region].name;
+    const p = SPECIALS[i], c = S().dex[i] || 0, reg = p.ev ? (p.ev === 'n27' ? '신년 이벤트 (정미년 복주머니)' : '겨울 이벤트 (동짓날 팥죽)') : REGIONS[p.region].name;
     modal(`<div class="pinfo dexinfo"><img class="px" src="${SPIC(i, !!c, 6)}" style="height:96px"><h2>${c ? p.name : '???'}</h2>
       ${c ? `<p class="mute">${p.desc}</p><p class="lore">${p.lore}</p>` : `<p class="lore">아직 만나지 못한 혼령이에요.</p>`}
       <div class="dexmeta"><span>📍 ${reg}</span>${c ? `<span>거둔 수 ${c}마리${c >= 10 ? ' ★' : ''}</span>` : ''}</div>
