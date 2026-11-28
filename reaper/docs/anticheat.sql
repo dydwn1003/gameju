@@ -34,8 +34,8 @@ begin
   -- 바로 이어서 도는 '고치기(UPDATE)' 검사에서 지난 저장과 비교해요. (안 그러면 가진 재화 전체를 '새로 늘어난 것'으로 봄)
   if tg_op = 'INSERT' and exists (select 1 from saves x where x.user_id = new.user_id) then return new; end if;
   -- 재화를 쓰는 것(줄어드는 것)은 절대 막지 않고, 늘어난 양만 검사해요.
-  if tg_op = 'UPDATE' then v_since := old.updated_at; v_hours := least(extract(epoch from now() - old.updated_at) / 3600, 24 * 7);
-  else v_since := now() - interval '30 days'; v_hours := least(coalesce((n ->> 'playSec')::numeric, 0) / 3600, 24 * 7); end if;
+  if tg_op = 'UPDATE' then v_since := old.updated_at; v_hours := least(extract(epoch from now() - old.updated_at) / 3600, 24);
+  else v_since := now() - interval '30 days'; v_hours := least(coalesce((n ->> 'playSec')::numeric, 0) / 3600, 24); end if;
 
   -- 최근 서버가 확인한 결제 · 최근 운영자 우편 (결제로 산 옥은 몇 번을 사든 전부 허용)
   select coalesce(sum(case r.product when 'jade_100' then 100 when 'jade_550' then 550 when 'jade_1200' then 1200 when 'starter_pack' then 200 when 'promo_pack' then 300 else 0 end), 0),
@@ -48,10 +48,19 @@ begin
   select coalesce(sum(coalesce((x.data ->> 'jade')::numeric, 0)), 0), coalesce(sum(coalesce((x.data ->> 'tickets')::numeric, 0)), 0)
     into v_mail_jade, v_mail_tk from docs x where x.col = 'mail' and x.updated_at > now() - interval '30 days';
 
-  -- ① 옥: 3,000 + 시간당 600 + 결제 + 우편 · 2만 넘게 초과하면 정지
+  -- ① 옥: 정상 플레이로는 한 번에 많아야 1,000개 → 1,000 + 시간당 200(최대 24시간) + 결제 + 우편
+  --    + 예전에 삭제된 소품(옥좌 1,500 · 용상 1,100)을 옥으로 돌려받는 경우. 허용량을 2,000 넘게 초과하면 정지, 조금 넘으면 기록
   d := coalesce((n ->> 'jade')::numeric, 0) - coalesce((o ->> 'jade')::numeric, 0);
-  lim := 3000 + v_hours * 600 + v_paid + v_mail_jade;
-  if d > lim + 20000 then v_ban := 'jade'; elsif d > lim then v_flags := array_append(v_flags, 'jade'); end if;
+  lim := 1000 + v_hours * 200 + v_paid + v_mail_jade
+       -- 처음 저장(게스트로 하다가 로그인 등): 게임을 시작한 뒤 지난 날수 × 1,000 (출시일 이후로만 셈)
+       + case when tg_op = 'INSERT' then 1000 * least(
+           greatest(extract(epoch from now()) - coalesce(case when (n ->> 'created') ~ num then (n ->> 'created')::numeric end, extract(epoch from now()) * 1000) / 1000, 0) / 86400,
+           extract(epoch from now() - timestamptz '2026-10-20 00:00+09') / 86400) else 0 end
+       + case when (o -> 'decor' -> 'own' ->> 'throne') ~ num and (n -> 'decor' -> 'own' ->> 'throne') is null then 1500 * (o -> 'decor' -> 'own' ->> 'throne')::numeric else 0 end
+       + case when (o -> 'decor' -> 'own' ->> 'yongsang') ~ num and (n -> 'decor' -> 'own' ->> 'yongsang') is null then 1100 * (o -> 'decor' -> 'own' ->> 'yongsang')::numeric else 0 end;
+  if d > lim + 2000 then v_ban := 'jade'; elsif d > lim then v_flags := array_append(v_flags, 'jade'); end if;
+  -- 조금씩 나눠 올리기: 하루에 옥 '기록'이 3번 쌓이면 정지
+  if v_ban is null and d > lim and (select count(*) from anticheat_log l where l.user_id = new.user_id and l.action = 'flag' and l.kind like '%jade%' and l.at > now() - interval '24 hours') >= 2 then v_ban := 'jade'; end if;
 
   -- ② 소환권: 20 + 시간당 3 + 우편 · 300장 넘게 초과하면 정지
   d := coalesce((n ->> 'tickets')::numeric, 0) - coalesce((o ->> 'tickets')::numeric, 0);
