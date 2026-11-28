@@ -44,6 +44,13 @@ begin
              (select coalesce(round(avg(sec) / 60.0, 1), 0) from stats s where s.day = g.d) as min,
              (select coalesce(sum(won), 0) from rc where rc.d = g.d) as won
       from generate_series(td - (n - 1), td, interval '1 day') as g(d)) x),
+    'now', jsonb_build_object(   -- 지금 기준 재접속: 오늘 0시부터 지금까지
+      'back', (select count(*) from st where day = td and d0 < td),                                   -- 오늘 다시 온 사람 (처음 온 날이 오늘 전)
+      'back_guest', (select count(*) from st where day = td and d0 < td and not dlg),
+      'yd_new', (select count(*) from dv where d0 = td - 1),                                          -- 어제 처음 온 설치
+      'yd_back', (select count(*) from dv where d0 = td - 1 and exists (select 1 from stats s where s.dev = dv.dev and s.day = td)),
+      'wk_new', (select count(*) from dv where d0 >= td - 7 and d0 < td),                             -- 지난 7일 처음 온 설치
+      'wk_back', (select count(*) from dv where d0 >= td - 7 and d0 < td and exists (select 1 from stats s where s.dev = dv.dev and s.day = td))),
     'ret', (select jsonb_build_object(   -- 재접속률: 처음 온 날 뒤 N일째에 다시 온 기기 비율 (전체 · 로그인 · 게스트)
       'd1', (select round(100.0 * count(*) filter (where exists (select 1 from stats s where s.dev = dv.dev and s.day = dv.d0 + 1)) / nullif(count(*), 0), 1) from dv where d0 <= td - 1 and d0 > td - 15),
       'd3', (select round(100.0 * count(*) filter (where exists (select 1 from stats s where s.dev = dv.dev and s.day = dv.d0 + 3)) / nullif(count(*), 0), 1) from dv where d0 <= td - 3 and d0 > td - 17),
@@ -55,7 +62,8 @@ begin
              round(100.0 * count(*) filter (where exists (select 1 from stats s where s.dev = dv.dev and s.day = dv.d0 + 1)) / count(*)) as d1,
              round(100.0 * count(*) filter (where exists (select 1 from stats s where s.dev = dv.dev and s.day = dv.d0 + 3)) / count(*)) as d3,
              round(100.0 * count(*) filter (where exists (select 1 from stats s where s.dev = dv.dev and s.day = dv.d0 + 7)) / count(*)) as d7,
-             round(100.0 * count(*) filter (where not dv.lg) / count(*)) as guest
+             round(100.0 * count(*) filter (where not dv.lg) / count(*)) as guest,
+             round(100.0 * count(*) filter (where exists (select 1 from stats s where s.dev = dv.dev and s.day = td)) / count(*)) as today
       from dv where dv.d0 > td - 8 and dv.d0 < td group by dv.d0) x),
     'os', (select coalesce(jsonb_object_agg(k, v), '{}') from (select coalesce(os, '?') as k, count(distinct dev) as v from stats where day > td - 7 group by 1) x),
     'ver', (select coalesce(jsonb_object_agg(k, v), '{}') from (select coalesce(os, '?') || ' ' || coalesce(ver, '?') as k, count(distinct dev) as v from stats where day > td - 3 group by 1) x),

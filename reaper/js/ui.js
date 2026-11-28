@@ -1015,7 +1015,7 @@ const UI = (() => {
     const F = d.funnel || {}, fl = [['저장 있음', F.save], ['캐릭터 만듦', F.kind], ['튜토리얼 끝', F.tut], ['닉네임', F.nick], ['집무실 안내', F.office], ['선임 차사 이상', F.r3], ['염라대왕 · 윤회', F.r8]];
     const PN = { jade_100: '옥 100', jade_550: '옥 550', jade_1200: '옥 1,200', starter_pack: '신입 패키지', promo_pack: '승진 응원', yeomra_seal_7d: '염라의 인장', remove_ads: '광고 제거' };
     const RT = d.ret || {}, P = d.pay || {}, SF = d.safe || {};
-    const RG = d.rng || {}, TD = d.today || '';
+    const RG = d.rng || {}, TD = d.today || '', NW = d.now || {};
     el.innerHTML = `<p class="ds-at"><b>${esc(d.at)}</b> 기준 (한국 시간) · 숫자는 모두 게스트 포함 · 계정 숫자는 운영자 · 정지 계정 제외</p>
       <h4>오늘 <small>${TD} 0시 ~ ${esc(d.at.slice(11))}</small></h4>
       <div class="ds-tiles">${tile('오늘 접속', n(S0.dau), `그중 게스트 ${n(S0.dau_guest)}`)}${tile('오늘 새 설치', n(S0.new), `그중 게스트 ${n(S0.new_guest)}`)}${tile('오늘 평균 플레이', `${S0.avg_min}분`, '오늘 접속한 사람 평균')}${tile('오늘 매출', won(P.won_today), `결제자 ${n(P.payers_today)} · 어제 ${won(P.won_yday)}`)}</div>
@@ -1027,10 +1027,12 @@ const UI = (() => {
       <h4>날짜별 접속 <small>최근 ${days.length}일 · 오늘(${TD})은 지금까지 · 진한 부분 = 게스트</small></h4>${bars(x => x.dau, x => x.dau_g, mx, 'dau')}
       <h4>날짜별 새 설치 <small>오늘은 지금까지 · 진한 부분 = 게스트</small></h4>${bars(x => x.new, x => x.new_g, mxn, 'new')}
       <h4>날짜별 매출 <small>오늘은 지금까지 · 서버가 확인한 결제 · 환불 제외 · 마지막 결제 ${esc(P.last || '-')}</small></h4>${bars(x => x.won, null, mxw, 'won')}
-      <h4>재접속률 <small>처음 온 날 뒤 N일째 다시 온 설치 · 결과가 나온 날까지만</small></h4>
+      <h4>지금 기준 재접속 <small>${TD} 0시 ~ ${esc(d.at.slice(11))} · 오늘 들어온 사람 기준</small></h4>
+      <div class="ds-tiles">${tile('오늘 다시 온 사람', n(NW.back), `오늘 접속의 ${S0.dau ? Math.round(NW.back / S0.dau * 100) : 0}% · 그중 게스트 ${n(NW.back_guest)}`)}${tile('어제 새로 온 사람 중', pc(NW.yd_new ? Math.round(NW.yd_back / NW.yd_new * 1000) / 10 : null), `${n(NW.yd_back)} / ${n(NW.yd_new)}명이 오늘 다시 옴 · 진행 중`)}${tile('지난 7일 새로 온 사람 중', pc(NW.wk_new ? Math.round(NW.wk_back / NW.wk_new * 1000) / 10 : null), `${n(NW.wk_back)} / ${n(NW.wk_new)}명이 오늘 접속`)}</div>
+      <h4>재접속률 (확정) <small>처음 온 날 뒤 N일째 다시 온 설치 · 그날이 지난 사람만</small></h4>
       <div class="ds-tiles">${tile('D1 (다음 날)', pc(RT.d1), `${RG.d1} 시작 · 로그인 ${pc(RT.d1_login)} · 게스트 ${pc(RT.d1_guest)}`)}${tile('D3 (3일 뒤)', pc(RT.d3), `${RG.d3} 시작`)}${tile('D7 (7일 뒤)', pc(RT.d7), `${RG.d7} 시작`)}</div>
-      <table class="ds-tb"><tr><th>시작한 날</th><th>설치</th><th>D1</th><th>D3</th><th>D7</th><th>게스트</th></tr>${(d.cohort || []).map(c => `<tr><td>${c.d}</td><td>${c.size}</td><td>${c.d1}%</td><td>${c.d3}%</td><td>${c.d7}%</td><td>${c.guest}%</td></tr>`).join('') || '<tr><td colspan="6">아직 없어요</td></tr>'}</table>
-      <p class="ds-note">아직 그날이 오지 않은 칸은 0%로 보여요 (예: 어제 시작한 설치의 D3).</p>
+      <table class="ds-tb"><tr><th>시작한 날</th><th>설치</th><th>D1</th><th>D3</th><th>D7</th><th>오늘 접속</th><th>게스트</th></tr>${(d.cohort || []).map(c => `<tr><td>${c.d}</td><td>${c.size}</td><td>${c.d1}%</td><td>${c.d3}%</td><td>${c.d7}%</td><td><b>${c.today ?? '-'}%</b></td><td>${c.guest}%</td></tr>`).join('') || '<tr><td colspan="7">아직 없어요</td></tr>'}</table>
+      <p class="ds-note">아직 그날이 오지 않은 칸은 0%로 보여요 (예: 어제 시작한 설치의 D3). '오늘 접속'은 그날 시작한 사람 중 오늘(지금까지) 들어온 비율이에요.</p>
       <h4>처음 흐름 <small>저장 기록이 있는 계정 · 지금 기준</small></h4>${fl.map(([k, v]) => `<div class="ds-row"><span>${k}</span><i style="width:${Math.round((v || 0) / Math.max(1, F.save || 1) * 100)}%"></i><b>${n(v)} <small>${F.save ? Math.round((v || 0) / F.save * 100) : 0}%</small></b></div>`).join('')}
       <h4>계급 <small>윤회 전 · 지금 기준 · 오른쪽은 일주일 넘게 안 온 비율</small></h4>${(d.rank || []).map(x => `<div class="ds-row"><span>${RANKS[x.r] ? RANKS[x.r].name : x.r}</span><i style="width:${Math.round(x.n / Math.max(1, ...(d.rank || []).map(y => y.n)) * 100)}%"></i><b>${x.n} <small>${x.gone}%</small></b></div>`).join('')}
       ${Object.keys(d.reborn || {}).length ? `<h4>윤회 <small>지금 기준</small></h4>${list(d.reborn, '명')}` : ''}
