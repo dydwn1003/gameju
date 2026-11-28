@@ -391,9 +391,26 @@ const UI = (() => {
     TICKET.forEach((row, y) => [...row].forEach((ch, x) => { if (P[ch]) { g.fillStyle = P[ch]; g.fillRect(x, y, 1, 1); } })); return toURL(c, sc); })());
   const attIc = (r, sc = 2) => r.hours ? IC('soul', sc) : r.jade ? IC('jade', sc) : r.tickets ? ticketIc(sc) : FIC(Object.keys(r.seed)[0], 0, sc);
   // 이벤트 꾸미기 아이콘: 그림이 있는 건 저승사자에 입혀서, 부적 날리기는 부적 그림으로
-  const BUJEOK = ['KKKKKK', 'KYYYYK', 'KYRRYK', 'KYYRYK', 'KYRRYK', 'KYYYYK', 'KYRYRK', 'KYYYYK', 'KKKKKK'];
-  const bujeokIc = sc => urls['bj' + sc] || (urls['bj' + sc] = (() => { const c = document.createElement('canvas'); c.width = 6; c.height = 9; const g = c.getContext('2d'), P = { K: '#5a3a10', Y: '#ffe08a', R: '#d8323c' };
-    BUJEOK.forEach((row, y) => [...row].forEach((ch, x) => { if (P[ch]) { g.fillStyle = P[ch]; g.fillRect(x, y, 1, 1); } })); return toURL(c, sc); })());
+  // 부적 날리기 아이콘: 기울어진 부적에서 파란 영혼 빛이 꼬리를 그리며 피어오름 (실제 효과와 같은 색)
+  const BUJEOK = [
+    '..........bbW.',
+    '.........bWWWb',
+    '........c.bWb.',
+    '.......c...b..',
+    '......c.......',
+    '..KKKKc.......',
+    '..KYYYK.......',
+    '..KYRYK.......',
+    '..KYYYK.......',
+    '..KYRRK.......',
+    '..KYRYK.......',
+    '..KYYYK.......',
+    '..KYRYK.......',
+    '..KYYYK.......',
+    '..KKKKK.......'];
+  const bujeokIc = sc => urls['bj2' + sc] || (urls['bj2' + sc] = (() => { const c = document.createElement('canvas'); c.width = 14; c.height = 15; const g = c.getContext('2d'), P = { K: '#8a6020', Y: '#fff0a8', R: '#d8323c', c: '#7ae8ff', b: '#3a9cff', W: '#ffffff' };
+    BUJEOK.forEach((row, y) => [...row].forEach((ch, x) => { if (P[ch]) { g.fillStyle = P[ch]; g.fillRect(x, y, 1, 1); } }));
+    g.globalAlpha = 0.3; g.fillStyle = '#7ae8ff'; g.fillRect(8, 0, 6, 4); g.fillRect(6, 3, 3, 3); return toURL(c, sc); })());
   const evItemIc = (X, id, sc) => X.ITEMS[id].ch ? toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, X.ITEMS[id].ch), sc) : bujeokIc(sc);
   const evDays = X => Math.round((X.endAt() - X.startAt) / 864e5);
   function winterAttHtml() {
