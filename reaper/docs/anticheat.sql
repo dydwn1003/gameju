@@ -37,14 +37,14 @@ begin
   if tg_op = 'UPDATE' then v_since := old.updated_at; v_hours := least(extract(epoch from now() - old.updated_at) / 3600, 24 * 7);
   else v_since := now() - interval '30 days'; v_hours := least(coalesce((n ->> 'playSec')::numeric, 0) / 3600, 24 * 7); end if;
 
-  -- 그동안 서버가 확인한 결제 · 최근 운영자 우편
+  -- 최근 서버가 확인한 결제 · 최근 운영자 우편 (결제로 산 옥은 몇 번을 사든 전부 허용)
   select coalesce(sum(case r.product when 'jade_100' then 100 when 'jade_550' then 550 when 'jade_1200' then 1200 when 'starter_pack' then 200 when 'promo_pack' then 300 else 0 end), 0),
          count(*) filter (where r.product = 'yeomra_seal_7d'), count(*) filter (where r.product = 'remove_ads'),
          count(*) filter (where r.product not in ('jade_100','jade_550','jade_1200','starter_pack','promo_pack','yeomra_seal_7d','remove_ads'))
     into v_paid, v_seal_paid, v_noads_paid, v_cash_paid
     from iap_receipts r
    where (r.user_id = new.user_id or (r.user_id is null and v_dev is not null and r.dev = v_dev))
-     and (r.created_at > v_since - interval '1 hour' or r.product = 'remove_ads');
+     and (r.created_at > v_since - interval '1 hour' or r.product = 'remove_ads');   -- 지난 저장 이후의 결제 (몇 번을 사든 전부 허용 · 같은 결제를 두 번 세지 않음)
   select coalesce(sum(coalesce((x.data ->> 'jade')::numeric, 0)), 0), coalesce(sum(coalesce((x.data ->> 'tickets')::numeric, 0)), 0)
     into v_mail_jade, v_mail_tk from docs x where x.col = 'mail' and x.updated_at > now() - interval '30 days';
 
