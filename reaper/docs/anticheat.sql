@@ -30,6 +30,10 @@ declare
 begin
   if auth.uid() is null then return new; end if;                 -- 운영자(SQL Editor) 작업은 통과
   if exists (select 1 from admins a where a.user_id = new.user_id) then return new; end if;   -- 운영자 계정(admins)은 시험용이라 검사 안 함
+  -- 게임은 upsert 로 저장하는데, 이때 '새로 넣기' 검사가 먼저 한 번 돌아요. 이미 저장이 있으면 여기선 통과시키고
+  -- 바로 이어서 도는 '고치기(UPDATE)' 검사에서 지난 저장과 비교해요. (안 그러면 가진 재화 전체를 '새로 늘어난 것'으로 봄)
+  if tg_op = 'INSERT' and exists (select 1 from saves x where x.user_id = new.user_id) then return new; end if;
+  -- 재화를 쓰는 것(줄어드는 것)은 절대 막지 않고, 늘어난 양만 검사해요.
   if tg_op = 'UPDATE' then v_since := old.updated_at; v_hours := least(extract(epoch from now() - old.updated_at) / 3600, 24 * 7);
   else v_since := now() - interval '30 days'; v_hours := least(coalesce((n ->> 'playSec')::numeric, 0) / 3600, 24 * 7); end if;
 
