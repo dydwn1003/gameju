@@ -912,8 +912,9 @@ const UI = (() => {
   const ITEMS = [['rscarf', '저승사자 목도리', 's', 'w26'], ['antler', '사슴뿔 머리띠', 'a', 'w26'], ['bokbag', '복주머니', 'b', 'n27'], ['bujeok', '부적 날리기', '', 'n27']];
   const evOf = ev => (ev === 'n27' ? NewYear : Winter);
   function itemsSection() {
-    // 지금 열린 이벤트 꾸미기는 늘 보여 주고, 지난 이벤트 꾸미기는 가진 것만
-    const list = ITEMS.filter(([id, , , ev]) => evOf(ev).owns(id) || evOf(ev).active() || ev === 'w26');
+    // 이벤트가 시작된 뒤부터 보임 (겨울 12/3 · 새해 1/1) · 끝난 뒤에도 계속 보이고, 받은 꾸미기는 언제든 쓰기 · 벗기
+    const list = ITEMS.filter(([id, , , ev]) => evOf(ev).owns(id) || evOf(ev).started());
+    if (!list.length) return '';
     return `<div class="st-sec">🎒 착용 아이템</div><div class="it-grid">${list.map(([id, nm, ch, ev]) => { const X = evOf(ev), own = X.owns(id), on = X.wearing(id), g = X.attGoals.find(x => x.id === id);
       return `<div class="it-card ${own ? '' : 'lock'}"><img class="px" src="${evItemIc(X, id, 2)}"><b>${nm}</b>${own ? `<button class="btn ${on ? 'red' : 'dark'}" data-itw="${ev}:${id}">${on ? (ch ? '쓰는 중' : '켜짐') : (ch ? '벗음' : '꺼짐')}</button>` : `<small>${X.active() ? `${X.T.att} ${g ? g.n : 28}일 보상` : `${ev === 'n27' ? '2027 새해' : '2026 겨울'} 출석 한정`}</small>`}</div>`; }).join('')}</div>`;
   }

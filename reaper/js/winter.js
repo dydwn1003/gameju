@@ -55,6 +55,7 @@ function mkEvent(WINTER) {
   const end = () => endOverride || WINTER.end;
   const start = () => startOverride || WINTER.start;   // 운영자 시험: 서버 config/event 의 winterStart · nyStart (test:'owner' 면 운영자만)
   const active = () => { const t = now(); return t >= start() && t < end(); };
+  const started = () => now() >= start();   // 시작했는지 (끝난 뒤에도 true) — 꾸미기 칸은 시작한 뒤부터 계속 보임
   const done = () => st().n >= WINTER.max;
   const room = () => WINTER.max - st().n - st().pend;     // 더 나올 수 있는 개수 (모은 것 + 맵에 있는 것 ≤ 40)
   // 켜 둔 동안: 30분마다 하나씩 계속 나옴 (못 먹어도 쌓임)
@@ -130,7 +131,7 @@ function mkEvent(WINTER) {
   const hasDot = () => active() && (st().pend > 0 || WINTER.goals.some(claimable));
   return {
     giftMul, giftOn, giftLeft, giftWait, takeGift,
-    SHOP, ITEMS, bowlLeft, buyBowl, owns, wearing, toggleWear, deco,
+    started, SHOP, ITEMS, bowlLeft, buyBowl, owns, wearing, toggleWear, deco,
     att, attReward, canAttend, attend, missed, canMakeup, mkJade: MK_JADE, attMax: ATT_MAX, attGoals: ATT_GOALS,
     active, st, room, tick, collect, claim, claimable, left, nextIn, hasDot, done,
     goals: WINTER.goals, max: WINTER.max, per: WINTER.per, get startAt() { return start(); }, endAt: end, id: WINTER.id, T: WINTER.T, cfg: WINTER,
