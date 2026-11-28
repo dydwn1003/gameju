@@ -391,26 +391,21 @@ const UI = (() => {
     TICKET.forEach((row, y) => [...row].forEach((ch, x) => { if (P[ch]) { g.fillStyle = P[ch]; g.fillRect(x, y, 1, 1); } })); return toURL(c, sc); })());
   const attIc = (r, sc = 2) => r.hours ? IC('soul', sc) : r.jade ? IC('jade', sc) : r.tickets ? ticketIc(sc) : FIC(Object.keys(r.seed)[0], 0, sc);
   // 이벤트 꾸미기 아이콘: 그림이 있는 건 저승사자에 입혀서, 부적 날리기는 부적 그림으로
-  // 부적 날리기 아이콘: 기울어진 부적에서 파란 영혼 빛이 꼬리를 그리며 피어오름 (실제 효과와 같은 색)
-  const BUJEOK = [
-    '..........bbW.',
-    '.........bWWWb',
-    '........c.bWb.',
-    '.......c...b..',
-    '......c.......',
-    '..KKKKc.......',
-    '..KYYYK.......',
-    '..KYRYK.......',
-    '..KYYYK.......',
-    '..KYRRK.......',
-    '..KYRYK.......',
-    '..KYYYK.......',
-    '..KYRYK.......',
-    '..KYYYK.......',
-    '..KKKKK.......'];
-  const bujeokIc = sc => urls['bj2' + sc] || (urls['bj2' + sc] = (() => { const c = document.createElement('canvas'); c.width = 14; c.height = 15; const g = c.getContext('2d'), P = { K: '#8a6020', Y: '#fff0a8', R: '#d8323c', c: '#7ae8ff', b: '#3a9cff', W: '#ffffff' };
-    BUJEOK.forEach((row, y) => [...row].forEach((ch, x) => { if (P[ch]) { g.fillStyle = P[ch]; g.fillRect(x, y, 1, 1); } }));
-    g.globalAlpha = 0.3; g.fillStyle = '#7ae8ff'; g.fillRect(8, 0, 6, 4); g.fillRect(6, 3, 3, 3); return toURL(c, sc); })());
+  // 부적 날리기 아이콘: 걸어가는 저승사자 + 등 뒤로 따라오는 부적 · 파란 영혼 빛과 빛 꼬리 (실제 효과 그대로)
+  const bujeokIc = sc => { const k = 'bj3' + (S().kind || 'm') + S().rank + sc; return urls[k] || (urls[k] = (() => {
+    const im = SP.tinyReaper(S().kind || 'm', S().rank, 'side', 'walk', 1, ''), W = im.width + 16, H = Math.max(im.height, 22) + 2, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d'), R = (col, x, y, w, h, al) => { g.globalAlpha = al == null ? 1 : al; g.fillStyle = col; g.fillRect(x, y, w, h); };
+    const ox = 16, oy = H - im.height - 1;
+    // 빛 꼬리: 저승사자 등 뒤에서 왼쪽으로 휘어 나가는 두 줄
+    const trail = (pts, al) => pts.forEach(([x, y], i) => { const kk = (i + 1) / pts.length; R('#3a9cff', x - 1, y - 1, 3, 3, al * kk * 0.3); R(kk > 0.7 ? '#ffffff' : '#9af0ff', x, y, 1, 1, al * kk * 0.95); });
+    trail([[1, 10], [2, 9], [3, 8], [4, 8], [5, 7], [6, 7], [7, 6], [8, 6]], 0.9);
+    trail([[3, 17], [4, 16], [5, 16], [6, 15], [7, 15], [8, 14], [9, 14], [10, 13]], 0.7);
+    // 파란 영혼 빛 (꼬리 끝)
+    [[9, 5], [11, 12]].forEach(([x, y]) => { R('#3a9cff', x - 2, y - 2, 4, 4, 0.3); R('#9af0ff', x - 1, y - 1, 2, 2, 1); R('#ffffff', x, y - 1, 1, 1, 1); });
+    // 막 나온 부적 (아직 노란 모습)
+    R('#8a6020', 12, 17, 4, 6, 1); R('#fff0a8', 13, 18, 2, 4, 1); R('#d8323c', 13, 19, 2, 1, 1); R('#d8323c', 14, 21, 1, 1, 1);
+    g.globalAlpha = 1; g.drawImage(im, ox, oy);
+    return toURL(c, sc); })()); };
   const evItemIc = (X, id, sc) => X.ITEMS[id].ch ? toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, X.ITEMS[id].ch), sc) : bujeokIc(sc);
   const evDays = X => Math.round((X.endAt() - X.startAt) / 864e5);
   function winterAttHtml() {
