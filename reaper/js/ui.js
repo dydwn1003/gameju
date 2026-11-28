@@ -391,19 +391,20 @@ const UI = (() => {
     TICKET.forEach((row, y) => [...row].forEach((ch, x) => { if (P[ch]) { g.fillStyle = P[ch]; g.fillRect(x, y, 1, 1); } })); return toURL(c, sc); })());
   const attIc = (r, sc = 2) => r.hours ? IC('soul', sc) : r.jade ? IC('jade', sc) : r.tickets ? ticketIc(sc) : FIC(Object.keys(r.seed)[0], 0, sc);
   // 이벤트 꾸미기 아이콘: 그림이 있는 건 저승사자에 입혀서, 부적 날리기는 부적 그림으로
-  // 부적 날리기 아이콘: 걸어가는 저승사자 + 등 뒤로 따라오는 부적 · 파란 영혼 빛과 빛 꼬리 (실제 효과 그대로)
-  const bujeokIc = sc => { const k = 'bj3' + (S().kind || 'm') + S().rank + sc; return urls[k] || (urls[k] = (() => {
-    const im = SP.tinyReaper(S().kind || 'm', S().rank, 'side', 'walk', 1, ''), W = im.width + 16, H = Math.max(im.height, 22) + 2, c = document.createElement('canvas'); c.width = W; c.height = H;
+  // 부적 날리기 아이콘: 정면 저승사자 + 양옆으로 날아오르는 부적 · 파란 영혼 빛과 빛 꼬리 (실제 효과 그대로)
+  const bujeokIc = sc => { const k = 'bj4' + (S().kind || 'm') + S().rank + sc; return urls[k] || (urls[k] = (() => {
+    const im = SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, ''), W = im.width + 18, H = im.height + 4, c = document.createElement('canvas'); c.width = W; c.height = H;
     const g = c.getContext('2d'), R = (col, x, y, w, h, al) => { g.globalAlpha = al == null ? 1 : al; g.fillStyle = col; g.fillRect(x, y, w, h); };
-    const ox = 16, oy = H - im.height - 1;
-    // 빛 꼬리: 저승사자 등 뒤에서 왼쪽으로 휘어 나가는 두 줄
+    const ox = 9, oy = H - im.height, cx = Math.floor(W / 2);
     const trail = (pts, al) => pts.forEach(([x, y], i) => { const kk = (i + 1) / pts.length; R('#3a9cff', x - 1, y - 1, 3, 3, al * kk * 0.3); R(kk > 0.7 ? '#ffffff' : '#9af0ff', x, y, 1, 1, al * kk * 0.95); });
-    trail([[1, 10], [2, 9], [3, 8], [4, 8], [5, 7], [6, 7], [7, 6], [8, 6]], 0.9);
-    trail([[3, 17], [4, 16], [5, 16], [6, 15], [7, 15], [8, 14], [9, 14], [10, 13]], 0.7);
-    // 파란 영혼 빛 (꼬리 끝)
-    [[9, 5], [11, 12]].forEach(([x, y]) => { R('#3a9cff', x - 2, y - 2, 4, 4, 0.3); R('#9af0ff', x - 1, y - 1, 2, 2, 1); R('#ffffff', x, y - 1, 1, 1, 1); });
-    // 막 나온 부적 (아직 노란 모습)
-    R('#8a6020', 12, 17, 4, 6, 1); R('#fff0a8', 13, 18, 2, 4, 1); R('#d8323c', 13, 19, 2, 1, 1); R('#d8323c', 14, 21, 1, 1, 1);
+    const wisp = (x, y) => { R('#3a9cff', x - 2, y - 2, 4, 4, 0.3); R('#9af0ff', x - 1, y - 1, 2, 2, 1); R('#ffffff', x, y - 1, 1, 1, 1); };
+    const paper = (x, y) => { R('#8a6020', x, y, 4, 6, 1); R('#fff0a8', x + 1, y + 1, 2, 4, 1); R('#d8323c', x + 1, y + 2, 2, 1, 1); R('#d8323c', x + 2, y + 4, 1, 1, 1); };
+    // 등 뒤에서 양옆 위로 휘어 날아가는 빛 꼬리 (좌우 대칭)
+    const L1 = [[cx - 4, 14], [cx - 6, 12], [cx - 8, 10], [cx - 9, 8], [cx - 10, 6], [cx - 11, 5], [cx - 12, 4]];
+    const L2 = [[cx - 5, 20], [cx - 7, 19], [cx - 9, 18], [cx - 11, 17], [cx - 12, 16], [cx - 13, 15]];
+    [L1, L2].forEach((L, j) => { trail(L, j ? 0.7 : 0.9); trail(L.map(([x, y]) => [W - 1 - x, y]), j ? 0.7 : 0.9); });
+    wisp(cx - 12, 3); wisp(W - 1 - (cx - 12), 3); wisp(cx - 14, 14);
+    paper(W - 1 - (cx - 14) - 2, 11);                                    // 막 날아오른 노란 부적 (곧 영혼 빛으로)
     g.globalAlpha = 1; g.drawImage(im, ox, oy);
     return toURL(c, sc); })()); };
   const evItemIc = (X, id, sc) => X.ITEMS[id].ch ? toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, X.ITEMS[id].ch), sc) : bujeokIc(sc);
