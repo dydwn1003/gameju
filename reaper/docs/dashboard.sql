@@ -19,8 +19,10 @@ begin
   st as (select s.*, dv.d0, dv.lg as dlg from stats s join dv on dv.dev = s.dev),
   price(pid, won) as (values ('jade_100',1200),('jade_550',5900),('jade_1200',12000),('starter_pack',1200),('promo_pack',3300),('yeomra_seal_7d',9900),('remove_ads',6900),
     ('chair_cc0',1200),('chair_cc1',1900),('chair_cc2',2500),('chair_cc3',3300),('chair_cc4',3900),('chair_cc5',4900),('chair_cc6',5900),('chair_cc7',7900),('chair_cc8',9900)),
+  gprice(pid, won) as (values ('jade100',1200),('jade550',5900),('jade1200',12000),('starter',1200),('promo',3300),('perm2',9900),('noads',6900)),
+  gbuy as (select s.user_id, k.key as pid, case when k.value ~ '^[0-9]+$' then k.value::int else 0 end as qty from sv s cross join lateral jsonb_each_text(coalesce(s.data -> 'bought', '{}'::jsonb)) k),
   rc as (select r.*, coalesce(p.won, 0) as won, (r.created_at at time zone 'Asia/Seoul')::date as d from iap_receipts r left join price p on p.pid = r.product
-         where (r.user_id is null or r.user_id not in (select user_id from adm)) and coalesce(r.info ->> 'sandbox', 'false') <> 'true'
+         where (r.user_id is null or r.user_id not in (select user_id from adm)) and coalesce(r.info ->> 'sandbox', 'false') <> 'true' and coalesce(r.info ->> 'test', 'false') <> 'true'   -- 애플 샌드박스 · 구글 테스트 결제 제외
            and not exists (select 1 from iap_refunds f where f.store = r.store and f.tx_id = r.tx_id))
   select jsonb_build_object(
     'at', to_char(now() at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI'), 'today', to_char(td, 'MM-DD'),
@@ -86,7 +88,10 @@ begin
       'payers30', (select count(distinct coalesce(user_id::text, dev)) from rc where created_at > now() - interval '30 days'),
       'payers_all', (select count(distinct coalesce(user_id::text, dev)) from rc),
       'by', (select coalesce(jsonb_agg(x order by x.won desc), '[]') from (select product as p, count(*) as n, sum(won) as won from rc group by product) x),
-      'refunds30', (select count(*) from iap_refunds where created_at > now() - interval '30 days')),
+      'refunds30', (select count(*) from iap_refunds where created_at > now() - interval '30 days'),
+      -- 게임 저장 기록 기준 (로그인 계정 · 처음부터 · 결제 확인 전 구매와 아이폰 결제도 포함, 날짜는 없음)
+      'game_won', (select coalesce(sum(b.qty * coalesce(p.won, 0)), 0) from gbuy b left join gprice p on p.pid = b.pid),
+      'game_payers', (select count(distinct user_id) from gbuy where qty > 0 and pid in (select pid from gprice))),
     'safe', jsonb_build_object(
       'bans', (select count(*) from bans),
       'flags7', (select count(*) from anticheat_log where action = 'flag' and at > now() - interval '7 days'),

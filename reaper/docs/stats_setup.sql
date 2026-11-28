@@ -24,6 +24,8 @@ declare v_today date := (now() at time zone 'Asia/Seoul')::date;
 begin
   if p_dev is null or length(p_dev) < 8 or length(p_dev) > 64 then return; end if;
   if p_day is null or p_day < v_today - 1 or p_day > v_today + 1 then return; end if; -- 시계가 크게 틀린 기기는 버림
+  if p_day > v_today then p_day := v_today; end if;                                   -- 시계가 앞선 기기: 아직 오지 않은 날짜 대신 서버의 한국 시간 오늘로
+  if p_first > p_day then p_first := p_day; end if;
   insert into stats (dev, day, first_day, sec, sessions, os, ver, lang, login, rank, lv)
   values (p_dev, p_day, least(coalesce(p_first, p_day), p_day), least(greatest(coalesce(p_sec, 0), 0), 86400), least(greatest(coalesce(p_n, 1), 1), 500),
           left(p_os, 16), left(p_ver, 16), left(p_lang, 8), p_login, least(greatest(coalesce(p_rank, 0), 0), 99), least(greatest(coalesce(p_lv, 0), 0), 100000))

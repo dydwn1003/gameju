@@ -1036,8 +1036,9 @@ const UI = (() => {
       <h4>처음 흐름 <small>저장 기록이 있는 계정 · 지금 기준</small></h4>${fl.map(([k, v]) => `<div class="ds-row"><span>${k}</span><i style="width:${Math.round((v || 0) / Math.max(1, F.save || 1) * 100)}%"></i><b>${n(v)} <small>${F.save ? Math.round((v || 0) / F.save * 100) : 0}%</small></b></div>`).join('')}
       <h4>계급 <small>윤회 전 · 지금 기준 · 오른쪽은 일주일 넘게 안 온 비율</small></h4>${(d.rank || []).map(x => `<div class="ds-row"><span>${RANKS[x.r] ? RANKS[x.r].name : x.r}</span><i style="width:${Math.round(x.n / Math.max(1, ...(d.rank || []).map(y => y.n)) * 100)}%"></i><b>${x.n} <small>${x.gone}%</small></b></div>`).join('')}
       ${Object.keys(d.reborn || {}).length ? `<h4>윤회 <small>지금 기준</small></h4>${list(d.reborn, '명')}` : ''}
-      <h4>결제 <small>${esc(d.at.slice(5))}까지 · 테스트 결제 · 환불 · 운영자 제외</small></h4>
-      <div class="ds-tiles">${tile('30일 매출', won(P.won30), `${RG.w30} · 결제자 ${n(P.payers30)}`)}${tile('누적 매출', won(P.won_all), `결제자 ${n(P.payers_all)}`)}${tile('30일 환불', n(P.refunds30))}</div>
+      <h4>결제 <small>${esc(d.at.slice(5))}까지 · 테스트 결제 · 환불 · 운영자 · 정지 계정 제외</small></h4>
+      <div class="ds-tiles">${tile('30일 매출', won(P.won30), `${RG.w30} · 결제자 ${n(P.payers30)}`)}${tile('누적 매출 (서버 확인)', won(P.won_all), `결제자 ${n(P.payers_all)}`)}${tile('누적 매출 (게임 기록)', won(P.game_won), `로그인 결제자 ${n(P.game_payers)}`)}${tile('30일 환불', n(P.refunds30))}</div>
+      <p class="ds-note">서버 확인 = 서버가 구글 · 애플에 직접 확인한 결제만 (결제 확인을 켠 뒤부터 · 아이폰은 확인을 켜야 들어와요). 게임 기록 = 로그인 계정의 저장 데이터에 남은 구매 횟수 × 판매가 (처음부터 · 아이폰 포함 · 게스트 제외). 두 숫자가 다른 건 이 차이 때문이에요. 날짜별 · 오늘 매출은 서버 확인 기준이에요.</p>
       <table class="ds-tb"><tr><th>상품 (누적)</th><th>건수</th><th>매출</th></tr>${(P.by || []).map(x => `<tr><td>${esc(PN[x.p] || (x.p.startsWith('chair_') ? '특제 의자 ' + x.p.slice(6) : x.p))}</td><td>${x.n}</td><td>${won(x.won)}</td></tr>`).join('') || '<tr><td colspan="3">아직 없어요</td></tr>'}</table>
       <h4>기기 · 버전 · 언어 <small>기기 · 언어 ${RG.w7} · 버전 ${RG.d3v} 접속한 설치</small></h4>${list(d.os)}${list(d.ver)}${list(d.lang)}
       <h4>안전 <small>지금 기준 · 기록 · 정지는 최근 7일</small></h4><div class="ds-tiles">${tile('정지 계정', n(SF.bans))}${tile('이상 기록', n(SF.flags7))}${tile('자동 정지', n(SF.bans7))}${tile('옥 5만 넘는 계정', n(SF.jade50k))}</div>`;
