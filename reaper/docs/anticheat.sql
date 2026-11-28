@@ -55,12 +55,16 @@ begin
   if d > lim + 300 then v_ban := coalesce(v_ban, 'tickets'); elsif d > lim then v_flags := array_append(v_flags, 'tickets'); end if;
 
   -- ③ 윤회석: 한 번에 20개 넘게 늘면 기록 · 60개 넘으면 정지 (윤회 1번 최대 6개 + 주간 교환 2개)
-  d := coalesce((n ->> 'rbStone')::numeric, 0) - coalesce((o ->> 'rbStone')::numeric, 0);
+  --    특성 초기화(옥 300)는 특성에 쓴 돌(Lv.L 까지 L×(L+1)개)을 돌려주므로, '가진 돌 + 특성에 쓴 돌' 합계로 비교
+  d := (coalesce((n ->> 'rbStone')::numeric, 0) + (select coalesce(sum(case when value ~ num then value::numeric * (value::numeric + 1) else 0 end), 0) from jsonb_each_text(case when jsonb_typeof(n -> 'rbPerk') = 'object' then n -> 'rbPerk' else '{}'::jsonb end)))
+     - (coalesce((o ->> 'rbStone')::numeric, 0) + (select coalesce(sum(case when value ~ num then value::numeric * (value::numeric + 1) else 0 end), 0) from jsonb_each_text(case when jsonb_typeof(o -> 'rbPerk') = 'object' then o -> 'rbPerk' else '{}'::jsonb end)));
+  if tg_op = 'INSERT' then   -- 처음 저장(새 기기 등): 지금까지 윤회로 받을 수 있는 돌(2+3+4+…) + 주간 교환 몫을 빼고 비교
+    lim := coalesce((n ->> 'reborn')::numeric, 0); d := d - (2 * lim + lim * (lim - 1) / 2) - 40; end if;
   if d > 60 then v_ban := coalesce(v_ban, 'stones'); elsif d > 20 then v_flags := array_append(v_flags, 'stones'); end if;
 
   -- ④ 계급 · 윤회: 한 번 저장에 계급 3단계 이상 · 윤회 2번 이상 오르면 기록
   if coalesce((n ->> 'rank')::int, 0) - coalesce((o ->> 'rank')::int, 0) >= 3 and tg_op = 'UPDATE' then v_flags := array_append(v_flags, 'rank'); end if;
-  if coalesce((n ->> 'reborn')::int, 0) - coalesce((o ->> 'reborn')::int, 0) >= 2 then v_flags := array_append(v_flags, 'reborn'); end if;
+  if coalesce((n ->> 'reborn')::int, 0) - coalesce((o ->> 'reborn')::int, 0) >= 2 and tg_op = 'UPDATE' then v_flags := array_append(v_flags, 'reborn'); end if;
 
   -- ⑤ 결제로만 얻는 것: 염라의 인장 · 광고 제거 · 특제 의자를 결제 기록 없이 얻었으면 기록
   if coalesce((n ->> 'sealUntil')::numeric, 0) > coalesce((o ->> 'sealUntil')::numeric, 0) + 86400000
