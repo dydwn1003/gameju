@@ -29,6 +29,7 @@ declare
   num constant text := '^-?[0-9.]+(e[+-]?[0-9]+)?$';
 begin
   if auth.uid() is null then return new; end if;                 -- 운영자(SQL Editor) 작업은 통과
+  if exists (select 1 from admins a where a.user_id = new.user_id) then return new; end if;   -- 운영자 계정(admins)은 시험용이라 검사 안 함
   if tg_op = 'UPDATE' then v_since := old.updated_at; v_hours := least(extract(epoch from now() - old.updated_at) / 3600, 24 * 7);
   else v_since := now() - interval '30 days'; v_hours := least(coalesce((n ->> 'playSec')::numeric, 0) / 3600, 24 * 7); end if;
 
