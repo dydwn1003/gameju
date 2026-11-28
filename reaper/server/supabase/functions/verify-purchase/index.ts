@@ -126,14 +126,19 @@ Deno.serve(async (req) => {
   // 로그인한 사람이면 누구의 결제인지 기록 (게스트는 비워 둠)
   // 플랫폼별 검증 끄기: config/iap 에 { android: false } 또는 { ios: false } 가 있으면 그 플랫폼은 확인 없이 통과
   //   (SQL: select set_iap_platform('ios', false);) — 한쪽 설정이 아직 안 끝났을 때 다른 쪽만 먼저 켜려고
-  try {
-    const { data: cfg } = await admin.from('docs').select('data').eq('path', 'config/iap').maybeSingle();
-    if (cfg?.data && cfg.data[platform] === false) return ok({ skipped: true });
-  } catch (_) { /* 설정을 못 읽으면 그대로 검증 */ }
-
   let uid: string | null = null;
   const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   if (jwt) { try { const { data } = await admin.auth.getUser(jwt); uid = data?.user?.id ?? null; } catch (_) { /* 게스트 */ } }
+
+  try {
+    const { data: cfg } = await admin.from('docs').select('data').eq('path', 'config/iap').maybeSingle();
+    if (cfg?.data && cfg.data[platform] === false) {
+      // 확인 없이 통과시키되 결제 기록은 남김 (저장 조작 검사가 이 결제의 옥을 허용량에 넣을 수 있게)
+      const sid = (platform === 'ios' ? txId : token) || `${product}:${Date.now()}`;
+      await admin.from('iap_receipts').insert({ store: platform === 'ios' ? 'apple' : 'google', tx_id: 'unverified:' + sid, product, user_id: uid, info: { skipped: true }, dev: String(p.dev ?? '').slice(0, 64) || null });
+      return ok({ skipped: true });
+    }
+  } catch (_) { /* 설정을 못 읽으면 그대로 검증 */ }
 
   let store = '', id = '', info: Record<string, unknown> = {};
   try {
