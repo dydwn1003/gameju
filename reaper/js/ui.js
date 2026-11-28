@@ -368,10 +368,10 @@ const UI = (() => {
     if (attDay && dNow !== attDay && document.querySelector('#modal.on .wa')) winterAttBox();
     attDay = dNow;
     const E = EvNow(), on = E.active(), b = $('#btn-winter'); if (!b) return;
-    b.hidden = !on; $('#snow').hidden = !Winter.active() || Scene.inOffice() || !!S().snowOff;   // 눈은 겨울 이벤트에만 · 설정에서 끌 수 있음
+    b.hidden = !on; b.style.display = on ? '' : 'none'; $('#snow').hidden = !Winter.active() || Scene.inOffice() || !!S().snowOff;   // 눈은 겨울 이벤트에만 · 설정에서 끌 수 있음
     Scene.setXmas(Winter.active()); Scene.setNy && Scene.setNy(NewYear.active());
     const wch = E.ITEMS[E.attGoals[0].id].ch;
-    const wa = $('#btn-wattend'); if (wa) { wa.hidden = !on; wa.querySelector('.dot').classList.toggle('on', on && (E.canAttend() || E.canMakeup())); if (on && wa.dataset.ev !== E.id) { wa.dataset.ev = E.id; $('#wattend-ic').src = toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, wch), 2); } }
+    const wa = $('#btn-wattend'); if (wa) { wa.hidden = !on; wa.style.display = on ? '' : 'none'; wa.querySelector('.dot').classList.toggle('on', on && (E.canAttend() || E.canMakeup())); if (on && wa.dataset.ev !== E.id) { wa.dataset.ev = E.id; $('#wattend-ic').src = toURL(SP.tinyReaper(S().kind || 'm', S().rank, 'down', 'idle', 0, wch), 2); } }
     document.body.classList.toggle('ev-ny', on && E.T.theme === 'ny');
     // 끝난 이벤트: 모았는데 못 받은 보상은 자동으로 지급 (이벤트마다 한 번)
     [Winter, NewYear].forEach(X => { if (X.active() || X.left() > 0 || !S().kind || winterLate[X.id]) return; const e0 = (S().ev || {})[X.id]; if (!e0 || !e0.n) return; winterLate[X.id] = true;
