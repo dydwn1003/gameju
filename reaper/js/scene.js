@@ -542,23 +542,37 @@ const Scene = (() => {
     P('#1a0f14', 29, 13, 5, 7); P('#d8323c', 30, 14, 3, 5); P('#ffd34a', 30, 13, 3, 1); P('#ffd34a', 31, 16, 1, 2);   // 복주머니
     return (xmasImg[k] = c);
   }
-  // 부적 날리기 (새해 출석 28일): 걸을 때 지나간 자리에 작은 부적이 흩날림
+  // 부적 날리기 (새해 출석 28일): 걸을 때 등 뒤에서 작은 부적이 날아올라 빛나는 꼬리(잔상)를 그리며 곡선으로 흩어졌다가 팔랑이며 내려앉음
   let tal = [], talD = 0, talLast = null;
   function talTick(dt) {
     const on = hooks.trail && hooks.trail();
     if (on) { if (talLast) talD += Math.hypot(reaper.x - talLast.x, reaper.y - talLast.y); talLast = { x: reaper.x, y: reaper.y };
-      if (talD > 6) { talD = 0; tal.push({ x: reaper.x + rnd(-3, 3), y: reaper.y - rnd(0, 3), z: rnd(4, 9), vz: rnd(10, 18), vx: rnd(-6, 6), t: 0, life: rnd(1.4, 2.0), sp: rnd(5, 9), ph: rnd(0, 6) }); if (tal.length > 40) tal.shift(); } }
+      if (talD > 9) { talD = 0; const s = Math.random() < 0.5 ? -1 : 1;
+        tal.push({ x: reaper.x - reaper.face * 2, y: reaper.y - 1, z: 9, vx: s * rnd(14, 26), vy: rnd(-6, 6), vz: rnd(16, 24), curl: s * rnd(2.5, 4), t: 0, life: rnd(1.8, 2.4), sp: rnd(6, 10), ph: rnd(0, 6), hist: [] }); if (tal.length > 30) tal.shift(); } }
     else { talLast = null; talD = 0; }
-    tal.forEach(p => { p.t += dt; p.vz -= 26 * dt; p.z = Math.max(0, p.z + p.vz * dt); if (p.z > 0) p.x += (p.vx + Math.sin(p.t * p.sp + p.ph) * 8) * dt; }); tal = tal.filter(p => p.t < p.life);
+    tal.forEach(p => { p.t += dt;
+      if (p.t < 0.7) { const c = Math.cos(p.curl * dt), s = Math.sin(p.curl * dt), vx = p.vx * c - p.vy * s; p.vy = p.vx * s + p.vy * c; p.vx = vx; p.vz -= 18 * dt; }   // 날아오르며 휘어짐
+      else { p.vx *= 1 - 2.5 * dt; p.vy *= 1 - 2.5 * dt; p.vz = Math.max(-7, p.vz - 30 * dt); }                                                                     // 힘이 빠지면 팔랑이며 내려옴
+      p.x += (p.vx + (p.t > 0.7 ? Math.sin(p.t * p.sp + p.ph) * 6 : 0)) * dt; p.y += p.vy * dt * 0.5; p.z = Math.max(0, p.z + p.vz * dt);
+      p.hist.push({ x: p.x, y: p.y - p.z }); if (p.hist.length > 14) p.hist.shift(); });
+    tal = tal.filter(p => p.t < p.life);
   }
   function talDraw(p) {
-    const a = Math.min(1, (p.life - p.t) / 0.5), x = Math.round(p.x - camX), y = Math.round(p.y - camY - p.z), fl = Math.floor(p.t * p.sp + p.ph) % 3;   // 팔랑팔랑: 세로 · 옆으로 누움 · 가로
+    const a = Math.min(1, (p.life - p.t) / 0.5), x = Math.round(p.x - camX), y = Math.round(p.y - camY - p.z), fl = Math.floor(p.t * p.sp + p.ph) % 3;
     const R = (c, x0, y0, w, h) => { g.fillStyle = c; g.fillRect(x0, y0, w, h); };
-    if (p.z <= 0) { g.globalAlpha = a * 0.3; R('#000', x - 2, y + 3, 4, 1); }
+    // 잔상: 지나온 자리에 빛 꼬리 (날아오를 때 진하고, 내려앉으며 옅어짐)
+    const tr = Math.max(0, 1 - p.t / 1.3) * a;
+    if (tr > 0.02) { const H = p.hist.concat([{ x: p.x, y: p.y - p.z }]);   // 지나온 점들을 이어서 끊기지 않는 빛줄기로
+      for (let i = 1; i < H.length; i++) { const A = H[i - 1], B = H[i], k = i / (H.length - 1), n = Math.max(1, Math.ceil(Math.hypot(B.x - A.x, B.y - A.y)));
+        for (let j = 0; j < n; j++) { const px = Math.round(A.x + (B.x - A.x) * j / n - camX), py = Math.round(A.y + (B.y - A.y) * j / n - camY);
+          g.globalAlpha = tr * k * 0.35; R('#7ae8ff', px - 1, py, 3, 1); R('#7ae8ff', px, py - 1, 1, 3);   // 바깥 푸른 빛
+          g.globalAlpha = tr * k * 0.9; R(k > 0.6 ? '#ffffff' : '#fff6c8', px, py, 1, 1); } } }   // 가운데 밝은 줄
+    if (tr > 0.02) { g.globalAlpha = tr * 0.3; R('#fff6c8', x - 2, y - 2, 4, 4); }   // 부적 둘레 은은한 빛
+    if (p.z <= 0) { g.globalAlpha = a * 0.3; R('#000', x - 1, y + 2, 3, 1); }
     g.globalAlpha = a;
-    if (fl === 0) { R('#fff0a8', x - 2, y - 3, 4, 6); R('#d8a838', x + 1, y - 3, 1, 6); R('#d8323c', x - 1, y - 2, 2, 1); R('#d8323c', x - 1, y, 2, 2); }          // 세로 부적
-    else if (fl === 1) { R('#fff0a8', x - 1, y - 3, 2, 6); R('#d8a838', x, y - 3, 1, 6); R('#d8323c', x - 1, y - 1, 1, 2); }                                    // 옆으로 돌아감
-    else { R('#fff0a8', x - 3, y - 2, 6, 4); R('#d8a838', x - 3, y + 1, 6, 1); R('#d8323c', x - 2, y - 1, 1, 2); R('#d8323c', x, y - 1, 2, 2); }              // 가로로 누움
+    if (fl === 0) { R('#fff0a8', x - 1, y - 2, 2, 4); R('#d8323c', x, y - 1, 1, 2); }          // 세로
+    else if (fl === 1) { R('#fff0a8', x, y - 2, 1, 4); R('#d8323c', x, y - 1, 1, 1); }          // 옆으로 돌아감
+    else { R('#fff0a8', x - 2, y - 1, 4, 2); R('#d8323c', x - 1, y, 2, 1); }                    // 가로
     g.globalAlpha = 1;
   }
   function sprite(img, x, y, flip) { const im = flip ? flipOf(img) : img; g.drawImage(im, Math.round(x - camX - im.width / 2), Math.round(y - camY - im.height + 1)); return im; }
