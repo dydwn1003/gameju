@@ -1,9 +1,8 @@
 -- ===== 저장 조작 막기 (Supabase SQL Editor 에 통째로 붙여 넣고 Run · 여러 번 실행해도 안전) =====
--- 게임이 서버에 저장을 올릴 때마다, 지난 저장보다 옥이 '말이 안 되게' 늘었는지 서버가 검사한다.
---   허용량 = 기본 3,000 + 지난 저장 뒤 지난 시간 × 시간당 600 (최대 7일치)
---          + 그동안 서버가 확인한 결제의 옥 + 최근 30일 운영자 우편의 옥
---   허용량을 넘으면 → anticheat_log 에 기록 (운영자가 확인)
---   허용량보다 20,000 이상 많으면 → 저장을 막고 계정을 자동 정지 (메모리 조작 앱 등으로 옥을 바꾼 경우)
+-- 게임이 서버에 저장을 올릴 때마다, 지난 저장과 비교해서 '말이 안 되게' 바뀐 게 있는지 서버가 검사한다.
+--   정지(저장 막음): 옥 · 소환권 · 윤회석이 허용량을 크게 넘게 늘었을 때
+--   기록만(운영자 확인): 위 재화가 허용량을 조금 넘음 · 계급 3단계 이상 급상승 · 윤회 2번 이상 ·
+--                       결제 기록 없이 염라의 인장 · 광고 제거 · 특제 의자를 얻음
 -- 운영자가 SQL Editor 에서 직접 고치는 저장(로그인 없음)은 검사하지 않음.
 -- 먼저 security_update.sql (bans · iap_receipts) 과 refund_update.sql (dev 칸) 이 실행돼 있어야 함.
 
@@ -18,45 +17,69 @@ create table if not exists public.anticheat_log (
 alter table public.anticheat_log enable row level security;
 revoke all on public.anticheat_log from anon, authenticated;
 
+alter table public.anticheat_log add column if not exists kind text;   -- 무엇이 이상했는지 (jade · tickets · stones · rank · reborn · seal · noads · cash)
+
 create or replace function public.check_save() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
-  v_old numeric := 0; v_new numeric; v_since timestamptz; v_hours numeric := 0; v_paid numeric := 0; v_mail numeric := 0; v_allowed numeric; v_dev text;
+  o jsonb := case when tg_op = 'UPDATE' then old.data else '{}'::jsonb end; n jsonb := new.data;
+  v_since timestamptz; v_hours numeric; v_dev text := new.data ->> 'devId';
+  v_paid numeric := 0; v_mail_jade numeric := 0; v_mail_tk numeric := 0; v_seal_paid int := 0; v_noads_paid int := 0; v_cash_paid int := 0;
+  d numeric; lim numeric; v_ban text := null; v_flags text[] := '{}';
+  num constant text := '^-?[0-9.]+(e[+-]?[0-9]+)?$';
 begin
   if auth.uid() is null then return new; end if;                 -- 운영자(SQL Editor) 작업은 통과
-  v_new := coalesce((new.data ->> 'jade')::numeric, 0);
-  v_dev := new.data ->> 'devId';
-  if tg_op = 'UPDATE' then
-    v_old := coalesce((old.data ->> 'jade')::numeric, 0);
-    v_since := old.updated_at;
-    v_hours := least(extract(epoch from now() - old.updated_at) / 3600, 24 * 7);
-  else
-    v_since := now() - interval '30 days';
-    v_hours := least(coalesce((new.data ->> 'playSec')::numeric, 0) / 3600, 24 * 7);   -- 처음 올리는 저장: 게스트로 플레이한 시간만큼
-  end if;
-  if v_new - v_old <= 3000 then return new; end if;              -- 대부분은 여기서 끝 (빠름)
+  if tg_op = 'UPDATE' then v_since := old.updated_at; v_hours := least(extract(epoch from now() - old.updated_at) / 3600, 24 * 7);
+  else v_since := now() - interval '30 days'; v_hours := least(coalesce((n ->> 'playSec')::numeric, 0) / 3600, 24 * 7); end if;
 
-  select coalesce(sum(case r.product when 'jade_100' then 100 when 'jade_550' then 550 when 'jade_1200' then 1200
-                                      when 'starter_pack' then 200 when 'promo_pack' then 300 else 0 end), 0)
-    into v_paid from iap_receipts r
+  -- 그동안 서버가 확인한 결제 · 최근 운영자 우편
+  select coalesce(sum(case r.product when 'jade_100' then 100 when 'jade_550' then 550 when 'jade_1200' then 1200 when 'starter_pack' then 200 when 'promo_pack' then 300 else 0 end), 0),
+         count(*) filter (where r.product = 'yeomra_seal_7d'), count(*) filter (where r.product = 'remove_ads'),
+         count(*) filter (where r.product not in ('jade_100','jade_550','jade_1200','starter_pack','promo_pack','yeomra_seal_7d','remove_ads'))
+    into v_paid, v_seal_paid, v_noads_paid, v_cash_paid
+    from iap_receipts r
    where (r.user_id = new.user_id or (r.user_id is null and v_dev is not null and r.dev = v_dev))
-     and r.created_at > v_since - interval '1 hour';
-  select coalesce(sum(coalesce((d.data ->> 'jade')::numeric, 0)), 0) into v_mail
-    from docs d where d.col = 'mail' and d.updated_at > now() - interval '30 days';
+     and (r.created_at > v_since - interval '1 hour' or r.product = 'remove_ads');
+  select coalesce(sum(coalesce((x.data ->> 'jade')::numeric, 0)), 0), coalesce(sum(coalesce((x.data ->> 'tickets')::numeric, 0)), 0)
+    into v_mail_jade, v_mail_tk from docs x where x.col = 'mail' and x.updated_at > now() - interval '30 days';
 
-  v_allowed := 3000 + v_hours * 600 + v_paid + v_mail;
-  if v_new - v_old <= v_allowed then return new; end if;
+  -- ① 옥: 3,000 + 시간당 600 + 결제 + 우편 · 2만 넘게 초과하면 정지
+  d := coalesce((n ->> 'jade')::numeric, 0) - coalesce((o ->> 'jade')::numeric, 0);
+  lim := 3000 + v_hours * 600 + v_paid + v_mail_jade;
+  if d > lim + 20000 then v_ban := 'jade'; elsif d > lim then v_flags := array_append(v_flags, 'jade'); end if;
 
-  if v_new - v_old > v_allowed + 20000 then
-    insert into anticheat_log (user_id, old_jade, new_jade, allowed, action, note)
-      values (new.user_id, v_old, v_new, v_allowed, 'ban', tg_op);
+  -- ② 소환권: 20 + 시간당 3 + 우편 · 300장 넘게 초과하면 정지
+  d := coalesce((n ->> 'tickets')::numeric, 0) - coalesce((o ->> 'tickets')::numeric, 0);
+  lim := 20 + v_hours * 3 + v_mail_tk;
+  if d > lim + 300 then v_ban := coalesce(v_ban, 'tickets'); elsif d > lim then v_flags := array_append(v_flags, 'tickets'); end if;
+
+  -- ③ 윤회석: 한 번에 20개 넘게 늘면 기록 · 60개 넘으면 정지 (윤회 1번 최대 6개 + 주간 교환 2개)
+  d := coalesce((n ->> 'rbStone')::numeric, 0) - coalesce((o ->> 'rbStone')::numeric, 0);
+  if d > 60 then v_ban := coalesce(v_ban, 'stones'); elsif d > 20 then v_flags := array_append(v_flags, 'stones'); end if;
+
+  -- ④ 계급 · 윤회: 한 번 저장에 계급 3단계 이상 · 윤회 2번 이상 오르면 기록
+  if coalesce((n ->> 'rank')::int, 0) - coalesce((o ->> 'rank')::int, 0) >= 3 and tg_op = 'UPDATE' then v_flags := array_append(v_flags, 'rank'); end if;
+  if coalesce((n ->> 'reborn')::int, 0) - coalesce((o ->> 'reborn')::int, 0) >= 2 then v_flags := array_append(v_flags, 'reborn'); end if;
+
+  -- ⑤ 결제로만 얻는 것: 염라의 인장 · 광고 제거 · 특제 의자를 결제 기록 없이 얻었으면 기록
+  if coalesce((n ->> 'sealUntil')::numeric, 0) > coalesce((o ->> 'sealUntil')::numeric, 0) + 86400000
+     and coalesce((n ->> 'sealUntil')::numeric, 0) > extract(epoch from now()) * 1000 + 86400000 and v_seal_paid = 0 then v_flags := array_append(v_flags, 'seal'); end if;
+  if coalesce((n ->> 'noAds')::boolean, false) and not coalesce((o ->> 'noAds')::boolean, false) and v_noads_paid = 0 then v_flags := array_append(v_flags, 'noads'); end if;
+  if (select coalesce(sum(coalesce((value)::text::numeric, 0)), 0) from jsonb_each(coalesce(n -> 'decor' -> 'own', '{}')) where key like 'cc%')
+   > (select coalesce(sum(coalesce((value)::text::numeric, 0)), 0) from jsonb_each(coalesce(o -> 'decor' -> 'own', '{}')) where key like 'cc%') and v_cash_paid = 0 then v_flags := array_append(v_flags, 'cash'); end if;
+
+  if v_ban is not null then
+    insert into anticheat_log (user_id, old_jade, new_jade, allowed, action, kind, note)
+      values (new.user_id, (o ->> 'jade')::numeric, (n ->> 'jade')::numeric, null, 'ban', v_ban, tg_op);
     insert into bans (user_id, reason) values (new.user_id, '저장 데이터 조작 (비정상 재화)') on conflict (user_id) do nothing;
     delete from docs where col in ('rank', 'offices', 'visits') and doc_id = new.user_id::text;
-    if tg_op = 'UPDATE' then return old; end if;                 -- 서버 저장은 예전 그대로 둠
+    if tg_op = 'UPDATE' then return old; end if;                 -- 서버 저장은 예전 그대로
     return null;                                                  -- 처음 저장이면 아예 올리지 않음
   end if;
-  insert into anticheat_log (user_id, old_jade, new_jade, allowed, action, note)
-    values (new.user_id, v_old, v_new, v_allowed, 'flag', tg_op);
+  if array_length(v_flags, 1) > 0 then
+    insert into anticheat_log (user_id, old_jade, new_jade, allowed, action, kind, note)
+      values (new.user_id, (o ->> 'jade')::numeric, (n ->> 'jade')::numeric, null, 'flag', array_to_string(v_flags, ','), tg_op);
+  end if;
   return new;
 end $$;
 drop trigger if exists saves_anticheat on public.saves;
@@ -64,8 +87,9 @@ create trigger saves_anticheat before insert or update of data on public.saves
   for each row execute function public.check_save();
 
 -- 걸린 기록 보기 (최근 순)
-create or replace view public.anticheat_list as
-  select upper(left(replace(l.user_id::text, '-', ''), 8)) as code, s.data ->> 'name' as nick, l.action, l.old_jade, l.new_jade, l.allowed,
+drop view if exists public.anticheat_list;
+create view public.anticheat_list as
+  select upper(left(replace(l.user_id::text, '-', ''), 8)) as code, s.data ->> 'name' as nick, l.action, l.kind, l.old_jade, l.new_jade,
          l.at at time zone 'Asia/Seoul' as at_kst, l.note
   from anticheat_log l left join saves s on s.user_id = l.user_id order by l.at desc;
 revoke all on public.anticheat_list from anon, authenticated;
