@@ -1015,23 +1015,30 @@ const UI = (() => {
     const F = d.funnel || {}, fl = [['저장 있음', F.save], ['캐릭터 만듦', F.kind], ['튜토리얼 끝', F.tut], ['닉네임', F.nick], ['집무실 안내', F.office], ['선임 차사 이상', F.r3], ['염라대왕 · 윤회', F.r8]];
     const PN = { jade_100: '옥 100', jade_550: '옥 550', jade_1200: '옥 1,200', starter_pack: '신입 패키지', promo_pack: '승진 응원', yeomra_seal_7d: '염라의 인장', remove_ads: '광고 제거' };
     const RT = d.ret || {}, P = d.pay || {}, SF = d.safe || {};
-    el.innerHTML = `<p class="mute ds-at">${esc(d.at)} 기준 · 기기 통계는 게스트 포함 · 계정 숫자는 운영자 · 정지 계정 제외</p>
-      <div class="ds-tiles">${tile('오늘 접속 (DAU)', n(S0.dau), `게스트 ${n(S0.dau_guest)}`)}${tile('오늘 신규 기기', n(S0.new), `게스트 ${n(S0.new_guest)}`)}${tile('7일 (WAU)', n(S0.wau))}${tile('30일 (MAU)', n(S0.mau))}
-        ${tile('가입 계정', n(S0.accounts), `저장 ${n(S0.saves)}`)}${tile('누적 기기', n(S0.devices), `로그인 ${n(S0.dev_login)} · 게스트 ${n(S0.dev_guest)}`)}${tile('오늘 평균 플레이', `${S0.avg_min}분`)}${tile('하루 안에 저장', n(S0.saved_1d))}</div>
-      <h4>날짜별 접속 <small>진한 부분 = 게스트</small></h4>${bars(x => x.dau, x => x.dau_g, mx, 'dau')}
-      <h4>날짜별 신규 기기 <small>진한 부분 = 게스트</small></h4>${bars(x => x.new, x => x.new_g, mxn, 'new')}
-      <h4>날짜별 매출 <small>서버가 확인한 결제 · 환불 제외</small></h4>${bars(x => x.won, null, mxw, 'won')}
-      <h4>재접속률 <small>처음 온 날 뒤 N일째 다시 온 기기</small></h4>
-      <div class="ds-tiles">${tile('D1', pc(RT.d1), `로그인 ${pc(RT.d1_login)} · 게스트 ${pc(RT.d1_guest)}`)}${tile('D3', pc(RT.d3))}${tile('D7', pc(RT.d7))}</div>
-      <table class="ds-tb"><tr><th>시작한 날</th><th>기기</th><th>D1</th><th>D3</th><th>D7</th><th>게스트</th></tr>${(d.cohort || []).map(c => `<tr><td>${c.d}</td><td>${c.size}</td><td>${c.d1}%</td><td>${c.d3}%</td><td>${c.d7}%</td><td>${c.guest}%</td></tr>`).join('') || '<tr><td colspan="6">아직 없어요</td></tr>'}</table>
-      <h4>처음 흐름 <small>저장 기록이 있는 계정</small></h4>${fl.map(([k, v]) => `<div class="ds-row"><span>${k}</span><i style="width:${Math.round((v || 0) / Math.max(1, F.save || 1) * 100)}%"></i><b>${n(v)} <small>${F.save ? Math.round((v || 0) / F.save * 100) : 0}%</small></b></div>`).join('')}
-      <h4>계급 <small>윤회 전 · 오른쪽은 일주일 넘게 안 온 비율</small></h4>${(d.rank || []).map(x => `<div class="ds-row"><span>${RANKS[x.r] ? RANKS[x.r].name : x.r}</span><i style="width:${Math.round(x.n / Math.max(1, ...(d.rank || []).map(y => y.n)) * 100)}%"></i><b>${x.n} <small>${x.gone}%</small></b></div>`).join('')}
-      ${Object.keys(d.reborn || {}).length ? `<h4>윤회</h4>${list(d.reborn, '명')}` : ''}
-      <h4>결제 <small>테스트 결제 · 환불 · 운영자 제외</small></h4>
-      <div class="ds-tiles">${tile('30일 매출', won(P.won30), `결제자 ${n(P.payers30)}`)}${tile('누적 매출', won(P.won_all), `결제자 ${n(P.payers_all)}`)}${tile('30일 환불', n(P.refunds30))}</div>
-      <table class="ds-tb"><tr><th>상품</th><th>건수</th><th>매출</th></tr>${(P.by || []).map(x => `<tr><td>${esc(PN[x.p] || (x.p.startsWith('chair_') ? '특제 의자 ' + x.p.slice(6) : x.p))}</td><td>${x.n}</td><td>${won(x.won)}</td></tr>`).join('') || '<tr><td colspan="3">아직 없어요</td></tr>'}</table>
-      <h4>기기 · 버전 · 언어 <small>최근 접속 기기</small></h4>${list(d.os)}${list(d.ver)}${list(d.lang)}
-      <h4>안전</h4><div class="ds-tiles">${tile('정지 계정', n(SF.bans))}${tile('7일 이상 기록', n(SF.flags7))}${tile('7일 자동 정지', n(SF.bans7))}${tile('옥 5만 넘는 계정', n(SF.jade50k))}</div>`;
+    const RG = d.rng || {}, TD = d.today || '';
+    el.innerHTML = `<p class="ds-at"><b>${esc(d.at)}</b> 기준 (한국 시간) · 숫자는 모두 게스트 포함 · 계정 숫자는 운영자 · 정지 계정 제외</p>
+      <h4>오늘 <small>${TD} 0시 ~ ${esc(d.at.slice(11))}</small></h4>
+      <div class="ds-tiles">${tile('오늘 접속', n(S0.dau), `그중 게스트 ${n(S0.dau_guest)}`)}${tile('오늘 새 설치', n(S0.new), `그중 게스트 ${n(S0.new_guest)}`)}${tile('오늘 평균 플레이', `${S0.avg_min}분`, '오늘 접속한 사람 평균')}${tile('오늘 매출', won(P.won_today), `결제자 ${n(P.payers_today)} · 어제 ${won(P.won_yday)}`)}</div>
+      <h4>기간 <small>오늘 포함</small></h4>
+      <div class="ds-tiles">${tile('7일 접속', n(S0.wau), RG.w7)}${tile('30일 접속', n(S0.mau), RG.w30)}${tile('24시간 안에 플레이한 계정', n(S0.saved_1d), '로그인 계정 · 서버 저장 기준')}</div>
+      <h4>누적 <small>처음부터 ${esc(d.at.slice(5))}까지</small></h4>
+      <div class="ds-tiles">${tile('설치 수', n(S0.devices), `로그인한 설치 ${n(S0.dev_login)} · 게스트 ${n(S0.dev_guest)}`)}${tile('가입 계정', n(S0.accounts), `저장 기록 있는 계정 ${n(S0.saves)}`)}</div>
+      <p class="ds-note">설치 수는 기기(앱 설치) 기준이라 계정 수와 다를 수 있어요. 같은 사람이 다시 설치하면 2번 세고, 통계 기능이 들어가기 전에만 접속한 계정은 설치 수에 없어요.</p>
+      <h4>날짜별 접속 <small>최근 ${days.length}일 · 오늘(${TD})은 지금까지 · 진한 부분 = 게스트</small></h4>${bars(x => x.dau, x => x.dau_g, mx, 'dau')}
+      <h4>날짜별 새 설치 <small>오늘은 지금까지 · 진한 부분 = 게스트</small></h4>${bars(x => x.new, x => x.new_g, mxn, 'new')}
+      <h4>날짜별 매출 <small>오늘은 지금까지 · 서버가 확인한 결제 · 환불 제외 · 마지막 결제 ${esc(P.last || '-')}</small></h4>${bars(x => x.won, null, mxw, 'won')}
+      <h4>재접속률 <small>처음 온 날 뒤 N일째 다시 온 설치 · 결과가 나온 날까지만</small></h4>
+      <div class="ds-tiles">${tile('D1 (다음 날)', pc(RT.d1), `${RG.d1} 시작 · 로그인 ${pc(RT.d1_login)} · 게스트 ${pc(RT.d1_guest)}`)}${tile('D3 (3일 뒤)', pc(RT.d3), `${RG.d3} 시작`)}${tile('D7 (7일 뒤)', pc(RT.d7), `${RG.d7} 시작`)}</div>
+      <table class="ds-tb"><tr><th>시작한 날</th><th>설치</th><th>D1</th><th>D3</th><th>D7</th><th>게스트</th></tr>${(d.cohort || []).map(c => `<tr><td>${c.d}</td><td>${c.size}</td><td>${c.d1}%</td><td>${c.d3}%</td><td>${c.d7}%</td><td>${c.guest}%</td></tr>`).join('') || '<tr><td colspan="6">아직 없어요</td></tr>'}</table>
+      <p class="ds-note">아직 그날이 오지 않은 칸은 0%로 보여요 (예: 어제 시작한 설치의 D3).</p>
+      <h4>처음 흐름 <small>저장 기록이 있는 계정 · 지금 기준</small></h4>${fl.map(([k, v]) => `<div class="ds-row"><span>${k}</span><i style="width:${Math.round((v || 0) / Math.max(1, F.save || 1) * 100)}%"></i><b>${n(v)} <small>${F.save ? Math.round((v || 0) / F.save * 100) : 0}%</small></b></div>`).join('')}
+      <h4>계급 <small>윤회 전 · 지금 기준 · 오른쪽은 일주일 넘게 안 온 비율</small></h4>${(d.rank || []).map(x => `<div class="ds-row"><span>${RANKS[x.r] ? RANKS[x.r].name : x.r}</span><i style="width:${Math.round(x.n / Math.max(1, ...(d.rank || []).map(y => y.n)) * 100)}%"></i><b>${x.n} <small>${x.gone}%</small></b></div>`).join('')}
+      ${Object.keys(d.reborn || {}).length ? `<h4>윤회 <small>지금 기준</small></h4>${list(d.reborn, '명')}` : ''}
+      <h4>결제 <small>${esc(d.at.slice(5))}까지 · 테스트 결제 · 환불 · 운영자 제외</small></h4>
+      <div class="ds-tiles">${tile('30일 매출', won(P.won30), `${RG.w30} · 결제자 ${n(P.payers30)}`)}${tile('누적 매출', won(P.won_all), `결제자 ${n(P.payers_all)}`)}${tile('30일 환불', n(P.refunds30))}</div>
+      <table class="ds-tb"><tr><th>상품 (누적)</th><th>건수</th><th>매출</th></tr>${(P.by || []).map(x => `<tr><td>${esc(PN[x.p] || (x.p.startsWith('chair_') ? '특제 의자 ' + x.p.slice(6) : x.p))}</td><td>${x.n}</td><td>${won(x.won)}</td></tr>`).join('') || '<tr><td colspan="3">아직 없어요</td></tr>'}</table>
+      <h4>기기 · 버전 · 언어 <small>기기 · 언어 ${RG.w7} · 버전 ${RG.d3v} 접속한 설치</small></h4>${list(d.os)}${list(d.ver)}${list(d.lang)}
+      <h4>안전 <small>지금 기준 · 기록 · 정지는 최근 7일</small></h4><div class="ds-tiles">${tile('정지 계정', n(SF.bans))}${tile('이상 기록', n(SF.flags7))}${tile('자동 정지', n(SF.bans7))}${tile('옥 5만 넘는 계정', n(SF.jade50k))}</div>`;
   }
   function adminNotice() {
     const box = modal(`<h2>✍️ 공지 쓰기</h2><p class="mute">모든 플레이어에게 보여요</p>

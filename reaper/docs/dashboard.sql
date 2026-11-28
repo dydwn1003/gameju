@@ -23,7 +23,9 @@ begin
          where (r.user_id is null or r.user_id not in (select user_id from adm)) and coalesce(r.info ->> 'sandbox', 'false') <> 'true'
            and not exists (select 1 from iap_refunds f where f.store = r.store and f.tx_id = r.tx_id))
   select jsonb_build_object(
-    'at', to_char(now() at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI'),
+    'at', to_char(now() at time zone 'Asia/Seoul', 'YYYY-MM-DD HH24:MI'), 'today', to_char(td, 'MM-DD'),
+    'rng', jsonb_build_object('d1', to_char(td - 14, 'MM-DD') || '~' || to_char(td - 1, 'MM-DD'), 'd3', to_char(td - 16, 'MM-DD') || '~' || to_char(td - 3, 'MM-DD'), 'd7', to_char(td - 20, 'MM-DD') || '~' || to_char(td - 7, 'MM-DD'),
+      'w7', to_char(td - 6, 'MM-DD') || '~' || to_char(td, 'MM-DD'), 'w30', to_char(td - 29, 'MM-DD') || '~' || to_char(td, 'MM-DD'), 'd3v', to_char(td - 2, 'MM-DD') || '~' || to_char(td, 'MM-DD')),
     'sum', jsonb_build_object(
       'accounts', (select count(*) from auth.users where id not in (select user_id from adm)),
       'saves', (select count(*) from sv),
@@ -68,6 +70,9 @@ begin
       'r3', (select count(*) from sv where coalesce((data ->> 'rank')::int, 0) >= 3 or coalesce((data ->> 'reborn')::int, 0) > 0),
       'r8', (select count(*) from sv where coalesce((data ->> 'rank')::int, 0) >= 8 or coalesce((data ->> 'reborn')::int, 0) > 0)),
     'pay', jsonb_build_object(   -- 서버가 확인한 결제 기록 기준 (환불 · 테스트 결제 · 운영자 제외)
+      'won_today', (select coalesce(sum(won), 0) from rc where d = td), 'won_yday', (select coalesce(sum(won), 0) from rc where d = td - 1),
+      'payers_today', (select count(distinct coalesce(user_id::text, dev)) from rc where d = td),
+      'last', (select to_char(max(created_at) at time zone 'Asia/Seoul', 'MM-DD HH24:MI') from rc),
       'won30', (select coalesce(sum(won), 0) from rc where created_at > now() - interval '30 days'),
       'won_all', (select coalesce(sum(won), 0) from rc),
       'payers30', (select count(distinct coalesce(user_id::text, dev)) from rc where created_at > now() - interval '30 days'),
